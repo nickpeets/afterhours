@@ -384,6 +384,7 @@ let ROOM_STATE={members:[],profs:{}};
 async function openRoom(r){
   CURRENT_ROOM=r;
   AMHOST=r.host_id===ME.id;
+  await syncServerClock();
   $("lobby").style.display="none";
   $("room").classList.add("show");
   $("rt_title").textContent=r.contestant_name||"Room";
@@ -480,10 +481,27 @@ function renderRoom(){
   }
 }
 
-/* ---- synced clock: compute remaining from seated_at + clock_left ---- */
+/* ---- server-time offset: every viewer computes the clock against the SERVER's now,
+   not their own device clock, so two devices with skewed clocks stay in sync ---- */
+let SERVER_OFFSET=0; // ms to add to local Date.now() to get server time
+async function syncServerClock(){
+  try{
+    const t0=Date.now();
+    const {data,error}=await sb.rpc("server_now");
+    const t1=Date.now();
+    if(error||!data) return;
+    const serverMs=new Date(data).getTime();
+    const rtt=t1-t0;
+    // estimate server "now" at the moment our response arrived, minus half the round trip
+    SERVER_OFFSET = serverMs + rtt/2 - t1;
+  }catch(e){ /* leave offset 0 */ }
+}
+function serverNow(){ return Date.now()+SERVER_OFFSET; }
+
+/* ---- synced clock: compute remaining from seated_at + clock_left against SERVER time ---- */
 function clockRemaining(c){
   if(!c.seated_at || c.clock_left==null) return c.clock_left||0;
-  const elapsed=(Date.now()-new Date(c.seated_at).getTime())/1000;
+  const elapsed=(serverNow()-new Date(c.seated_at).getTime())/1000;
   return Math.max(0, Math.round(c.clock_left - elapsed));
 }
 function fmtClock(s){ s=Math.max(0,s); const m=Math.floor(s/60); const ss=s%60; return m+":"+(ss<10?"0":"")+ss; }

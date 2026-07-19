@@ -15,7 +15,7 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
-body{background:var(--ink);color:var(--paper);font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;overflow:hidden}
+body{background:var(--ink);color:var(--paper);font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;overflow:hidden;touch-action:pan-x pan-y;-webkit-text-size-adjust:100%}
 h1,h2,h3{font-family:"Alfa Slab One",Georgia,serif;font-weight:400}
 #app{height:100vh;height:100dvh;display:flex;flex-direction:column;max-width:520px;margin:0 auto;position:relative;background:linear-gradient(180deg,var(--ink),var(--velvet))}
 header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(255,61,127,.25);background:rgba(20,9,15,.9);z-index:20}
@@ -138,7 +138,7 @@ main{flex:1;overflow-y:auto;position:relative}
 .emptyrole{color:var(--dim);font-size:12px;font-style:italic}
 
 /* CHAT STRIP — fills remaining space, ~4-5 msgs, scroll up & vanish under lineup */
-.chatstrip{flex:1;min-height:0;max-height:120px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;padding:6px 14px;-webkit-mask-image:linear-gradient(transparent,#000 24px);mask-image:linear-gradient(transparent,#000 24px)}
+.chatstrip{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;padding:6px 14px 2px;-webkit-mask-image:linear-gradient(transparent,#000 24px);mask-image:linear-gradient(transparent,#000 24px)}
 .floatmsg{font-size:13px;line-height:1.35;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);animation:fadein .3s;flex-shrink:0}
 .floatmsg .cu{font-weight:800;color:var(--neon-soft)}
 .floatmsg.feed{color:var(--gold)}.floatmsg.feed.cool{color:var(--cool)}.floatmsg.feed.neon{color:var(--neon-soft)}
@@ -240,7 +240,7 @@ main{flex:1;overflow-y:auto;position:relative}
     <!-- ROOM — full show on one screen -->
     <div id="room">
       <div class="roomtop">
-        <button class="backbtn" id="roomback">‹</button>
+        <button class="backbtn" id="roomback">‹ Lobby</button>
         <div class="roomtitle" id="rt_title"></div>
         <div class="cnt" id="rt_count">👁 0</div>
       </div>
@@ -270,9 +270,8 @@ main{flex:1;overflow-y:auto;position:relative}
         <button class="ib-send" id="rt_chatsend">➤</button>
       </div>
 
-      <!-- host: last call only. suitor: join line / leave -->
+      <!-- host: last call. suitor: join/leave line. exit is the ‹ Lobby arrow up top. -->
       <div class="roomact">
-        <button class="leaveroom" id="rt_leave">Leave</button>
         <button class="endshow" id="rt_endshow" style="display:none">🎬 Last Call</button>
         <button class="joinline" id="rt_joinline">Join the Line</button>
       </div>
@@ -458,7 +457,6 @@ async function openRoom(r){
   $("rt_hostbadge").style.display=AMHOST?"block":"none";
   $("rt_joinline").style.display=AMHOST?"none":"block";
   $("rt_endshow").style.display=AMHOST?"block":"none";
-  $("rt_leave").style.display=AMHOST?"none":"block";   // host's exit IS Last Call
 
   const {data:hp}=await sb.from("profiles").select("*").eq("id",r.host_id).single();
   HOST_PROFILE=hp;
@@ -926,7 +924,6 @@ function updateJoinBtn(){
   else { btn.style.display="block"; btn.textContent="Join the Line"; }
 }
 
-$("rt_leave").onclick=()=>leaveRoom();
 $("roomback").onclick=()=>leaveRoom();
 async function leaveRoom(){
   const leaving=CURRENT_ROOM;

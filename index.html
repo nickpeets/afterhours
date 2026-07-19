@@ -468,6 +468,7 @@ async function openRoom(r){
   subscribeRoom(r.id);
   startHeartbeat();
   startClockTick();
+  startHostPoll();
 }
 
 // pull fresh, ghost-filtered members via active_members RPC
@@ -593,6 +594,26 @@ function startHeartbeat(){
   HEARTBEAT=setInterval(()=>{ if(CURRENT_ROOM) sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id}); },25000);
 }
 function stopHeartbeat(){ if(HEARTBEAT){clearInterval(HEARTBEAT);HEARTBEAT=null;} }
+
+/* host doesn't receive room_members realtime pushes (no membership row / RLS),
+   so poll the roster as a fallback. also: everyone polls room status so a
+   suitor knows when the host ended the show. */
+let HOST_POLL=null;
+function startHostPoll(){
+  stopHostPoll();
+  HOST_POLL=setInterval(async()=>{
+    if(!CURRENT_ROOM) return;
+    // refresh roster (host needs this; harmless for suitor)
+    if(AMHOST) loadRoomState();
+    // everyone: detect the room being ended out from under them
+    const {data:rm}=await sb.from("rooms").select("status,winner_id").eq("id",CURRENT_ROOM.id).single();
+    if(rm && rm.status==="ended" && !$("finale").classList.contains("show")){
+      // host ended (or left) — show the ending and bail
+      renderFinale(rm.winner_id||null);
+    }
+  },4000);
+}
+function stopHostPoll(){ if(HOST_POLL){clearInterval(HOST_POLL);HOST_POLL=null;} }
 
 /* ---- host actions ---- */
 async function hostSeat(uid){
@@ -854,11 +875,17 @@ $("rt_leave").onclick=()=>leaveRoom();
 $("roomback").onclick=()=>leaveRoom();
 async function leaveRoom(){
   const leaving=CURRENT_ROOM;
-  stopHeartbeat(); stopClockTick();
+  stopHeartbeat(); stopClockTick(); stopHostPoll();
   if(ROOM_CHANNEL){ sb.removeChannel(ROOM_CHANNEL); ROOM_CHANNEL=null; }
-  if(leaving && leaving.host_id!==ME.id){
-    const {error}=await sb.rpc("leave_room",{room_id:leaving.id});
-    if(error) console.log("leave_room:",error.message);
+  if(leaving){
+    if(leaving.host_id===ME.id){
+      // the host IS the show — leaving ends it (unless already ended via finale)
+      const {error}=await sb.rpc("end_show",{room_id:leaving.id,winner_id:null});
+      if(error) console.log("host end_show on leave:",error.message);
+    } else {
+      const {error}=await sb.rpc("leave_room",{room_id:leaving.id});
+      if(error) console.log("leave_room:",error.message);
+    }
   }
   CURRENT_ROOM=null;
   $("room").classList.remove("show");

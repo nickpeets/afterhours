@@ -152,6 +152,28 @@ main{flex:1;overflow-y:auto;position:relative}
 .giftbtn .gc{font-size:9px;color:var(--gold);font-weight:700}
 .giftfly{position:fixed;font-size:34px;pointer-events:none;z-index:301;animation:giftfloat 1.8s ease-out forwards}
 @keyframes giftfloat{0%{opacity:0;transform:translateY(20px) scale(.5)}20%{opacity:1;transform:translateY(-10px) scale(1.3)}100%{opacity:0;transform:translateY(-140px) scale(1)}}
+/* finale */
+.endshow{background:linear-gradient(180deg,#ffd75e,#ffb52e);color:#4a2a00;border:none;border-radius:10px;padding:11px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;font-family:"Alfa Slab One",Georgia,serif}
+#finale{position:absolute;inset:0;z-index:120;background:radial-gradient(ellipse 80% 55% at 50% 20%,rgba(93,20,32,.97),rgba(20,7,4,.99));display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;overflow-y:auto}
+#finale.show{display:flex}
+#finale h1{font-size:30px;color:var(--gold);margin-bottom:6px;text-shadow:2px 2px 0 #430a13}
+#finale .fsub{font-size:13px;color:var(--neon-soft);margin-bottom:20px;line-height:1.5}
+.finalists{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:20px}
+.finalist{border-radius:14px;border:2px solid var(--gold);background:rgba(20,9,15,.5);padding:14px;width:120px;cursor:pointer;transition:transform .15s}
+.finalist:hover{transform:scale(1.05);border-color:var(--neon)}
+.finalist .ff{width:64px;height:64px;border-radius:50%;background-size:cover;margin:0 auto 8px}
+.finalist .fn{font-size:13px;font-weight:700}
+.finalist .fh{font-size:11px;color:var(--neon-soft);margin-top:2px}
+.finalist.picked{border-color:var(--neon);box-shadow:0 0 20px rgba(255,61,127,.5)}
+.winnerbig{margin:10px 0 18px}
+.winnerbig .wf{width:120px;height:120px;border-radius:50%;background-size:cover;margin:0 auto 12px;border:3px solid var(--gold);box-shadow:0 0 30px rgba(245,192,78,.5)}
+.winnerbig .wn{font-size:24px;font-family:"Alfa Slab One",Georgia,serif;color:var(--gold)}
+.fbtn{padding:13px 24px;border:none;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;margin:5px}
+.fbtn.gold{background:var(--gold);color:#3a2a00}
+.fbtn.ghost{background:transparent;border:1.5px solid var(--dim);color:var(--dim)}
+.fbtn.neon{background:var(--neon);color:#fff;font-family:"Alfa Slab One",Georgia,serif}
+.recapcard{background:rgba(20,9,15,.6);border:1px solid var(--gold);border-radius:16px;padding:20px;max-width:320px;margin:0 auto}
+.recapcard .rline{font-size:13px;color:var(--paper);margin:6px 0;line-height:1.5}
 </style>
 </head>
 <body>
@@ -219,13 +241,13 @@ main{flex:1;overflow-y:auto;position:relative}
           <div class="plate"><div class="role">TONIGHT'S CONTESTANT</div><div class="nm" id="rt_host"></div></div>
         </div>
         <div class="rostersect">
-          <div class="rlabel">IN THE CHAIRS</div>
-          <div class="chairs-grid" id="rt_chairs"></div>
+          <div class="rlabel">THE LINE</div>
+          <div class="roster" id="rt_line"><span class="emptyrole">line is empty</span></div>
           <div class="hosthint" id="rt_hosthint" style="display:none">You're the host — tap someone in the line to seat them.</div>
         </div>
         <div class="rostersect">
-          <div class="rlabel">THE LINE</div>
-          <div class="roster" id="rt_line"><span class="emptyrole">line is empty</span></div>
+          <div class="rlabel">IN THE CHAIRS</div>
+          <div class="chairs-grid" id="rt_chairs"></div>
         </div>
         <div class="rostersect">
           <div class="rlabel">WATCHING</div>
@@ -243,7 +265,12 @@ main{flex:1;overflow-y:auto;position:relative}
       </div>
       <div class="roomact">
         <button class="leaveroom" id="rt_leave">Leave</button>
+        <button class="endshow" id="rt_endshow" style="display:none">🎬 Last Call</button>
         <button class="joinline" id="rt_joinline">Join the Line</button>
+      </div>
+      <!-- FINALE -->
+      <div id="finale">
+        <div id="finale_inner"></div>
       </div>
     </div>
 
@@ -424,6 +451,7 @@ async function openRoom(r){
   $("rt_hostbadge").style.display=AMHOST?"block":"none";
   $("rt_joinline").style.display=AMHOST?"none":"block";
   $("rt_hosthint").style.display=AMHOST?"block":"none";
+  $("rt_endshow").style.display=AMHOST?"block":"none";
 
   const {data:hp}=await sb.from("profiles").select("*").eq("id",r.host_id).single();
   HOST_PROFILE=hp;
@@ -707,6 +735,9 @@ async function handleEvent(ev){
     case "block":
       addFeedLine(`someone was removed from the room`,"neon");
       break;
+    case "finale":
+      renderFinale((p.winner_id!==undefined && p.winner_id!==null) ? p.winner_id : null);
+      break;
   }
 }
 
@@ -721,6 +752,83 @@ async function loadEventHistory(){
   }
   // refresh chair heart counts after seeding
   renderRoom();
+}
+
+/* ============ FINALE ============ */
+$("rt_endshow").onclick=()=>{ if(AMHOST) showLastCall(); };
+function keptFinalists(){ return ROOM_STATE.members.filter(m=>m.role==="kept"); }
+
+function showLastCall(){
+  const finalists=keptFinalists();
+  const inner=$("finale_inner");
+  if(!finalists.length){
+    inner.innerHTML=`<h1>LAST CALL</h1>
+      <div class="fsub">No one's been kept — there's no finalist board.<br>You can still close the show.</div>
+      <button class="fbtn ghost" id="fin_walk">End with no match</button>
+      <button class="fbtn ghost" id="fin_cancel">Not yet</button>`;
+  } else {
+    inner.innerHTML=`<h1>LAST CALL</h1>
+      <div class="fsub">Your finalists. Choose the one — or walk away and keep them all as callbacks.</div>
+      <div class="finalists" id="fin_board"></div>
+      <button class="fbtn ghost" id="fin_walk">Walk alone →</button>
+      <button class="fbtn ghost" id="fin_cancel">Not yet</button>`;
+    const board=$("fin_board");
+    finalists.forEach(f=>{
+      const p=ROOM_STATE.profs[f.user_id]; const nm=p?.display_name||"someone";
+      const fc=p?.face_json?faceCss(p.face_json):"#555";
+      const d=document.createElement("div"); d.className="finalist";
+      d.innerHTML=`<div class="ff" style="background:${fc}"></div><div class="fn">${escapeHtml(nm)}</div><div class="fh">♥ ${HEARTS[f.user_id]||0}</div>`;
+      d.onclick=()=>confirmWinner(f.user_id,nm);
+      board.appendChild(d);
+    });
+  }
+  $("finale").classList.add("show");
+  $("fin_walk")?.addEventListener("click",()=>endShow(null));
+  $("fin_cancel")?.addEventListener("click",()=>$("finale").classList.remove("show"));
+}
+
+function confirmWinner(uid,nm){
+  const inner=$("finale_inner");
+  inner.innerHTML=`<h1>CHOOSE ${escapeHtml(nm)}?</h1>
+    <div class="fsub">This ends the show. ${escapeHtml(nm)} is your pick — the two of you leave together.</div>
+    <button class="fbtn neon" id="fin_confirm">Yes — it's ${escapeHtml(nm)}</button>
+    <button class="fbtn ghost" id="fin_back">Back</button>`;
+  $("fin_confirm").onclick=()=>endShow(uid);
+  $("fin_back").onclick=()=>showLastCall();
+}
+
+async function endShow(winnerUid){
+  const {error}=await sb.rpc("end_show",{room_id:CURRENT_ROOM.id,winner_id:winnerUid});
+  if(error){ toast("Couldn't end show: "+error.message); return; }
+}
+
+function renderFinale(winnerUid){
+  const inner=$("finale_inner");
+  if(winnerUid){
+    const p=ROOM_STATE.profs[winnerUid]||PROF_CACHE[winnerUid];
+    const nm=p?.display_name||"the winner";
+    const fc=p?.face_json?faceCss(p.face_json):"#555";
+    inner.innerHTML=`<h1>IT'S ${escapeHtml(nm.toUpperCase())}</h1>
+      <div class="winnerbig"><div class="wf" style="background:${fc}"></div><div class="wn">${escapeHtml(nm)}</div></div>
+      <div class="fsub">${escapeHtml(CURRENT_ROOM.contestant_name||"The contestant")} made their choice.<br>They're leaving together — the crowd funded the spectacle, the prize is privacy.</div>
+      <div class="recapcard">
+        <div class="rline">🎬 <b>${escapeHtml(CURRENT_ROOM.contestant_name||"")}</b>'s show</div>
+        <div class="rline">👑 Winner: <b>${escapeHtml(nm)}</b></div>
+        <div class="rline">The room made its call. That's a wrap.</div>
+      </div>
+      <button class="fbtn gold" id="fin_done" style="margin-top:16px">Back to lobby</button>`;
+  } else {
+    inner.innerHTML=`<h1>WALKED ALONE</h1>
+      <div class="fsub">No match tonight — but the kept finalists become callbacks.<br>To be continued.</div>
+      <div class="recapcard">
+        <div class="rline">🎬 <b>${escapeHtml(CURRENT_ROOM.contestant_name||"")}</b>'s show</div>
+        <div class="rline">🚶 Walked alone — no match</div>
+        <div class="rline">Callbacks saved. The story continues another night.</div>
+      </div>
+      <button class="fbtn gold" id="fin_done" style="margin-top:16px">Back to lobby</button>`;
+  }
+  $("finale").classList.add("show");
+  $("fin_done").onclick=()=>{ $("finale").classList.remove("show"); leaveRoom(); };
 }
 
 function subscribeRoom(roomId){

@@ -131,6 +131,27 @@ main{flex:1;overflow-y:auto;position:relative}
 .linepick{cursor:pointer;border:1px solid transparent}
 .linepick:hover{border-color:var(--gold)}
 .hosthint{font-size:10px;color:var(--cool);text-align:center;margin-top:6px;font-style:italic}
+/* C4 reactive layer */
+.heart-tap{cursor:pointer;position:relative}
+.flyheart{position:fixed;font-size:20px;pointer-events:none;z-index:300;animation:floatup 1.3s ease-out forwards}
+@keyframes floatup{0%{opacity:1;transform:translateY(0) scale(.6)}30%{opacity:1;transform:translateY(-24px) scale(1.15)}100%{opacity:0;transform:translateY(-90px) scale(.9)}}
+.chair .chearts{position:absolute;bottom:4px;left:4px;font-size:10px;color:var(--neon-soft);font-weight:700}
+.crowdfeed{border-top:1px solid rgba(255,61,127,.15);padding:8px 14px;max-height:96px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;background:rgba(20,9,15,.4)}
+.feedline{font-size:11px;line-height:1.4;animation:fadein .3s}
+.feedline.gold{color:var(--gold)}.feedline.cool{color:var(--cool)}.feedline.neon{color:var(--neon-soft)}.feedline .who{font-weight:800}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+.chatwrap{border-top:1px solid rgba(255,61,127,.2);display:flex;flex-direction:column;max-height:150px}
+.chatlog{flex:1;overflow-y:auto;padding:8px 14px;display:flex;flex-direction:column;gap:5px;min-height:60px}
+.chatmsg{font-size:12px;line-height:1.4}.chatmsg .cu{font-weight:800;color:var(--neon-soft)}
+.chatinput-row{display:flex;gap:6px;padding:8px 10px;border-top:1px solid rgba(253,243,236,.08)}
+.chatinput-row input{flex:1;background:rgba(253,243,236,.07);border:1px solid rgba(253,243,236,.15);border-radius:999px;color:var(--paper);padding:8px 14px;font-size:13px;outline:none}
+.chatinput-row input:focus{border-color:var(--neon)}
+.chatsend{background:var(--neon);border:none;color:#fff;border-radius:50%;width:36px;height:36px;font-size:15px;cursor:pointer;flex-shrink:0}
+.gifttray{display:flex;gap:6px;padding:8px 14px;border-top:1px solid rgba(245,192,78,.15);overflow-x:auto}
+.giftbtn{flex-shrink:0;background:rgba(245,192,78,.1);border:1px solid rgba(245,192,78,.35);border-radius:10px;padding:6px 10px;font-size:16px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:52px}
+.giftbtn .gc{font-size:9px;color:var(--gold);font-weight:700}
+.giftfly{position:fixed;font-size:34px;pointer-events:none;z-index:301;animation:giftfloat 1.8s ease-out forwards}
+@keyframes giftfloat{0%{opacity:0;transform:translateY(20px) scale(.5)}20%{opacity:1;transform:translateY(-10px) scale(1.3)}100%{opacity:0;transform:translateY(-140px) scale(1)}}
 </style>
 </head>
 <body>
@@ -209,6 +230,15 @@ main{flex:1;overflow-y:auto;position:relative}
         <div class="rostersect">
           <div class="rlabel">WATCHING</div>
           <div class="roster" id="rt_spectators"><span class="emptyrole">just you so far</span></div>
+        </div>
+      </div>
+      <div class="crowdfeed" id="rt_feed"></div>
+      <div class="gifttray" id="rt_gifts"></div>
+      <div class="chatwrap">
+        <div class="chatlog" id="rt_chatlog"></div>
+        <div class="chatinput-row">
+          <input type="text" id="rt_chatinput" placeholder="Say something to the room…" maxlength="140">
+          <button class="chatsend" id="rt_chatsend">➤</button>
         </div>
       </div>
       <div class="roomact">
@@ -308,6 +338,8 @@ $("signout").onclick=async()=>{await sb.auth.signOut();location.reload();};
 
 /* ============ APP ENTRY ============ */
 let ME=null, MYPROFILE=null;
+let COINS=120;
+function updateWallet(){ const c=$("coinchip"); if(c) c.textContent="✦ "+COINS; }
 async function enterApp(){
   const {data:{user}}=await sb.auth.getUser();
   if(!user){return;}
@@ -403,6 +435,8 @@ async function openRoom(r){
   }
 
   await loadRoomState();
+  await loadEventHistory();
+  renderGiftTray();
   subscribeRoom(r.id);
   startHeartbeat();
   startClockTick();
@@ -441,11 +475,12 @@ function renderRoom(){
       const fc=p?.face_json?faceCss(p.face_json):"#555";
       const kept=c.role==="kept";
       const secs=clockRemaining(c);
-      chairsHtml+=`<div class="chair filled${kept?' kept':''}">
+      chairsHtml+=`<div class="chair filled${kept?' kept':''} heart-tap" data-heartuid="${c.user_id}">
         ${kept?'<div class="kepttag">KEPT ✦</div>':''}
         <div class="cf" style="background:${fc}"></div>
         <div class="cn">${escapeHtml(nm)}${c.user_id===ME.id?' (you)':''}</div>
         ${kept?'':`<div class="cclock${secs<=10?' low':''}" data-uid="${c.user_id}">${fmtClock(secs)}</div>`}
+        <div class="chearts" data-hearts="${c.user_id}">♥ ${HEARTS[c.user_id]||0}</div>
         ${(AMHOST&&!kept)?`<div class="hostctl"><button class="hc-keep" data-uid="${c.user_id}">Keep</button><button class="hc-pass" data-uid="${c.user_id}">Pass</button></div>`:''}
       </div>`;
     } else {
@@ -476,9 +511,13 @@ function renderRoom(){
     $("rt_line").querySelectorAll(".linepick").forEach(el=>{
       el.onclick=()=>hostSeat(el.dataset.uid);
     });
-    $("rt_chairs").querySelectorAll(".hc-keep").forEach(b=>b.onclick=()=>hostKeep(b.dataset.uid));
-    $("rt_chairs").querySelectorAll(".hc-pass").forEach(b=>b.onclick=()=>hostPass(b.dataset.uid));
+    $("rt_chairs").querySelectorAll(".hc-keep").forEach(b=>b.onclick=(e)=>{e.stopPropagation();hostKeep(b.dataset.uid);});
+    $("rt_chairs").querySelectorAll(".hc-pass").forEach(b=>b.onclick=(e)=>{e.stopPropagation();hostPass(b.dataset.uid);});
   }
+  // everyone: heart-tap a seated suitor (free ballot)
+  $("rt_chairs").querySelectorAll(".heart-tap").forEach(el=>{
+    el.onclick=(ev)=>{ if(ev.target.closest(".hostctl")) return; sendHeart(el.dataset.heartuid, ev.clientX, ev.clientY); };
+  });
 }
 
 /* ---- server-time offset: every viewer computes the clock against the SERVER's now,
@@ -548,11 +587,135 @@ async function hostPass(uid){
   loadRoomState();
 }
 
+/* ============ C4: HEARTS / GIFTS / CHAT / FEED ============ */
+let HEARTS={};        // user_id -> heart count (this session's room)
+const GIFTS=[
+  {emoji:"🌹",cost:5,name:"Rose"},
+  {emoji:"🔥",cost:10,name:"Fire"},
+  {emoji:"💯",cost:10,name:"Hundred"},
+  {emoji:"👑",cost:25,name:"Crown"},
+  {emoji:"💍",cost:100,name:"Ring"}
+];
+
+function renderGiftTray(){
+  $("rt_gifts").innerHTML=GIFTS.map((g,i)=>
+    `<button class="giftbtn" data-gi="${i}">${g.emoji}<span class="gc">✦${g.cost}</span></button>`).join("");
+  $("rt_gifts").querySelectorAll(".giftbtn").forEach(b=>b.onclick=()=>sendGift(+b.dataset.gi));
+}
+
+async function sendHeart(targetUid,x,y){
+  flyEmoji("🩷",x,y);
+  // optimistic local bump
+  HEARTS[targetUid]=(HEARTS[targetUid]||0)+1;
+  const el=$("rt_chairs")?.querySelector(`[data-hearts="${targetUid}"]`);
+  if(el) el.textContent="♥ "+HEARTS[targetUid];
+  await sb.from("room_events").insert({room_id:CURRENT_ROOM.id,type:"heart",payload:{target:targetUid}});
+}
+
+async function sendGift(gi){
+  const g=GIFTS[gi];
+  if(COINS<g.cost){ toast("Not enough ✦ for "+g.name); return; }
+  COINS-=g.cost; updateWallet();
+  flyGift(g.emoji);
+  await sb.from("room_events").insert({room_id:CURRENT_ROOM.id,type:"gift",payload:{emoji:g.emoji,cost:g.cost,name:g.name}});
+}
+
+async function sendChat(){
+  const inp=$("rt_chatinput"); const txt=inp.value.trim();
+  if(!txt) return;
+  inp.value="";
+  await sb.from("room_events").insert({room_id:CURRENT_ROOM.id,type:"chat",payload:{text:txt}});
+}
+$("rt_chatsend").onclick=sendChat;
+$("rt_chatinput").addEventListener("keydown",e=>{ if(e.key==="Enter") sendChat(); });
+
+function flyEmoji(em,x,y){
+  const f=document.createElement("div"); f.className="flyheart"; f.textContent=em;
+  f.style.left=(x||window.innerWidth/2)+"px"; f.style.top=(y||window.innerHeight/2)+"px";
+  document.body.appendChild(f); setTimeout(()=>f.remove(),1300);
+}
+function flyGift(em){
+  const f=document.createElement("div"); f.className="giftfly"; f.textContent=em;
+  f.style.left=(window.innerWidth/2 - 17)+"px"; f.style.top=(window.innerHeight*0.55)+"px";
+  document.body.appendChild(f); setTimeout(()=>f.remove(),1800);
+}
+
+/* names for feed/chat: resolve from ROOM_STATE.profs or host */
+function nameFor(uid){
+  if(CURRENT_ROOM && uid===CURRENT_ROOM.host_id) return HOST_PROFILE?.display_name||"Host";
+  return ROOM_STATE.profs[uid]?.display_name || "someone";
+}
+
+function addFeedLine(html,cls){
+  const d=document.createElement("div"); d.className="feedline"+(cls?(" "+cls):"");
+  d.innerHTML=html;
+  const feed=$("rt_feed"); feed.appendChild(d);
+  while(feed.children.length>30) feed.removeChild(feed.firstChild);
+  feed.scrollTop=feed.scrollHeight;
+}
+function addChatLine(uid,text){
+  const d=document.createElement("div"); d.className="chatmsg";
+  d.innerHTML=`<span class="cu">${escapeHtml(nameFor(uid))}:</span> ${escapeHtml(text)}`;
+  const log=$("rt_chatlog"); log.appendChild(d);
+  while(log.children.length>60) log.removeChild(log.firstChild);
+  log.scrollTop=log.scrollHeight;
+}
+
+/* handle a realtime event row */
+function handleEvent(ev){
+  if(!ev) return;
+  const p=ev.payload||{};
+  const actor=ev.user_id;
+  switch(ev.type){
+    case "heart":
+      if(p.target && actor!==ME.id){ // count others' hearts (ours already counted optimistically)
+        HEARTS[p.target]=(HEARTS[p.target]||0)+1;
+        const el=$("rt_chairs")?.querySelector(`[data-hearts="${p.target}"]`);
+        if(el) el.textContent="♥ "+HEARTS[p.target];
+      }
+      break;
+    case "chat":
+      if(p.text) addChatLine(actor,p.text);
+      break;
+    case "gift":
+      addFeedLine(`<span class="who">${escapeHtml(nameFor(actor))}</span> sent ${p.emoji||"a gift"} <span style="opacity:.7">✦${p.cost||""}</span>`,"gold");
+      if(actor!==ME.id) flyGift(p.emoji||"🎁");
+      break;
+    case "seat":
+      addFeedLine(`<span class="who">${escapeHtml(nameFor(p.target_user))}</span> took a chair 🎬`,"cool");
+      break;
+    case "keep":
+      addFeedLine(`<span class="who">${escapeHtml(nameFor(p.target_user))}</span> was KEPT ✦✦✦`,"gold");
+      break;
+    case "pass":
+      addFeedLine(`<span class="who">${escapeHtml(nameFor(p.target_user))}</span> was passed ✕`,"neon");
+      break;
+    case "block":
+      addFeedLine(`someone was removed from the room`,"neon");
+      break;
+  }
+}
+
+/* seed feed/chat/hearts from recent history on room entry */
+async function loadEventHistory(){
+  HEARTS={};
+  const {data:events}=await sb.from("room_events").select("*").eq("room_id",CURRENT_ROOM.id).order("created_at",{ascending:true}).limit(100);
+  $("rt_feed").innerHTML=""; $("rt_chatlog").innerHTML="";
+  (events||[]).forEach(ev=>{
+    if(ev.type==="heart" && ev.payload?.target){ HEARTS[ev.payload.target]=(HEARTS[ev.payload.target]||0)+1; }
+    else handleEvent(ev);
+  });
+}
+
 function subscribeRoom(roomId){
   if(ROOM_CHANNEL){ sb.removeChannel(ROOM_CHANNEL); ROOM_CHANNEL=null; }
   ROOM_CHANNEL=sb.channel("room:"+roomId)
     .on("postgres_changes",{event:"*",schema:"public",table:"room_members",filter:"room_id=eq."+roomId},()=>loadRoomState())
-    .on("postgres_changes",{event:"*",schema:"public",table:"room_events",filter:"room_id=eq."+roomId},()=>loadRoomState())
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"room_events",filter:"room_id=eq."+roomId},(payload)=>{
+      handleEvent(payload.new);
+      // membership-affecting events also refresh roster
+      if(["seat","keep","pass","block"].includes(payload.new.type)) loadRoomState();
+    })
     .subscribe();
 }
 

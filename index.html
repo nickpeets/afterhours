@@ -367,7 +367,10 @@ $("li_go").onclick=async()=>{
   enterApp();
 };
 
-$("signout").onclick=async()=>{await sb.auth.signOut();location.reload();};
+$("signout").onclick=async()=>{
+  if(CURRENT_ROOM && !AMHOST){ try{ await sb.rpc("leave_room",{room_id:CURRENT_ROOM.id}); }catch(e){} }
+  await sb.auth.signOut(); location.reload();
+};
 
 /* ============ APP ENTRY ============ */
 let ME=null, MYPROFILE=null;
@@ -609,9 +612,30 @@ function startHeartbeat(){
   stopHeartbeat();
   if(AMHOST) return; // host has no membership row to beat
   sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id});
-  HEARTBEAT=setInterval(()=>{ if(CURRENT_ROOM) sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id}); },25000);
+  HEARTBEAT=setInterval(()=>{ if(CURRENT_ROOM) sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id}); },15000);
 }
 function stopHeartbeat(){ if(HEARTBEAT){clearInterval(HEARTBEAT);HEARTBEAT=null;} }
+
+/* best-effort clean exit: fire leave_room when the tab closes or is hidden,
+   so members don't ghost for 60s waiting on the freshness window */
+let LEFT_ON_UNLOAD=false;
+function bestEffortLeave(){
+  if(LEFT_ON_UNLOAD || !CURRENT_ROOM || AMHOST) return;
+  LEFT_ON_UNLOAD=true;
+  try{ sb.rpc("leave_room",{room_id:CURRENT_ROOM.id}); }catch(e){}
+}
+window.addEventListener("pagehide",bestEffortLeave);
+window.addEventListener("beforeunload",bestEffortLeave);
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="hidden") bestEffortLeave();
+  else if(document.visibilityState==="visible" && CURRENT_ROOM && !AMHOST){
+    // came back — re-register presence
+    LEFT_ON_UNLOAD=false;
+    sb.rpc("join_room",{room_id:CURRENT_ROOM.id});
+    sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id});
+    loadRoomState();
+  }
+});
 
 /* host doesn't receive room_members realtime pushes (no membership row / RLS),
    so poll the roster as a fallback. also: everyone polls room status so a
@@ -622,6 +646,9 @@ function startHostPoll(){
   HOST_POLL=setInterval(async()=>{
     if(!CURRENT_ROOM) return;
     if(AMHOST){
+      // sweep stale (abandoned) members to 'gone' before reading, so ghosts
+      // don't inflate the roster. safe to call repeatedly; no-op if none stale.
+      try{ await sb.rpc("sweep_stale_members",{room_id:CURRENT_ROOM.id}); }catch(e){}
       await loadRoomState();
       autoSeatFromLine();  // fill any open chair with the next person in line
     }

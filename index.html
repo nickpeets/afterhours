@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>AFTERHOURS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap" rel="stylesheet">
@@ -17,7 +17,7 @@
 html,body{height:100%}
 body{background:var(--ink);color:var(--paper);font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;overflow:hidden}
 h1,h2,h3{font-family:"Alfa Slab One",Georgia,serif;font-weight:400}
-#app{height:100vh;display:flex;flex-direction:column;max-width:520px;margin:0 auto;position:relative;background:linear-gradient(180deg,var(--ink),var(--velvet))}
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column;max-width:520px;margin:0 auto;position:relative;background:linear-gradient(180deg,var(--ink),var(--velvet))}
 header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(255,61,127,.25);background:rgba(20,9,15,.9);z-index:20}
 .logo{font-family:"Alfa Slab One",Georgia,serif;font-size:19px;color:var(--paper)}
 .logo em{color:var(--neon);font-style:normal}
@@ -90,87 +90,78 @@ main{flex:1;overflow-y:auto;position:relative}
 /* ROOM VIEW (C1) */
 #room{display:none;flex-direction:column;height:100%;overflow:hidden}
 #room.show{display:flex}
-.roomtop{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid rgba(255,61,127,.2);flex-shrink:0}
+.roomtop{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid rgba(255,61,127,.2);flex-shrink:0}
 .backbtn{background:none;border:none;color:var(--neon-soft);font-size:20px;cursor:pointer;padding:2px 8px;line-height:1}
 .roomtitle{font-size:14px;font-weight:700;font-family:"Alfa Slab One",Georgia,serif;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px}
 .roomtop .cnt{font-size:12px;color:var(--neon-soft);font-weight:700}
 
-/* STAGE — flexes to fill, holds contestant + chairs, hosts the floating layers */
-.stage{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;padding:10px 12px 6px;gap:10px;overflow:hidden}
-.contestant-hero{border-radius:14px;border:2px solid var(--gold);overflow:hidden;position:relative;flex:1;min-height:0}
+/* STAGE — fixed proportion of the screen, holds contestant + chairs + line */
+.stage{flex-shrink:0;display:flex;flex-direction:column;padding:8px 12px 6px;gap:8px}
+.contestant-hero{border-radius:12px;border:2px solid var(--gold);overflow:hidden;position:relative;height:34vh;min-height:170px}
 .contestant-hero .vid{position:absolute;inset:0;background-size:cover;background-position:center}
-.contestant-hero .plate{position:absolute;bottom:0;left:0;right:0;padding:8px 12px;background:linear-gradient(transparent,rgba(20,9,15,.92));z-index:2}
+.contestant-hero .plate{position:absolute;bottom:0;left:0;right:0;padding:7px 12px;background:linear-gradient(transparent,rgba(20,9,15,.92));z-index:2}
 .contestant-hero .role{font-size:9px;letter-spacing:.14em;color:var(--gold)}
 .contestant-hero .nm{font-weight:700;font-size:16px;font-family:"Alfa Slab One",Georgia,serif}
 .hostbadge{position:absolute;top:8px;right:8px;background:var(--neon);color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:999px;letter-spacing:.08em;z-index:2}
+.reactlayer{position:absolute;right:8px;bottom:6px;width:56px;z-index:3;pointer-events:none;height:80%}
+.flyreact{position:absolute;bottom:0;font-size:26px;animation:flyup 2.4s ease-out forwards}
+@keyframes flyup{0%{opacity:0;transform:translateY(0) scale(.5)}15%{opacity:1;transform:translateY(-20px) scale(1.2)}100%{opacity:0;transform:translateY(-160px) scale(.9) translateX(var(--drift,10px))}}
 
-/* chairs row — fixed height, always visible */
-.chairs-grid{display:flex;gap:8px;flex-shrink:0;height:118px}
-.chair{flex:1;border-radius:12px;border:1px solid rgba(245,192,78,.3);background:rgba(20,9,15,.6);padding:8px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;text-align:center}
+/* chairs — taller, readable */
+.chairs-grid{display:flex;gap:7px;flex-shrink:0;height:128px}
+.chair{flex:1;border-radius:12px;border:1px solid rgba(245,192,78,.3);background:rgba(20,9,15,.6);padding:8px 5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;text-align:center}
 .chair.filled{border-color:var(--gold)}
 .chair.kept{border-color:var(--neon)}
-.chair .cf{width:38px;height:38px;border-radius:50%;background-size:cover}
+.chair .cf{width:42px;height:42px;border-radius:50%;background-size:cover}
 .chair .cn{font-size:11px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chair .cclock{font-family:"Courier New",monospace;font-size:15px;font-weight:800;color:var(--gold);background:#0d060a;border:1px solid rgba(245,192,78,.4);border-radius:6px;padding:1px 7px}
 .chair .cclock.low{color:var(--danger);border-color:var(--danger)}
-.chair .cempty{font-size:10px;color:var(--dim);font-style:italic}
+.chair .cempty{font-size:11px;color:var(--dim);font-style:italic}
 .chair .kepttag{position:absolute;top:4px;right:4px;background:var(--neon);color:#fff;font-size:8px;font-weight:800;padding:1px 5px;border-radius:999px}
-.chair .chearts{position:absolute;bottom:3px;left:4px;font-size:10px;color:var(--neon-soft);font-weight:700}
+.chair .chearts{position:absolute;bottom:3px;left:5px;font-size:10px;color:var(--neon-soft);font-weight:700}
+.chair.heart-tap{cursor:pointer}
 .hostctl{display:flex;gap:4px;margin-top:2px;width:100%}
 .hostctl button{flex:1;padding:4px 2px;border:none;border-radius:6px;font-size:9px;font-weight:800;cursor:pointer;text-transform:uppercase}
 .hc-keep{background:var(--gold);color:#3a2a00}
 .hc-pass{background:var(--danger);color:#fff}
-.heart-tap{cursor:pointer}
 
-/* floating live layer — chat drifts up over the stage and fades */
-.livelayer{position:absolute;left:10px;bottom:6px;width:70%;z-index:3;pointer-events:none;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;max-height:60%;overflow:hidden}
-.floatmsg{font-size:12px;line-height:1.35;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);animation:driftup 6s linear forwards;background:rgba(20,9,15,.35);border-radius:10px;padding:3px 9px;align-self:flex-start;max-width:100%}
-.floatmsg .cu{font-weight:800;color:var(--neon-soft)}
-.floatmsg.feed{color:var(--gold)}.floatmsg.feed.cool{color:var(--cool)}.floatmsg.feed.neon{color:var(--neon-soft)}
-@keyframes driftup{0%{opacity:0;transform:translateY(8px)}8%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
-/* flying reactions up the right side */
-.reactlayer{position:absolute;right:8px;bottom:6px;width:56px;z-index:3;pointer-events:none;height:80%}
-.flyreact{position:absolute;bottom:0;font-size:26px;animation:flyup 2.4s ease-out forwards}
-@keyframes flyup{0%{opacity:0;transform:translateY(0) scale(.5)}15%{opacity:1;transform:translateY(-20px) scale(1.2)}100%{opacity:0;transform:translateY(-180px) scale(.9) translateX(var(--drift,10px))}}
-
-/* THE LINE — horizontal strip */
-.linestrip{flex-shrink:0;padding:6px 12px;border-top:1px solid rgba(255,61,127,.15)}
-.linelabel{font-size:10px;letter-spacing:.12em;color:var(--dim);font-weight:800;margin-bottom:5px}
-.lineitems{display:flex;gap:8px;overflow-x:auto;min-height:52px;align-items:center}
-.lineface{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;width:48px}
-.lineface .lf{width:40px;height:40px;border-radius:50%;background-size:cover;border:2px solid transparent}
-.lineface .ln{font-size:9px;max-width:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* line — 4 faces visible, scroll sideways for more */
+.linestrip{flex-shrink:0}
+.linelabel{font-size:10px;letter-spacing:.1em;color:var(--dim);font-weight:800;margin-bottom:4px}
+.linelabel .watchcount{color:var(--neon-soft);margin-left:6px}
+.lineitems{display:flex;gap:10px;overflow-x:auto;min-height:56px;align-items:center}
+.lineface{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;width:52px;cursor:pointer}
+.lineface .lf{width:44px;height:44px;border-radius:50%;background-size:cover;border:2px solid transparent}
+.lineface .ln{font-size:9px;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lineface.me .lf{border-color:var(--neon)}
-.lineface.pickable{cursor:pointer}
 .lineface.pickable .lf{border-color:var(--gold)}
 .emptyrole{color:var(--dim);font-size:12px;font-style:italic}
 
-.watchbar{flex-shrink:0;padding:0 12px 4px;font-size:10px;color:var(--dim)}
+/* CHAT STRIP — fills remaining space, ~4-5 msgs, scroll up & vanish under lineup */
+.chatstrip{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;padding:6px 14px;-webkit-mask-image:linear-gradient(transparent,#000 28px);mask-image:linear-gradient(transparent,#000 28px)}
+.floatmsg{font-size:13px;line-height:1.35;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);animation:fadein .3s;flex-shrink:0}
+.floatmsg .cu{font-weight:800;color:var(--neon-soft)}
+.floatmsg.feed{color:var(--gold)}.floatmsg.feed.cool{color:var(--cool)}.floatmsg.feed.neon{color:var(--neon-soft)}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
 
-/* INPUT BAR — chat + gift + heart in one row */
-.inputbar{flex-shrink:0;display:flex;gap:6px;align-items:center;padding:7px 10px;border-top:1px solid rgba(253,243,236,.1)}
+/* INPUT BAR */
+.inputbar{flex-shrink:0;display:flex;gap:8px;align-items:center;padding:7px 12px;border-top:1px solid rgba(253,243,236,.1)}
 .inputbar input{flex:1;background:rgba(253,243,236,.08);border:1px solid rgba(253,243,236,.15);border-radius:999px;color:var(--paper);padding:9px 14px;font-size:14px;outline:none}
 .inputbar input:focus{border-color:var(--neon)}
-.ib-gift,.ib-heart,.ib-send{border:none;border-radius:50%;width:38px;height:38px;font-size:17px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.ib-gift,.ib-send{border:none;border-radius:50%;width:38px;height:38px;font-size:17px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .ib-gift{background:rgba(245,192,78,.15);border:1px solid rgba(245,192,78,.4)}
-.ib-heart{background:rgba(255,61,127,.12);border:1px solid rgba(255,61,127,.4)}
 .ib-send{background:var(--neon);color:#fff;font-size:15px}
 
-.roomact{padding:6px 12px 10px;display:flex;gap:8px;flex-shrink:0}
+.roomact{padding:6px 12px 9px;display:flex;gap:8px;flex-shrink:0}
 .roomact button{flex:1;padding:11px;border:none;border-radius:10px;font-weight:800;font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:.04em}
 .joinline{background:var(--neon);color:#fff}
 .leaveroom{background:transparent;border:1.5px solid var(--dim);color:var(--dim)}
 .endshow{background:linear-gradient(180deg,#ffd75e,#ffb52e);color:#4a2a00;font-family:"Alfa Slab One",Georgia,serif}
 
-/* gift tray popup */
-.gifttray-pop{position:absolute;left:12px;right:12px;bottom:96px;z-index:40;background:rgba(20,9,15,.97);border:1px solid var(--gold);border-radius:14px;padding:12px;display:none;gap:8px;justify-content:space-around;flex-wrap:wrap}
+.gifttray-pop{position:absolute;left:12px;right:12px;bottom:110px;z-index:40;background:rgba(20,9,15,.97);border:1px solid var(--gold);border-radius:14px;padding:12px;display:none;gap:8px;justify-content:space-around;flex-wrap:wrap}
 .gifttray-pop.show{display:flex}
 .giftbtn{background:rgba(245,192,78,.1);border:1px solid rgba(245,192,78,.35);border-radius:10px;padding:8px 12px;font-size:22px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
 .giftbtn .gc{font-size:9px;color:var(--gold);font-weight:700}
-.giftfly{position:fixed;font-size:34px;pointer-events:none;z-index:301;animation:giftfloat 1.8s ease-out forwards}
-@keyframes giftfloat{0%{opacity:0;transform:translateY(20px) scale(.5)}20%{opacity:1;transform:translateY(-10px) scale(1.3)}100%{opacity:0;transform:translateY(-140px) scale(1)}}
-.flyheart{position:fixed;font-size:22px;pointer-events:none;z-index:300;animation:floatup 1.3s ease-out forwards}
-@keyframes floatup{0%{opacity:1;transform:translateY(0) scale(.6)}30%{opacity:1;transform:translateY(-24px) scale(1.15)}100%{opacity:0;transform:translateY(-90px) scale(.9)}}
 /* finale */
 .endshow{background:linear-gradient(180deg,#ffd75e,#ffb52e);color:#4a2a00;border:none;border-radius:10px;padding:11px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;font-family:"Alfa Slab One",Georgia,serif}
 #finale{position:absolute;inset:0;z-index:120;background:radial-gradient(ellipse 80% 55% at 50% 20%,rgba(93,20,32,.97),rgba(20,7,4,.99));display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;overflow-y:auto}
@@ -246,7 +237,7 @@ main{flex:1;overflow-y:auto;position:relative}
       <div class="roomlist" id="roomlist"></div>
     </div>
 
-    <!-- ROOM — live stage -->
+    <!-- ROOM — full show on one screen -->
     <div id="room">
       <div class="roomtop">
         <button class="backbtn" id="roomback">‹</button>
@@ -254,48 +245,39 @@ main{flex:1;overflow-y:auto;position:relative}
         <div class="cnt" id="rt_count">👁 0</div>
       </div>
 
-      <!-- STAGE: contestant + chairs, fixed, always visible -->
+      <!-- STAGE: contestant + chairs + line, fixed, always visible -->
       <div class="stage" id="rt_stage">
-        <div class="contestant-hero">
+        <div class="contestant-hero" id="rt_hero">
           <div class="vid" id="rt_vid"></div>
           <div class="hostbadge" id="rt_hostbadge" style="display:none">HOST</div>
-          <div class="plate"><div class="role">TONIGHT'S CONTESTANT</div><div class="nm" id="rt_host"></div></div>
+          <div class="plate"><div class="role">CONTESTANT</div><div class="nm" id="rt_host"></div></div>
+          <div class="reactlayer" id="rt_reactlayer"></div>
         </div>
         <div class="chairs-grid" id="rt_chairs"></div>
-
-        <!-- floating live layer: chat drifts up, reactions fly -->
-        <div class="livelayer" id="rt_livelayer"></div>
-        <div class="reactlayer" id="rt_reactlayer"></div>
+        <div class="linestrip">
+          <div class="linelabel">THE LINE <span id="rt_hosthint" style="display:none">· tap to seat</span> <span class="watchcount" id="rt_watchbar"></span></div>
+          <div class="lineitems" id="rt_line"><span class="emptyrole">empty</span></div>
+        </div>
       </div>
 
-      <!-- THE LINE: horizontal strip -->
-      <div class="linestrip">
-        <div class="linelabel">THE LINE <span id="rt_hosthint" style="display:none">· tap to seat</span></div>
-        <div class="lineitems" id="rt_line"><span class="emptyrole">empty</span></div>
-      </div>
+      <!-- CHAT STRIP: ~4-5 messages scroll up and vanish under the lineup -->
+      <div class="chatstrip" id="rt_livelayer"></div>
 
-      <!-- watching count only (no full roster — saves space) -->
-      <div class="watchbar" id="rt_watchbar"></div>
-
-      <!-- INPUT BAR: chat + gift + heart, one row -->
+      <!-- INPUT BAR -->
       <div class="inputbar">
-        <button class="ib-gift" id="rt_giftbtn">🎁</button>
         <input type="text" id="rt_chatinput" placeholder="Say something…" maxlength="140">
-        <button class="ib-heart" id="rt_heartbtn">❤️</button>
+        <button class="ib-gift" id="rt_giftbtn">🎁</button>
         <button class="ib-send" id="rt_chatsend">➤</button>
       </div>
 
-      <!-- host / leave controls: slim bar -->
+      <!-- host: last call only. suitor: join line / leave -->
       <div class="roomact">
         <button class="leaveroom" id="rt_leave">Leave</button>
         <button class="endshow" id="rt_endshow" style="display:none">🎬 Last Call</button>
         <button class="joinline" id="rt_joinline">Join the Line</button>
       </div>
 
-      <!-- gift tray popup -->
       <div class="gifttray-pop" id="rt_gifts"></div>
-
-      <!-- FINALE -->
       <div id="finale"><div id="finale_inner"></div></div>
     </div>
 
@@ -475,8 +457,8 @@ async function openRoom(r){
   $("rt_host").textContent=r.contestant_name||"";
   $("rt_hostbadge").style.display=AMHOST?"block":"none";
   $("rt_joinline").style.display=AMHOST?"none":"block";
-  $("rt_hosthint").style.display=AMHOST?"block":"none";
   $("rt_endshow").style.display=AMHOST?"block":"none";
+  $("rt_leave").style.display=AMHOST?"none":"block";   // host's exit IS Last Call
 
   const {data:hp}=await sb.from("profiles").select("*").eq("id",r.host_id).single();
   HOST_PROFILE=hp;
@@ -553,18 +535,23 @@ function renderRoom(){
   $("rt_line").innerHTML = line.length? line.map(lineFace).join("") : '<span class="emptyrole">empty — no one waiting</span>';
   $("rt_hosthint").style.display = (AMHOST && line.length) ? "inline" : "none";
 
-  // WATCHING — just a count
-  $("rt_watchbar").textContent = specs.length ? ("👀 "+specs.length+" watching") : "";
+  // WATCHING — count only
+  $("rt_watchbar").textContent = specs.length ? ("· 👀 "+specs.length) : "";
 
-  // host: wire line-pick to seat, keep/pass
+  // host: tap line face to seat, keep/pass on chairs
   if(AMHOST){
     $("rt_line").querySelectorAll(".pickable").forEach(el=>{
       el.onclick=()=>hostSeat(el.dataset.uid);
     });
     $("rt_chairs").querySelectorAll(".hc-keep").forEach(b=>b.onclick=(e)=>{e.stopPropagation();hostKeep(b.dataset.uid);});
     $("rt_chairs").querySelectorAll(".hc-pass").forEach(b=>b.onclick=(e)=>{e.stopPropagation();hostPass(b.dataset.uid);});
+  } else {
+    // non-host: tap a line face to heart that suitor too
+    $("rt_line").querySelectorAll(".lineface").forEach(el=>{
+      if(el.dataset.uid!==ME.id) el.onclick=()=>sendHeart(el.dataset.uid);
+    });
   }
-  // everyone: heart-tap a seated suitor
+  // everyone: tap a seated suitor to heart
   $("rt_chairs").querySelectorAll(".heart-tap").forEach(el=>{
     el.onclick=(ev)=>{ if(ev.target.closest(".hostctl")) return; sendHeart(el.dataset.heartuid, ev.clientX, ev.clientY); };
   });
@@ -635,17 +622,31 @@ function startHostPoll(){
   stopHostPoll();
   HOST_POLL=setInterval(async()=>{
     if(!CURRENT_ROOM) return;
-    // refresh roster (host needs this; harmless for suitor)
-    if(AMHOST) loadRoomState();
+    if(AMHOST){
+      await loadRoomState();
+      autoSeatFromLine();  // fill any open chair with the next person in line
+    }
     // everyone: detect the room being ended out from under them
     const {data:rm}=await sb.from("rooms").select("status,winner_id").eq("id",CURRENT_ROOM.id).single();
     if(rm && rm.status==="ended" && !$("finale").classList.contains("show")){
-      // host ended (or left) — show the ending and bail
       renderFinale(rm.winner_id||null);
     }
   },4000);
 }
 function stopHostPoll(){ if(HOST_POLL){clearInterval(HOST_POLL);HOST_POLL=null;} }
+
+// auto-seat: while chairs are open and people wait, seat them (host drives it)
+let AUTOSEATING=false;
+async function autoSeatFromLine(){
+  if(!AMHOST || AUTOSEATING) return;
+  const seated=ROOM_STATE.members.filter(m=>m.role==="chair"||m.role==="kept");
+  const line=ROOM_STATE.members.filter(m=>m.role==="line");
+  if(seated.length>=3 || !line.length) return;
+  AUTOSEATING=true;
+  const next=line[0];
+  await hostSeat(next.user_id);
+  AUTOSEATING=false;
+}
 
 /* ---- host actions ---- */
 async function hostSeat(uid){
@@ -683,14 +684,8 @@ function renderGiftTray(){
     `<button class="giftbtn" data-gi="${i}">${g.emoji}<span class="gc">✦${g.cost}</span></button>`).join("");
   $("rt_gifts").querySelectorAll(".giftbtn").forEach(b=>b.onclick=()=>{ sendGift(+b.dataset.gi); $("rt_gifts").classList.remove("show"); });
 }
-/* input bar: gift button toggles tray, heart button hearts the front chair */
+/* input bar: gift button toggles tray */
 $("rt_giftbtn").onclick=()=>$("rt_gifts").classList.toggle("show");
-$("rt_heartbtn").onclick=()=>{
-  // heart the first active (non-kept) seated suitor; else the first kept; else nudge
-  const chair=ROOM_STATE.members.find(m=>m.role==="chair") || ROOM_STATE.members.find(m=>m.role==="kept");
-  if(!chair){ toast("No one's in a chair to heart yet."); return; }
-  sendHeart(chair.user_id);
-};
 
 async function sendHeart(targetUid,x,y){
   if(targetUid===ME.id){ toast("You can't heart yourself — that's for the crowd to decide."); return; }
@@ -745,14 +740,13 @@ async function ensureProfile(uid){
   if(data) PROF_CACHE[uid]=data;
 }
 
-/* floating chat + feed: drift up over the stage, then self-remove (TikTok-Live style) */
+/* chat + feed: append; older ones scroll up and fade under the lineup mask */
 function floatMsg(html,extraCls){
   const layer=$("rt_livelayer"); if(!layer) return;
   const d=document.createElement("div"); d.className="floatmsg"+(extraCls?(" "+extraCls):"");
   d.innerHTML=html;
   layer.appendChild(d);
-  while(layer.children.length>6) layer.removeChild(layer.firstChild);
-  setTimeout(()=>d.remove(),6000);
+  while(layer.children.length>12) layer.removeChild(layer.firstChild);
 }
 function addFeedLine(html,cls){ floatMsg(html,"feed"+(cls?(" "+cls):"")); }
 function addChatLine(uid,text){ floatMsg(`<span class="cu">${escapeHtml(nameFor(uid))}:</span> ${escapeHtml(text)}`); }

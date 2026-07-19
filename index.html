@@ -174,6 +174,23 @@ main{flex:1;overflow-y:auto;position:relative}
 .fbtn.neon{background:var(--neon);color:#fff;font-family:"Alfa Slab One",Georgia,serif}
 .recapcard{background:rgba(20,9,15,.6);border:1px solid var(--gold);border-radius:16px;padding:20px;max-width:320px;margin:0 auto}
 .recapcard .rline{font-size:13px;color:var(--paper);margin:6px 0;line-height:1.5}
+/* collapsible reactive drawer */
+.drawer{border-top:1px solid rgba(255,61,127,.2);display:flex;flex-direction:column;flex-shrink:0}
+.drawertab{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:rgba(20,9,15,.85);border:none;color:var(--neon-soft);font-size:12px;font-weight:700;cursor:pointer;width:100%}
+.drawerbody{display:flex;flex-direction:column;max-height:230px;overflow:hidden;transition:max-height .22s ease}
+.drawer.collapsed .drawerbody{max-height:0}
+.drawer.collapsed #rt_drawercaret{transform:rotate(180deg)}
+#rt_drawercaret{transition:transform .22s}
+.crowdfeed{padding:6px 14px;max-height:70px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;background:rgba(20,9,15,.4)}
+.chatwrap{display:flex;flex-direction:column;max-height:120px}
+.chatlog{flex:1;overflow-y:auto;padding:6px 14px;display:flex;flex-direction:column;gap:4px;min-height:40px}
+.gifttray{padding:6px 14px}
+/* tighten stage on mobile so chairs + line + contestant dominate */
+.stagewrap{flex:1;overflow-y:auto;padding:10px 14px}
+.contestant-hero{height:130px;margin-bottom:10px}
+.rostersect{margin-bottom:10px}
+.rlabel{margin-bottom:5px}
+.chair{min-height:86px}
 </style>
 </head>
 <body>
@@ -254,13 +271,19 @@ main{flex:1;overflow-y:auto;position:relative}
           <div class="roster" id="rt_spectators"><span class="emptyrole">just you so far</span></div>
         </div>
       </div>
-      <div class="crowdfeed" id="rt_feed"></div>
-      <div class="gifttray" id="rt_gifts"></div>
-      <div class="chatwrap">
-        <div class="chatlog" id="rt_chatlog"></div>
-        <div class="chatinput-row">
-          <input type="text" id="rt_chatinput" placeholder="Say something to the room…" maxlength="140">
-          <button class="chatsend" id="rt_chatsend">➤</button>
+      <!-- collapsible reactive drawer: keeps the stage dominant on mobile -->
+      <div class="drawer" id="rt_drawer">
+        <button class="drawertab" id="rt_drawertab"><span id="rt_drawerlabel">💬 Chat &amp; reactions</span><span id="rt_drawercaret">▲</span></button>
+        <div class="drawerbody" id="rt_drawerbody">
+          <div class="crowdfeed" id="rt_feed"></div>
+          <div class="gifttray" id="rt_gifts"></div>
+          <div class="chatwrap">
+            <div class="chatlog" id="rt_chatlog"></div>
+            <div class="chatinput-row">
+              <input type="text" id="rt_chatinput" placeholder="Say something…" maxlength="140">
+              <button class="chatsend" id="rt_chatsend">➤</button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="roomact">
@@ -574,17 +597,28 @@ function clockRemaining(c){
 }
 function fmtClock(s){ s=Math.max(0,s); const m=Math.floor(s/60); const ss=s%60; return m+":"+(ss<10?"0":"")+ss; }
 
-// tick just re-renders the clock numbers each second (no DB writes from non-host)
+// tick re-renders clock numbers each second; host also fires timeout when a chair expires
+let TIMING_OUT={};
 function startClockTick(){
   stopClockTick();
   CLOCK_TICK=setInterval(()=>{
     ROOM_STATE.members.filter(m=>m.role==="chair").forEach(c=>{
+      const s=clockRemaining(c);
       const el=$("rt_chairs")?.querySelector(`.cclock[data-uid="${c.user_id}"]`);
-      if(el){ const s=clockRemaining(c); el.textContent=fmtClock(s); el.classList.toggle("low",s<=10); }
+      if(el){ el.textContent=fmtClock(s); el.classList.toggle("low",s<=10); }
+      // host drives expiry: when time's up, drop them to spectator (once)
+      if(AMHOST && s<=0 && !TIMING_OUT[c.user_id]){
+        TIMING_OUT[c.user_id]=true;
+        sb.rpc("timeout_member",{room_id:CURRENT_ROOM.id,user_id:c.user_id}).then(({error})=>{
+          if(error) console.log("timeout:",error.message);
+          delete TIMING_OUT[c.user_id];
+          loadRoomState();
+        });
+      }
     });
   },1000);
 }
-function stopClockTick(){ if(CLOCK_TICK){clearInterval(CLOCK_TICK);CLOCK_TICK=null;} }
+function stopClockTick(){ if(CLOCK_TICK){clearInterval(CLOCK_TICK);CLOCK_TICK=null;} TIMING_OUT={}; }
 
 /* ---- heartbeat: keep our presence fresh so we don't ghost ---- */
 function startHeartbeat(){
@@ -653,7 +687,8 @@ function renderGiftTray(){
 }
 
 async function sendHeart(targetUid,x,y){
-  flyEmoji("🩷",x,y);
+  if(targetUid===ME.id){ toast("You can't heart yourself — that's for the crowd to decide."); return; }
+  flyEmoji("❤️",x,y);
   // optimistic local bump
   HEARTS[targetUid]=(HEARTS[targetUid]||0)+1;
   const el=$("rt_chairs")?.querySelector(`[data-hearts="${targetUid}"]`);
@@ -680,6 +715,9 @@ async function sendChat(){
 }
 $("rt_chatsend").onclick=sendChat;
 $("rt_chatinput").addEventListener("keydown",e=>{ if(e.key==="Enter") sendChat(); });
+/* drawer toggle — default collapsed on phones so the stage owns the screen */
+if(window.innerHeight && window.innerHeight<740) $("rt_drawer").classList.add("collapsed");
+$("rt_drawertab").onclick=()=>$("rt_drawer").classList.toggle("collapsed");
 
 function flyEmoji(em,x,y){
   const f=document.createElement("div"); f.className="flyheart"; f.textContent=em;
@@ -752,6 +790,11 @@ async function handleEvent(ev){
       break;
     case "pass":
       addFeedLine(`<span class="who">${escapeHtml(nameFor(p.target_user))}</span> was passed ✕`,"neon");
+      loadRoomState();
+      break;
+    case "timeout":
+      addFeedLine(`<span class="who">${escapeHtml(nameFor(p.target_user))}</span>'s time ran out ⏱ — back to watching`,"cool");
+      loadRoomState();
       break;
     case "block":
       addFeedLine(`someone was removed from the room`,"neon");
@@ -859,7 +902,7 @@ function subscribeRoom(roomId){
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"room_events",filter:"room_id=eq."+roomId},(payload)=>{
       handleEvent(payload.new);
       // membership-affecting events also refresh roster
-      if(["seat","keep","pass","block"].includes(payload.new.type)) loadRoomState();
+      if(["seat","keep","pass","block","timeout"].includes(payload.new.type)) loadRoomState();
     })
     .subscribe();
 }

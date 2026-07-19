@@ -609,7 +609,8 @@ async function sendHeart(targetUid,x,y){
   HEARTS[targetUid]=(HEARTS[targetUid]||0)+1;
   const el=$("rt_chairs")?.querySelector(`[data-hearts="${targetUid}"]`);
   if(el) el.textContent="♥ "+HEARTS[targetUid];
-  await sb.from("room_events").insert({room_id:CURRENT_ROOM.id,type:"heart",payload:{target:targetUid}});
+  const {error:he}=await sb.from("room_events").insert({room_id:CURRENT_ROOM.id,user_id:ME.id,type:"heart",payload:{target:targetUid}});
+  if(he) console.log("heart insert:",he.message);
 }
 
 async function sendGift(gi){
@@ -617,14 +618,16 @@ async function sendGift(gi){
   if(COINS<g.cost){ toast("Not enough ✦ for "+g.name); return; }
   COINS-=g.cost; updateWallet();
   flyGift(g.emoji);
-  await sb.from("room_events").insert({room_id:CURRENT_ROOM.id,type:"gift",payload:{emoji:g.emoji,cost:g.cost,name:g.name}});
+  const {error:ge}=await sb.from("room_events").insert({room_id:CURRENT_ROOM.id,user_id:ME.id,type:"gift",payload:{emoji:g.emoji,cost:g.cost,name:g.name}});
+  if(ge){ console.log("gift insert:",ge.message); COINS+=g.cost; updateWallet(); toast("Gift failed to send"); }
 }
 
 async function sendChat(){
   const inp=$("rt_chatinput"); const txt=inp.value.trim();
   if(!txt) return;
   inp.value="";
-  await sb.from("room_events").insert({room_id:CURRENT_ROOM.id,type:"chat",payload:{text:txt}});
+  const {error:ce}=await sb.from("room_events").insert({room_id:CURRENT_ROOM.id,user_id:ME.id,type:"chat",payload:{text:txt}});
+  if(ce) console.log("chat insert:",ce.message);
 }
 $("rt_chatsend").onclick=sendChat;
 $("rt_chatinput").addEventListener("keydown",e=>{ if(e.key==="Enter") sendChat(); });
@@ -640,10 +643,18 @@ function flyGift(em){
   document.body.appendChild(f); setTimeout(()=>f.remove(),1800);
 }
 
-/* names for feed/chat: resolve from ROOM_STATE.profs or host */
+/* names for feed/chat: resolve from cache, host, or fetch on demand */
+const PROF_CACHE={};
 function nameFor(uid){
   if(CURRENT_ROOM && uid===CURRENT_ROOM.host_id) return HOST_PROFILE?.display_name||"Host";
-  return ROOM_STATE.profs[uid]?.display_name || "someone";
+  if(uid===ME.id) return MYPROFILE?.display_name||"You";
+  return ROOM_STATE.profs[uid]?.display_name || PROF_CACHE[uid]?.display_name || "someone";
+}
+async function ensureProfile(uid){
+  if(!uid || uid===ME.id || (CURRENT_ROOM&&uid===CURRENT_ROOM.host_id)) return;
+  if(ROOM_STATE.profs[uid]||PROF_CACHE[uid]) return;
+  const {data}=await sb.from("profiles").select("id,display_name,face_json").eq("id",uid).single();
+  if(data) PROF_CACHE[uid]=data;
 }
 
 function addFeedLine(html,cls){
@@ -662,10 +673,13 @@ function addChatLine(uid,text){
 }
 
 /* handle a realtime event row */
-function handleEvent(ev){
+async function handleEvent(ev){
   if(!ev) return;
   const p=ev.payload||{};
   const actor=ev.user_id;
+  // make sure we can name the actor / target
+  await ensureProfile(actor);
+  if(p.target_user) await ensureProfile(p.target_user);
   switch(ev.type){
     case "heart":
       if(p.target && actor!==ME.id){ // count others' hearts (ours already counted optimistically)
@@ -701,10 +715,12 @@ async function loadEventHistory(){
   HEARTS={};
   const {data:events}=await sb.from("room_events").select("*").eq("room_id",CURRENT_ROOM.id).order("created_at",{ascending:true}).limit(100);
   $("rt_feed").innerHTML=""; $("rt_chatlog").innerHTML="";
-  (events||[]).forEach(ev=>{
+  for(const ev of (events||[])){
     if(ev.type==="heart" && ev.payload?.target){ HEARTS[ev.payload.target]=(HEARTS[ev.payload.target]||0)+1; }
-    else handleEvent(ev);
-  });
+    else await handleEvent(ev);
+  }
+  // refresh chair heart counts after seeding
+  renderRoom();
 }
 
 function subscribeRoom(roomId){

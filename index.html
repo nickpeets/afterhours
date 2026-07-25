@@ -106,6 +106,8 @@ main{flex:1;overflow-y:auto;position:relative}
 .reactlayer{position:absolute;right:8px;bottom:6px;width:56px;z-index:3;pointer-events:none;height:80%}
 .flyreact{position:absolute;bottom:0;font-size:26px;animation:flyup 2.4s ease-out forwards}
 @keyframes flyup{0%{opacity:0;transform:translateY(0) scale(.5)}15%{opacity:1;transform:translateY(-20px) scale(1.2)}100%{opacity:0;transform:translateY(-160px) scale(.9) translateX(var(--drift,10px))}}
+.flyheart{position:fixed;font-size:24px;pointer-events:none;z-index:300;animation:floatup 1.3s ease-out forwards;transform:translate(-50%,-50%)}
+@keyframes floatup{0%{opacity:1;transform:translate(-50%,-50%) scale(.6)}30%{opacity:1;transform:translate(-50%,-90%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-160%) scale(.9)}}
 
 /* chairs — taller, readable */
 .chairs-grid{display:flex;gap:7px;flex-shrink:0;height:128px}
@@ -549,7 +551,7 @@ function renderRoom(){
   } else {
     // non-host: tap a line face to heart that suitor too
     $("rt_line").querySelectorAll(".lineface").forEach(el=>{
-      if(el.dataset.uid!==ME.id) el.onclick=()=>sendHeart(el.dataset.uid);
+      if(el.dataset.uid!==ME.id) el.onclick=(ev)=>sendHeart(el.dataset.uid,ev.clientX,ev.clientY);
     });
   }
   // everyone: tap a seated suitor to heart
@@ -715,7 +717,7 @@ $("rt_giftbtn").onclick=()=>$("rt_gifts").classList.toggle("show");
 
 async function sendHeart(targetUid,x,y){
   if(targetUid===ME.id){ toast("You can't heart yourself — that's for the crowd to decide."); return; }
-  flyReact("❤️");
+  if(x!=null && y!=null) flyAt("❤️",x,y); else flyReact("❤️");
   HEARTS[targetUid]=(HEARTS[targetUid]||0)+1;
   const el=$("rt_chairs")?.querySelector(`[data-hearts="${targetUid}"]`);
   if(el) el.textContent="♥ "+HEARTS[targetUid];
@@ -750,6 +752,12 @@ function flyReact(em,big){
   f.style.left=(Math.random()*24)+"px";
   f.style.setProperty("--drift",(Math.random()*30-15)+"px");
   layer.appendChild(f); setTimeout(()=>f.remove(),2400);
+}
+/* a heart that floats up from the exact point tapped */
+function flyAt(em,x,y){
+  const f=document.createElement("div"); f.className="flyheart"; f.textContent=em;
+  f.style.left=x+"px"; f.style.top=y+"px";
+  document.body.appendChild(f); setTimeout(()=>f.remove(),1300);
 }
 
 /* names for feed/chat: resolve from cache, host, or fetch on demand */
@@ -973,6 +981,15 @@ async function leaveRoom(){
 }
 
 /* ============ SESSION RESTORE ============ */
+// hard-block pinch/double-tap zoom on mobile (viewport meta alone isn't enough on iOS)
+document.addEventListener("gesturestart",e=>e.preventDefault());
+document.addEventListener("gesturechange",e=>e.preventDefault());
+let _lastTouch=0;
+document.addEventListener("touchend",e=>{
+  const now=Date.now();
+  if(now-_lastTouch<=300) e.preventDefault();
+  _lastTouch=now;
+},{passive:false});
 (async()=>{
   buildPickers();
   const {data:{session}}=await sb.auth.getSession();

@@ -1013,6 +1013,9 @@ async function videoJoin(){
     });
     DAILY.on("track-started",onTrack)
          .on("track-stopped",onTrackStopped)
+         .on("joined-meeting",()=>{ setTimeout(reflowVideo,300); })
+         .on("participant-updated",()=>{ reflowVideo(); })
+         .on("participant-joined",()=>{ reflowVideo(); })
          .on("participant-left",onPartLeft)
          .on("left-meeting",()=>{DAILY_JOINED=false;});
 
@@ -1083,18 +1086,21 @@ function placeVideo(uid, sid, track){
   VIDEO_TILES[sid]={uid, el:v};
 }
 
-// re-place all known video tracks when roster/seating changes (someone seated → move their feed to a chair)
+// re-place all known video tracks when roster/seating changes
 function reflowVideo(){
   if(!DAILY) return;
   const parts=DAILY.participants();
   Object.values(parts).forEach(p=>{
     const uid=partUid(p);
-    const track=p.tracks?.video?.persistentTrack || p.tracks?.video?.track;
-    const sid=p.session_id;
     if(!uid) return;
-    // remove existing tile for this sid, re-place if they have a live video track and a slot
+    const vt=p.tracks && p.tracks.video;
+    if(!vt) return;
+    const track = vt.persistentTrack || vt.track;
+    const live = p.local ? (vt.state==="playable"||vt.state==="sendable"||!!track) : (vt.state==="playable"&&!!track);
+    const sid=p.session_id;
+    // clear any existing tile for this participant, then re-place if live and has a slot
     if(VIDEO_TILES[sid]){ try{VIDEO_TILES[sid].el.remove();}catch(e){} delete VIDEO_TILES[sid]; }
-    if(track && (p.tracks.video.state==="playable"||p.local)){ placeVideo(uid, sid, track); }
+    if(live && track){ placeVideo(uid, sid, track); }
   });
 }
 

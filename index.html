@@ -303,7 +303,67 @@ main{flex:1;overflow-y:auto;position:relative}
 /* ============ SUPABASE ============ */
 const SUPA_URL="https://doqtfyxgzlfvglfdkphx.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvcXRmeXhnemxmdmdsZmRrcGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzMzIyMTYsImV4cCI6MjA5OTkwODIxNn0.Bx0i5-f-dFYnlXUamPbIxObP0YLAtsOudXKe9tngskI";
-const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+/* ---- auth session isolation -------------------------------------------
+   Default (no ?session= param): this tab uses the shared slot
+   sb-<ref>-auth-token in localStorage - identical to the previous
+   behaviour, so a normal login survives reload and browser restart and is
+   shared across tabs.
+
+   Add ?session=NAME to give a tab its OWN auth slot, so several accounts
+   can be signed in at once in one browser without overwriting each other
+   (this is what caused the "not host" failures). ?session=tab mints a
+   throwaway per-tab slot. The chosen slot is remembered in sessionStorage,
+   so it survives reloads - getSession() still restores - but never leaks
+   into other tabs.
+------------------------------------------------------------------------*/
+const SUPA_REF="doqtfyxgzlfvglfdkphx";
+const SUPA_BASE_KEY="sb-"+SUPA_REF+"-auth-token";
+function ahSessionSlot(){
+  var slot=null;
+  try{
+    var qs=new URLSearchParams(location.search);
+    var hs=new URLSearchParams((location.hash||"").replace(/^#/,""));
+    slot=qs.get("session")||hs.get("session")||sessionStorage.getItem("ah.session.slot");
+    if(slot){
+      slot=slot.toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,24);
+      if(slot==="tab"||slot==="auto"){
+        var id=sessionStorage.getItem("ah.session.tabid");
+        if(!id){ id=Math.random().toString(36).slice(2,8); sessionStorage.setItem("ah.session.tabid",id); }
+        slot="tab-"+id;
+      }
+      if(slot){ sessionStorage.setItem("ah.session.slot",slot); }
+    }
+  }catch(e){ slot=null; }
+  return slot||null;
+}
+const AH_SLOT=ahSessionSlot();
+const SUPA_STORAGE_KEY=AH_SLOT?(SUPA_BASE_KEY+"."+AH_SLOT):SUPA_BASE_KEY;
+/* retire throwaway per-tab slots that expired over a week ago, so
+   localStorage does not grow without bound. Never touches the shared slot,
+   named slots, or the slot this tab is using. */
+(function(){
+  try{
+    var grace=7*24*60*60*1000, now=Date.now(), pfx=SUPA_BASE_KEY+".tab-";
+    for(var i=localStorage.length-1;i>=0;i--){
+      var k=localStorage.key(i);
+      if(!k||k===SUPA_STORAGE_KEY||k.indexOf(pfx)!==0) continue;
+      var o=null; try{ o=JSON.parse(localStorage.getItem(k)); }catch(e){}
+      var exp=(o&&o.expires_at)?o.expires_at*1000:0;
+      if(!o||(exp&&exp<now-grace)) localStorage.removeItem(k);
+    }
+  }catch(e){}
+})();
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{
+  auth:{
+    storageKey:SUPA_STORAGE_KEY,
+    storage:window.localStorage,
+    persistSession:true,
+    autoRefreshToken:true,
+    detectSessionInUrl:true
+  }
+});
+window.AH_SESSION_SLOT=AH_SLOT||"(shared default)";
+console.info("[afterhours] auth slot:",window.AH_SESSION_SLOT,"->",SUPA_STORAGE_KEY);
 
 const $=id=>document.getElementById(id);
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2600);}

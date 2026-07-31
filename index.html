@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@daily-co/daily-js"></script>
 <style>
 :root{
   --ink:#14090f; --velvet:#2a0f1e; --velvet-2:#3d1329;
@@ -303,67 +304,7 @@ main{flex:1;overflow-y:auto;position:relative}
 /* ============ SUPABASE ============ */
 const SUPA_URL="https://doqtfyxgzlfvglfdkphx.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvcXRmeXhnemxmdmdsZmRrcGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzMzIyMTYsImV4cCI6MjA5OTkwODIxNn0.Bx0i5-f-dFYnlXUamPbIxObP0YLAtsOudXKe9tngskI";
-/* ---- auth session isolation -------------------------------------------
-   Default (no ?session= param): this tab uses the shared slot
-   sb-<ref>-auth-token in localStorage - identical to the previous
-   behaviour, so a normal login survives reload and browser restart and is
-   shared across tabs.
-
-   Add ?session=NAME to give a tab its OWN auth slot, so several accounts
-   can be signed in at once in one browser without overwriting each other
-   (this is what caused the "not host" failures). ?session=tab mints a
-   throwaway per-tab slot. The chosen slot is remembered in sessionStorage,
-   so it survives reloads - getSession() still restores - but never leaks
-   into other tabs.
-------------------------------------------------------------------------*/
-const SUPA_REF="doqtfyxgzlfvglfdkphx";
-const SUPA_BASE_KEY="sb-"+SUPA_REF+"-auth-token";
-function ahSessionSlot(){
-  var slot=null;
-  try{
-    var qs=new URLSearchParams(location.search);
-    var hs=new URLSearchParams((location.hash||"").replace(/^#/,""));
-    slot=qs.get("session")||hs.get("session")||sessionStorage.getItem("ah.session.slot");
-    if(slot){
-      slot=slot.toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,24);
-      if(slot==="tab"||slot==="auto"){
-        var id=sessionStorage.getItem("ah.session.tabid");
-        if(!id){ id=Math.random().toString(36).slice(2,8); sessionStorage.setItem("ah.session.tabid",id); }
-        slot="tab-"+id;
-      }
-      if(slot){ sessionStorage.setItem("ah.session.slot",slot); }
-    }
-  }catch(e){ slot=null; }
-  return slot||null;
-}
-const AH_SLOT=ahSessionSlot();
-const SUPA_STORAGE_KEY=AH_SLOT?(SUPA_BASE_KEY+"."+AH_SLOT):SUPA_BASE_KEY;
-/* retire throwaway per-tab slots that expired over a week ago, so
-   localStorage does not grow without bound. Never touches the shared slot,
-   named slots, or the slot this tab is using. */
-(function(){
-  try{
-    var grace=7*24*60*60*1000, now=Date.now(), pfx=SUPA_BASE_KEY+".tab-";
-    for(var i=localStorage.length-1;i>=0;i--){
-      var k=localStorage.key(i);
-      if(!k||k===SUPA_STORAGE_KEY||k.indexOf(pfx)!==0) continue;
-      var o=null; try{ o=JSON.parse(localStorage.getItem(k)); }catch(e){}
-      var exp=(o&&o.expires_at)?o.expires_at*1000:0;
-      if(!o||(exp&&exp<now-grace)) localStorage.removeItem(k);
-    }
-  }catch(e){}
-})();
-const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{
-  auth:{
-    storageKey:SUPA_STORAGE_KEY,
-    storage:window.localStorage,
-    persistSession:true,
-    autoRefreshToken:true,
-    detectSessionInUrl:true
-  }
-});
-window.AH_SESSION_SLOT=AH_SLOT||"(shared default)";
-console.info("[afterhours] auth slot:",window.AH_SESSION_SLOT,"->",SUPA_STORAGE_KEY);
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 const $=id=>document.getElementById(id);
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2600);}
@@ -539,6 +480,7 @@ async function openRoom(r){
   startHeartbeat();
   startClockTick();
   startHostPoll();
+  videoJoin();
 }
 
 // pull fresh, ghost-filtered members via active_members RPC
@@ -555,6 +497,9 @@ async function loadRoomState(){
   }
   ROOM_STATE={members:present,profs};
   renderRoom();
+  // video follows game state: publish my cam if seated, and move feeds into chair tiles
+  syncLocalPublish();
+  reflowVideo();
 }
 
 function renderRoom(){
@@ -1023,6 +968,7 @@ $("roomback").onclick=()=>leaveRoom();
 async function leaveRoom(){
   const leaving=CURRENT_ROOM;
   stopHeartbeat(); stopClockTick(); stopHostPoll();
+  videoLeave();
   if(ROOM_CHANNEL){ sb.removeChannel(ROOM_CHANNEL); ROOM_CHANNEL=null; }
   if(leaving){
     if(leaving.host_id===ME.id){
@@ -1038,6 +984,118 @@ async function leaveRoom(){
   $("room").classList.remove("show");
   $("lobby").style.display="block";
   loadRooms();
+}
+
+/* ============ DAILY VIDEO LAYER ============ */
+let DAILY=null;            // Daily call object
+let DAILY_JOINED=false;
+let VIDEO_TILES={};        // session_id -> {uid, el} attached video elements
+const DAILY_FN=SUPA_URL+"/functions/v1/daily-room";
+
+// map a Daily participant's user_name (we set it to the app uid) to their app user_id
+function partUid(p){ return p?.user_name || null; }
+
+async function videoJoin(){
+  if(!window.Daily || DAILY) return;
+  try{
+    // get a token from our edge function (owner if host)
+    const res=await fetch(DAILY_FN,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({room_id:CURRENT_ROOM.id, is_owner:AMHOST, user_name:ME.id})
+    });
+    const data=await res.json();
+    if(!res.ok || !data.url){ console.log("daily token error:",data); return; }
+
+    DAILY=window.DailyIframe.createCallObject({
+      subscribeToTracksAutomatically:true,
+      dailyConfig:{}
+    });
+    DAILY.on("track-started",onTrack)
+         .on("track-stopped",onTrackStopped)
+         .on("participant-left",onPartLeft)
+         .on("left-meeting",()=>{DAILY_JOINED=false;});
+
+    await DAILY.join({url:data.url, token:data.token});
+    DAILY_JOINED=true;
+
+    // contestant publishes immediately; suitors stay cam-off until seated
+    if(AMHOST){ await DAILY.setLocalVideo(true); await DAILY.setLocalAudio(true); }
+    else { await DAILY.setLocalVideo(false); }
+    syncLocalPublish();  // in case we're already seated on entry
+  }catch(e){ console.log("videoJoin failed:",e); }
+}
+
+async function videoLeave(){
+  try{ if(DAILY){ await DAILY.leave(); await DAILY.destroy(); } }catch(e){}
+  DAILY=null; DAILY_JOINED=false;
+  // detach all tiles
+  Object.values(VIDEO_TILES).forEach(t=>{ try{t.el.remove();}catch(e){} });
+  VIDEO_TILES={};
+}
+
+// decide whether MY camera should be on: host always; suitor only when seated in a chair
+function amISeated(){
+  const me=ROOM_STATE.members.find(m=>m.user_id===ME.id);
+  return me && me.role==="chair";
+}
+async function syncLocalPublish(){
+  if(!DAILY || !DAILY_JOINED) return;
+  const shouldPublish = AMHOST || amISeated();
+  try{ await DAILY.setLocalVideo(shouldPublish); if(!AMHOST) await DAILY.setLocalAudio(shouldPublish); }catch(e){}
+}
+
+// attach a video track element into the correct tile (hero for contestant, chair for seated)
+function onTrack(ev){
+  if(ev.track.kind!=="video") return;
+  const uid=partUid(ev.participant);
+  if(!uid) return;
+  placeVideo(uid, ev.participant.session_id, ev.track);
+}
+function onTrackStopped(ev){
+  const sid=ev.participant?.session_id;
+  if(sid && VIDEO_TILES[sid]){ try{VIDEO_TILES[sid].el.remove();}catch(e){} delete VIDEO_TILES[sid]; }
+}
+function onPartLeft(ev){
+  const sid=ev.participant?.session_id;
+  if(sid && VIDEO_TILES[sid]){ try{VIDEO_TILES[sid].el.remove();}catch(e){} delete VIDEO_TILES[sid]; }
+}
+
+// where does this uid's video belong right now?
+function tileFor(uid){
+  if(CURRENT_ROOM && uid===CURRENT_ROOM.host_id) return $("rt_vid");           // contestant hero
+  const m=ROOM_STATE.members.find(x=>x.user_id===uid && (x.role==="chair"||x.role==="kept"));
+  if(m){ const chairEls=$("rt_chairs").querySelectorAll(".chair"); 
+         const seat=(m.seat_index==null?0:m.seat_index);
+         return chairEls[seat] || null; }
+  return null;
+}
+function placeVideo(uid, sid, track){
+  const host=tileFor(uid);
+  if(!host){ return; } // not a slot that shows video (line/spectator)
+  // build a video element
+  let v=document.createElement("video");
+  v.autoplay=true; v.playsInline=true; v.muted=(uid===ME.id); // mute self to avoid echo
+  v.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;border-radius:inherit";
+  v.srcObject=new MediaStream([track]);
+  host.style.position="relative";
+  host.appendChild(v);
+  VIDEO_TILES[sid]={uid, el:v};
+}
+
+// re-place all known video tracks when roster/seating changes (someone seated → move their feed to a chair)
+function reflowVideo(){
+  if(!DAILY) return;
+  const parts=DAILY.participants();
+  Object.values(parts).forEach(p=>{
+    const uid=partUid(p);
+    const track=p.tracks?.video?.persistentTrack || p.tracks?.video?.track;
+    const sid=p.session_id;
+    if(!uid) return;
+    // remove existing tile for this sid, re-place if they have a live video track and a slot
+    if(VIDEO_TILES[sid]){ try{VIDEO_TILES[sid].el.remove();}catch(e){} delete VIDEO_TILES[sid]; }
+    if(track && (p.tracks.video.state==="playable"||p.local)){ placeVideo(uid, sid, track); }
+  });
 }
 
 /* ============ SESSION RESTORE ============ */

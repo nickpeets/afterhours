@@ -401,7 +401,17 @@ $("li_go").onclick=async()=>{
 };
 
 $("signout").onclick=async()=>{
-  if(CURRENT_ROOM && !AMHOST){ try{ await sb.rpc("leave_room",{room_id:CURRENT_ROOM.id}); }catch(e){} }
+  if(CURRENT_ROOM){
+    try{
+      if(AMHOST){ await sb.rpc("end_show",{room_id:CURRENT_ROOM.id,winner_id:null}); }
+      else { await sb.rpc("leave_room",{room_id:CURRENT_ROOM.id}); }
+    }catch(e){}
+  } else if(ME){
+    // not in a room view, but might own a live room (e.g. signed out from the lobby) — end any
+    try{ const {data:mine}=await sb.from("rooms").select("id").eq("host_id",ME.id).eq("status","live");
+      for(const r of (mine||[])){ await sb.rpc("end_show",{room_id:r.id,winner_id:null}); }
+    }catch(e){}
+  }
   await sb.auth.signOut(); location.reload();
 };
 
@@ -415,6 +425,12 @@ async function enterApp(){
   ME=user;
   const {data:prof}=await sb.from("profiles").select("*").eq("id",user.id).single();
   MYPROFILE=prof;
+  // crash recovery: if I own any live rooms from a previous session, end them.
+  // your show doesn't outlive your presence.
+  try{
+    const {data:mine}=await sb.from("rooms").select("id").eq("host_id",user.id).eq("status","live");
+    for(const r of (mine||[])){ await sb.rpc("end_show",{room_id:r.id,winner_id:null}); }
+  }catch(e){}
   $("auth").classList.add("hide");
   $("lobby").style.display="block";
   $("signout").style.display="inline-block";
@@ -657,9 +673,12 @@ function stopHeartbeat(){ if(HEARTBEAT){clearInterval(HEARTBEAT);HEARTBEAT=null;
    so members don't ghost for 60s waiting on the freshness window */
 let LEFT_ON_UNLOAD=false;
 function bestEffortLeave(){
-  if(LEFT_ON_UNLOAD || !CURRENT_ROOM || AMHOST) return;
+  if(LEFT_ON_UNLOAD || !CURRENT_ROOM) return;
   LEFT_ON_UNLOAD=true;
-  try{ sb.rpc("leave_room",{room_id:CURRENT_ROOM.id}); }catch(e){}
+  try{
+    if(AMHOST){ sb.rpc("end_show",{room_id:CURRENT_ROOM.id,winner_id:null}); } // the host IS the show
+    else { sb.rpc("leave_room",{room_id:CURRENT_ROOM.id}); }
+  }catch(e){}
 }
 // only on REAL page teardown — NOT on tab-hide. deleting the membership row on
 // visibility loss cut off all realtime delivery (RLS needs the row) and broke

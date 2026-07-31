@@ -195,6 +195,41 @@ main{flex:1;overflow-y:auto;position:relative}
 .fbtn.neon{background:var(--neon);color:#fff;font-family:"Alfa Slab One",Georgia,serif}
 .recapcard{background:rgba(20,9,15,.6);border:1px solid var(--gold);border-radius:16px;padding:20px;max-width:320px;margin:0 auto}
 .recapcard .rline{font-size:13px;color:var(--paper);margin:6px 0;line-height:1.5}
+#setup{max-width:400px;margin:40px auto;padding:0 18px;text-align:center}
+#setup h1{font-family:"Alfa Slab One",Georgia,serif;font-size:30px}
+#setup h1 em{color:var(--neon);font-style:normal}
+#setup select{width:100%;background:rgba(253,243,236,.07);border:1px solid rgba(253,243,236,.18);border-radius:10px;color:var(--paper);padding:12px;font-size:14px;margin-top:6px}
+#setup .chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--paper);margin:14px 0;text-align:left}
+#setup .chk input{width:auto}
+.av{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-family:"Alfa Slab One",Georgia,serif;font-size:17px;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.av.avbig{font-size:34px}
+/* WINNER'S ROOM — backstage */
+#backstage{position:absolute;inset:0;z-index:130;background:radial-gradient(ellipse 90% 70% at 50% 30%,#1a0a12,#0a0407);display:none;flex-direction:column;padding:16px;gap:12px}
+#backstage.show{display:flex}
+.bs-head{font-family:"Alfa Slab One",Georgia,serif;font-size:16px;color:var(--gold);text-align:center;letter-spacing:.1em}
+.bs-live{font-size:10px;color:var(--neon);letter-spacing:.15em;margin-left:8px}
+.bs-tiles{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+.bs-tile{flex:1;min-height:0;border-radius:16px;border:2px solid rgba(245,192,78,.5);position:relative;overflow:hidden;background:#000}
+.bs-nm{position:absolute;bottom:8px;left:12px;z-index:3;font-weight:800;font-size:14px;text-shadow:0 1px 4px rgba(0,0,0,.95);font-family:"Alfa Slab One",Georgia,serif}
+.bs-wait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-style:italic;font-size:13px;z-index:2}
+.bs-actions{flex-shrink:0;display:flex;gap:10px}
+.bs-cut{flex:1;padding:14px;border:none;border-radius:12px;background:var(--danger);color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:"Alfa Slab One",Georgia,serif;letter-spacing:.04em}
+.bs-leave{flex:1;padding:14px;border:1.5px solid var(--dim);border-radius:12px;background:transparent;color:var(--dim);font-weight:800;font-size:13px;cursor:pointer}
+.fbtn.bsgo{background:linear-gradient(180deg,#ff5c95,#ff3d7f);color:#fff;font-family:"Alfa Slab One",Georgia,serif}
+/* winner snapshot */
+#snap{position:absolute;inset:0;z-index:140;background:#0a0407;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
+#snap.show{display:flex}
+#snap h1{font-family:"Alfa Slab One",Georgia,serif;font-size:22px;color:var(--gold);margin-bottom:4px}
+#snap .ssub{font-size:13px;color:var(--neon-soft);margin-bottom:14px}
+.snapstage{position:relative;width:min(78vw,300px);aspect-ratio:3/4;border-radius:18px;overflow:hidden;border:3px solid var(--gold);background:#000}
+.snapstage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.snapguide{position:absolute;inset:0;pointer-events:none}
+.snapguide .oval{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:62%;aspect-ratio:3/4;border:3px dashed rgba(255,255,255,.75);border-radius:50%}
+.snapcount{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:"Alfa Slab One",Georgia,serif;font-size:88px;color:#fff;text-shadow:0 2px 18px rgba(0,0,0,.8);z-index:3}
+.snapflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:4}
+.snapflash.go{animation:flashpop .5s ease-out}
+@keyframes flashpop{0%{opacity:0}12%{opacity:1}100%{opacity:0}}
+.winnerphoto{width:190px;height:250px;object-fit:cover;border-radius:16px;border:3px solid var(--gold);box-shadow:0 0 34px rgba(245,192,78,.55);margin:0 auto 12px;display:block}
 </style>
 </head>
 <body>
@@ -210,27 +245,17 @@ main{flex:1;overflow-y:auto;position:relative}
     <!-- AUTH -->
     <div id="auth">
       <h1>AFTER<em>HOURS</em></h1>
-      <div class="lsub">The live dating game show.<br>Create yourself to step inside.</div>
+      <div class="lsub">The live dating game show.</div>
       <div class="tabrow">
         <button class="tab on" id="tab_signup">New here</button>
         <button class="tab" id="tab_login">I have an account</button>
       </div>
       <div class="panel" id="signupPanel">
-        <div class="lrow">
-          <div class="lpreview" id="lpreview"></div>
-          <div class="lpicks">
-            <div class="llabel">SKIN</div><div class="swatches" id="lskin"></div>
-            <div class="llabel">HAIR</div><div class="swatches" id="lhaircolor"></div>
-          </div>
-        </div>
-        <div class="swatches" id="lhairstyle"></div>
-        <input type="text" id="su_name" placeholder="Display name" maxlength="18">
-        <input type="text" id="su_occ" placeholder="Occupation — she'll see this on your card" maxlength="26">
-        <input type="text" id="su_bio" placeholder="One line about you — make it count" maxlength="70">
+        <input type="text" id="su_name" placeholder="Your name" maxlength="18">
         <input type="email" id="su_email" placeholder="Email">
         <input type="password" id="su_pass" placeholder="Password (6+ characters)">
         <div class="err" id="su_err"></div>
-        <button class="bigbtn" id="su_go">Create account &amp; step inside</button>
+        <button class="bigbtn" id="su_go">Create account</button>
       </div>
       <div class="panel" id="loginPanel" style="display:none">
         <input type="email" id="li_email" placeholder="Email">
@@ -239,6 +264,25 @@ main{flex:1;overflow-y:auto;position:relative}
         <button class="bigbtn" id="li_go">Log in</button>
       </div>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
+    </div>
+
+    <!-- FIRST-RUN SETUP -->
+    <div id="setup" style="display:none">
+      <h1>ALMOST<em> IN</em></h1>
+      <div class="lsub">Where should we look for your rooms?</div>
+      <div class="panel">
+        <input type="text" id="set_zip" placeholder="Zip code" maxlength="10" inputmode="numeric">
+        <div class="llabel" style="margin-top:10px">SEARCH RADIUS</div>
+        <select id="set_radius">
+          <option value="10">10 miles</option>
+          <option value="25" selected>25 miles</option>
+          <option value="50">50 miles</option>
+          <option value="100">100 miles</option>
+        </select>
+        <label class="chk"><input type="checkbox" id="set_expand" checked> Show me rooms farther out if none are nearby</label>
+        <div class="err" id="set_err"></div>
+        <button class="bigbtn" id="set_go">Step inside</button>
+      </div>
     </div>
 
     <!-- LOBBY -->
@@ -289,6 +333,28 @@ main{flex:1;overflow-y:auto;position:relative}
 
       <div class="gifttray-pop" id="rt_gifts"></div>
       <div id="finale"><div id="finale_inner"></div></div>
+      <!-- WINNER SNAPSHOT -->
+      <div id="snap">
+        <h1>SMILE FOR THE CAMERA</h1>
+        <div class="ssub">You just won the show. This one's going up in lights.</div>
+        <div class="snapstage" id="snap_stage">
+          <div class="snapguide"><div class="oval"></div></div>
+          <div class="snapcount" id="snap_count"></div>
+          <div class="snapflash" id="snap_flash"></div>
+        </div>
+      </div>
+      <!-- WINNER'S ROOM (backstage) -->
+      <div id="backstage">
+        <div class="bs-head">BACKSTAGE <span class="bs-live">● PRIVATE</span></div>
+        <div class="bs-tiles">
+          <div class="bs-tile" id="bs_tile_host"><div class="bs-nm" id="bs_nm_host"></div></div>
+          <div class="bs-tile" id="bs_tile_winner"><div class="bs-nm" id="bs_nm_winner"></div><div class="bs-wait" id="bs_wait">waiting for them…</div></div>
+        </div>
+        <div class="bs-actions">
+          <button class="bs-cut" id="bs_cut" style="display:none">✂ Cut the Feed</button>
+          <button class="bs-leave" id="bs_leave" style="display:none">Leave</button>
+        </div>
+      </div>
     </div>
 
     <!-- GO LIVE MODAL -->
@@ -345,31 +411,11 @@ const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_
 const $=id=>document.getElementById(id);
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2600);}
 
-/* ============ FACE BUILDER (same SVG engine as prototype) ============ */
-function face(o){
-  const hairS={
-    short:`<path d="M25 50 Q24 20 50 20 Q76 20 75 50 Q75 33 50 30 Q25 33 25 50" fill="${o.hair}"/>`,
-    long:`<path d="M24 46 Q22 16 50 16 Q78 16 76 46 L79 86 L63 86 Q71 58 69 40 Q59 27 50 27 Q41 27 31 40 Q29 58 37 86 L21 86 Z" fill="${o.hair}"/>`,
-    bun:`<circle cx="50" cy="16" r="9" fill="${o.hair}"/><path d="M26 48 Q25 22 50 21 Q75 22 74 48 Q74 33 50 31 Q26 33 26 48" fill="${o.hair}"/>`,
-    curly:`<circle cx="32" cy="32" r="10" fill="${o.hair}"/><circle cx="44" cy="24" r="10" fill="${o.hair}"/><circle cx="58" cy="24" r="10" fill="${o.hair}"/><circle cx="69" cy="33" r="9" fill="${o.hair}"/><path d="M26 48 Q26 30 50 28 Q74 30 74 48 Q74 36 50 34 Q26 36 26 48" fill="${o.hair}"/>`,
-    buzz:`<path d="M27 44 Q28 24 50 23 Q72 24 73 44 Q72 34 50 32 Q28 34 27 44" fill="${o.hair}" opacity=".55"/>`
-  }[o.style||"short"];
-  const glasses=o.glasses?`<circle cx="41" cy="51" r="6.5" fill="none" stroke="#2a1a10" stroke-width="1.8"/><circle cx="59" cy="51" r="6.5" fill="none" stroke="#2a1a10" stroke-width="1.8"/><line x1="47.5" y1="51" x2="52.5" y2="51" stroke="#2a1a10" stroke-width="1.8"/>`:"";
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="${o.bg}"/><ellipse cx="50" cy="112" rx="36" ry="28" fill="${o.shirt}"/><rect x="43" y="70" width="14" height="16" rx="5" fill="${o.skin}"/><ellipse cx="50" cy="51" rx="23" ry="26" fill="${o.skin}"/>${hairS}<circle cx="41" cy="51" r="2.4" fill="#2a1a10"/><circle cx="59" cy="51" r="2.4" fill="#2a1a10"/><path d="M43 64 Q50 70 57 64" fill="none" stroke="#a35f4d" stroke-width="2.4" stroke-linecap="round"/><ellipse cx="34" cy="59" rx="3.4" ry="2" fill="#ff9d9d" opacity=".5"/><ellipse cx="66" cy="59" rx="3.4" ry="2" fill="#ff9d9d" opacity=".5"/>${glasses}</svg>`;
-  return `${o.bg} url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") center/cover no-repeat`;
-}
-const SKINS=["#f3cfa6","#e2b088","#c98e62","#9c6238","#7a4a2c"];
-const HAIRC=["#2b1c11","#5c3a1c","#8c3b13","#111111","#b5651d"];
-const STYLES=["short","long","bun","curly","buzz"];
-const P={skin:SKINS[1],hair:HAIRC[0],style:"short"};
-function faceCss(p){return face({bg:"#a8325e",skin:p.skin,hair:p.hair,style:p.style,shirt:"#ff3d7f"});}
-function drawPreview(){$("lpreview").style.background=faceCss(P);}
-function buildPickers(){
-  SKINS.forEach(c=>{const b=document.createElement("div");b.className="sw"+(c===P.skin?" on":"");b.style.background=c;b.onclick=()=>{P.skin=c;$("lskin").querySelectorAll(".sw").forEach(x=>x.classList.toggle("on",x===b));drawPreview();};$("lskin").appendChild(b);});
-  HAIRC.forEach(c=>{const b=document.createElement("div");b.className="sw"+(c===P.hair?" on":"");b.style.background=c;b.onclick=()=>{P.hair=c;$("lhaircolor").querySelectorAll(".sw").forEach(x=>x.classList.toggle("on",x===b));drawPreview();};$("lhaircolor").appendChild(b);});
-  STYLES.forEach(s=>{const b=document.createElement("button");b.className="hstyle"+(s===P.style?" on":"");b.textContent=s;b.onclick=()=>{P.style=s;$("lhairstyle").querySelectorAll(".hstyle").forEach(x=>x.classList.toggle("on",x===b));drawPreview();};$("lhairstyle").appendChild(b);});
-  drawPreview();
-}
+/* ============ AVATARS: initial circles ============ */
+const AV_COLORS=["#e0637f","#8e5bd4","#4d9dd8","#3fae8a","#d8973f","#c4564e","#7a6bd0","#3f9fae"];
+function avColor(seed){ let h=0; for(const ch of String(seed)) h=(h*31+ch.charCodeAt(0))>>>0; return AV_COLORS[h%AV_COLORS.length]; }
+function avatarStyle(uid,name){ return `background:${avColor(uid||name||"x")}`; }
+function avInitial(name){ return (name||"?").trim().charAt(0).toUpperCase()||"?"; }
 
 /* ============ AUTH TABS ============ */
 $("tab_signup").onclick=()=>{$("tab_signup").classList.add("on");$("tab_login").classList.remove("on");$("signupPanel").style.display="flex";$("loginPanel").style.display="none";};
@@ -377,10 +423,10 @@ $("tab_login").onclick=()=>{$("tab_login").classList.add("on");$("tab_signup").c
 
 /* ============ SIGN UP ============ */
 $("su_go").onclick=async()=>{
-  const name=$("su_name").value.trim(), occ=$("su_occ").value.trim(), bio=$("su_bio").value.trim();
+  const name=$("su_name").value.trim();
   const email=$("su_email").value.trim(), pass=$("su_pass").value;
   const err=$("su_err"); err.textContent="";
-  if(!name){err.textContent="Pick a display name.";return;}
+  if(!name){err.textContent="What should we call you?";return;}
   if(!email||!pass){err.textContent="Email and password required.";return;}
   if(pass.length<6){err.textContent="Password needs 6+ characters.";return;}
   $("su_go").disabled=true; $("su_go").textContent="Creating…";
@@ -388,7 +434,7 @@ $("su_go").onclick=async()=>{
   if(error){err.textContent=error.message;$("su_go").disabled=false;$("su_go").textContent="Create account & step inside";return;}
   const uid=data.user?.id;
   if(uid){
-    const {error:pe}=await sb.from("profiles").upsert({id:uid,display_name:name,occupation:occ||"MYSTERY",bio:bio||"One tap from the room.",face_json:P});
+    const {error:pe}=await sb.from("profiles").upsert({id:uid,display_name:name});
     if(pe){err.textContent="Profile save failed: "+pe.message;$("su_go").disabled=false;$("su_go").textContent="Create account & step inside";return;}
   }
   // If email confirmation is off, session exists now; if on, prompt to confirm.
@@ -425,12 +471,32 @@ $("signout").onclick=async()=>{
 let ME=null, MYPROFILE=null;
 let COINS=120;
 function updateWallet(){ const c=$("coinchip"); if(c) c.textContent="✦ "+COINS; }
+function showSetup(){
+  $("auth").classList.add("hide");
+  $("lobby").style.display="none";
+  $("setup").style.display="block";
+}
+$("set_go").onclick=async()=>{
+  const zip=$("set_zip").value.trim();
+  const err=$("set_err"); err.textContent="";
+  if(!/^\d{5}(-\d{4})?$/.test(zip)){ err.textContent="Enter a valid zip code."; return; }
+  const radius=parseInt($("set_radius").value,10)||25;
+  const expand=$("set_expand").checked;
+  const {error}=await sb.from("profiles").update({zip_code:zip,radius_miles:radius,expand_ok:expand}).eq("id",ME.id);
+  if(error){ err.textContent="Couldn't save: "+error.message; return; }
+  MYPROFILE={...MYPROFILE,zip_code:zip,radius_miles:radius,expand_ok:expand};
+  $("setup").style.display="none";
+  enterApp();
+};
+
 async function enterApp(){
   const {data:{user}}=await sb.auth.getUser();
   if(!user){return;}
   ME=user;
   const {data:prof}=await sb.from("profiles").select("*").eq("id",user.id).single();
   MYPROFILE=prof;
+  // first run (or legacy account): collect zip + search radius before the lobby
+  if(!MYPROFILE?.zip_code){ showSetup(); return; }
   // crash recovery: if I own any live rooms from a previous session, end them.
   // your show doesn't outlive your presence.
   try{
@@ -518,7 +584,7 @@ async function openRoom(r){
 
   const {data:hp}=await sb.from("profiles").select("*").eq("id",r.host_id).single();
   HOST_PROFILE=hp;
-  $("rt_vid").style.background = hp?.face_json ? faceCss(hp.face_json) : "linear-gradient(135deg,#8e2d56,#e0637f)";
+  $("rt_vid").style.background = "linear-gradient(135deg,#8e2d56,#e0637f)";
 
   if(!AMHOST){
     const {error:je}=await sb.rpc("join_room",{room_id:r.id});
@@ -568,12 +634,11 @@ function renderRoom(){
     const c=chairBySeat[i];
     if(c){
       const p=profs[c.user_id]; const nm=p?.display_name||"someone";
-      const fc=p?.face_json?faceCss(p.face_json):"#555";
       const kept=c.role==="kept";
       const secs=clockRemaining(c);
       chairsHtml+=`<div class="chair filled${kept?' kept':''} heart-tap" data-heartuid="${c.user_id}">
         ${kept?'<div class="kepttag">KEPT ✦</div>':''}
-        <div class="cf" style="background:${fc}"></div>
+        <div class="cf av" style="${avatarStyle(c.user_id,nm)}">${avInitial(nm)}</div>
         <div class="cn">${escapeHtml(nm)}${c.user_id===ME.id?' (you)':''}</div>
         ${kept?'':`<div class="cclock${secs<=10?' low':''}" data-uid="${c.user_id}">${fmtClock(secs)}</div>`}
         <div class="chearts" data-hearts="${c.user_id}">♥ ${HEARTS[c.user_id]||0}</div>
@@ -588,9 +653,9 @@ function renderRoom(){
   // LINE — horizontal face strip
   const lineFace=(m)=>{
     const p=profs[m.user_id]; const nm=p?.display_name||"someone";
-    const fc=p?.face_json?faceCss(p.face_json):"#555"; const isMe=m.user_id===ME.id;
+    const isMe=m.user_id===ME.id;
     const pickable=AMHOST?' pickable':'';
-    return `<div class="lineface${isMe?' me':''}${pickable}" data-uid="${m.user_id}"><div class="lf" style="background:${fc}"></div><div class="ln">${isMe?'You':escapeHtml(nm)}</div></div>`;
+    return `<div class="lineface${isMe?' me':''}${pickable}" data-uid="${m.user_id}"><div class="lf av" style="${avatarStyle(m.user_id,nm)}">${avInitial(nm)}</div><div class="ln">${isMe?'You':escapeHtml(nm)}</div></div>`;
   };
   $("rt_line").innerHTML = line.length? line.map(lineFace).join("") : '<span class="emptyrole">empty — no one waiting</span>';
   $("rt_hosthint").style.display = (AMHOST && line.length) ? "inline" : "none";
@@ -722,8 +787,10 @@ function startHostPoll(){
     }
     // everyone: detect the room being ended out from under them
     const {data:rm}=await sb.from("rooms").select("status,winner_id").eq("id",CURRENT_ROOM.id).single();
-    if(rm && rm.status==="ended" && !$("finale").classList.contains("show")){
-      renderFinale(rm.winner_id||null);
+    if(rm && rm.status==="ended" && !AWAITING_PHOTO && !$("snap").classList.contains("show") && !$("finale").classList.contains("show") && !$("backstage").classList.contains("show")){
+      // ended out from under us with no ceremony running (e.g. host left) — plain reveal
+      if(rm.winner_id && rm.winner_id!==ME.id){ enterPhotoWait(rm.winner_id); }
+      else renderFinale(rm.winner_id||null);
     }
   },4000);
 }
@@ -891,8 +958,20 @@ function handleEvent(ev){
     case "block":
       addFeedLine(`someone was removed from the room`,"neon");
       break;
-    case "finale":
-      renderFinale((p.winner_id!==undefined && p.winner_id!==null) ? p.winner_id : null);
+    case "finale": {
+      const w=(p.winner_id!==undefined && p.winner_id!==null) ? p.winner_id : null;
+      if(!w){ renderFinale(null); break; }             // walked alone — no ceremony
+      if(w===ME.id){ startWinnerSnap(w); }             // I'm the winner — smile time
+      else { enterPhotoWait(w); }                      // hold the room live for the flash
+      break; }
+    case "winner_photo":
+      WINNER_PHOTO=p.photo||null;
+      clearTimeout(PHOTO_TIMER);
+      if(AWAITING_PHOTO){ AWAITING_PHOTO=false; renderFinale(actor); }  // photo sender IS the winner
+      break;
+    case "backstage_end":
+      // host cut the feed — if we're backstage, we're done
+      if(BS_ROOM && actor!==ME.id){ toast("The feed was cut. Good night. 🌙"); exitBackstage(); }
       break;
   }
 }
@@ -934,9 +1013,8 @@ function showLastCall(){
     const board=$("fin_board");
     finalists.forEach(f=>{
       const p=ROOM_STATE.profs[f.user_id]; const nm=p?.display_name||"someone";
-      const fc=p?.face_json?faceCss(p.face_json):"#555";
       const d=document.createElement("div"); d.className="finalist";
-      d.innerHTML=`<div class="ff" style="background:${fc}"></div><div class="fn">${escapeHtml(nm)}</div><div class="fh">♥ ${HEARTS[f.user_id]||0}</div>`;
+      d.innerHTML=`<div class="ff av avbig" style="${avatarStyle(f.user_id,nm)}">${avInitial(nm)}</div><div class="fn">${escapeHtml(nm)}</div><div class="fh">♥ ${HEARTS[f.user_id]||0}</div>`;
       d.onclick=()=>confirmWinner(f.user_id,nm);
       board.appendChild(d);
     });
@@ -966,16 +1044,31 @@ function renderFinale(winnerUid){
   if(winnerUid){
     const p=ROOM_STATE.profs[winnerUid]||PROF_CACHE[winnerUid];
     const nm=p?.display_name||"the winner";
-    const fc=p?.face_json?faceCss(p.face_json):"#555";
+    const iAmHost = CURRENT_ROOM && CURRENT_ROOM.host_id===ME.id;
+    const iAmWinner = winnerUid===ME.id;
+    // host + winner get the backstage invitation; the winner can decline
+    let actions;
+    if(iAmHost){
+      actions=`<button class="fbtn bsgo" id="fin_backstage" style="margin-top:16px">🥂 Go Backstage</button>
+               <button class="fbtn ghost" id="fin_done">Back to lobby</button>`;
+    } else if(iAmWinner){
+      actions=`<div class="fsub" style="margin-top:14px">${escapeHtml(CURRENT_ROOM.contestant_name||"They")} wants to meet you backstage — just the two of you.</div>
+               <button class="fbtn bsgo" id="fin_backstage">🥂 Go Backstage</button>
+               <button class="fbtn ghost" id="fin_done">Maybe another night</button>`;
+    } else {
+      actions=`<button class="fbtn gold" id="fin_done" style="margin-top:16px">Back to lobby</button>`;
+    }
     inner.innerHTML=`<h1>IT'S ${escapeHtml(nm.toUpperCase())}</h1>
-      <div class="winnerbig"><div class="wf" style="background:${fc}"></div><div class="wn">${escapeHtml(nm)}</div></div>
+      <div class="winnerbig">${WINNER_PHOTO?`<img class="winnerphoto" src="${WINNER_PHOTO}">`:`<div class="wf av avbig" style="${avatarStyle(winnerUid,nm)}">${avInitial(nm)}</div>`}<div class="wn">${escapeHtml(nm)}</div></div>
       <div class="fsub">${escapeHtml(CURRENT_ROOM.contestant_name||"The contestant")} made their choice.<br>They're leaving together — the crowd funded the spectacle, the prize is privacy.</div>
       <div class="recapcard">
         <div class="rline">🎬 <b>${escapeHtml(CURRENT_ROOM.contestant_name||"")}</b>'s show</div>
         <div class="rline">👑 Winner: <b>${escapeHtml(nm)}</b></div>
         <div class="rline">The room made its call. That's a wrap.</div>
       </div>
-      <button class="fbtn gold" id="fin_done" style="margin-top:16px">Back to lobby</button>`;
+      ${actions}`;
+    const bsBtn=$("fin_backstage");
+    if(bsBtn) bsBtn.onclick=()=>{ $("finale").classList.remove("show"); enterBackstage(winnerUid,nm); };
   } else {
     inner.innerHTML=`<h1>WALKED ALONE</h1>
       <div class="fsub">No match tonight — but the kept finalists become callbacks.<br>To be continued.</div>
@@ -988,6 +1081,134 @@ function renderFinale(winnerUid){
   }
   $("finale").classList.add("show");
   $("fin_done").onclick=()=>{ $("finale").classList.remove("show"); leaveRoom(); };
+}
+
+/* ============ WINNER SNAPSHOT — the freeze-frame ending ============ */
+let AWAITING_PHOTO=false, PHOTO_TIMER=null, WINNER_PHOTO=null;
+
+// everyone but the winner: hold the room looking live until the photo lands (or timeout)
+function enterPhotoWait(winnerUid){
+  AWAITING_PHOTO=true; WINNER_PHOTO=null;
+  clearTimeout(PHOTO_TIMER);
+  PHOTO_TIMER=setTimeout(()=>{ // camera fail / winner bailed → normal reveal
+    if(AWAITING_PHOTO){ AWAITING_PHOTO=false; renderFinale(winnerUid); }
+  },14000);
+}
+
+// the winner: smile overlay → 3-2-1 → capture from own live video → broadcast
+async function startWinnerSnap(winnerUid){
+  AWAITING_PHOTO=true;
+  // find my live video element (I'm kept, so I'm publishing into my chair tile)
+  let myVid=null;
+  Object.values(VIDEO_TILES).forEach(t=>{ if(t.uid===ME.id) myVid=t.el; });
+  if(!myVid || !myVid.srcObject){ // no camera — skip ceremony
+    AWAITING_PHOTO=false; renderFinale(winnerUid); return;
+  }
+  // build the overlay self-view from the same stream
+  const stage=$("snap_stage");
+  stage.querySelectorAll("video").forEach(v=>v.remove());
+  const v=document.createElement("video");
+  v.autoplay=true; v.playsInline=true; v.muted=true;
+  v.srcObject=myVid.srcObject;
+  stage.insertBefore(v, stage.firstChild);
+  $("snap").classList.add("show");
+  // 3-2-1
+  for(const n of ["3","2","1"]){
+    $("snap_count").textContent=n;
+    await new Promise(r=>setTimeout(r,900));
+  }
+  $("snap_count").textContent="";
+  $("snap_flash").classList.add("go");
+  // capture
+  let dataUrl=null;
+  try{
+    const c=document.createElement("canvas");
+    const vw=v.videoWidth||480, vh=v.videoHeight||640;
+    const W=360, H=Math.round(W*vh/vw);
+    c.width=W; c.height=H;
+    c.getContext("2d").drawImage(v,0,0,W,H);
+    dataUrl=c.toDataURL("image/jpeg",0.65);
+  }catch(e){ console.log("snap capture failed:",e); }
+  await new Promise(r=>setTimeout(r,600));
+  $("snap").classList.remove("show");
+  stage.querySelectorAll("video").forEach(x=>x.remove());
+  $("snap_flash").classList.remove("go");
+  if(dataUrl && dataUrl.length<200000){
+    try{ await sb.from("room_events").insert({room_id:CURRENT_ROOM.id,user_id:ME.id,type:"winner_photo",payload:{photo:dataUrl}}); }catch(e){}
+    WINNER_PHOTO=dataUrl;
+  }
+  AWAITING_PHOTO=false;
+  renderFinale(winnerUid);
+}
+
+/* ============ WINNER'S ROOM (backstage) ============ */
+let BS_DAILY=null, BS_ROOM=null;
+
+async function enterBackstage(winnerUid, winnerName){
+  BS_ROOM=CURRENT_ROOM;
+  const iAmHost=BS_ROOM.host_id===ME.id;
+  $("bs_nm_host").textContent=BS_ROOM.contestant_name||"Host";
+  $("bs_nm_winner").textContent=winnerName||"Winner";
+  $("bs_cut").style.display=iAmHost?"block":"none";
+  $("bs_leave").style.display=iAmHost?"none":"block";
+  $("bs_wait").style.display="flex";
+  $("backstage").classList.add("show");
+  await videoLeave();
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    const res=await fetch(DAILY_FN,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+(session?.access_token||"")},
+      body:JSON.stringify({room_id:BS_ROOM.id, mode:"winner"})
+    });
+    const data=await res.json();
+    if(!res.ok||!data.url){ toast("Backstage unavailable: "+(data.error||"")); exitBackstage(); return; }
+    BS_DAILY=window.DailyIframe.createCallObject({
+      subscribeToTracksAutomatically:true,
+      inputSettings:{ video:{ processor:{ type:"background-blur", config:{ strength:0.6 } } } }
+    });
+    BS_DAILY.on("track-started",bsTrack)
+            .on("participant-left",()=>{ $("bs_wait").style.display="flex"; });
+    await BS_DAILY.join({url:data.url, token:data.token});
+    await BS_DAILY.setLocalVideo(true); await BS_DAILY.setLocalAudio(true);
+  }catch(e){ console.log("backstage join failed:",e); toast("Backstage failed"); exitBackstage(); }
+}
+
+function bsTrack(ev){
+  const uid=ev.participant?.user_name; if(!uid||!BS_ROOM) return;
+  if(ev.track.kind==="audio"){
+    if(!ev.participant.local) playAudio("bs-"+ev.participant.session_id, ev.track);
+    return;
+  }
+  if(ev.track.kind!=="video") return;
+  const tile = uid===BS_ROOM.host_id ? $("bs_tile_host") : $("bs_tile_winner");
+  tile.querySelectorAll("video").forEach(v=>v.remove());
+  const v=document.createElement("video");
+  v.autoplay=true; v.playsInline=true; v.setAttribute("playsinline","");
+  v.muted=(uid===ME.id);
+  v.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1";
+  v.srcObject=new MediaStream([ev.track]);
+  tile.appendChild(v);
+  const p=v.play(); if(p&&p.catch) p.catch(()=>{});
+  if(!ev.participant.local) $("bs_wait").style.display="none";
+}
+
+$("bs_cut").onclick=async()=>{
+  try{ await sb.from("room_events").insert({room_id:BS_ROOM.id,user_id:ME.id,type:"backstage_end",payload:{}}); }catch(e){}
+  exitBackstage();
+};
+$("bs_leave").onclick=()=>exitBackstage();
+
+async function exitBackstage(){
+  try{ if(BS_DAILY){ await BS_DAILY.leave(); await BS_DAILY.destroy(); } }catch(e){}
+  BS_DAILY=null; BS_ROOM=null;
+  Object.keys(AUDIO_ELS).filter(k=>k.startsWith("bs-")).forEach(stopAudio);
+  $("backstage").classList.remove("show");
+  if(ROOM_CHANNEL){ sb.removeChannel(ROOM_CHANNEL); ROOM_CHANNEL=null; }
+  CURRENT_ROOM=null;
+  $("room").classList.remove("show");
+  $("lobby").style.display="block";
+  loadRooms();
 }
 
 function subscribeRoom(roomId){
@@ -1060,10 +1281,11 @@ async function videoJoin(){
   if(!window.Daily || DAILY) return;
   try{
     // get a token from our edge function (owner if host)
+    const {data:{session}}=await sb.auth.getSession();
     const res=await fetch(DAILY_FN,{
       method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({room_id:CURRENT_ROOM.id, is_owner:AMHOST, user_name:ME.id})
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+(session?.access_token||"")},
+      body:JSON.stringify({room_id:CURRENT_ROOM.id})
     });
     const data=await res.json();
     if(!res.ok || !data.url){ console.log("daily token error:",data); return; }
@@ -1208,7 +1430,6 @@ document.addEventListener("touchend",e=>{
   _lastTouch=now;
 },{passive:false});
 (async()=>{
-  buildPickers();
   const {data:{session}}=await sb.auth.getSession();
   if(session){ enterApp(); }
 })();

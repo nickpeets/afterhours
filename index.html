@@ -304,7 +304,35 @@ main{flex:1;overflow-y:auto;position:relative}
 /* ============ SUPABASE ============ */
 const SUPA_URL="https://doqtfyxgzlfvglfdkphx.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvcXRmeXhnemxmdmdsZmRrcGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzMzIyMTYsImV4cCI6MjA5OTkwODIxNn0.Bx0i5-f-dFYnlXUamPbIxObP0YLAtsOudXKe9tngskI";
-const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+/* session slots: ?session=NAME isolates auth storage per tab so multiple test
+   accounts can coexist in one browser. No param = shared default (unchanged). */
+function ahSessionSlot(){
+  try{
+    let slot=sessionStorage.getItem("ah.session.slot");
+    if(!slot){
+      const m=(location.search+location.hash).match(/[?#&]session=([^&#]+)/);
+      if(m){
+        slot=decodeURIComponent(m[1]).toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,24);
+        if(slot==="tab") slot="tab-"+Math.random().toString(36).slice(2,10);
+        sessionStorage.setItem("ah.session.slot",slot);
+      }
+    }
+    return slot||null;
+  }catch(e){ return null; }
+}
+const AH_SESSION_SLOT=ahSessionSlot();
+const SUPA_STORAGE_KEY="sb-doqtfyxgzlfvglfdkphx-auth-token"+(AH_SESSION_SLOT?("."+AH_SESSION_SLOT):"");
+if(AH_SESSION_SLOT) console.info("[afterhours] auth slot:",AH_SESSION_SLOT,"->",SUPA_STORAGE_KEY);
+try{
+  Object.keys(localStorage).forEach(k=>{
+    if(/-auth-token\.tab-/.test(k) && k!==SUPA_STORAGE_KEY){
+      try{ const v=JSON.parse(localStorage.getItem(k));
+        if(v&&v.expires_at&&(v.expires_at*1000)<Date.now()-7*864e5) localStorage.removeItem(k);
+      }catch(e){}
+    }
+  });
+}catch(e){}
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 const $=id=>document.getElementById(id);
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2600);}
@@ -631,16 +659,22 @@ function bestEffortLeave(){
   LEFT_ON_UNLOAD=true;
   try{ sb.rpc("leave_room",{room_id:CURRENT_ROOM.id}); }catch(e){}
 }
+// only on REAL page teardown — NOT on tab-hide. deleting the membership row on
+// visibility loss cut off all realtime delivery (RLS needs the row) and broke
+// chat/gifts for any viewer whose tab was ever backgrounded.
 window.addEventListener("pagehide",bestEffortLeave);
 window.addEventListener("beforeunload",bestEffortLeave);
 document.addEventListener("visibilitychange",()=>{
-  if(document.visibilityState==="hidden") bestEffortLeave();
-  else if(document.visibilityState==="visible" && CURRENT_ROOM && !AMHOST){
-    // came back — re-register presence
+  if(document.visibilityState==="visible" && CURRENT_ROOM && !AMHOST){
+    // came back — refresh presence + roster (delivery kept flowing since the
+    // membership row survives tab-hide now)
     LEFT_ON_UNLOAD=false;
     sb.rpc("join_room",{room_id:CURRENT_ROOM.id});
     sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id});
     loadRoomState();
+  } else if(document.visibilityState==="hidden" && CURRENT_ROOM && !AMHOST){
+    // keep presence alive while backgrounded (intervals get throttled)
+    sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id});
   }
 });
 
@@ -790,14 +824,14 @@ function floatMsg(html,extraCls){
 function addFeedLine(html,cls){ floatMsg(html,"feed"+(cls?(" "+cls):"")); }
 function addChatLine(uid,text){ floatMsg(`<span class="cu">${escapeHtml(nameFor(uid))}:</span> ${escapeHtml(text)}`); }
 
-/* handle a realtime event row */
-async function handleEvent(ev){
+/* handle a realtime event row — render synchronously to preserve order;
+   profile fetches happen in the background for future events */
+function handleEvent(ev){
   if(!ev) return;
   const p=ev.payload||{};
   const actor=ev.user_id;
-  // make sure we can name the actor / target
-  await ensureProfile(actor);
-  if(p.target_user) await ensureProfile(p.target_user);
+  // warm the cache for next time (don't await — keeps event order intact)
+  ensureProfile(actor); if(p.target_user) ensureProfile(p.target_user);
   switch(ev.type){
     case "heart":
       if(p.target && actor!==ME.id){ // count others' hearts (ours already counted optimistically)
@@ -1032,9 +1066,9 @@ async function videoJoin(){
 async function videoLeave(){
   try{ if(DAILY){ await DAILY.leave(); await DAILY.destroy(); } }catch(e){}
   DAILY=null; DAILY_JOINED=false;
-  // detach all tiles
   Object.values(VIDEO_TILES).forEach(t=>{ try{t.el.remove();}catch(e){} });
   VIDEO_TILES={};
+  Object.keys(AUDIO_ELS).forEach(stopAudio);
 }
 
 // decide whether MY camera should be on: host always; suitor only when seated in a chair
@@ -1050,18 +1084,42 @@ async function syncLocalPublish(){
 
 // attach a video track element into the correct tile (hero for contestant, chair for seated)
 function onTrack(ev){
-  if(ev.track.kind!=="video") return;
   const uid=partUid(ev.participant);
   if(!uid) return;
+  if(ev.track.kind==="audio"){
+    if(ev.participant.local) return; // never play our own mic back
+    playAudio(ev.participant.session_id, ev.track);
+    return;
+  }
+  if(ev.track.kind!=="video") return;
   placeVideo(uid, ev.participant.session_id, ev.track);
+}
+/* remote audio: hidden <audio> elements keyed by session */
+let AUDIO_ELS={};
+function playAudio(sid, track){
+  stopAudio(sid);
+  const a=document.createElement("audio");
+  a.autoplay=true;
+  a.srcObject=new MediaStream([track]);
+  a.style.display="none";
+  document.body.appendChild(a);
+  AUDIO_ELS[sid]=a;
+  const p=a.play(); if(p&&p.catch) p.catch(err=>console.log("audio.play() blocked:",err&&err.name));
+}
+function stopAudio(sid){
+  if(AUDIO_ELS[sid]){ try{AUDIO_ELS[sid].remove();}catch(e){} delete AUDIO_ELS[sid]; }
 }
 function onTrackStopped(ev){
   const sid=ev.participant?.session_id;
-  if(sid && VIDEO_TILES[sid]){ try{VIDEO_TILES[sid].el.remove();}catch(e){} delete VIDEO_TILES[sid]; }
+  if(!sid) return;
+  if(ev.track && ev.track.kind==="audio"){ stopAudio(sid); return; }
+  if(VIDEO_TILES[sid]){ try{VIDEO_TILES[sid].el.remove();}catch(e){} delete VIDEO_TILES[sid]; }
 }
 function onPartLeft(ev){
   const sid=ev.participant?.session_id;
-  if(sid && VIDEO_TILES[sid]){ try{VIDEO_TILES[sid].el.remove();}catch(e){} delete VIDEO_TILES[sid]; }
+  if(!sid) return;
+  stopAudio(sid);
+  if(VIDEO_TILES[sid]){ try{VIDEO_TILES[sid].el.remove();}catch(e){} delete VIDEO_TILES[sid]; }
 }
 
 // where does this uid's video belong right now?

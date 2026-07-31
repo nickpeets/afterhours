@@ -1066,7 +1066,7 @@ function onPartLeft(ev){
 
 // where does this uid's video belong right now?
 function tileFor(uid){
-  if(CURRENT_ROOM && uid===CURRENT_ROOM.host_id) return $("rt_vid");           // contestant hero
+  if(CURRENT_ROOM && uid===CURRENT_ROOM.host_id) return $("rt_hero");           // contestant hero container
   const m=ROOM_STATE.members.find(x=>x.user_id===uid && (x.role==="chair"||x.role==="kept"));
   if(m){ const chairEls=$("rt_chairs").querySelectorAll(".chair"); 
          const seat=(m.seat_index==null?0:m.seat_index);
@@ -1078,12 +1078,17 @@ function placeVideo(uid, sid, track){
   if(!host){ return; } // not a slot that shows video (line/spectator)
   // build a video element
   let v=document.createElement("video");
-  v.autoplay=true; v.playsInline=true; v.muted=(uid===ME.id); // mute self to avoid echo
-  v.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;border-radius:inherit";
-  v.srcObject=new MediaStream([track]);
+  v.autoplay=true; v.playsInline=true; v.setAttribute("playsinline","");
+  v.muted=(uid===ME.id); // mute self to avoid echo
+  v.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;border-radius:inherit;background:#000";
+  try{ v.srcObject=new MediaStream([track]); }catch(e){ console.log("srcObject failed",e); return; }
   host.style.position="relative";
+  // hide the cartoon-face background under the video
+  const bg=host.querySelector(".vid"); if(bg) bg.style.opacity="0";
   host.appendChild(v);
   VIDEO_TILES[sid]={uid, el:v};
+  const p=v.play(); if(p&&p.catch) p.catch(err=>console.log("video.play() blocked:",err&&err.name));
+  console.log("[video] attached",uid===ME.id?"(me)":"", "->", host.id||host.className);
 }
 
 // re-place all known video tracks when roster/seating changes

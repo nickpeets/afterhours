@@ -89,7 +89,7 @@ main{flex:1;overflow-y:auto;position:relative}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ROOM VIEW (C1) */
-#room{display:none;flex-direction:column;height:100%;overflow:hidden}
+#room{display:none;flex-direction:column;height:100%;overflow:hidden;position:relative}
 #room.show{display:flex}
 .roomtop{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid rgba(255,61,127,.2);flex-shrink:0}
 .backbtn{background:none;border:none;color:var(--neon-soft);font-size:20px;cursor:pointer;padding:2px 8px;line-height:1}
@@ -116,14 +116,14 @@ main{flex:1;overflow-y:auto;position:relative}
 .chair.filled{border-color:var(--gold)}
 .chair.kept{border-color:var(--neon)}
 .chair .cf{width:42px;height:42px;border-radius:50%;background-size:cover}
-.chair .cn{font-size:11px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chair .cclock{font-family:"Courier New",monospace;font-size:15px;font-weight:800;color:var(--gold);background:#0d060a;border:1px solid rgba(245,192,78,.4);border-radius:6px;padding:1px 7px}
+.chair .cn{font-size:11px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:relative;z-index:3;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.chair .cclock{font-family:"Courier New",monospace;font-size:15px;font-weight:800;color:var(--gold);background:rgba(13,6,10,.85);border:1px solid rgba(245,192,78,.4);border-radius:6px;padding:1px 7px;position:relative;z-index:3}
 .chair .cclock.low{color:var(--danger);border-color:var(--danger)}
 .chair .cempty{font-size:11px;color:var(--dim);font-style:italic}
-.chair .kepttag{position:absolute;top:4px;right:4px;background:var(--neon);color:#fff;font-size:8px;font-weight:800;padding:1px 5px;border-radius:999px}
-.chair .chearts{position:absolute;bottom:3px;left:5px;font-size:10px;color:var(--neon-soft);font-weight:700}
+.chair .kepttag{position:absolute;top:4px;right:4px;background:var(--neon);color:#fff;font-size:8px;font-weight:800;padding:1px 5px;border-radius:999px;z-index:3}
+.chair .chearts{position:absolute;bottom:3px;left:5px;font-size:10px;color:var(--neon-soft);font-weight:700;z-index:3;text-shadow:0 1px 3px rgba(0,0,0,.9)}
 .chair.heart-tap{cursor:pointer}
-.hostctl{display:flex;gap:4px;margin-top:2px;width:100%}
+.hostctl{display:flex;gap:4px;margin-top:2px;width:100%;position:relative;z-index:3}
 .hostctl button{flex:1;padding:4px 2px;border:none;border-radius:6px;font-size:9px;font-weight:800;cursor:pointer;text-transform:uppercase}
 .hc-keep{background:var(--gold);color:#3a2a00}
 .hc-pass{background:var(--danger);color:#fff}
@@ -157,7 +157,9 @@ main{flex:1;overflow-y:auto;position:relative}
 
 .roomact{padding:6px 12px 9px;display:flex;gap:8px;flex-shrink:0}
 .roomact button{flex:1;padding:11px;border:none;border-radius:10px;font-weight:800;font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:.04em}
-.joinline{background:var(--neon);color:#fff}
+/* Join the Line: big unmissable floating pill over the stage for spectators */
+.joinline{position:absolute;left:50%;transform:translateX(-50%);bottom:118px;z-index:50;background:var(--neon);color:#fff;padding:14px 30px;border:none;border-radius:999px;font-size:15px;font-weight:800;font-family:"Alfa Slab One",Georgia,serif;letter-spacing:.04em;box-shadow:0 4px 18px rgba(255,61,127,.55);cursor:pointer;text-transform:uppercase;white-space:nowrap}
+.joinline:active{transform:translateX(-50%) scale(.96)}
 .leaveroom{background:transparent;border:1.5px solid var(--dim);color:var(--dim)}
 .endshow{background:linear-gradient(180deg,#ffd75e,#ffb52e);color:#4a2a00;font-family:"Alfa Slab One",Georgia,serif}
 

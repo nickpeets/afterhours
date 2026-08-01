@@ -113,7 +113,7 @@ main{flex:1;overflow-y:auto;position:relative}
 
 /* STAGE — fixed proportion of the screen, holds contestant + chairs + line */
 .stage{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:8px 12px 6px;gap:8px}
-.contestant-hero{border-radius:20px;border:2.5px solid var(--neon);box-shadow:0 0 16px rgba(255,45,143,.85),0 0 50px rgba(255,45,143,.4);overflow:hidden;position:relative;flex:1 1 auto;min-height:200px;max-height:58dvh;background:var(--video)}
+.contestant-hero{border-radius:20px;border:2.5px solid var(--neon);box-shadow:0 0 16px rgba(255,45,143,.85),0 0 50px rgba(255,45,143,.4);overflow:hidden;position:relative;flex:1 1 auto;min-height:44dvh;max-height:62dvh;background:var(--video)}
 .contestant-hero .vid{position:absolute;inset:0;background-size:cover;background-position:center}
 .contestant-hero .plate{position:absolute;bottom:0;left:0;right:0;padding:7px 12px;background:linear-gradient(transparent,rgba(8,11,32,.92));z-index:2}
 .contestant-hero .role{font-size:9px;letter-spacing:.14em;color:var(--gold)}
@@ -126,7 +126,7 @@ main{flex:1;overflow-y:auto;position:relative}
 @keyframes floatup{0%{opacity:1;transform:translate(-50%,-50%) scale(.6)}30%{opacity:1;transform:translate(-50%,-90%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-160%) scale(.9)}}
 
 /* chairs — taller, readable */
-.chairs-grid{display:flex;gap:7px;flex-shrink:0;height:170px}
+.chairs-grid{display:flex;gap:7px;flex-shrink:0;height:140px}
 .chair{flex:1;border-radius:16px;border:1.5px solid rgba(45,227,208,.35);background:rgba(8,11,32,.6);padding:8px 5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;text-align:center}
 .chair.filled{border-color:var(--cool);box-shadow:0 0 10px rgba(45,227,208,.55);background:var(--video)}
 .chair.kept{border-color:var(--neon);box-shadow:0 0 12px rgba(255,45,143,.8)}
@@ -159,9 +159,9 @@ main{flex:1;overflow-y:auto;position:relative}
 .chatstrip{flex:0 0 auto;height:112px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;padding:6px 14px 2px;-webkit-mask-image:linear-gradient(transparent,#000 24px);mask-image:linear-gradient(transparent,#000 24px)}
 /* small screens: shrink hero + chairs so the chat strip keeps real space */
 @media (max-height:760px){
-  .contestant-hero{min-height:170px}
-  .chairs-grid{height:132px}
-  .chatstrip{height:92px}
+  .contestant-hero{min-height:40dvh}
+  .chairs-grid{height:118px}
+  .chatstrip{height:88px}
 }
 .floatmsg{font-size:13px;line-height:1.35;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);animation:fadein .3s;flex-shrink:0}
 .floatmsg .cu{font-weight:800;color:var(--neon-soft)}

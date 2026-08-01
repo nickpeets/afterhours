@@ -1354,12 +1354,14 @@ async function videoJoin(){
     }
     vdbg("token OK → joining Daily room…");
 
+    const NOBLUR = new URLSearchParams(location.search).has("noblur");
+    if(NOBLUR) vdbg("blur disabled via ?noblur=1");
     DAILY=window.DailyIframe.createCallObject({
       subscribeToTracksAutomatically:true,
       dailyConfig:{},
       // background blur on by default (desktop browsers; mobile publishes
       // un-blurred until Daily supports processors there — graceful no-op)
-      inputSettings:{ video:{ processor:{ type:"background-blur", config:{ strength:0.6 } } } }
+      ...(NOBLUR ? {} : { inputSettings:{ video:{ processor:{ type:"background-blur", config:{ strength:0.6 } } } } })
     });
     DAILY.on("track-started",onTrack)
          .on("track-stopped",onTrackStopped)

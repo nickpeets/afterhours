@@ -1184,7 +1184,7 @@ async function enterBackstage(winnerUid, winnerName){
     const res=await fetch(DAILY_FN,{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+(session?.access_token||"")},
-      body:JSON.stringify({room_id:BS_ROOM.id, mode:"winner"})
+      body:JSON.stringify({room_id:BS_ROOM.id, mode:"winner", user_name:ME.id, is_owner:(ME.id===(BS_ROOM.host_id||null))})
     });
     const data=await res.json();
     if(!res.ok||!data.url){ toast("Backstage unavailable: "+(data.error||"")); exitBackstage(); return; }
@@ -1195,6 +1195,7 @@ async function enterBackstage(winnerUid, winnerName){
     BS_DAILY.on("track-started",bsTrack)
             .on("participant-left",()=>{ $("bs_wait").style.display="flex"; });
     await BS_DAILY.join({url:data.url, token:data.token});
+    try{ await BS_DAILY.setUserName(ME.id); }catch(e){}
     await BS_DAILY.setLocalVideo(true); await BS_DAILY.setLocalAudio(true);
   }catch(e){ console.log("backstage join failed:",e); toast("Backstage failed"); exitBackstage(); }
 }
@@ -1426,7 +1427,7 @@ async function videoJoin(){
     const res=await fetch(DAILY_FN,{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+(session?.access_token||"")},
-      body:JSON.stringify({room_id:CURRENT_ROOM.id})
+      body:JSON.stringify({room_id:CURRENT_ROOM.id, user_name:ME.id, is_owner:AMHOST})
     });
     let data={};
     try{ data=await res.json(); }catch(e){ vdbg("token response wasn't JSON (HTTP "+res.status+")", true); }
@@ -1457,6 +1458,7 @@ async function videoJoin(){
 
     await DAILY.join({url:data.url, token:data.token});
     DAILY_JOINED=true;
+    try{ await DAILY.setUserName(ME.id); }catch(e){}
     vdbg("join complete");
     watchDevices();
 

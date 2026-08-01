@@ -1333,8 +1333,23 @@ function vdbg(msg, isErr){
 function partUid(p){ return p?.user_name || null; }
 
 let CAM_RECOVERING=false, DEVWATCH=false;
+/* Bounded camera recovery: at most CAM_MAX_TRIES watchdog->recoverCamera cycles per
+   session.  A successful local attach resets the counter; a devicechange may forgive
+   the cap once, since new hardware is a genuinely new situation. */
+const CAM_MAX_TRIES=3;
+let CAM_TRIES=0, CAM_GAVE_UP=false, DEV_FORGIVEN=false, WATCHDOG_T=null;
+function localVideoTrackInfo(){
+  try{
+    const t=DAILY?.participants?.()?.local?.tracks?.video;
+    if(!t) return "no local video track object";
+    let out="state="+(t.state||"?");
+    if(t.blockedReason!==undefined) out+=" blockedReason="+t.blockedReason;
+    if(t.off && t.off.byUser!==undefined) out+=" off.byUser="+t.off.byUser;
+    return out;
+  }catch(e){ return "track state unavailable ("+(e?.message||e)+")"; }
+}
 async function recoverCamera(){
-  if(!DAILY || CAM_RECOVERING) return;
+  if(!DAILY || CAM_RECOVERING || CAM_GAVE_UP) return;
   CAM_RECOVERING=true;
   try{
     vdbg("attempting camera fallback…");
@@ -1354,7 +1369,9 @@ function watchDevices(){
     navigator.mediaDevices.addEventListener("devicechange", ()=>{
       if(DAILY && DAILY_JOINED && (AMHOST || amISeated())){
         vdbg("camera plugged/unplugged — re-checking…");
+        if(CAM_GAVE_UP && !DEV_FORGIVEN){ DEV_FORGIVEN=true; CAM_GAVE_UP=false; CAM_TRIES=0; vdbg("new camera device — allowing one more recovery round"); }
         recoverCamera();
+        videoWatchdog();
       }
     });
   }catch(e){}
@@ -1378,12 +1395,23 @@ async function applyBlur(){
   }
 }
 function videoWatchdog(){
-  setTimeout(async ()=>{
+  if(CAM_GAVE_UP || WATCHDOG_T) return;   // gave up, or a check is already pending
+  WATCHDOG_T=setTimeout(async ()=>{
+    WATCHDOG_T=null;
     const mine=Object.values(VIDEO_TILES).some(t=>t.uid===ME.id);
-    if(!mine && DAILY && DAILY_JOINED && (AMHOST || amISeated())){
+    if(mine){ CAM_TRIES=0; return; }
+    if(DAILY && DAILY_JOINED && (AMHOST || amISeated())){
+      vdbg("local video track: "+localVideoTrackInfo(), true);
+      CAM_TRIES++;
       vdbg("video never attached after 6s — disabling blur and retrying camera", true);
       BLUR_KILLED=true;   // once a stall is seen, blur stays off for the session
       try{ await DAILY.updateInputSettings({ video:{ processor:{ type:"none" } } }); }catch(e){}
+      if(CAM_TRIES>=CAM_MAX_TRIES){
+        CAM_GAVE_UP=true;
+        vdbg("camera recovery gave up after 3 tries — see track state above", true);
+        toast("Video couldn't start — try refreshing or a different browser.");
+        return;
+      }
       recoverCamera();
     }
   }, 6000);
@@ -1528,6 +1556,7 @@ function placeVideo(uid, sid, track){
   const bg=host.querySelector(".vid"); if(bg) bg.style.opacity="0";
   host.appendChild(v);
   VIDEO_TILES[sid]={uid, el:v};
+  if(uid===ME.id){ CAM_TRIES=0; CAM_GAVE_UP=false; }
   const p=v.play(); if(p&&p.catch) p.catch(err=>console.log("video.play() blocked:",err&&err.name));
   console.log("[video] attached",uid===ME.id?"(me)":"", "->", host.id||host.className);
 }

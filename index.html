@@ -262,21 +262,20 @@ main{flex:1;overflow-y:auto;position:relative}
       <h1 style="font-family:Monoton,cursive;font-weight:400;font-size:32px;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.55),0 0 26px rgba(255,45,143,.95),0 0 64px rgba(255,45,143,.5);letter-spacing:.04em">LAST CALL</h1>
       <div class="lsub">The live dating game show.  Take the chair.  Beat the clock.  Get kept.</div>
       <div class="tabrow">
-        <button class="tab on" id="tab_signup">New here</button>
-        <button class="tab" id="tab_login">I have an account</button>
+        <button class="tab on" id="tab_login">Sign in</button>
+        <button class="tab" id="tab_signup">New here</button>
       </div>
-      <div class="panel" id="signupPanel">
-        <input type="text" id="su_name" placeholder="Your name" maxlength="18">
-        <input type="email" id="su_email" placeholder="Email">
-        <input type="password" id="su_pass" placeholder="Password (6+ characters)">
+      <div class="panel" id="loginPanel">
+        <input type="email" id="li_email" placeholder="Email" autocomplete="email">
+        <input type="password" id="li_pass" placeholder="Password" autocomplete="current-password">
+        <div class="err" id="li_err"></div>
+        <button class="bigbtn" id="li_go">Sign in</button>
+      </div>
+      <div class="panel" id="signupPanel" style="display:none">
+        <input type="email" id="su_email" placeholder="Email" autocomplete="email">
+        <input type="password" id="su_pass" placeholder="Password (6+ characters)" autocomplete="new-password">
         <div class="err" id="su_err"></div>
         <button class="bigbtn" id="su_go">Create account</button>
-      </div>
-      <div class="panel" id="loginPanel" style="display:none">
-        <input type="email" id="li_email" placeholder="Email">
-        <input type="password" id="li_pass" placeholder="Password">
-        <div class="err" id="li_err"></div>
-        <button class="bigbtn" id="li_go">Log in</button>
       </div>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
     </div>
@@ -440,10 +439,10 @@ $("tab_login").onclick=()=>{$("tab_login").classList.add("on");$("tab_signup").c
 
 /* ============ SIGN UP ============ */
 $("su_go").onclick=async()=>{
-  const name=$("su_name").value.trim();
   const email=$("su_email").value.trim(), pass=$("su_pass").value;
+  // starter display name from the email's local part — changeable in the app later
+  const name=(email.split("@")[0]||"player").replace(/[^a-zA-Z0-9._-]/g,"").slice(0,18)||"player";
   const err=$("su_err"); err.textContent="";
-  if(!name){err.textContent="What should we call you?";return;}
   if(!email||!pass){err.textContent="Email and password required.";return;}
   if(pass.length<6){err.textContent="Password needs 6+ characters.";return;}
   $("su_go").disabled=true; $("su_go").textContent="Creating…";

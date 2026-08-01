@@ -112,8 +112,8 @@ main{flex:1;overflow-y:auto;position:relative}
 .roomtop .cnt{font-size:12px;color:var(--neon-soft);font-weight:700}
 
 /* STAGE — fixed proportion of the screen, holds contestant + chairs + line */
-.stage{flex-shrink:1;min-height:0;display:flex;flex-direction:column;padding:8px 12px 6px;gap:8px}
-.contestant-hero{border-radius:20px;border:2.5px solid var(--neon);box-shadow:0 0 16px rgba(255,45,143,.85),0 0 50px rgba(255,45,143,.4);overflow:hidden;position:relative;height:34vh;min-height:120px;flex-shrink:1;background:var(--video)}
+.stage{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:8px 12px 6px;gap:8px}
+.contestant-hero{border-radius:20px;border:2.5px solid var(--neon);box-shadow:0 0 16px rgba(255,45,143,.85),0 0 50px rgba(255,45,143,.4);overflow:hidden;position:relative;flex:1 1 auto;min-height:200px;max-height:58dvh;background:var(--video)}
 .contestant-hero .vid{position:absolute;inset:0;background-size:cover;background-position:center}
 .contestant-hero .plate{position:absolute;bottom:0;left:0;right:0;padding:7px 12px;background:linear-gradient(transparent,rgba(8,11,32,.92));z-index:2}
 .contestant-hero .role{font-size:9px;letter-spacing:.14em;color:var(--gold)}
@@ -156,12 +156,12 @@ main{flex:1;overflow-y:auto;position:relative}
 .emptyrole{color:var(--dim);font-size:12px;font-style:italic}
 
 /* CHAT STRIP — fills remaining space, ~4-5 msgs, scroll up & vanish under lineup */
-.chatstrip{flex:1;min-height:84px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;padding:6px 14px 2px;-webkit-mask-image:linear-gradient(transparent,#000 24px);mask-image:linear-gradient(transparent,#000 24px)}
+.chatstrip{flex:0 0 auto;height:112px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;padding:6px 14px 2px;-webkit-mask-image:linear-gradient(transparent,#000 24px);mask-image:linear-gradient(transparent,#000 24px)}
 /* small screens: shrink hero + chairs so the chat strip keeps real space */
 @media (max-height:760px){
-  .contestant-hero{height:28vh;min-height:140px}
+  .contestant-hero{min-height:170px}
   .chairs-grid{height:132px}
-  .chatstrip{min-height:72px}
+  .chatstrip{height:92px}
 }
 .floatmsg{font-size:13px;line-height:1.35;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);animation:fadein .3s;flex-shrink:0}
 .floatmsg .cu{font-weight:800;color:var(--neon-soft)}
@@ -221,6 +221,26 @@ main{flex:1;overflow-y:auto;position:relative}
 /* WINNER'S ROOM — backstage */
 #backstage{position:absolute;inset:0;z-index:130;background:radial-gradient(ellipse 90% 70% at 50% 30%,#1a1240,#060818);display:none;flex-direction:column;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px));gap:12px}
 #backstage.show{display:flex}
+.bs-clock{align-self:center;font-family:"Azeret Mono",monospace;font-size:15px;font-weight:700;letter-spacing:.06em;color:var(--cool-ink);background:var(--cool);border-radius:8px;padding:3px 12px;display:none}
+.bs-clock.on{display:block}
+.bs-clock.low{background:var(--neon);color:#fff}
+#bsdecide{position:absolute;inset:0;z-index:145;background:rgba(6,8,24,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+#bsdecide.show{display:flex}
+.bsd-title{font-family:"Baloo 2",sans-serif;font-weight:800;font-size:24px;color:#fff;text-shadow:0 0 18px rgba(255,45,143,.7)}
+.bsd-sub{color:var(--dim);font-size:14px;max-width:320px}
+.bsd-count{font-family:"Azeret Mono",monospace;font-size:14px;font-weight:700;color:var(--cool-ink);background:var(--cool);border-radius:8px;padding:2px 10px}
+.bsd-count.low{background:var(--neon);color:#fff}
+.chiprow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:360px}
+.ctypechip{padding:8px 14px;border-radius:999px;border:1.5px solid rgba(45,227,208,.45);background:transparent;color:var(--paper);font-size:13px;font-weight:700;cursor:pointer}
+.ctypechip.on{background:var(--cool);color:var(--cool-ink);border-color:var(--cool)}
+#bsd_val{width:100%;max-width:340px;padding:12px 14px;border-radius:12px;border:1px solid rgba(238,240,255,.25);background:rgba(238,240,255,.08);color:var(--paper);font-size:15px}
+.bsd-offer{padding:13px 30px;border:none;border-radius:999px;background:var(--keep);color:#fff;font-family:"Baloo 2",sans-serif;font-weight:800;font-size:15px;letter-spacing:.04em;cursor:pointer;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 4px 0 var(--keep-bevel)}
+.bsd-offer:disabled{opacity:.5}
+.bsd-skip{padding:11px 22px;border:1px solid rgba(238,240,255,.3);border-radius:999px;background:transparent;color:var(--dim);font-size:14px;cursor:pointer}
+.bsd-reveal{background:rgba(255,214,233,.1);border:1.5px solid var(--gold);border-radius:16px;padding:16px 20px;max-width:340px}
+.bsd-reveal .who{color:var(--gold);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.bsd-reveal .what{font-family:"Azeret Mono",monospace;font-size:17px;color:#fff;margin:6px 0 10px;word-break:break-all}
+.bsd-copy{padding:8px 18px;border:none;border-radius:999px;background:var(--gold);color:#2a1010;font-weight:800;font-size:13px;cursor:pointer}
 .bs-head{font-family:"Baloo 2",sans-serif;font-weight:800;font-size:16px;color:var(--gold);text-align:center;letter-spacing:.1em}
 .bs-live{font-size:10px;color:var(--neon);letter-spacing:.15em;margin-left:8px}
 .bs-tiles{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
@@ -360,6 +380,7 @@ main{flex:1;overflow-y:auto;position:relative}
       <!-- WINNER'S ROOM (backstage) -->
       <div id="backstage">
         <div class="bs-head">BACKSTAGE <span class="bs-live">● PRIVATE</span></div>
+        <div class="bs-clock" id="bs_clock">3:00</div>
         <div class="bs-tiles">
           <div class="bs-tile" id="bs_tile_host"><div class="bs-nm" id="bs_nm_host"></div></div>
           <div class="bs-tile" id="bs_tile_winner"><div class="bs-nm" id="bs_nm_winner"></div><div class="bs-wait" id="bs_wait">waiting for them…</div></div>
@@ -367,6 +388,35 @@ main{flex:1;overflow-y:auto;position:relative}
         <div class="bs-actions">
           <button class="bs-cut" id="bs_cut" style="display:none">✂ Cut the Feed</button>
           <button class="bs-leave" id="bs_leave" style="display:none">Leave</button>
+        </div>
+        <!-- LAST CALL decision window -->
+        <div id="bsdecide">
+          <div class="bsd-title">Time's up.</div>
+          <div class="bsd-sub">Swap info, or leave it here?  Nothing is shared unless you both offer.</div>
+          <div class="bsd-count" id="bsd_count">0:60</div>
+          <div id="bsd_form" style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%">
+            <div class="chiprow" id="bsd_chips">
+              <button class="ctypechip on" data-t="Instagram">Instagram</button>
+              <button class="ctypechip" data-t="TikTok">TikTok</button>
+              <button class="ctypechip" data-t="Snapchat">Snapchat</button>
+              <button class="ctypechip" data-t="Phone">Phone</button>
+              <button class="ctypechip" data-t="Email">Email</button>
+              <button class="ctypechip" data-t="Other">Other</button>
+            </div>
+            <input type="text" id="bsd_val" placeholder="@yourhandle" maxlength="120" autocomplete="off">
+            <button class="bsd-offer" id="bsd_offer">Swap info 🍸</button>
+            <button class="bsd-skip" id="bsd_skip">Leave it here</button>
+            <div class="bsd-sub" id="bsd_status"></div>
+          </div>
+          <div id="bsd_revealbox" style="display:none;flex-direction:column;align-items:center;gap:12px">
+            <div class="bsd-title" style="font-size:20px">It's mutual ✦</div>
+            <div class="bsd-reveal">
+              <div class="who" id="bsd_rev_who"></div>
+              <div class="what" id="bsd_rev_what"></div>
+              <button class="bsd-copy" id="bsd_copy">Copy</button>
+            </div>
+            <button class="bsd-skip" id="bsd_done">Goodnight ✦</button>
+          </div>
         </div>
       </div>
     </div>
@@ -995,8 +1045,8 @@ function handleEvent(ev){
       if(AWAITING_PHOTO){ AWAITING_PHOTO=false; renderFinale(actor); }  // photo sender IS the winner
       break;
     case "backstage_end":
-      // host cut the feed — if we're backstage, we're done
-      if(BS_ROOM && actor!==ME.id){ toast("The feed was cut. Good night. 🌙"); exitBackstage(); }
+      // host cut the feed — cameras end, the decision window opens for both
+      if(BS_ROOM && actor!==ME.id){ toast("She cut the feed."); bsEnterDecision(); }
       break;
   }
 }
@@ -1168,6 +1218,114 @@ async function startWinnerSnap(winnerUid){
 
 /* ============ WINNER'S ROOM (backstage) ============ */
 let BS_DAILY=null, BS_ROOM=null;
+let BS_TICK=null, BS_DEADLINE=0, BSD_TICK=null, BSD_DEADLINE=0, BSD_POLL=null, BSD_PHASE=null, BSD_OFFERED=false;
+const BS_SECONDS=180, BSD_SECONDS=60;
+
+function bsStartClock(){
+  if(BS_TICK || BSD_PHASE) return;                 // already running or already deciding
+  BS_DEADLINE=Date.now()+BS_SECONDS*1000;
+  const el=$("bs_clock"); el.classList.add("on");
+  BS_TICK=setInterval(()=>{
+    const left=Math.max(0,Math.ceil((BS_DEADLINE-Date.now())/1000));
+    el.textContent=Math.floor(left/60)+":"+String(left%60).padStart(2,"0");
+    el.classList.toggle("low",left<=30);
+    if(left<=0){ clearInterval(BS_TICK); BS_TICK=null; bsEnterDecision(); }
+  },250);
+}
+
+async function bsEnterDecision(){
+  if(BSD_PHASE) return; BSD_PHASE="deciding"; BSD_OFFERED=false;
+  clearInterval(BS_TICK); BS_TICK=null;
+  $("bs_clock").classList.remove("on");
+  // cameras cut together — privacy from here on
+  try{ if(BS_DAILY){ await BS_DAILY.leave(); await BS_DAILY.destroy(); } }catch(e){}
+  BS_DAILY=null;
+  Object.keys(AUDIO_ELS).filter(k=>k.startsWith("bs-")).forEach(stopAudio);
+  $("bsdecide").classList.add("show");
+  $("bsd_val").placeholder="@yourhandle";
+  BSD_DEADLINE=Date.now()+BSD_SECONDS*1000;
+  BSD_TICK=setInterval(()=>{
+    const left=Math.max(0,Math.ceil((BSD_DEADLINE-Date.now())/1000));
+    const c=$("bsd_count");
+    c.textContent="0:"+String(left).padStart(2,"0");
+    c.classList.toggle("low",left<=15);
+    if(left<=0){ bsGoodnight(BSD_OFFERED?"The clock ran out.":null); }
+  },250);
+  BSD_POLL=setInterval(bsCheckSwap,3000);
+}
+
+async function bsCheckSwap(){
+  if(BSD_PHASE!=="deciding" || !BS_ROOM) return;
+  try{
+    const {data,error}=await sb.rpc("get_swap_status",{room_id:BS_ROOM.id});
+    if(error) return;
+    if(data && data.other_contact){ bsReveal(data.other_contact); }
+    else if(data && data.they_offered && BSD_OFFERED){ $("bsd_status").textContent="They're in — revealing…"; }
+    else if(data && data.they_offered){ $("bsd_status").textContent="They've offered to swap — your move."; }
+  }catch(e){}
+}
+
+function bsReveal(contact){
+  if(BSD_PHASE==="revealed") return; BSD_PHASE="revealed";
+  clearInterval(BSD_TICK); BSD_TICK=null; clearInterval(BSD_POLL); BSD_POLL=null;
+  $("bsd_count").style.display="none";
+  $("bsd_form").style.display="none";
+  const other=(ME.id===BS_ROOM.host_id)?($("bs_nm_winner").textContent||"Them"):(BS_ROOM.contestant_name||"Them");
+  $("bsd_rev_who").textContent=other;
+  $("bsd_rev_what").textContent=contact;
+  $("bsd_revealbox").style.display="flex";
+}
+
+function bsGoodnight(msg){
+  if(BSD_PHASE==="revealed") return;
+  clearInterval(BSD_TICK); BSD_TICK=null; clearInterval(BSD_POLL); BSD_POLL=null;
+  toast((msg?msg+"  ":"")+"Last call.  Goodnight ✦");
+  bsTeardownDecision();
+  exitBackstage();
+}
+
+function bsTeardownDecision(){
+  BSD_PHASE=null; BSD_OFFERED=false;
+  clearInterval(BS_TICK); BS_TICK=null;
+  clearInterval(BSD_TICK); BSD_TICK=null;
+  clearInterval(BSD_POLL); BSD_POLL=null;
+  $("bsdecide").classList.remove("show");
+  $("bsd_form").style.display="flex";
+  $("bsd_revealbox").style.display="none";
+  $("bsd_count").style.display="";
+  $("bsd_status").textContent="";
+  $("bsd_val").value="";
+  $("bs_clock").classList.remove("on","low");
+}
+
+/* decision UI wiring */
+$("bsd_chips").addEventListener("click",(e)=>{
+  const b=e.target.closest(".ctypechip"); if(!b) return;
+  document.querySelectorAll("#bsd_chips .ctypechip").forEach(c=>c.classList.remove("on"));
+  b.classList.add("on");
+  const t=b.dataset.t;
+  $("bsd_val").placeholder = t==="Phone"?"503-555-0123" : t==="Email"?"you@example.com" : t==="Other"?"however they can find you" : "@yourhandle";
+});
+$("bsd_offer").onclick=async()=>{
+  const t=document.querySelector("#bsd_chips .ctypechip.on")?.dataset.t||"Other";
+  const v=$("bsd_val").value.trim();
+  if(!v){ $("bsd_status").textContent="Enter something to share first."; return; }
+  $("bsd_offer").disabled=true; $("bsd_offer").textContent="Offering…";
+  try{
+    const {data,error}=await sb.rpc("offer_swap",{room_id:BS_ROOM.id, contact_text:t+": "+v});
+    if(error){ $("bsd_status").textContent="Swap unavailable tonight — "+error.message; $("bsd_offer").disabled=false; $("bsd_offer").textContent="Swap info 🍸"; return; }
+    BSD_OFFERED=true;
+    $("bsd_offer").textContent="Offered ✓";
+    if(data && data.other_contact){ bsReveal(data.other_contact); }
+    else { $("bsd_status").textContent="Offered.  Waiting on them…"; }
+  }catch(e){ $("bsd_status").textContent="Swap unavailable tonight."; $("bsd_offer").disabled=false; $("bsd_offer").textContent="Swap info 🍸"; }
+};
+$("bsd_skip").onclick=async()=>{
+  if(BSD_OFFERED){ try{ await sb.rpc("rescind_swap",{room_id:BS_ROOM.id}); }catch(e){} }
+  bsGoodnight(null);
+};
+$("bsd_copy").onclick=()=>{ try{ navigator.clipboard.writeText($("bsd_rev_what").textContent); toast("Copied."); }catch(e){} };
+$("bsd_done").onclick=()=>{ bsTeardownDecision(); exitBackstage(); };
 
 async function enterBackstage(winnerUid, winnerName){
   BS_ROOM=CURRENT_ROOM;
@@ -1189,8 +1347,8 @@ async function enterBackstage(winnerUid, winnerName){
     const data=await res.json();
     if(!res.ok||!data.url){ toast("Backstage unavailable: "+(data.error||"")); exitBackstage(); return; }
     BS_DAILY=window.DailyIframe.createCallObject({
-      subscribeToTracksAutomatically:true,
-      inputSettings:{ video:{ processor:{ type:"background-blur", config:{ strength:0.6 } } } }
+      subscribeToTracksAutomatically:true
+      // no video processor: Daily's blur stalls tracks in Chrome (same bug as main room)
     });
     BS_DAILY.on("track-started",bsTrack)
             .on("participant-left",()=>{ $("bs_wait").style.display="flex"; });
@@ -1216,16 +1374,17 @@ function bsTrack(ev){
   v.srcObject=new MediaStream([ev.track]);
   tile.appendChild(v);
   const p=v.play(); if(p&&p.catch) p.catch(()=>{});
-  if(!ev.participant.local) $("bs_wait").style.display="none";
+  if(!ev.participant.local){ $("bs_wait").style.display="none"; bsStartClock(); }
 }
 
 $("bs_cut").onclick=async()=>{
   try{ await sb.from("room_events").insert({room_id:BS_ROOM.id,user_id:ME.id,type:"backstage_end",payload:{}}); }catch(e){}
-  exitBackstage();
+  bsEnterDecision();  // cutting the feed ends the cameras, not the last call
 };
 $("bs_leave").onclick=()=>exitBackstage();
 
 async function exitBackstage(){
+  bsTeardownDecision();
   try{ if(BS_DAILY){ await BS_DAILY.leave(); await BS_DAILY.destroy(); } }catch(e){}
   BS_DAILY=null; BS_ROOM=null;
   Object.keys(AUDIO_ELS).filter(k=>k.startsWith("bs-")).forEach(stopAudio);

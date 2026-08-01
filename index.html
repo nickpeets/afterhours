@@ -1333,6 +1333,54 @@ function vdbg(msg, isErr){
 // map a Daily participant's user_name (we set it to the app uid) to their app user_id
 function partUid(p){ return p?.user_name || null; }
 
+let CAM_RECOVERING=false, DEVWATCH=false;
+async function recoverCamera(){
+  if(!DAILY || CAM_RECOVERING) return;
+  CAM_RECOVERING=true;
+  try{
+    vdbg("attempting camera fallback…");
+    const devs=await navigator.mediaDevices.enumerateDevices();
+    const cams=devs.filter(d=>d.kind==="videoinput");
+    vdbg("cameras available: "+cams.length+(cams[0]?(" — using "+(cams[0].label||"camera 1")):""));
+    if(!cams.length){ toast("No camera detected — plug one in and video will recover automatically."); return; }
+    await DAILY.setInputDevicesAsync({ videoDeviceId: cams[0].deviceId });
+    if(AMHOST || amISeated()) await DAILY.setLocalVideo(true);
+    vdbg("camera fallback engaged ✓");
+  }catch(err){ vdbg("camera fallback failed: "+(err?.message||err), true); }
+  finally{ CAM_RECOVERING=false; }
+}
+function watchDevices(){
+  if(DEVWATCH) return; DEVWATCH=true;
+  try{
+    navigator.mediaDevices.addEventListener("devicechange", ()=>{
+      if(DAILY && DAILY_JOINED && (AMHOST || amISeated())){
+        vdbg("camera plugged/unplugged — re-checking…");
+        recoverCamera();
+      }
+    });
+  }catch(e){}
+}
+async function applyBlur(){
+  if(new URLSearchParams(location.search).has("noblur")){ vdbg("blur skipped (?noblur=1)"); return; }
+  if(!DAILY) return;
+  try{
+    await DAILY.updateInputSettings({ video:{ processor:{ type:"background-blur", config:{ strength:0.6 } } } });
+    vdbg("background blur on ✓");
+  }catch(e){
+    vdbg("blur unavailable — continuing without it ("+(e?.message||e)+")", true);
+    try{ await DAILY.updateInputSettings({ video:{ processor:{ type:"none" } } }); }catch(e2){}
+  }
+}
+function videoWatchdog(){
+  setTimeout(async ()=>{
+    const mine=Object.values(VIDEO_TILES).some(t=>t.uid===ME.id);
+    if(!mine && DAILY && DAILY_JOINED && (AMHOST || amISeated())){
+      vdbg("video never attached after 6s — disabling blur and retrying camera", true);
+      try{ await DAILY.updateInputSettings({ video:{ processor:{ type:"none" } } }); }catch(e){}
+      recoverCamera();
+    }
+  }, 6000);
+}
 async function videoJoin(){
   if(!window.Daily && !window.DailyIframe){ vdbg("daily-js library not loaded (CDN blocked?)", true); toast("Video library didn't load."); return; }
   if(DAILY) return;
@@ -1354,14 +1402,12 @@ async function videoJoin(){
     }
     vdbg("token OK → joining Daily room…");
 
-    const NOBLUR = new URLSearchParams(location.search).has("noblur");
-    if(NOBLUR) vdbg("blur disabled via ?noblur=1");
     DAILY=window.DailyIframe.createCallObject({
       subscribeToTracksAutomatically:true,
-      dailyConfig:{},
-      // background blur on by default (desktop browsers; mobile publishes
-      // un-blurred until Daily supports processors there — graceful no-op)
-      ...(NOBLUR ? {} : { inputSettings:{ video:{ processor:{ type:"background-blur", config:{ strength:0.6 } } } } })
+      dailyConfig:{}
+      // NOTE: no video processor here.  Blur is applied AFTER video is confirmed
+      // working (applyBlur), so a failing blur pipeline can never take the camera
+      // down with it.  ?noblur=1 skips blur entirely.
     });
     DAILY.on("track-started",onTrack)
          .on("track-stopped",onTrackStopped)
@@ -1370,15 +1416,17 @@ async function videoJoin(){
          .on("participant-joined",()=>{ reflowVideo(); })
          .on("participant-left",onPartLeft)
          .on("error",(e)=>{ vdbg("daily error: "+(e?.errorMsg||JSON.stringify(e)).slice(0,300), true); toast("Video error: "+(e?.errorMsg||"unknown")); })
-         .on("camera-error",(e)=>{ vdbg("camera error: "+(e?.errorMsg?.errorMsg||e?.errorMsg||JSON.stringify(e)).slice(0,300), true); toast("Camera blocked or unavailable — check permissions."); })
+         .on("camera-error",(e)=>{ vdbg("camera error: "+(e?.errorMsg?.errorMsg||e?.errorMsg||JSON.stringify(e)).slice(0,300), true); recoverCamera(); })
+         .on("nonfatal-error",(e)=>{ vdbg("nonfatal: "+(e?.errorMsg||JSON.stringify(e)).slice(0,200), true); if(/cam|video|device/i.test(e?.errorMsg||"")) recoverCamera(); })
          .on("left-meeting",()=>{DAILY_JOINED=false;});
 
     await DAILY.join({url:data.url, token:data.token});
     DAILY_JOINED=true;
     vdbg("join complete");
+    watchDevices();
 
     // contestant publishes immediately; suitors stay cam-off until seated
-    if(AMHOST){ vdbg("host: turning on cam+mic…"); await DAILY.setLocalVideo(true); await DAILY.setLocalAudio(true); vdbg("cam+mic on ✓"); }
+    if(AMHOST){ vdbg("host: turning on cam+mic…"); await DAILY.setLocalVideo(true); await DAILY.setLocalAudio(true); vdbg("cam+mic on ✓"); applyBlur(); videoWatchdog(); }
     else { await DAILY.setLocalVideo(false); }
     syncLocalPublish();  // in case we're already seated on entry
   }catch(e){
@@ -1403,7 +1451,11 @@ function amISeated(){
 async function syncLocalPublish(){
   if(!DAILY || !DAILY_JOINED) return;
   const shouldPublish = AMHOST || amISeated();
-  try{ await DAILY.setLocalVideo(shouldPublish); if(!AMHOST) await DAILY.setLocalAudio(shouldPublish); }catch(e){}
+  try{
+    await DAILY.setLocalVideo(shouldPublish);
+    if(!AMHOST) await DAILY.setLocalAudio(shouldPublish);
+    if(shouldPublish){ applyBlur(); videoWatchdog(); }
+  }catch(e){}
 }
 
 // attach a video track element into the correct tile (hero for contestant, chair for seated)

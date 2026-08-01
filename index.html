@@ -285,18 +285,18 @@ main{flex:1;overflow-y:auto;position:relative}
         <button class="tab on" id="tab_login">Sign in</button>
         <button class="tab" id="tab_signup">New here</button>
       </div>
-      <div class="panel" id="loginPanel">
-        <input type="email" id="li_email" placeholder="Email" autocomplete="email">
-        <input type="password" id="li_pass" placeholder="Password" autocomplete="current-password">
+      <form class="panel" id="loginPanel" action="#">
+        <input type="email" id="li_email" placeholder="Email" autocomplete="email" enterkeyhint="next">
+        <input type="password" id="li_pass" placeholder="Password" autocomplete="current-password" enterkeyhint="go">
         <div class="err" id="li_err"></div>
-        <button class="bigbtn" id="li_go">Sign in</button>
-      </div>
-      <div class="panel" id="signupPanel" style="display:none">
-        <input type="email" id="su_email" placeholder="Email" autocomplete="email">
-        <input type="password" id="su_pass" placeholder="Password (6+ characters)" autocomplete="new-password">
+        <button class="bigbtn" id="li_go" type="submit">Sign in</button>
+      </form>
+      <form class="panel" id="signupPanel" style="display:none" action="#">
+        <input type="email" id="su_email" placeholder="Email" autocomplete="email" enterkeyhint="next">
+        <input type="password" id="su_pass" placeholder="Password (6+ characters)" autocomplete="new-password" enterkeyhint="go">
         <div class="err" id="su_err"></div>
-        <button class="bigbtn" id="su_go">Create account</button>
-      </div>
+        <button class="bigbtn" id="su_go" type="submit">Create account</button>
+      </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
     </div>
 
@@ -488,7 +488,8 @@ $("tab_signup").onclick=()=>{$("tab_signup").classList.add("on");$("tab_login").
 $("tab_login").onclick=()=>{$("tab_login").classList.add("on");$("tab_signup").classList.remove("on");$("loginPanel").style.display="flex";$("signupPanel").style.display="none";};
 
 /* ============ SIGN UP ============ */
-$("su_go").onclick=async()=>{
+$("signupPanel").onsubmit=async(e)=>{
+  e.preventDefault();
   const email=$("su_email").value.trim(), pass=$("su_pass").value;
   // starter display name from the email's local part — changeable in the app later
   const name=(email.split("@")[0]||"player").replace(/[^a-zA-Z0-9._-]/g,"").slice(0,18)||"player";
@@ -509,7 +510,8 @@ $("su_go").onclick=async()=>{
 };
 
 /* ============ LOGIN ============ */
-$("li_go").onclick=async()=>{
+$("loginPanel").onsubmit=async(e)=>{
+  e.preventDefault();
   const email=$("li_email").value.trim(), pass=$("li_pass").value;
   const err=$("li_err"); err.textContent="";
   $("li_go").disabled=true; $("li_go").textContent="Logging in…";
@@ -1355,6 +1357,7 @@ async function enterBackstage(winnerUid, winnerName){
     await BS_DAILY.join({url:data.url, token:data.token});
     try{ await BS_DAILY.setUserName(ME.id); }catch(e){}
     await BS_DAILY.setLocalVideo(true); await BS_DAILY.setLocalAudio(true);
+    NATIVE_BLUR_TRIED=false; setTimeout(()=>tryNativeBlur(BS_DAILY),400);
   }catch(e){ console.log("backstage join failed:",e); toast("Backstage failed"); exitBackstage(); }
 }
 
@@ -1520,6 +1523,7 @@ async function recoverCamera(){
     await DAILY.setInputDevicesAsync({ videoDeviceId: cams[0].deviceId });
     if(AMHOST || amISeated()) await DAILY.setLocalVideo(true);
     vdbg("camera fallback engaged ✓");
+    NATIVE_BLUR_TRIED=false; setTimeout(()=>tryNativeBlur(),400);
   }catch(err){ vdbg("camera fallback failed: "+(err?.message||err), true); }
   finally{ CAM_RECOVERING=false; }
 }
@@ -1541,12 +1545,36 @@ function watchDevices(){
    with ?blur=1 to re-test after daily-js/Chrome updates.  If the watchdog catches a
    stall it kills blur for the whole session so recovery can't loop. */
 let BLUR_KILLED=false;
+/* Native background blur (Rung 1): ask the OS to blur via MediaStreamTrack
+   constraints — no JS frame pipeline, so it cannot leak VideoFrames like
+   Daily's processor (Rung 2, opt-in via ?blur=1, watchdog-caged).
+   iPhone users additionally have Control Center → Video Effects → Portrait,
+   which blurs Safari's camera at the system level with zero app involvement. */
+let NATIVE_BLUR_TRIED=false;
+async function tryNativeBlur(call){
+  const d = call || DAILY;
+  if(!d || NATIVE_BLUR_TRIED) return;
+  try{
+    const sup = navigator.mediaDevices.getSupportedConstraints();
+    if(!sup || !sup.backgroundBlur){ return; }               // platform can't — stay quiet
+    NATIVE_BLUR_TRIED = true;
+    const vt = d.participants?.()?.local?.tracks?.video;
+    const track = vt?.persistentTrack || vt?.track;
+    if(!track){ NATIVE_BLUR_TRIED=false; return; }           // not ready yet; a later call retries
+    try{ await track.applyConstraints({ backgroundBlur: true }); }
+    catch(e1){ await track.applyConstraints({ advanced:[{ backgroundBlur: true }] }); }
+    const on = track.getSettings?.().backgroundBlur;
+    vdbg(on ? "native background blur on ✓ (OS-level)" : "native blur present but not controllable — OS toggle (e.g. iPhone Portrait mode) still works");
+  }catch(e){
+    vdbg("native blur unavailable here ("+(e?.name||e?.message||e)+") — camera unaffected");
+  }
+}
 async function applyBlur(){
   if(!new URLSearchParams(location.search).has("blur")) return;          // opt-in only
   if(BLUR_KILLED){ return; }
   if(!DAILY) return;
   try{
-    await DAILY.updateInputSettings({ video:{ processor:{ type:"background-blur", config:{ strength:0.6 } } } });
+    await DAILY.updateInputSettings({ video:{ processor:{ type:"background-blur", config:{ strength:1 } } } });
     vdbg("background blur on ✓ (opt-in)");
   }catch(e){
     vdbg("blur unavailable — continuing without it ("+(e?.message||e)+")", true);
@@ -1622,7 +1650,7 @@ async function videoJoin(){
     watchDevices();
 
     // contestant publishes immediately; suitors stay cam-off until seated
-    if(AMHOST){ vdbg("host: turning on cam+mic…"); await DAILY.setLocalVideo(true); await DAILY.setLocalAudio(true); vdbg("cam+mic on ✓"); applyBlur(); videoWatchdog(); }
+    if(AMHOST){ vdbg("host: turning on cam+mic…"); await DAILY.setLocalVideo(true); await DAILY.setLocalAudio(true); vdbg("cam+mic on ✓"); setTimeout(()=>tryNativeBlur(),400); applyBlur(); videoWatchdog(); }
     else { await DAILY.setLocalVideo(false); }
     syncLocalPublish();  // in case we're already seated on entry
   }catch(e){
@@ -1650,7 +1678,7 @@ async function syncLocalPublish(){
   try{
     await DAILY.setLocalVideo(shouldPublish);
     if(!AMHOST) await DAILY.setLocalAudio(shouldPublish);
-    if(shouldPublish){ applyBlur(); videoWatchdog(); }
+    if(shouldPublish){ setTimeout(()=>tryNativeBlur(),400); applyBlur(); videoWatchdog(); }
   }catch(e){}
 }
 

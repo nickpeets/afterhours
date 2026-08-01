@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Monoton&family=Baloo+2:wght@600;700;800&family=Archivo:wght@400;500;600;700;800&family=Azeret+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/@daily-co/daily-js"></script>
+<script src="https://unpkg.com/@daily-co/daily-js@0.91.0/dist/daily.js"></script>
 <style>
 /* LAST CALL — neon skin (Love Connection). Tokens from lastcall-theme.css. */
 :root{
@@ -1306,21 +1306,53 @@ let DAILY_JOINED=false;
 let VIDEO_TILES={};        // session_id -> {uid, el} attached video elements
 const DAILY_FN=SUPA_URL+"/functions/v1/daily-room";
 
+/* ---- on-screen video debug panel: auto-appears on failure; full narration with ?debug=1 ---- */
+const VDEBUG_ON = new URLSearchParams(location.search).has("debug");
+function vdbg(msg, isErr){
+  console.log("[video]", msg);
+  let p=document.getElementById("vdebug");
+  if(!p){
+    p=document.createElement("div");
+    p.id="vdebug";
+    p.style.cssText="position:fixed;left:8px;right:8px;bottom:8px;z-index:9999;background:rgba(6,8,24,.95);border:1px solid rgba(255,45,143,.5);border-radius:10px;padding:8px 10px;font:11px/1.5 'Azeret Mono',monospace;color:#eef0ff;max-height:38vh;overflow:auto;display:none";
+    const x=document.createElement("div");
+    x.textContent="✕ close";
+    x.style.cssText="position:sticky;top:0;float:right;cursor:pointer;color:#ff8ac2;padding-left:10px";
+    x.onclick=()=>p.remove();
+    p.appendChild(x);
+    document.body.appendChild(p);
+  }
+  const line=document.createElement("div");
+  line.textContent=(isErr?"✕ ":"· ")+msg;
+  if(isErr) line.style.color="#ff8ac2";
+  p.appendChild(line);
+  if(isErr || VDEBUG_ON) p.style.display="block";
+  p.scrollTop=p.scrollHeight;
+}
+
 // map a Daily participant's user_name (we set it to the app uid) to their app user_id
 function partUid(p){ return p?.user_name || null; }
 
 async function videoJoin(){
-  if(!window.Daily || DAILY) return;
+  if(!window.Daily && !window.DailyIframe){ vdbg("daily-js library not loaded (CDN blocked?)", true); toast("Video library didn't load."); return; }
+  if(DAILY) return;
   try{
-    // get a token from our edge function (owner if host)
+    vdbg("requesting video token…");
     const {data:{session}}=await sb.auth.getSession();
+    if(!session){ vdbg("no auth session — signed out?", true); }
     const res=await fetch(DAILY_FN,{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+(session?.access_token||"")},
       body:JSON.stringify({room_id:CURRENT_ROOM.id})
     });
-    const data=await res.json();
-    if(!res.ok || !data.url){ console.log("daily token error:",data); return; }
+    let data={};
+    try{ data=await res.json(); }catch(e){ vdbg("token response wasn't JSON (HTTP "+res.status+")", true); }
+    if(!res.ok || !data.url){
+      vdbg("token request failed: HTTP "+res.status+" — "+JSON.stringify(data).slice(0,300), true);
+      toast("Camera couldn't start (server said "+res.status+").");
+      return;
+    }
+    vdbg("token OK → joining Daily room…");
 
     DAILY=window.DailyIframe.createCallObject({
       subscribeToTracksAutomatically:true,
@@ -1331,20 +1363,26 @@ async function videoJoin(){
     });
     DAILY.on("track-started",onTrack)
          .on("track-stopped",onTrackStopped)
-         .on("joined-meeting",()=>{ setTimeout(reflowVideo,300); })
+         .on("joined-meeting",()=>{ vdbg("joined meeting ✓"); setTimeout(reflowVideo,300); })
          .on("participant-updated",()=>{ reflowVideo(); })
          .on("participant-joined",()=>{ reflowVideo(); })
          .on("participant-left",onPartLeft)
+         .on("error",(e)=>{ vdbg("daily error: "+(e?.errorMsg||JSON.stringify(e)).slice(0,300), true); toast("Video error: "+(e?.errorMsg||"unknown")); })
+         .on("camera-error",(e)=>{ vdbg("camera error: "+(e?.errorMsg?.errorMsg||e?.errorMsg||JSON.stringify(e)).slice(0,300), true); toast("Camera blocked or unavailable — check permissions."); })
          .on("left-meeting",()=>{DAILY_JOINED=false;});
 
     await DAILY.join({url:data.url, token:data.token});
     DAILY_JOINED=true;
+    vdbg("join complete");
 
     // contestant publishes immediately; suitors stay cam-off until seated
-    if(AMHOST){ await DAILY.setLocalVideo(true); await DAILY.setLocalAudio(true); }
+    if(AMHOST){ vdbg("host: turning on cam+mic…"); await DAILY.setLocalVideo(true); await DAILY.setLocalAudio(true); vdbg("cam+mic on ✓"); }
     else { await DAILY.setLocalVideo(false); }
     syncLocalPublish();  // in case we're already seated on entry
-  }catch(e){ console.log("videoJoin failed:",e); }
+  }catch(e){
+    vdbg("videoJoin exception: "+(e?.message||e), true);
+    toast("Camera couldn't start: "+(e?.message||"unknown error"));
+  }
 }
 
 async function videoLeave(){

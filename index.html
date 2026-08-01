@@ -6,9 +6,10 @@
 <title>LAST CALL</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#080b20">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- NOTE: apple-mobile-web-app-capable deliberately OMITTED.  iOS standalone web apps have
+     chronic getUserMedia/camera failures (e.g. the iOS 18.1 regression).  For a live-video app,
+     the home-screen icon opening in Safari is the reliable choice.  Android still gets true
+     standalone via the manifest, where camera works.  Revisit if WebKit ever stabilizes. -->
 <meta name="apple-mobile-web-app-title" content="Last Call">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">

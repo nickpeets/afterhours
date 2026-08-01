@@ -1359,14 +1359,21 @@ function watchDevices(){
     });
   }catch(e){}
 }
+/* Background blur DISABLED by default: Daily's blur processor currently stalls the
+   video track in Chrome (VideoFrame GC leak — "video never attached" loops).  Opt in
+   with ?blur=1 to re-test after daily-js/Chrome updates.  If the watchdog catches a
+   stall it kills blur for the whole session so recovery can't loop. */
+let BLUR_KILLED=false;
 async function applyBlur(){
-  if(new URLSearchParams(location.search).has("noblur")){ vdbg("blur skipped (?noblur=1)"); return; }
+  if(!new URLSearchParams(location.search).has("blur")) return;          // opt-in only
+  if(BLUR_KILLED){ return; }
   if(!DAILY) return;
   try{
     await DAILY.updateInputSettings({ video:{ processor:{ type:"background-blur", config:{ strength:0.6 } } } });
-    vdbg("background blur on ✓");
+    vdbg("background blur on ✓ (opt-in)");
   }catch(e){
     vdbg("blur unavailable — continuing without it ("+(e?.message||e)+")", true);
+    BLUR_KILLED=true;
     try{ await DAILY.updateInputSettings({ video:{ processor:{ type:"none" } } }); }catch(e2){}
   }
 }
@@ -1375,6 +1382,7 @@ function videoWatchdog(){
     const mine=Object.values(VIDEO_TILES).some(t=>t.uid===ME.id);
     if(!mine && DAILY && DAILY_JOINED && (AMHOST || amISeated())){
       vdbg("video never attached after 6s — disabling blur and retrying camera", true);
+      BLUR_KILLED=true;   // once a stall is seen, blur stays off for the session
       try{ await DAILY.updateInputSettings({ video:{ processor:{ type:"none" } } }); }catch(e){}
       recoverCamera();
     }

@@ -1713,7 +1713,7 @@ const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_
    ?code= is always an invite/recovery landing. */
 let PENDING_PW_SETUP = /type=invite|type=recovery|type=signup/.test(location.hash + location.search)
                     || /[?&]code=/.test(location.search);
-sbAuthEventHook = (event)=>{ if(event==="PASSWORD_RECOVERY"){ PENDING_PW_SETUP=true; showSetPw(); } };
+let sbAuthEventHook = (event)=>{ if(event==="PASSWORD_RECOVERY"){ PENDING_PW_SETUP=true; showSetPw(); } };
 if(/type=recovery/.test(location.hash)){
   // recovery = existing user resetting; adjust copy after DOM is ready
   addEventListener("DOMContentLoaded",()=>{
@@ -1722,7 +1722,6 @@ if(/type=recovery/.test(location.hash)){
     if(s) s.textContent="Choose a new password for your account.";
   });
 }
-let sbAuthEventHook=null;
 sb.auth.onAuthStateChange((event)=>{ if(sbAuthEventHook) sbAuthEventHook(event); });
 function showSetPw(){
   ["loginPanel","signupPanel"].forEach(id=>{ const p=document.getElementById(id); if(p) p.style.display="none"; });

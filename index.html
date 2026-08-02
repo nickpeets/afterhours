@@ -2099,7 +2099,7 @@ function renderRoom(){
     const pickable=AMHOST?' pickable':'';
     return `<div class="lineface${isMe?' me':''}${pickable}" data-uid="${m.user_id}"><div class="lf av" style="${avatarStyle(m.user_id,nm)}">${avInitial(nm)}</div><div class="ln">${isMe?'You':escapeHtml(nm)}</div></div>`;
   };
-  $("rt_line").innerHTML = line.length? line.map(lineFace).join("") : '<span class="emptyrole">empty — no one waiting</span>';
+  $("rt_line").innerHTML = line.length? line.map(lineFace).join("") : '<span class="emptyrole">'+(EG_ON?"empty — the line is hidden during play":"empty — no one waiting")+'</span>';
   $("rt_hosthint").style.display = (AMHOST && line.length) ? "inline" : "none";
 
   // WATCHING — count only
@@ -2365,10 +2365,11 @@ function egApply(){
   ["eg_showstart","eg_question","eg_decide","eg_drumroll","eg_draft","eg_drawer"].forEach(id=>$(id).style.display="none");
   $("eg_phase").style.display = ["spotlight","openfloor","deliberation"].includes(phase) ? "inline-flex" : "none";
   $("eg_skip").style.display = (AMHOST && ["showstart","spotlight","openfloor","deliberation"].includes(phase)) ? "block" : "none";
-  $("eg_ask").style.display = (AMHOST && phase==="spotlight" && !r.spotlight_target) ? "block" : "none";
+  const awaiting = phase==="spotlight" && !r.phase_deadline;   // backend: awaiting = null deadline
+  $("eg_ask").style.display = (AMHOST && awaiting) ? "block" : "none";
 
   if(phase==="showstart"){ egShowStart(); }
-  if(phase==="spotlight"){ egSpotlight(r); }
+  if(phase==="spotlight" && !awaiting){ egSpotlight(r); }
   if(phase==="openfloor"||phase==="deliberation"){ egMingle(phase, r); }
   if(phase==="deciding"){ if(AMHOST){ EG_DECIDE_MODE=null; $("eg_decide").style.display="flex"; } else { $("eg_drumroll").style.display="flex"; } }
   if(phase==="draft"){ egDraftOpenFromState(); }
@@ -2457,7 +2458,7 @@ async function egFireSpotlight(){
 function egCloseDrawer(keepAsking){ $("eg_drawer").style.display="none"; if(!keepAsking) $("room").classList.remove("is-asking"); }
 
 async function egSpotlight(r){
-  if(!r.spotlight_target){ return; }  // awaiting question: host sees ASK
+  if(!r.spotlight_target){ return; }
   // fetch the question text
   let qtext="";
   try{ const {data}=await sb.from("questions").select("text").eq("id",r.spotlight_question_id).single(); qtext=data?.text||""; }catch(e){}
@@ -2497,24 +2498,40 @@ async function egDecideTap(uid){
 }
 
 /* ---------- S6 draft storm ---------- */
+let EG_VIEW=null;  // identity-safe candidate view from get_draft_view
 function egDraftOpenFromState(){
-  // candidates arrive via the draft_open room_event payload; fall back to a fetch
-  if(EG_DRAFT){ egRenderDraft(); egStartTallyPoll(); return; }
+  const go=async()=>{
+    if((EG_DRAFT?.deadline)) EG_DEADLINE=Date.parse(EG_DRAFT.deadline)||EG_DEADLINE;
+    try{ const {data}=await sb.rpc("get_draft_view",{room_id:CURRENT_ROOM.id}); EG_VIEW=data; }catch(e){ EG_VIEW=null; }
+    egRenderDraft(); egStartTallyPoll();
+  };
+  if(EG_DRAFT){ go(); return; }
   sb.from("room_events").select("payload").eq("room_id",CURRENT_ROOM.id).eq("type","draft_open")
     .order("created_at",{ascending:false}).limit(1).single()
-    .then(({data})=>{ if(data){ EG_DRAFT=data.payload||{}; egRenderDraft(); egStartTallyPoll(); } });
+    .then(({data})=>{ if(data){ EG_DRAFT=data.payload||{}; go(); } });
 }
 function egRenderDraft(){
   const d=EG_DRAFT||{}; const cands=d.candidates||[];
+  // recruiting: no storm, the seat waits for the next join
+  if(d.recruiting || cands.length===0){
+    $("eg_draft_head").textContent="A CHAIR IS OPEN";
+    $("eg_draft_sub").textContent="nobody's in line — next to join takes the seat";
+    $("eg_draft_opts").innerHTML="";
+    $("eg_draft_seatno").textContent=(d.seats_remaining>1)?`${d.seats_remaining} SEATS OPEN`:"";
+    $("eg_draft").style.display="flex";
+    return;
+  }
+  // identity-safe view: get_draft_view rows keyed by candidate_id
+  const V={}; (Array.isArray(EG_VIEW)?EG_VIEW:[]).forEach(v=>{ if(v&&v.candidate_id) V[v.candidate_id]=v; });
   const iAmCandidate=cands.includes(ME.id);
   $("eg_draft_head").textContent = AMHOST ? "THE CROWD IS TELLING YOU" : (iAmCandidate ? "YOU'RE UP" : "SHE CAN'T SEE THEM — SHOW HER");
   $("eg_draft_sub").textContent = AMHOST ? "silhouettes only · tap to seat, or the top hearts win" : (iAmCandidate ? "the room is voting on you right now" : "bang the hearts — the leader takes the chair");
   $("eg_draft_seatno").textContent = (d.seats_remaining>1) ? `SEAT ${(d.seat_total||3)-d.seats_remaining+1} OF ${d.seat_total||3}` : "";
   $("eg_draft_opts").innerHTML=cands.map((uid,i)=>{
-    const p=ROOM_STATE.profs[uid]||{};
+    const p=V[uid]||ROOM_STATE.profs[uid]||{};
     const face = AMHOST
       ? `<div class="eg-sil">?</div>`
-      : `<div class="eg-sil" style="background:${p.face_json?'':'linear-gradient(180deg,#3b2a72,#241a52)'};font-size:22px;color:#fff">${escapeHtml((p.display_name||"?")[0]||"?")}</div>`;
+      : `<div class="eg-sil" style="background:linear-gradient(180deg,#3b2a72,#241a52);font-size:22px;color:#fff">${escapeHtml((p.display_name||"?")[0]||"?")}</div>`;
     const label = AMHOST ? `MYSTERY ${i+1}` : escapeHtml(p.display_name||"someone");
     return `<figure class="lc-draft__opt" data-cand="${uid}">
       ${face}

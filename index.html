@@ -108,6 +108,27 @@ main{flex:1;overflow-y:auto;position:relative}
 #room.lc-room.show{display:block}
 /* the app header steps aside while the show is on */
 #app:has(#room.show) header{display:none}
+/* chairs are PiP cards, not a wall — keep her face clear on phones */
+#rt_chairs .chair video,#rt_chairs .chair .lc-feed,#rt_chairs .chair.is-empty .lc-feed{height:92px}
+.is-host #rt_chairs .chair.is-filled video,.is-host #rt_chairs .chair.is-filled .lc-feed{height:118px}
+#rt_chairs .chair .chair__name{font-size:8px}
+/* host verdict: pinned ON the tile, over the video's lower edge — can't be
+   swallowed by flow layout, and labeled so ✕/✓ never needs decoding */
+.is-host .chair.is-filled .hostctl{position:absolute;left:4px;right:4px;bottom:4px;z-index:4;display:flex;align-items:center;gap:5px;padding:0}
+.hostctl__pass,.hostctl__keep{min-height:44px;width:46px;flex:none;border:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;border-radius:12px;line-height:1;backdrop-filter:blur(8px);text-shadow:0 1px 4px rgba(0,0,0,.9)}
+.hostctl__pass{background:rgba(36,26,82,.72);border:1.5px solid rgba(255,145,180,.7);color:#ffc2d6;font-size:16px}
+.hostctl__keep{background:rgba(255,45,143,.55);border:1.5px solid #ff5fae;color:#fff;font-size:16px;text-shadow:0 0 10px rgba(255,45,143,.9),0 1px 4px rgba(0,0,0,.9)}
+.hostctl__pass::after{content:"PASS";font-size:6.5px;font-weight:700;letter-spacing:.12em;font-family:"Azeret Mono",monospace;margin-top:1px}
+.hostctl__keep::after{content:"KEEP";font-size:6.5px;font-weight:700;letter-spacing:.12em;font-family:"Azeret Mono",monospace;margin-top:1px}
+.hostctl__pass:active{transform:scale(.93)}
+.hostctl__keep:active{transform:scale(.93);background:rgba(255,45,143,.8)}
+.is-suitor .lc-selfview video,.is-suitor .lc-selfview .lc-feed{height:118px}
+.is-suitor #rt_chairs .chair video,.is-suitor #rt_chairs .chair .lc-feed{height:86px}
+#rt_livelayer{max-height:min(20dvh,110px)}
+@media(min-width:720px){
+  #rt_chairs .chair video,#rt_chairs .chair .lc-feed,#rt_chairs .chair.is-empty .lc-feed{height:136px}
+  #rt_livelayer{max-height:min(26dvh,138px)}
+}
 #rt_chairs .chair{position:relative}
 .lc-feed{position:relative;overflow:hidden;border-radius:12px;background:var(--video,#141a3a)}
 #rt_hero .vid{position:absolute;inset:0;background-size:cover;background-position:center}

@@ -104,8 +104,10 @@ main{flex:1;overflow-y:auto;position:relative}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ===== LAST CALL room shell (Rev 2 graft) — compat layer ===== */
-#room.lc-room{display:none}
+#room.lc-room{display:none;z-index:60}
 #room.lc-room.show{display:block}
+/* the app header steps aside while the show is on */
+#app:has(#room.show) header{display:none}
 #rt_chairs .chair{position:relative}
 .lc-feed{position:relative;overflow:hidden;border-radius:12px;background:var(--video,#141a3a)}
 #rt_hero .vid{position:absolute;inset:0;background-size:cover;background-position:center}
@@ -1918,6 +1920,9 @@ function renderRoom(){
       chairsHtml+=`<div class="chair is-empty"><div class="lc-feed">EMPTY CHAIR</div></div>`;
     }
   }
+  if(chairs.length===0){
+    chairsHtml+=`<b class="lc-strip__label">3 CHAIRS OPEN</b><span class="lc-strip__hint">they fill from the line</span><b class="lc-strip__count">${line.length} WAITING</b>`;
+  }
   $("rt_chairs").innerHTML=chairsHtml;
 
   // LINE — horizontal face strip
@@ -1956,7 +1961,7 @@ function renderRoom(){
   root.classList.toggle("is-host", AMHOST);
   root.classList.toggle("is-suitor", !AMHOST && meSeated);
   root.classList.toggle("is-spectator", !AMHOST && !meSeated);
-  root.classList.toggle("is-empty", chairs.length===0 && line.length===0);
+  root.classList.toggle("is-empty", chairs.length===0);
   // rail heart total + coin mirror
   const total=Object.values(HEARTS||{}).reduce((a,b)=>a+(+b||0),0);
   const ht=$("rt_hearttotal"); if(ht) ht.textContent=total;

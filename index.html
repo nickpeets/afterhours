@@ -156,6 +156,14 @@ main{flex:1;overflow-y:auto;position:relative}
 #rt_chairs .chair .cclock{z-index:6}
 #rt_chairs .chair .kepttag{z-index:6}
 .is-host .chair.is-filled .hostctl{z-index:7}
+/* KEPT chip: one anchor only — the bottom+top collision made it a full-height bar */
+#rt_chairs .chair .kepttag{top:24px;right:4px;left:auto;bottom:auto;height:auto;
+  padding:2px 8px;font-size:9px;font-weight:800;letter-spacing:.08em;border-radius:9px;
+  background:var(--keep);color:#fff;box-shadow:0 0 8px rgba(255,45,143,.7)}
+/* host identity: one tidy line — badge · name, no wrapping */
+#rt_host_wrap{align-items:center;gap:6px}
+#rt_host{white-space:nowrap;max-width:48vw;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+.hostbadge{flex:none}
 
 .eg-sil{height:74px;border-radius:12px;background:linear-gradient(180deg,#241a52,#0d1129);display:grid;place-items:center;font-size:30px;color:rgba(238,240,255,.35)}
 .lc-draft__opt .eg-tally{font-family:'Azeret Mono',monospace;font-weight:700;color:#ffd6e9}
@@ -1583,8 +1591,8 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
 
       <!-- her name, over the video -->
       <div id="rt_host_wrap" style="position:absolute;z-index:3;left:13px;top:calc(env(safe-area-inset-top,0px) + 68px);display:flex;align-items:center;gap:7px">
-        <div id="rt_host" class="lc-over-video"></div>
         <div class="hostbadge" id="rt_hostbadge" style="display:none">HOST</div>
+        <div id="rt_host" class="lc-over-video"></div>
       </div>
 
       <!-- right rail: safety first, always -->
@@ -2229,9 +2237,10 @@ document.addEventListener("visibilitychange",()=>{
 /* host doesn't receive room_members realtime pushes (no membership row / RLS),
    so poll the roster as a fallback. also: everyone polls room status so a
    suitor knows when the host ended the show. */
-let HOST_POLL=null;
+let HOST_POLL=null, HOST_LAST_SEEN=0;
 function startHostPoll(){
   stopHostPoll();
+  HOST_LAST_SEEN=Date.now();  // grace period from entry
   HOST_POLL=setInterval(async()=>{
     if(!CURRENT_ROOM) return;
     if(AMHOST){
@@ -2240,6 +2249,19 @@ function startHostPoll(){
       try{ await sb.rpc("sweep_stale_members",{room_id:CURRENT_ROOM.id}); }catch(e){}
       await loadRoomState();
       autoSeatFromLine();  // fill any open chair with the next person in line
+    }
+    // non-hosts: if the host has vanished from the video call for ~80s while the
+    // room still claims to be live, call it — the show can't outlive its host.
+    if(!AMHOST && DAILY && DAILY_JOINED){
+      const parts=Object.values(DAILY.participants?.()||{});
+      const hostHere=parts.some(pp=>pp.user_name===CURRENT_ROOM.host_id);
+      if(hostHere){ HOST_LAST_SEEN=Date.now(); }
+      else if(HOST_LAST_SEEN && Date.now()-HOST_LAST_SEEN>80000){
+        HOST_LAST_SEEN=0;
+        toast("The host left — that's the show. 🌙");
+        leaveRoom();
+        return;
+      }
     }
     // everyone: detect the room being ended out from under them
     const {data:rm}=await sb.from("rooms").select("status,winner_id").eq("id",CURRENT_ROOM.id).single();
@@ -3131,7 +3153,12 @@ function updateJoinBtn(){
   else { btn.style.display="block"; btn.textContent="Join the Line"; }
 }
 
-$("roomback").onclick=()=>leaveRoom();
+$("roomback").onclick=()=>{
+  if(AMHOST && CURRENT_ROOM && !$("finale").classList.contains("show")){
+    if(!confirm("Leave and end the show for everyone?")) return;
+  }
+  leaveRoom();
+};
 async function leaveRoom(){
   const leaving=CURRENT_ROOM;
   stopHeartbeat(); stopClockTick(); stopHostPoll();
@@ -3141,7 +3168,11 @@ async function leaveRoom(){
     if(leaving.host_id===ME.id){
       // the host IS the show — leaving ends it (unless already ended via finale)
       const {error}=await sb.rpc("end_show",{room_id:leaving.id,winner_id:null});
-      if(error) console.log("host end_show on leave:",error.message);
+      if(error){
+        console.log("host end_show on leave:",error.message);
+        // stubborn fallback: never leave an orphaned room behind
+        try{ await sb.from("rooms").update({status:"ended"}).eq("id",leaving.id).eq("host_id",ME.id); }catch(e){}
+      }
     } else {
       const {error}=await sb.rpc("leave_room",{room_id:leaving.id});
       if(error) console.log("leave_room:",error.message);

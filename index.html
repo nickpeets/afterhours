@@ -148,6 +148,21 @@ main{flex:1;overflow-y:auto;position:relative}
 .chair .av{position:absolute;inset:0;display:grid;place-items:center;font-size:26px;font-weight:800;color:#fff;background-size:cover;background-position:center}
 .kb-open #rt_endshow{display:none}
 .kb-open #rt_chairs .chair video,.kb-open #rt_chairs .chair .lc-feed{height:58px}
+/* engine glue */
+/* chair overlays: explicit stacking — video/avatar at 1, info at 6, verdicts at 7 */
+#rt_chairs .chair .lc-feed video,#rt_chairs .chair .av{z-index:1}
+#rt_chairs .chair .chair__name{z-index:6;display:inline-block}
+#rt_chairs .chair .chair__hearts{z-index:6;display:flex}
+#rt_chairs .chair .cclock{z-index:6}
+#rt_chairs .chair .kepttag{z-index:6}
+.is-host .chair.is-filled .hostctl{z-index:7}
+
+.eg-sil{height:74px;border-radius:12px;background:linear-gradient(180deg,#241a52,#0d1129);display:grid;place-items:center;font-size:30px;color:rgba(238,240,255,.35)}
+.lc-draft__opt .eg-tally{font-family:'Azeret Mono',monospace;font-weight:700;color:#ffd6e9}
+.lc-draft__opt .eg-heartbtn{position:absolute;inset:0;background:none;border:none;cursor:pointer}
+.chair.is-target{border-color:#ff2d8f !important;box-shadow:0 0 14px rgba(255,45,143,.8)}
+.is-spotlight .chair.is-target video,.is-spotlight .chair.is-target .lc-feed{height:150px}
+#eg_qlist textarea{display:none}
 /* ===== Rev 2 integrated theme ===== */
 /* ==========================================================================
    LAST CALL — visual system
@@ -1619,7 +1634,60 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
           <button class="bs-cut" id="bs_cut" style="display:none">✂ Cut the Feed</button>
           <button class="bs-leave" id="bs_leave" style="display:none">Leave</button>
         </div>
-        <!-- LAST CALL decision window -->
+        <!-- ===== EPISODE ENGINE overlays (dormant until backend phase exists) ===== -->
+      <div class="lc-showstart" id="eg_showstart" style="display:none">
+        <div class="lc-showstart__mark">LAST CALL</div>
+        <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.3em;color:#7ff2e6">🎬 SHOW STARTING</div>
+        <div class="lc-showstart__cast" id="eg_cast"></div>
+      </div>
+
+      <div class="lc-question" id="eg_question" style="display:none">
+        <div class="lc-question__text" id="eg_qtext"></div>
+        <div class="lc-question__for" id="eg_qfor"></div>
+      </div>
+
+      <div class="lc-phase lc-over-video" id="eg_phase" style="display:none;position:absolute;z-index:3;top:calc(env(safe-area-inset-top,0px) + 104px);left:13px">
+        <span id="eg_phasename">OPEN FLOOR</span>
+        <span id="eg_phaseclock" style="font-family:'Azeret Mono',monospace">0:45</span>
+        <span id="eg_rounds">● ○ ○</span>
+      </div>
+      <button id="eg_skip" style="display:none;position:absolute;z-index:3;top:calc(env(safe-area-inset-top,0px) + 104px);right:64px;background:rgba(6,8,24,.6);border:1px solid rgba(45,227,208,.5);color:#7ff2e6;border-radius:999px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">she's heard enough ▸</button>
+      <button id="eg_ask" style="display:none;position:absolute;z-index:4;bottom:214px;right:10px;background:var(--keep);border:none;color:#fff;border-radius:999px;padding:12px 18px;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;letter-spacing:.04em;cursor:pointer;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 4px 0 var(--keep-bevel)">🎤 ASK</button>
+
+      <div class="lc-drawer" id="eg_drawer" style="display:none">
+        <div class="lc-drawer__grip"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <b style="font-family:'Baloo 2',sans-serif;font-size:16px">Pick a question</b>
+          <span class="lc-target" id="eg_target" style="display:none"><span id="eg_targetname"></span><button class="lc-target__clear" id="eg_targetclear">✕</button></span>
+          <button id="eg_drawerclose" style="background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer">✕</button>
+        </div>
+        <div class="lc-drawer__tabs" id="eg_tabs" role="tablist"></div>
+        <div class="lc-qlist" id="eg_qlist"></div>
+      </div>
+
+      <div class="lc-decide" id="eg_decide" style="display:none">
+        <b style="font-family:'Baloo 2',sans-serif;font-size:17px;color:#fff">Round three's done.  Your call.</b>
+        <div class="lc-decide__opt lc-decide__opt--keep" id="eg_dkeep"><b>✓ KEEP ONE</b><span style="font-size:12px;color:rgba(255,255,255,.8)">that's the win — you go backstage</span></div>
+        <div class="lc-decide__opt lc-decide__opt--pass" id="eg_dpass"><b>✕ PASS ONE</b><span style="font-size:12px;color:var(--dim)">a chair opens · the crowd shows you who's next</span></div>
+        <div class="lc-decide__opt lc-decide__opt--clear" id="eg_dclear"><b>CLEAR THE DECK</b><span style="font-size:12px;color:var(--dim)">pass all three · they won't be back</span></div>
+        <button class="lc-decide__walk" id="eg_dwalk" style="background:none;border:none;color:var(--dim);cursor:pointer;margin-top:2px">…or end the night alone</button>
+      </div>
+      <div class="lc-drumroll" id="eg_drumroll" style="display:none">
+        <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.3em;color:#ffd6e9">SHE'S DECIDING</div>
+        <div class="lc-drumroll__dots"><i></i><i style="animation-delay:.2s"></i><i style="animation-delay:.4s"></i></div>
+      </div>
+
+      <div class="lc-draft" id="eg_draft" style="display:none;position:absolute;z-index:5;left:8px;right:8px;bottom:120px">
+        <div class="lc-draft__head">
+          <b id="eg_draft_head">A CHAIR JUST OPENED</b>
+          <span class="lc-draft__clock" id="eg_draft_clock">0:15</span>
+        </div>
+        <div style="font-size:11px;color:var(--dim)" id="eg_draft_sub"></div>
+        <div class="lc-draft__opts" id="eg_draft_opts"></div>
+        <div class="lc-draft__foot"><span id="eg_draft_foot"></span><span id="eg_draft_seatno"></span></div>
+      </div>
+
+      <!-- LAST CALL decision window -->
         <div id="bsdecide">
           <div class="bsd-title">Time's up.</div>
           <div class="bsd-sub">Swap info, or leave it here?  Nothing is shared unless you both offer.</div>
@@ -2044,8 +2112,20 @@ function renderRoom(){
   }
   // everyone: tap a seated suitor to heart
   $("rt_chairs").querySelectorAll(".heart-tap").forEach(el=>{
-    el.onclick=(ev)=>{ if(ev.target.closest(".hostctl")) return; sendHeart(el.dataset.heartuid, ev.clientX, ev.clientY); };
+    el.onclick=async(ev)=>{
+      if(ev.target.closest(".hostctl")) return;
+      const uid=el.dataset.heartuid;
+      if(AMHOST && EG_ON && $("room").classList.contains("is-asking") && EG_PICKQ){ EG_PICKTARGET=uid; egFireSpotlight(); return; }
+      if(AMHOST && EG_ON && $("room").classList.contains("is-asking")){ EG_PICKTARGET=uid; egRenderTargetChip(); egOpenDrawer(uid); return; }
+      if(AMHOST && EG_ON && EG_DECIDE_MODE){ if(await egDecideTap(uid)) return; }
+      sendHeart(uid, ev.clientX, ev.clientY);
+    };
   });
+  // engine: host auto-starts the show when all three chairs fill from preshow
+  if(EG_ON===false && CURRENT_ROOM && typeof CURRENT_ROOM.phase==="string") EG_ON=true;
+  if(AMHOST && EG_ON && egRoomPhase(CURRENT_ROOM)==="preshow" && chairs.filter(c=>c.role==="chair").length>=3){
+    sb.rpc("start_show",{room_id:CURRENT_ROOM.id}).then(()=>egRefreshRoom()).catch(()=>{});
+  }
   // role root classes drive the Rev 2 layered CSS
   const meSeated = chairs.some(c=>c.user_id===ME.id);
   const root=$("room");
@@ -2224,6 +2304,234 @@ function renderGiftTray(){
 /* input bar: gift button toggles tray */
 $("rt_giftbtn").onclick=()=>$("rt_gifts").classList.toggle("show");
 
+
+/* =====================================================================
+   EPISODE ENGINE CLIENT — dormant until rooms.phase exists server-side.
+   Contract: phases preshow|showstart|spotlight|openfloor|deliberation|
+   deciding|draft|ended; RPCs start_show, advance_phase, ask_question,
+   skip_phase, decide_keep/pass/clear, draft_heart, seat_pick,
+   resolve_draft, get_draft_tallies; tables question_decks/questions;
+   draft state via room_events draft_open payload.
+   ===================================================================== */
+let EG_ON=false, EG_PHASE=null, EG_DEADLINE=0, EG_TICK=null, EG_ADV_LOCK=0;
+let EG_DECKS=null, EG_PICKQ=null, EG_PICKTARGET=null, EG_DECIDE_MODE=null;
+let EG_DRAFT=null, EG_TALLYPOLL=null, EG_MYHEARTS=0;
+
+function egRoomPhase(r){ return (r && typeof r.phase==="string") ? r.phase : null; }
+
+async function egRefreshRoom(){
+  if(!CURRENT_ROOM) return;
+  const {data}=await sb.from("rooms").select("*").eq("id",CURRENT_ROOM.id).single();
+  if(data){ CURRENT_ROOM={...CURRENT_ROOM,...data}; egApply(); }
+}
+
+function egApply(){
+  const r=CURRENT_ROOM; if(!r) return;
+  const phase=egRoomPhase(r);
+  EG_ON = phase!==null;
+  const root=$("room");
+  if(!EG_ON){ return; }                       // classic mode: engine dormant
+  if(phase===EG_PHASE && EG_DEADLINE===(r.phase_deadline?Date.parse(r.phase_deadline):0)) { egRoleBits(); return; }
+  EG_PHASE=phase; EG_DEADLINE=r.phase_deadline?Date.parse(r.phase_deadline):0;
+
+  // root state classes
+  ["is-showstart","is-spotlight","is-mingle","is-deciding","is-drafting","is-asking"].forEach(c=>root.classList.remove(c));
+  const map={showstart:"is-showstart",spotlight:"is-spotlight",openfloor:"is-mingle",deliberation:"is-mingle",deciding:"is-deciding",draft:"is-drafting"};
+  if(map[phase]) root.classList.add(map[phase]);
+
+  // overlays default-off
+  ["eg_showstart","eg_question","eg_decide","eg_drumroll","eg_draft","eg_drawer"].forEach(id=>$(id).style.display="none");
+  $("eg_phase").style.display = ["spotlight","openfloor","deliberation"].includes(phase) ? "inline-flex" : "none";
+  $("eg_skip").style.display = (AMHOST && ["showstart","spotlight","openfloor","deliberation"].includes(phase)) ? "block" : "none";
+  $("eg_ask").style.display = (AMHOST && phase==="spotlight" && !r.spotlight_target) ? "block" : "none";
+
+  if(phase==="showstart"){ egShowStart(); }
+  if(phase==="spotlight"){ egSpotlight(r); }
+  if(phase==="openfloor"||phase==="deliberation"){ egMingle(phase, r); }
+  if(phase==="deciding"){ if(AMHOST){ EG_DECIDE_MODE=null; $("eg_decide").style.display="flex"; } else { $("eg_drumroll").style.display="flex"; } }
+  if(phase==="draft"){ egDraftOpenFromState(); }
+  if(phase!=="draft"){ egStopTallyPoll(); }
+  egTickStart();
+  egRoleBits();
+}
+function egRoleBits(){
+  // spotlight target marking on chair tiles
+  const t=CURRENT_ROOM?.spotlight_target;
+  $("rt_chairs").querySelectorAll(".chair").forEach(el=>{
+    el.classList.toggle("is-target", !!t && el.dataset.heartuid===t);
+  });
+  $("room").classList.toggle("is-target", !!t && t===ME.id);
+}
+
+function egTickStart(){
+  clearInterval(EG_TICK);
+  EG_TICK=setInterval(()=>{
+    const left=Math.max(0,Math.ceil((EG_DEADLINE-Date.now())/1000));
+    const m=Math.floor(left/60), s=String(left%60).padStart(2,"0");
+    const pc=$("eg_phaseclock"); if(pc) pc.textContent=m+":"+s;
+    const dc=$("eg_draft_clock"); if(dc && EG_PHASE==="draft") { dc.textContent="0:"+s; dc.classList.toggle("is-urgent",left<=5); }
+    const aq=document.getElementById("eg_answerclock"); if(aq){ aq.textContent="0:"+s; aq.classList.toggle("is-urgent",left<=10); }
+    // resolver: anyone past deadline nudges the server (throttled 2s)
+    if(EG_DEADLINE && Date.now()>EG_DEADLINE+400 && Date.now()-EG_ADV_LOCK>2000){
+      EG_ADV_LOCK=Date.now();
+      const fn = EG_PHASE==="draft" ? "resolve_draft" : "advance_phase";
+      sb.rpc(fn,{room_id:CURRENT_ROOM.id}).then(()=>egRefreshRoom()).catch(()=>{});
+    }
+  },250);
+}
+
+/* ---------- S1 show start ---------- */
+function egShowStart(){
+  const chairs=ROOM_STATE.members.filter(m=>m.role==="chair"||m.role==="kept");
+  $("eg_cast").innerHTML=chairs.map(c=>`<div>${escapeHtml(ROOM_STATE.profs[c.user_id]?.display_name||"?")}</div>`).join("");
+  $("eg_showstart").style.display="flex";
+}
+
+/* ---------- S2/S3 spotlight + drawer ---------- */
+async function egLoadDecks(){
+  if(EG_DECKS) return EG_DECKS;
+  const [{data:decks},{data:qs}]=await Promise.all([
+    sb.from("question_decks").select("*").order("sort"),
+    sb.from("questions").select("*").order("sort")
+  ]);
+  EG_DECKS=(decks||[]).map(d=>({...d,questions:(qs||[]).filter(q=>q.deck_id===d.id)}));
+  return EG_DECKS;
+}
+async function egOpenDrawer(presetTarget){
+  EG_PICKTARGET=presetTarget||null; EG_PICKQ=null;
+  const decks=await egLoadDecks();
+  if(!decks.length){ toast("No question decks yet."); return; }
+  $("eg_tabs").innerHTML=decks.map((d,i)=>`<button class="lc-drawer__tab${/spicy/i.test(d.name)?" is-spicy":""}" role="tab" aria-selected="${i===0}" data-deck="${d.id}">${d.emoji||""} ${escapeHtml(d.name)}</button>`).join("");
+  const renderQ=(deckId)=>{
+    const d=decks.find(x=>x.id==deckId);
+    $("eg_qlist").innerHTML=(d?.questions||[]).map(q=>`<div class="lc-qcard" data-q="${q.id}">${escapeHtml(q.text)}</div>`).join("");
+    $("eg_qlist").querySelectorAll(".lc-qcard").forEach(el=>el.onclick=()=>egPickQuestion(parseInt(el.dataset.q,10)));
+  };
+  $("eg_tabs").querySelectorAll(".lc-drawer__tab").forEach(b=>b.onclick=()=>{
+    $("eg_tabs").querySelectorAll(".lc-drawer__tab").forEach(x=>x.setAttribute("aria-selected","false"));
+    b.setAttribute("aria-selected","true"); renderQ(b.dataset.deck);
+  });
+  renderQ(decks[0].id);
+  egRenderTargetChip();
+  $("eg_drawer").style.display="flex";
+  $("room").classList.add("is-asking");
+}
+function egRenderTargetChip(){
+  const chip=$("eg_target");
+  if(EG_PICKTARGET){ chip.style.display="inline-flex"; $("eg_targetname").textContent="→ "+(ROOM_STATE.profs[EG_PICKTARGET]?.display_name||"them"); }
+  else chip.style.display="none";
+}
+async function egPickQuestion(qid){
+  EG_PICKQ=qid;
+  if(!EG_PICKTARGET){ toast("Now tap the suitor who answers."); egCloseDrawer(true); return; }
+  egFireSpotlight();
+}
+async function egFireSpotlight(){
+  const {error}=await sb.rpc("ask_question",{room_id:CURRENT_ROOM.id,question_id:EG_PICKQ,target:EG_PICKTARGET});
+  if(error){ toast("Couldn't ask: "+error.message); return; }
+  egCloseDrawer(); EG_PICKQ=null; EG_PICKTARGET=null;
+  egRefreshRoom();
+}
+function egCloseDrawer(keepAsking){ $("eg_drawer").style.display="none"; if(!keepAsking) $("room").classList.remove("is-asking"); }
+
+async function egSpotlight(r){
+  if(!r.spotlight_target){ return; }  // awaiting question: host sees ASK
+  // fetch the question text
+  let qtext="";
+  try{ const {data}=await sb.from("questions").select("text").eq("id",r.spotlight_question_id).single(); qtext=data?.text||""; }catch(e){}
+  const nm=ROOM_STATE.profs[r.spotlight_target]?.display_name||"them";
+  $("eg_qtext").textContent=qtext;
+  $("eg_qfor").innerHTML=`— for ${escapeHtml(nm)} <span class="lc-answerclock" id="eg_answerclock">0:30</span>`;
+  $("eg_question").style.display="block";
+  egRoleBits();
+}
+
+/* ---------- S4 mingle ---------- */
+function egMingle(phase, r){
+  $("eg_phasename").textContent = phase==="deliberation" ? "DELIBERATION" : "OPEN FLOOR";
+  const round=r.round||0;
+  $("eg_rounds").textContent=[1,2,3].map(i=>i<=round?"●":"○").join(" ");
+}
+
+/* ---------- S5 decision ---------- */
+function egWireDecision(){
+  $("eg_dkeep").onclick=()=>{ EG_DECIDE_MODE="keep"; toast("Tap the one you're keeping."); $("eg_decide").style.display="none"; };
+  $("eg_dpass").onclick=()=>{ EG_DECIDE_MODE="pass"; toast("Tap the one you're passing."); $("eg_decide").style.display="none"; };
+  $("eg_dclear").onclick=async()=>{
+    if(!confirm("Pass on all three?  They won't be back.")) return;
+    const {error}=await sb.rpc("decide_clear",{room_id:CURRENT_ROOM.id});
+    if(error) toast(error.message); else egRefreshRoom();
+  };
+  $("eg_dwalk").onclick=()=>{ $("rt_endshow").click(); };
+}
+async function egDecideTap(uid){
+  if(!EG_DECIDE_MODE) return false;
+  const fn = EG_DECIDE_MODE==="keep" ? "decide_keep" : "decide_pass";
+  EG_DECIDE_MODE=null;
+  const {error}=await sb.rpc(fn,{room_id:CURRENT_ROOM.id,target:uid});
+  if(error){ toast(error.message); $("eg_decide").style.display="flex"; }
+  else { egRefreshRoom(); loadRoomState(); }
+  return true;
+}
+
+/* ---------- S6 draft storm ---------- */
+function egDraftOpenFromState(){
+  // candidates arrive via the draft_open room_event payload; fall back to a fetch
+  if(EG_DRAFT){ egRenderDraft(); egStartTallyPoll(); return; }
+  sb.from("room_events").select("payload").eq("room_id",CURRENT_ROOM.id).eq("type","draft_open")
+    .order("created_at",{ascending:false}).limit(1).single()
+    .then(({data})=>{ if(data){ EG_DRAFT=data.payload||{}; egRenderDraft(); egStartTallyPoll(); } });
+}
+function egRenderDraft(){
+  const d=EG_DRAFT||{}; const cands=d.candidates||[];
+  const iAmCandidate=cands.includes(ME.id);
+  $("eg_draft_head").textContent = AMHOST ? "THE CROWD IS TELLING YOU" : (iAmCandidate ? "YOU'RE UP" : "SHE CAN'T SEE THEM — SHOW HER");
+  $("eg_draft_sub").textContent = AMHOST ? "silhouettes only · tap to seat, or the top hearts win" : (iAmCandidate ? "the room is voting on you right now" : "bang the hearts — the leader takes the chair");
+  $("eg_draft_seatno").textContent = (d.seats_remaining>1) ? `SEAT ${(d.seat_total||3)-d.seats_remaining+1} OF ${d.seat_total||3}` : "";
+  $("eg_draft_opts").innerHTML=cands.map((uid,i)=>{
+    const p=ROOM_STATE.profs[uid]||{};
+    const face = AMHOST
+      ? `<div class="eg-sil">?</div>`
+      : `<div class="eg-sil" style="background:${p.face_json?'':'linear-gradient(180deg,#3b2a72,#241a52)'};font-size:22px;color:#fff">${escapeHtml((p.display_name||"?")[0]||"?")}</div>`;
+    const label = AMHOST ? `MYSTERY ${i+1}` : escapeHtml(p.display_name||"someone");
+    return `<figure class="lc-draft__opt" data-cand="${uid}">
+      ${face}
+      <figcaption>${label} · ♥<span class="eg-tally" data-tally="${uid}">0</span></figcaption>
+      ${(!AMHOST && !iAmCandidate)?`<button class="eg-heartbtn" data-cand="${uid}" aria-label="heart"></button>`:""}
+    </figure>`;
+  }).join("");
+  // host taps to seat; crowd hammers hearts
+  $("eg_draft_opts").querySelectorAll(".lc-draft__opt").forEach(el=>{
+    if(AMHOST) el.onclick=async()=>{ const {error}=await sb.rpc("seat_pick",{room_id:CURRENT_ROOM.id,candidate:el.dataset.cand}); if(error) toast(error.message); else { EG_DRAFT=null; egRefreshRoom(); loadRoomState(); } };
+  });
+  $("eg_draft_opts").querySelectorAll(".eg-heartbtn").forEach(b=>{
+    b.onclick=(ev)=>{ ev.stopPropagation(); sb.rpc("draft_heart",{room_id:CURRENT_ROOM.id,candidate:b.dataset.cand}).catch(()=>{});
+      const fh=document.createElement("div"); fh.className="flyheart"; fh.textContent="🖤"; fh.style.left=ev.clientX+"px"; fh.style.top=ev.clientY+"px"; document.body.appendChild(fh); setTimeout(()=>fh.remove(),1300); };
+  });
+  $("eg_draft").style.display="flex";
+}
+function egStartTallyPoll(){
+  egStopTallyPoll();
+  EG_TALLYPOLL=setInterval(async()=>{
+    try{
+      const {data}=await sb.rpc("get_draft_tallies",{room_id:CURRENT_ROOM.id});
+      if(!data) return;
+      let max=0, leader=null;
+      (data||[]).forEach(t=>{ if(t.n>max){max=t.n;leader=t.candidate_id;} });
+      (data||[]).forEach(t=>{ const el=document.querySelector(`[data-tally="${t.candidate_id}"]`); if(el) el.textContent=t.n; });
+      document.querySelectorAll(".lc-draft__opt").forEach(el=>el.classList.toggle("is-favourite", el.dataset.cand===leader && max>0));
+    }catch(e){}
+  },1000);
+}
+function egStopTallyPoll(){ clearInterval(EG_TALLYPOLL); EG_TALLYPOLL=null; EG_DRAFT=null; }
+
+/* ---------- wiring into the existing app ---------- */
+$("eg_skip").onclick=async()=>{ const {error}=await sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}); if(error) toast(error.message); else egRefreshRoom(); };
+$("eg_ask").onclick=()=>egOpenDrawer(null);
+$("eg_drawerclose").onclick=()=>egCloseDrawer();
+$("eg_targetclear").onclick=()=>{ EG_PICKTARGET=null; egRenderTargetChip(); };
+egWireDecision();
+
 /* ===== Rev 2 shell behaviors ===== */
 // keyboard: shift only the overlay; the hero never moves
 (function(){
@@ -2238,12 +2546,19 @@ $("rt_giftbtn").onclick=()=>$("rt_gifts").classList.toggle("show");
   if(inp){
     inp.addEventListener('focus',()=>room.classList.add('kb-open'));
     inp.addEventListener('blur',()=>room.classList.remove('kb-open'));
-    inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); $("rt_chatsend").click(); } });
+    inp.addEventListener('keydown',(e)=>{
+      if(e.key==='Enter'){
+        e.preventDefault();
+        if(inp.value.trim()) $("rt_chatsend").click();
+        inp.blur();                       // keyboard down — back to the show
+      }
+    });
   }
   // rail heart: heart the host
   const hb=$("rt_heartbtn");
   if(hb) hb.onclick=(ev)=>{ if(CURRENT_ROOM) sendHeart(CURRENT_ROOM.host_id, ev.clientX, ev.clientY); };
   updateWallet();  // sync the in-room coin chip on entry
+  egRefreshRoom();  // engine wakes if the backend has shipped phases
 })();
 
 // 🛡 minimal report flow (reuses the modal styles)
@@ -2366,6 +2681,10 @@ function handleEvent(ev){
         HEARTS[p.target]=(HEARTS[p.target]||0)+1;
         const el=$("rt_chairs")?.querySelector(`[data-hearts="${p.target}"]`);
         if(el) el.textContent="♥ "+HEARTS[p.target];
+        // and make it FELT: a heart floats off the target's chair for everyone
+        const tile=$("rt_chairs")?.querySelector(`[data-heartuid="${p.target}"]`);
+        if(tile){ const r=tile.getBoundingClientRect(); flyAt("❤️", r.left+r.width/2+(Math.random()*30-15), r.top+14); }
+        if(p.target===ME.id) toast("Someone hearted you ❤️");
       }
       break;
     case "chat":
@@ -2380,6 +2699,10 @@ function handleEvent(ev){
       break;
     case "keep":
       addFeedLine(`<span class="who">${escapeHtml(nameFor(p.target_user))}</span> was KEPT ✦✦✦`,"gold");
+      break;
+    case "phase": case "spotlight": case "draft_open": case "draft_seat": case "struck_out":
+      if(ev.type==="draft_open" && p && p.candidates) EG_DRAFT=p;
+      egRefreshRoom(); loadRoomState();
       break;
     case "pass":
       if(p.target_user===ME.id){
@@ -2637,8 +2960,12 @@ function bsReveal(contact){
   $("bsd_count").style.display="none";
   $("bsd_form").style.display="none";
   const other=(ME.id===BS_ROOM.host_id)?($("bs_nm_winner").textContent||"Them"):(BS_ROOM.contestant_name||"Them");
-  $("bsd_rev_who").textContent=other;
-  $("bsd_rev_what").textContent=contact;
+  // stored as "Platform: value" — show the platform in the kicker, copy ONLY the value
+  const ci=contact.indexOf(": ");
+  const platform = ci>0 ? contact.slice(0,ci) : "";
+  const value = ci>0 ? contact.slice(ci+2) : contact;
+  $("bsd_rev_who").textContent = other + (platform ? " · " + platform.toUpperCase() : "");
+  $("bsd_rev_what").textContent = value;
   $("bsd_revealbox").style.display="flex";
 }
 

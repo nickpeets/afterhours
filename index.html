@@ -1837,8 +1837,12 @@ $("set_go").onclick=async()=>{
   if(!/^\d{5}(-\d{4})?$/.test(zip)){ err.textContent="Enter a valid zip code."; return; }
   const radius=parseInt($("set_radius").value,10)||25;
   const expand=$("set_expand").checked;
-  const {error}=await sb.from("profiles").update({zip_code:zip,radius_miles:radius,expand_ok:expand}).eq("id",ME.id);
+  // upsert + select so a silently-blocked write (RLS, missing row) can't fake success
+  const {data:saved,error}=await sb.from("profiles")
+    .upsert({id:ME.id,zip_code:zip,radius_miles:radius,expand_ok:expand})
+    .select("zip_code").single();
   if(error){ err.textContent="Couldn't save: "+error.message; return; }
+  if(!saved || saved.zip_code!==zip){ err.textContent="Save didn't stick (permissions?) — tell Nick."; return; }
   MYPROFILE={...MYPROFILE,zip_code:zip,radius_miles:radius,expand_ok:expand};
   $("setup").style.display="none";
   enterApp();

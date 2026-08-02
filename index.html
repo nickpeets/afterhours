@@ -1507,12 +1507,20 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         <input type="password" id="li_pass" placeholder="Password" autocomplete="current-password" enterkeyhint="go">
         <div class="err" id="li_err"></div>
         <button class="bigbtn" id="li_go" type="submit">Sign in</button>
+        <button type="button" id="li_forgot" style="background:none;border:none;color:var(--dim);font-size:13px;margin-top:10px;cursor:pointer;text-decoration:underline">Forgot password?</button>
       </form>
       <form class="panel" id="signupPanel" style="display:none" action="#">
         <input type="email" id="su_email" placeholder="Email" autocomplete="email" enterkeyhint="next">
         <input type="password" id="su_pass" placeholder="Password (6+ characters)" autocomplete="new-password" enterkeyhint="go">
         <div class="err" id="su_err"></div>
         <button class="bigbtn" id="su_go" type="submit">Create account</button>
+      </form>
+      <form class="panel" id="setpwPanel" style="display:none" action="#">
+        <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:18px;color:#fff;margin-bottom:4px" id="sp_title">Welcome to Last Call 🍸</div>
+        <div style="color:var(--dim);font-size:13px;margin-bottom:12px" id="sp_sub">You're on the list.  Choose a password to finish setting up.</div>
+        <input type="password" id="sp_pass" placeholder="Choose a password (6+ characters)" autocomplete="new-password" enterkeyhint="go">
+        <div class="err" id="sp_err"></div>
+        <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
     </div>
@@ -1696,6 +1704,32 @@ try{
 }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
+/* ---- invite links & password recovery ----
+   Supabase invite/recovery emails land here with a token in the URL hash.
+   supabase-js establishes the session automatically; we detect the type and
+   show the choose-a-password screen before letting them into the app. */
+/* Detect BOTH Supabase link styles: implicit (#access_token…&type=invite)
+   and PKCE (?code=…).  This app sends no other email links, so a bare
+   ?code= is always an invite/recovery landing. */
+let PENDING_PW_SETUP = /type=invite|type=recovery|type=signup/.test(location.hash + location.search)
+                    || /[?&]code=/.test(location.search);
+sbAuthEventHook = (event)=>{ if(event==="PASSWORD_RECOVERY"){ PENDING_PW_SETUP=true; showSetPw(); } };
+if(/type=recovery/.test(location.hash)){
+  // recovery = existing user resetting; adjust copy after DOM is ready
+  addEventListener("DOMContentLoaded",()=>{
+    const t=document.getElementById("sp_title"), s=document.getElementById("sp_sub");
+    if(t) t.textContent="Reset your password";
+    if(s) s.textContent="Choose a new password for your account.";
+  });
+}
+let sbAuthEventHook=null;
+sb.auth.onAuthStateChange((event)=>{ if(sbAuthEventHook) sbAuthEventHook(event); });
+function showSetPw(){
+  ["loginPanel","signupPanel"].forEach(id=>{ const p=document.getElementById(id); if(p) p.style.display="none"; });
+  const tabs=document.querySelector(".tabrow"); if(tabs) tabs.style.display="none";
+  const sp=document.getElementById("setpwPanel"); if(sp) sp.style.display="block";
+}
+
 const $=id=>document.getElementById(id);
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2600);}
 
@@ -1720,7 +1754,16 @@ $("signupPanel").onsubmit=async(e)=>{
   if(pass.length<6){err.textContent="Password needs 6+ characters.";return;}
   $("su_go").disabled=true; $("su_go").textContent="Creating…";
   const {data,error}=await sb.auth.signUp({email,password:pass});
-  if(error){err.textContent=error.message;$("su_go").disabled=false;$("su_go").textContent="Create account & step inside";return;}
+  if(error){
+    if(/not invited/i.test(error.message||"")){
+      // capture the knock so promoting them later is one query — the refusal IS the invite request
+      try{ await sb.rpc("request_invite",{email_in:email}); }catch(e){}
+      err.textContent="This pilot is invite-only — you're on the list now.  We'll open the doors soon.";
+    } else {
+      err.textContent=error.message;
+    }
+    $("su_go").disabled=false;$("su_go").textContent="Create account & step inside";return;
+  }
   const uid=data.user?.id;
   if(uid){
     const {error:pe}=await sb.from("profiles").upsert({id:uid,display_name:name});
@@ -1732,6 +1775,29 @@ $("signupPanel").onsubmit=async(e)=>{
 };
 
 /* ============ LOGIN ============ */
+
+$("setpwPanel").onsubmit=async(e)=>{
+  e.preventDefault();
+  const p=$("sp_pass").value;
+  const errEl=$("sp_err"); errEl.textContent="";
+  if(p.length<6){ errEl.textContent="6+ characters, please."; return; }
+  $("sp_go").disabled=true; $("sp_go").textContent="Saving…";
+  const {error}=await sb.auth.updateUser({password:p});
+  if(error){ errEl.textContent=error.message; $("sp_go").disabled=false; $("sp_go").textContent="Set password & step inside"; return; }
+  PENDING_PW_SETUP=false;
+  history.replaceState(null,"",location.pathname);  // clear the token from the URL
+  toast("You're in.  Welcome to Last Call 🍸");
+  enterApp();
+};
+$("li_forgot").onclick=async()=>{
+  const email=$("li_email").value.trim();
+  const errEl=$("li_err");
+  if(!email){ errEl.textContent="Type your email above first, then tap Forgot."; return; }
+  const r=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+  errEl.textContent = r.error ? r.error.message : "Reset link sent — check your email.";
+};
+if(PENDING_PW_SETUP) showSetPw();
+
 $("loginPanel").onsubmit=async(e)=>{
   e.preventDefault();
   const email=$("li_email").value.trim(), pass=$("li_pass").value;
@@ -1760,7 +1826,7 @@ $("signout").onclick=async()=>{
 /* ============ APP ENTRY ============ */
 let ME=null, MYPROFILE=null;
 let COINS=120;
-function updateWallet(){ const c=$("coinchip"); if(c) c.textContent="✦ "+COINS; }
+function updateWallet(){ ["coinchip","rt_coinchip"].forEach(id=>{ const c=$(id); if(c) c.textContent="✦ "+COINS; }); }
 function showSetup(){
   $("auth").classList.add("hide");
   $("lobby").style.display="none";
@@ -1780,6 +1846,7 @@ $("set_go").onclick=async()=>{
 };
 
 async function enterApp(){
+  if(PENDING_PW_SETUP){ showSetPw(); return; }
   const {data:{user}}=await sb.auth.getUser();
   if(!user){return;}
   ME=user;
@@ -2173,9 +2240,7 @@ $("rt_giftbtn").onclick=()=>$("rt_gifts").classList.toggle("show");
   // rail heart: heart the host
   const hb=$("rt_heartbtn");
   if(hb) hb.onclick=(ev)=>{ if(CURRENT_ROOM) sendHeart(CURRENT_ROOM.host_id, ev.clientX, ev.clientY); };
-  // coin chip mirror: keep the in-room chip synced with the lobby chip
-  const mirror=()=>{ const src=$("coins"), dst=$("rt_coinchip"); if(src&&dst) dst.textContent=src.textContent; };
-  setInterval(mirror, 2000); mirror();
+  updateWallet();  // sync the in-room coin chip on entry
 })();
 
 // 🛡 minimal report flow (reuses the modal styles)

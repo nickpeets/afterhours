@@ -103,86 +103,1280 @@ main{flex:1;overflow-y:auto;position:relative}
 .spinner{width:26px;height:26px;border:3px solid rgba(255,45,143,.3);border-top-color:var(--neon);border-radius:50%;animation:spin .8s linear infinite;margin:20px auto}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ROOM VIEW (C1) */
-#room{display:none;flex-direction:column;height:100%;overflow:hidden;position:relative}
-#room.show{display:flex}
-.roomtop{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid rgba(255,45,143,.2);flex-shrink:0}
-.backbtn{background:none;border:none;color:var(--neon-soft);font-size:20px;cursor:pointer;padding:2px 8px;line-height:1}
-.roomtitle{font-size:14px;font-weight:700;font-family:"Baloo 2",sans-serif;font-weight:800;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px}
-.roomtop .cnt{font-size:12px;color:var(--neon-soft);font-weight:700}
-
-/* STAGE — fixed proportion of the screen, holds contestant + chairs + line */
-.stage{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:8px 12px 6px;gap:8px}
-.contestant-hero{border-radius:20px;border:2.5px solid var(--neon);box-shadow:0 0 16px rgba(255,45,143,.85),0 0 50px rgba(255,45,143,.4);overflow:hidden;position:relative;flex:1 1 auto;min-height:44dvh;max-height:62dvh;background:var(--video)}
-.contestant-hero .vid{position:absolute;inset:0;background-size:cover;background-position:center}
-.contestant-hero .plate{position:absolute;bottom:0;left:0;right:0;padding:7px 12px;background:linear-gradient(transparent,rgba(8,11,32,.92));z-index:2}
-.contestant-hero .role{font-size:9px;letter-spacing:.14em;color:var(--gold)}
-.contestant-hero .nm{font-weight:700;font-size:16px;font-family:"Baloo 2",sans-serif;font-weight:800}
-.hostbadge{position:absolute;top:8px;right:8px;background:var(--neon);color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:999px;letter-spacing:.08em;z-index:2}
-.reactlayer{position:absolute;right:8px;bottom:6px;width:56px;z-index:3;pointer-events:none;height:80%}
+/* ===== LAST CALL room shell (Rev 2 graft) — compat layer ===== */
+#room.lc-room{display:none}
+#room.lc-room.show{display:block}
+#rt_chairs .chair{position:relative}
+.lc-feed{position:relative;overflow:hidden;border-radius:12px;background:var(--video,#141a3a)}
+#rt_hero .vid{position:absolute;inset:0;background-size:cover;background-position:center}
+#rt_hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hostbadge{background:#ff2d8f;color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:999px;letter-spacing:.08em}
+#rt_host{font-family:"Baloo 2",sans-serif;font-weight:800;font-size:16px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.95)}
+.reactlayer{position:absolute;right:8px;bottom:20%;width:56px;z-index:2;pointer-events:none;height:60%}
 .flyreact{position:absolute;bottom:0;font-size:26px;animation:flyup 2.4s ease-out forwards}
 @keyframes flyup{0%{opacity:0;transform:translateY(0) scale(.5)}15%{opacity:1;transform:translateY(-20px) scale(1.2)}100%{opacity:0;transform:translateY(-160px) scale(.9) translateX(var(--drift,10px))}}
 .flyheart{position:fixed;font-size:24px;pointer-events:none;z-index:300;animation:floatup 1.3s ease-out forwards;transform:translate(-50%,-50%)}
 @keyframes floatup{0%{opacity:1;transform:translate(-50%,-50%) scale(.6)}30%{opacity:1;transform:translate(-50%,-90%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-160%) scale(.9)}}
+.lineface{display:flex;flex-direction:column;align-items:center;gap:3px}
+.lineface .lf{width:36px;height:36px;border-radius:50%;background-size:cover;display:grid;place-items:center;font-weight:800;font-size:13px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.lineface .ln{font-size:9px;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.lineface.me .lf{box-shadow:0 0 0 2px #ff2d8f}
+.emptyrole{color:rgba(238,240,255,.55);font-size:11px;font-style:italic;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.chair .av{position:absolute;inset:0;display:grid;place-items:center;font-size:26px;font-weight:800;color:#fff;background-size:cover;background-position:center}
+.kb-open #rt_endshow{display:none}
+.kb-open #rt_chairs .chair video,.kb-open #rt_chairs .chair .lc-feed{height:58px}
+/* ===== Rev 2 integrated theme ===== */
+/* ==========================================================================
+   LAST CALL — visual system
+   Drop this into your single-file app and set data-skin on <html> or <body>.
+   Default skin: neon (Love Connection). Others: cartridge, meter, sunset, primetime.
+   Dark base is mandatory — live video sits on it.
+   ========================================================================== */
 
-/* chairs — taller, readable */
-.chairs-grid{display:flex;gap:7px;flex-shrink:0;height:140px}
-.chair{flex:1;border-radius:16px;border:1.5px solid rgba(45,227,208,.35);background:rgba(8,11,32,.6);padding:8px 5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;text-align:center}
-.chair.filled{border-color:var(--cool);box-shadow:0 0 10px rgba(45,227,208,.55);background:var(--video)}
-.chair.kept{border-color:var(--neon);box-shadow:0 0 12px rgba(255,45,143,.8)}
-.chair .cf{width:42px;height:42px;border-radius:50%;background-size:cover}
-.chair .cn{font-size:11px;font-weight:800;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:absolute;top:5px;left:6px;z-index:3;text-shadow:0 1px 3px rgba(0,0,0,.95);background:rgba(6,8,24,.55);padding:2px 7px;border-radius:999px}
-.chair .cclock{font-family:"Azeret Mono",monospace;font-size:13px;font-weight:700;letter-spacing:.05em;color:var(--cool-ink);background:var(--cool);border:none;border-radius:7px;padding:2px 7px;position:absolute;top:4px;right:5px;z-index:3}
-.chair .cclock.low{color:#fff;background:var(--neon)}
-.chair .cempty{font-size:11px;color:var(--dim);font-style:italic}
-.chair .kepttag{position:absolute;top:26px;right:5px;background:var(--keep);box-shadow:0 0 8px rgba(255,45,143,.7);color:#fff;font-size:8px;font-weight:800;padding:1px 5px;border-radius:999px;z-index:3}
-.chair .chearts{position:absolute;bottom:30px;left:6px;font-size:10px;color:var(--neon-soft);font-weight:700;z-index:3;text-shadow:0 1px 3px rgba(0,0,0,.9)}
-.chair.heart-tap{cursor:pointer}
-.hostctl{display:flex;gap:4px;position:absolute;bottom:4px;left:4px;right:4px;z-index:3}
-.hostctl button{flex:1;padding:4px 2px;border:none;border-radius:6px;font-size:9px;font-weight:800;cursor:pointer;text-transform:uppercase}
-.hc-keep{background:var(--keep);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 2px 0 var(--keep-bevel)}
-.hc-pass{background:var(--pass);color:var(--pass-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 2px 0 var(--pass-bevel)}
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Archivo:wght@400;500;600;700;800&family=Azeret+Mono:wght@400;600;700&family=Monoton&display=swap');
 
-/* line — 4 faces visible, scroll sideways for more */
-.linestrip{flex-shrink:0}
-.linelabel{font-size:10px;letter-spacing:.1em;color:var(--dim);font-weight:800;margin-bottom:4px}
-.linelabel .watchcount{color:var(--neon-soft);margin-left:6px}
-.lineitems{display:flex;gap:10px;overflow-x:auto;min-height:56px;align-items:center}
-.lineface{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;width:52px;cursor:pointer}
-.lineface .lf{width:44px;height:44px;border-radius:50%;background-size:cover;border:2px solid transparent}
-.lineface .ln{font-size:9px;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lineface.me .lf{border-color:var(--neon)}
-.lineface.pickable .lf{border-color:var(--gold)}
-.emptyrole{color:var(--dim);font-size:12px;font-style:italic}
+/* ---------- tokens ---------- */
+:root,
+[data-skin="neon"] {
+  --field: radial-gradient(110% 60% at 50% 108%, rgba(255,45,143,.34), transparent 66%),
+           radial-gradient(80% 45% at 8% 100%, rgba(45,227,208,.26), transparent 62%), #080b20;
+  --rim: #3b2a72;
+  --video: #141a3a;
+  --bezel: #0d1129;
+  --bezel-border: 2.5px solid #ff2d8f;
+  --bezel-shadow: 0 0 16px rgba(255,45,143,.85), 0 0 50px rgba(255,45,143,.4);
+  --chair-rim: #0d1129;
+  --chair-border: 1.5px solid #2de3d0;
+  --chair-shadow: 0 0 10px rgba(45,227,208,.55);
+  --kept-rim: #0d1129;
+  --kept-border: 1.5px solid #ff2d8f;
+  --kept-shadow: 0 0 12px rgba(255,45,143,.8);
 
-/* CHAT STRIP — fills remaining space, ~4-5 msgs, scroll up & vanish under lineup */
-.chatstrip{flex:0 0 auto;height:112px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;padding:6px 14px 2px;-webkit-mask-image:linear-gradient(transparent,#000 24px);mask-image:linear-gradient(transparent,#000 24px)}
-/* small screens: shrink hero + chairs so the chat strip keeps real space */
-@media (max-height:760px){
-  .contestant-hero{min-height:40dvh}
-  .chairs-grid{height:118px}
-  .chatstrip{height:88px}
+  --keep: linear-gradient(180deg,#ff8ac2,#ff2d8f 46%,#c60d68);
+  --keep-ink: #fff;
+  --keep-bevel: #8c0847;
+  --pass: linear-gradient(180deg,#3b2a72,#241a52 55%,#1a1240);
+  --pass-ink: #d6cdff;
+  --pass-bevel: #120c2c;
+
+  --accent: #2de3d0;          /* show mechanics: clock, final round */
+  --accent-ink: #042b28;
+  --gold: #ffd6e9;            /* hearts, credits, kickers */
+  --safe: #b9a8ff;            /* safety + moderation ONLY */
+
+  --ink: #eef0ff;
+  --dim: rgba(238,240,255,.5);
+  --chip: rgba(8,11,32,.78);
+  --chip-border: 1px solid rgba(185,168,255,.45);
+  --chip-ink: #eef0ff;
+  --name-chip: rgba(6,8,24,.72);
+  --name-border: 1px solid rgba(255,45,143,.75);
+  --name-ink: #fff;
+
+  --radius: 24px;
+  --radius-inner: 18px;
+  --queue-radius: 50%;
 }
-.floatmsg{font-size:13px;line-height:1.35;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);animation:fadein .3s;flex-shrink:0}
-.floatmsg .cu{font-weight:800;color:var(--neon-soft)}
-.floatmsg.feed{color:var(--gold)}.floatmsg.feed.cool{color:var(--cool)}.floatmsg.feed.neon{color:var(--neon-soft)}
-@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
 
-/* INPUT BAR */
-.inputbar{flex-shrink:0;display:flex;gap:8px;align-items:center;padding:7px 12px;border-top:1px solid rgba(238,240,255,.1)}
-.inputbar input{flex:1;background:rgba(238,240,255,.08);border:1px solid rgba(238,240,255,.15);border-radius:999px;color:var(--paper);padding:9px 14px;font-size:14px;outline:none}
-.inputbar input:focus{border-color:var(--neon)}
-.ib-gift,.ib-send{border:none;border-radius:50%;width:38px;height:38px;font-size:17px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.ib-gift{background:rgba(255,214,233,.15);border:1px solid rgba(255,214,233,.4)}
-.ib-send{background:var(--neon);color:#fff;font-size:15px}
+[data-skin="cartridge"] {
+  --field: #e6187a; --rim: #fff6ea; --video: #1b0f28;
+  --bezel: #fff6ea; --bezel-border: none; --bezel-shadow: 0 6px 0 #8c0847;
+  --chair-rim: #fff6ea; --chair-border: none; --chair-shadow: 0 4px 0 #8c0847;
+  --kept-rim: #ffd23f; --kept-border: none; --kept-shadow: 0 4px 0 #8c0847;
+  --keep: #ffd23f; --keep-ink: #3a2000; --keep-bevel: #b98c00;
+  --pass: #5b1fb8; --pass-ink: #fff6ea; --pass-bevel: #330b73;
+  --accent: #12b8a6; --accent-ink: #04322d; --gold: #ffd23f; --safe: #12b8a6;
+  --ink: #fff6ea; --dim: rgba(255,246,234,.7);
+  --chip: #5b1fb8; --chip-border: 2px solid #fff6ea; --chip-ink: #fff6ea;
+  --name-chip: #ffd23f; --name-border: none; --name-ink: #3a2000;
+  --radius: 20px; --radius-inner: 15px; --queue-radius: 14px;
+}
 
-.roomact{padding:6px 12px calc(9px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;flex-shrink:0}
-.roomact button{flex:1;padding:11px;border:none;border-radius:10px;font-weight:800;font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:.04em}
-/* Join the Line: big unmissable floating pill over the stage for spectators */
-.joinline{position:absolute;left:50%;transform:translateX(-50%);bottom:118px;z-index:50;background:var(--keep);color:#fff;padding:14px 30px;border:none;border-radius:999px;font-size:15px;font-weight:800;font-family:"Baloo 2",sans-serif;letter-spacing:.06em;box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 0 0 2px var(--rim),0 5px 0 var(--keep-bevel),0 10px 26px rgba(255,45,143,.45);cursor:pointer;text-transform:uppercase;white-space:nowrap}
-.joinline:active{transform:translateX(-50%) scale(.96)}
-.leaveroom{background:transparent;border:1.5px solid var(--dim);color:var(--dim)}
-.endshow{background:var(--cool);color:var(--cool-ink);font-family:"Baloo 2",sans-serif;font-weight:800;box-shadow:inset 0 2px 0 rgba(255,255,255,.5),0 3px 0 rgba(0,0,0,.35)}
+[data-skin="meter"] {
+  --field: linear-gradient(180deg,#4b2fa8,#2a1b5e 55%,#1c1244);
+  --rim: #3ff0c8; --video: #150e34;
+  --bezel: linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,.08));
+  --bezel-border: none; --bezel-shadow: 0 0 24px rgba(255,77,141,.4);
+  --chair-rim: linear-gradient(180deg,rgba(63,240,200,.7),rgba(63,240,200,.15));
+  --chair-border: none; --chair-shadow: none;
+  --kept-rim: linear-gradient(180deg,rgba(255,77,141,.9),rgba(255,77,141,.25));
+  --kept-border: none; --kept-shadow: 0 0 20px rgba(255,77,141,.45);
+  --keep: linear-gradient(180deg,#ff9dbd,#ff4d8d 48%,#cf1c5c); --keep-ink: #fff; --keep-bevel: #8e0f3c;
+  --pass: linear-gradient(180deg,#6a4fc8,#3a2585); --pass-ink: #ded4ff; --pass-bevel: #241553;
+  --accent: #3ff0c8; --accent-ink: #04322d; --gold: #ffe066; --safe: #3ff0c8;
+  --ink: #fff; --dim: rgba(255,255,255,.5);
+  --chip: rgba(12,8,30,.7); --chip-border: 1px solid rgba(255,255,255,.28); --chip-ink: #fff;
+  --name-chip: rgba(12,8,30,.7); --name-border: 1px solid rgba(255,77,141,.8); --name-ink: #fff;
+  --radius: 22px; --radius-inner: 18px; --queue-radius: 50%;
+}
+
+[data-skin="sunset"] {
+  --field: linear-gradient(170deg,#ff7a4d,#ff3d7f 44%,#7b2ff2);
+  --rim: #fff2e0; --video: #2a1030;
+  --bezel: #fff2e0; --bezel-border: none; --bezel-shadow: 0 8px 22px rgba(60,10,50,.35);
+  --chair-rim: #fff2e0; --chair-border: none; --chair-shadow: 0 5px 14px rgba(60,10,50,.3);
+  --kept-rim: #fff2e0; --kept-border: none; --kept-shadow: 0 5px 18px rgba(255,61,127,.5);
+  --keep: linear-gradient(180deg,#ff8ab0,#ff3d7f 50%,#c31f5e); --keep-ink: #fff; --keep-bevel: #8c0f40;
+  --pass: #efdcc6; --pass-ink: #7a4a2f; --pass-bevel: #cdb69c;
+  --accent: #19c9c0; --accent-ink: #022e2c; --gold: #fff2e0; --safe: #19c9c0;
+  --ink: #fff2e0; --dim: rgba(255,242,224,.78);
+  --chip: rgba(255,242,224,.9); --chip-border: none; --chip-ink: #2a1030;
+  --name-chip: rgba(255,242,224,.94); --name-border: none; --name-ink: #2a1030;
+  --radius: 24px; --radius-inner: 19px; --queue-radius: 50%;
+}
+
+[data-skin="primetime"] {
+  --field: linear-gradient(180deg,#1b2a7a,#233594 62%,#3f5ad8);
+  --rim: #ffcf2f; --video: #0e1650;
+  --bezel: #f4f7ff; --bezel-border: none; --bezel-shadow: 0 8px 0 rgba(12,22,74,.6);
+  --chair-rim: #f4f7ff; --chair-border: none; --chair-shadow: 0 5px 0 rgba(12,22,74,.55);
+  --kept-rim: #ffcf2f; --kept-border: none; --kept-shadow: 0 5px 0 rgba(12,22,74,.55);
+  --keep: linear-gradient(180deg,#ff88aa,#ff2f6e 50%,#c30c46); --keep-ink: #fff; --keep-bevel: #8a0631;
+  --pass: linear-gradient(180deg,#5c76e6,#2d43ad); --pass-ink: #dbe3ff; --pass-bevel: #1b2a7a;
+  --accent: #ffcf2f; --accent-ink: #3a2c00; --gold: #ffcf2f; --safe: #f4f7ff;
+  --ink: #f4f7ff; --dim: rgba(244,247,255,.6);
+  --chip: #ff2f6e; --chip-border: 2px solid #f4f7ff; --chip-ink: #f4f7ff;
+  --name-chip: #ff2f6e; --name-border: none; --name-ink: #fff;
+  --radius: 16px; --radius-inner: 11px; --queue-radius: 12px;
+}
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--field);
+  color: var(--ink);
+  font-family: Archivo, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--gold); text-decoration: none; border-bottom: 1px solid rgba(255,255,255,.35); }
+a:hover { color: #fff; border-bottom-color: #fff; }
+
+/* ---------- type ---------- */
+.lc-wordmark { font-family: Monoton, cursive; letter-spacing: .04em; color: #fff;
+  text-shadow: 0 0 10px rgba(255,255,255,.55), 0 0 24px rgba(255,45,143,.95), 0 0 60px rgba(255,45,143,.5); }
+.lc-title   { font-family: 'Baloo 2', sans-serif; font-weight: 800; line-height: 1.02; }
+.lc-script  { font-family: 'Baloo 2', sans-serif; font-weight: 600; color: var(--gold); }
+.lc-kicker  { font-family: 'Azeret Mono', monospace; font-size: 9px; font-weight: 700;
+  letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+.lc-mono    { font-family: 'Azeret Mono', monospace; font-weight: 700; }
+.lc-over-video { text-shadow: 0 1px 4px rgba(0,0,0,.95); }  /* required on ALL text over feeds */
+
+/* ---------- video frames ---------- */
+.lc-hero, .lc-chair {
+  padding: 6px; border-radius: var(--radius);
+  background: var(--bezel); border: var(--bezel-border); box-shadow: var(--bezel-shadow);
+}
+.lc-chair { padding: 4px; background: var(--chair-rim); border: var(--chair-border); box-shadow: var(--chair-shadow); }
+.lc-chair.is-kept { background: var(--kept-rim); border: var(--kept-border); box-shadow: var(--kept-shadow); }
+.lc-feed {
+  position: relative; overflow: hidden; border-radius: var(--radius-inner); background: var(--video);
+  background-image: radial-gradient(closest-side at 34% 28%, rgba(255,255,255,.14), transparent 70%),
+                    radial-gradient(closest-side at 74% 68%, rgba(255,45,143,.16), transparent 72%);
+}
+.lc-chair--empty {
+  border: 2px dashed rgba(255,255,255,.5); background: rgba(0,0,0,.32);
+  border-radius: var(--radius-inner); display: grid; place-items: center;
+}
+
+/* ---------- buttons (44px floor, bevel collapses on press) ---------- */
+.lc-btn {
+  min-height: 44px; padding: 0 18px; border: 0; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: 13px; font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 14px;
+  transition: transform .06s ease, box-shadow .06s ease;
+}
+.lc-btn--keep { background: var(--keep); color: var(--keep-ink);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.6), 0 4px 0 var(--keep-bevel); }
+.lc-btn--keep:active { transform: translateY(4px); box-shadow: inset 0 2px 0 rgba(255,255,255,.6); }
+.lc-btn--pass { background: var(--pass); color: var(--pass-ink);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 4px 0 var(--pass-bevel); }
+.lc-btn--pass:active { transform: translateY(4px); box-shadow: inset 0 1px 0 rgba(255,255,255,.28); }
+.lc-btn--show { background: var(--accent); color: var(--accent-ink);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.55), 0 4px 0 rgba(0,0,0,.35); }
+.lc-btn--cta { min-height: 54px; border-radius: 27px; font-size: 16px; letter-spacing: .09em;
+  background: var(--keep); color: var(--keep-ink);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.85), 0 0 0 2px var(--rim), 0 6px 0 var(--keep-bevel); }
+.lc-btn--cta:active { transform: translateY(6px);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.85), 0 0 0 2px var(--rim); }
+.lc-btn--ghost { background: transparent; color: var(--ink); border: 1px solid rgba(255,255,255,.3); }
+.lc-btn:disabled { background: rgba(255,255,255,.06); color: rgba(255,255,255,.3); box-shadow: none; cursor: default; }
+
+/* ---------- chips, clock, safety ---------- */
+.lc-chip { min-height: 26px; padding: 4px 10px; border-radius: 14px;
+  background: var(--chip); border: var(--chip-border); color: var(--chip-ink);
+  font-family: 'Azeret Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: .12em; }
+.lc-name { padding: 4px 12px; border-radius: 14px; background: var(--name-chip);
+  border: var(--name-border); color: var(--name-ink);
+  font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 14px; }
+.lc-clock { padding: 2px 6px; border-radius: 7px; background: var(--accent); color: var(--accent-ink);
+  font-family: 'Azeret Mono', monospace; font-weight: 700; font-size: 10px; letter-spacing: .06em; }
+.lc-clock.is-urgent { background: var(--keep); color: var(--keep-ink); }
+.lc-safe { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px;
+  border-radius: 22px; background: color-mix(in oklab, var(--safe) 14%, transparent);
+  border: 1px solid var(--safe); color: var(--safe);
+  font-weight: 700; font-size: 12px; letter-spacing: .06em; }
+/* safety tools are never gated behind credits */
+
+/* ---------- the neon heart ---------- */
+.lc-heart { color: var(--gold); line-height: 1;
+  text-shadow: 0 0 7px rgba(255,255,255,.7), 0 0 22px currentColor; }
+.lc-heart--beat { animation: lc-beat 2.4s ease-in-out infinite; }
+@keyframes lc-beat { 0%,100% { transform: scale(1); } 18% { transform: scale(1.14); } 36% { transform: scale(1); } }
+@keyframes lc-tally { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+.lc-tally { animation: lc-tally 1.8s infinite; }
+
+/* ---------- on deck (4 shown, whole card is the heart control) ---------- */
+.lc-deck { display: flex; gap: 9px; }
+.lc-deck__card { flex: 1; min-height: 76px; padding: 5px 4px; border-radius: 16px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  background: rgba(255,255,255,.08); border: var(--chip-border);
+  transition: transform .06s ease, background .12s ease; }
+.lc-deck__card:hover { background: rgba(255,255,255,.14); }
+.lc-deck__card:active { transform: scale(.96); background: rgba(255,255,255,.2); }
+.lc-deck__photo { width: 46px; height: 46px; border-radius: var(--queue-radius); object-fit: cover;
+  background: var(--video); border: 1.5px solid rgba(255,255,255,.4); }
+.lc-draft-bar { height: 5px; border-radius: 3px; background: rgba(255,255,255,.2); overflow: hidden; }
+.lc-draft-bar > i { display: block; height: 100%; background: var(--keep); }
+
+/* ---------- chat: must never spill over the line ---------- */
+.lc-chat { flex: 1; min-height: 94px; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 5px;
+  -webkit-mask-image: linear-gradient(to top, #000 55%, transparent);
+          mask-image: linear-gradient(to top, #000 55%, transparent); }
+
+/* ---------- room shell ---------- */
+.lc-room { display: flex; flex-direction: column; height: 100dvh; background: var(--field); overflow: hidden; }
+@media (min-width: 720px) { .lc-room { max-width: 430px; margin-inline: auto;
+  height: min(100dvh, 900px); border-radius: 34px; box-shadow: 0 0 0 4px var(--rim); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .lc-heart--beat, .lc-tally { animation: none; }
+}
+
+
+/* ==========================================================================
+   ROOM CHROME — one header row, contestant gets the height
+   Replaces the stacked app-bar + room-bar pattern (~180px of chrome).
+   ========================================================================== */
+
+.lc-topbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; min-height: 52px;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}
+.lc-topbar__back {                      /* ‹ back to lobby — icon only */
+  width: 44px; height: 44px; margin-left: -10px; flex: none;
+  display: grid; place-items: center; cursor: pointer;
+  color: var(--gold); font-size: 22px; line-height: 1; background: none; border: 0;
+}
+.lc-topbar__mark {                      /* wordmark shrinks to a badge in-room */
+  font-family: Monoton, cursive; font-size: 13px; letter-spacing: .04em; color: #fff; flex: none;
+}
+.lc-topbar__room {                      /* room name takes the slack */
+  flex: 1; min-width: 0; font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 15px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lc-topbar__meta { display: flex; align-items: center; gap: 6px; flex: none; }
+.lc-topbar__meta .lc-chip { min-height: 28px; }
+/* Sign out does not belong in a live room — move it to the lobby/profile. */
+
+/* Contestant owns the remaining vertical space; chairs are a fixed band. */
+.lc-stage { display: flex; flex-direction: column; min-height: 0; flex: 1; gap: 8px; padding: 8px 12px 0; }
+.lc-stage__hero  { flex: 1 1 auto; min-height: 210px; }   /* was ~34vh — let it grow */
+.lc-stage__hero .lc-feed { height: 100%; }
+.lc-stage__chairs { flex: 0 0 auto; display: flex; gap: 8px; }
+.lc-stage__chairs .lc-chair { flex: 1; }
+.lc-stage__chairs .lc-feed,
+.lc-stage__chairs .lc-chair--empty { height: 84px; }
+
+/* Empty chairs: label only, no oversized dead box. */
+.lc-chair--empty { min-height: 84px; font-family: 'Azeret Mono', monospace;
+  font-size: 8px; letter-spacing: .14em; color: rgba(255,255,255,.6); text-align: center; }
+
+/* THE LINE header sits on one line with its hint. */
+.lc-line__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lc-line__head > * { white-space: nowrap; }
+
+
+/* ==========================================================================
+   ROOM v2 — TikTok-style layering. Replaces the stacked flex column.
+   HTML contract (existing IDs kept):
+   <div class="lc-room" id="room">
+     <video id="rt_hero"></video>
+     <header class="lc-top">…#rt_title …#rt_host/#rt_hostbadge …chip…</header>
+     <div class="lc-overlay">
+       <div id="rt_chairs">.chair[.is-kept|.is-empty] > .cclock .kepttag .hostctl</div>
+       <div id="rt_line"><div id="lineitems">…</div></div>
+       <div id="chatstrip">.floatmsg…</div>
+       <div id="rt_endshow"></div>            host only
+       <div id="rt_joinline"></div>           spectator only
+       <div id="inputbar">…</div>
+     </div>
+   </div>
+   Root state classes: .is-host .is-spectator .is-suitor .is-empty .kb-open
+   ========================================================================== */
+
+/* viewport: <meta name="viewport"
+     content="width=device-width,initial-scale=1,viewport-fit=cover">
+   Do NOT add interactive-widget=resizes-content — we track visualViewport. */
+
+.lc-room {
+  position: fixed; inset: 0; overflow: hidden;
+  background: #080b20;
+  display: block;                       /* no flex column any more */
+  --lc-kb: 0px;                         /* keyboard inset, set from JS */
+  --lc-safe-t: env(safe-area-inset-top, 0px);
+  --lc-safe-b: env(safe-area-inset-bottom, 0px);
+}
+@media (min-width: 720px) {
+  .lc-room { inset: auto; position: relative; width: 520px; height: 100dvh;
+             margin-inline: auto; }
+}
+
+/* ---------- the backdrop: never reflows, for any reason ---------- */
+#rt_hero {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; background: var(--video); z-index: 0;
+  transform: translateZ(0);             /* own layer, no repaint on kb */
+}
+.lc-room::before,                        /* top scrim */
+.lc-room::after {                        /* bottom scrim */
+  content: ""; position: absolute; left: 0; right: 0; z-index: 1; pointer-events: none;
+}
+.lc-room::before { top: 0; height: 150px; background: linear-gradient(180deg, rgba(4,6,18,.88), transparent); }
+/* Bottom scrim stays translucent at its darkest — enough for text contrast,
+   not enough to hide that there's live video behind the whole stack. */
+.lc-room::after  { bottom: 0; height: 56%; background: linear-gradient(180deg, transparent, rgba(4,6,18,.46) 46%, rgba(4,6,18,.8)); }
+
+/* ---------- top overlay: one row, replaces both header bars ---------- */
+.lc-top {
+  position: absolute; z-index: 3; left: 0; right: 0; top: 0;
+  display: flex; align-items: center; gap: 9px;
+  padding: calc(var(--lc-safe-t) + 10px) 13px 10px;
+}
+.lc-top__back { width: 44px; height: 44px; margin-left: -13px; flex: none; border: 0;
+  background: none; color: var(--gold); font-size: 24px; line-height: 1; cursor: pointer; }
+.lc-top__mark { flex: none; font-family: Monoton, cursive; font-size: 12px; letter-spacing: .04em;
+  color: #fff; text-shadow: 0 0 12px rgba(255,45,143,.85), 0 1px 4px rgba(0,0,0,.9); }
+/* Room name is redundant in-room — the room IS her, and #rt_hostbadge already
+   names her over the video. Kept in the DOM (JS still writes to it) but hidden;
+   it still labels the room in the lobby list and the tab title. */
+#rt_title { display: none; }
+.lc-top__spacer { flex: 1; }
+.lc-top .chip { flex: none; height: 28px; padding: 0 9px; border-radius: 14px;
+  background: rgba(8,11,32,.62); border: 1px solid rgba(185,168,255,.4);
+  backdrop-filter: blur(8px); display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Azeret Mono', monospace; font-size: 10px; font-weight: 700; color: var(--ink); }
+/* Top bar is IDENTICAL in every role: ‹ back · LAST CALL wordmark · spacer ·
+   LIVE tally · 👁 viewers · ✦ tokens. Nothing role-conditional here — the
+   chrome that tells you where you are shouldn't shift when your part changes.
+   (Pre-show swaps the LIVE chip's copy to WARMING UP; same slot, same size.)
+   Sign out is NOT in the room — it lives in lobby/profile. */
+
+/* safety/moderation control — never the smallest target on screen */
+.lc-safebtn { position: absolute; z-index: 3; right: 13px; top: calc(var(--lc-safe-t) + 70px);
+  width: 44px; height: 44px; flex: none; display: grid; place-items: center; cursor: pointer;
+  border-radius: 50%; background: rgba(6,8,24,.6); border: 1px solid var(--safe);
+  backdrop-filter: blur(8px); color: var(--safe); font-size: 15px; }
+
+#rt_host { position: absolute; z-index: 3; left: 13px;
+  top: calc(var(--lc-safe-t) + 68px); display: flex; align-items: center; gap: 7px; }
+
+/* ---------- bottom-anchored overlay stack ---------- */
+.lc-overlay {
+  position: absolute; z-index: 2; left: 0; right: 0;
+  bottom: calc(var(--lc-kb) + var(--lc-safe-b) + 12px);
+  display: flex; flex-direction: column; gap: 9px; padding: 0 12px;
+  transition: bottom .18s ease-out;
+}
+@media (prefers-reduced-motion: reduce) { .lc-overlay { transition: none; } }
+
+/* chairs: PiP cards at ~40% height, clear of her face zone (upper third) */
+#rt_chairs { display: flex; gap: 7px; }
+#rt_chairs .chair { flex: 1; padding: 3px; border-radius: 16px;
+  background: rgba(6,8,24,.42); border: 1.5px solid var(--accent);
+  box-shadow: 0 0 12px rgba(45,227,208,.45); backdrop-filter: blur(4px); }
+#rt_chairs .chair video, #rt_chairs .chair .lc-feed {
+  height: 136px; width: 100%; object-fit: cover; border-radius: 12px; background: var(--video); }
+#rt_chairs .chair.is-kept { border-color: #ff2d8f; box-shadow: 0 0 14px rgba(255,45,143,.7); }
+#rt_chairs .chair.is-empty { border-style: dashed; border-color: rgba(45,227,208,.45);
+  background: rgba(6,8,24,.32); }
+#rt_chairs .chair.is-empty .lc-feed { height: 136px; display: grid; place-items: center;
+  font-family: 'Azeret Mono', monospace; font-size: 8px; letter-spacing: .14em;
+  color: rgba(45,227,208,.75); background: none; }
+.cclock { position: absolute; top: 4px; right: 4px; padding: 1px 5px; border-radius: 6px;
+  background: rgba(4,33,31,.86); border: 1px solid var(--accent);
+  font-family: 'Azeret Mono', monospace; font-weight: 700; font-size: 9px; color: #7ff2e6; }
+.is-kept .cclock { background: rgba(61,3,36,.9); border-color: #ff2d8f; color: var(--gold); }
+.kepttag { position: absolute; bottom: 4px; left: 5px; padding: 1px 7px; border-radius: 9px;
+  background: linear-gradient(180deg,#ffb4d9,#ff2d8f);
+  font-family: 'Azeret Mono', monospace; font-weight: 700; font-size: 7px;
+  letter-spacing: .12em; color: #5c0230; }
+/* Her verdict: glass icons, not slabs. ✕ left / ♥count centre / ✓ right, one
+   44px row — translucent so the suitor's face stays readable behind it.
+   Icon-only is safe here because position is fixed and never swaps sides. */
+.hostctl { display: flex; align-items: center; gap: 5px; padding: 5px 0 1px; }
+/* 44px is a floor, not a target — these two are her most consequential
+   per-chair action and sit over live video. Never shrink them to fit a tile. */
+.hostctl__pass, .hostctl__keep { width: 44px; min-height: 44px; flex: none; border: 0; cursor: pointer;
+  display: grid; place-items: center; border-radius: 14px; font-size: 19px; line-height: 1;
+  backdrop-filter: blur(6px); text-shadow: 0 1px 4px rgba(0,0,0,.9); }
+.hostctl__pass { background: rgba(90,30,64,.34); border: 1.5px solid rgba(255,145,180,.6); color: #ffc2d6; }
+.hostctl__pass:active { transform: scale(.93); background: rgba(198,13,104,.6); }
+.hostctl__keep { background: rgba(255,45,143,.3); border: 1.5px solid rgba(255,45,143,.8); color: #fff;
+  text-shadow: 0 0 10px rgba(255,45,143,.9), 0 1px 4px rgba(0,0,0,.9); }
+.hostctl__keep:active { transform: scale(.93); background: rgba(255,45,143,.62); }
+.is-kept .hostctl__keep { background: rgba(255,45,143,.44); border-color: #ff2d8f; }
+
+/* spectator equivalent of .hostctl: one glass heart-tap per chair. Kept chair
+   reads as "already backed" with a slightly denser fill — never an opaque slab,
+   the face behind it has to stay legible. */
+.is-spectator .hostctl { display: none; }
+/* Spectator's heart: a hollow outline centred at the foot of the chair — no
+   chip, no fill, nothing occluding his face. Fills and blooms on press.
+   Count isn't repeated here; it already reads in .chair__hearts. */
+/* The squat lives on the inner glyph, NEVER on the button: a transform on the
+   button scales its hit box too, so scaleY(.82) on a 44px target silently makes
+   it 36px. Button box stays an untransformed 48×44. */
+.lc-hearttap { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%);
+  width: 48px; height: 44px; border: 0; background: none; cursor: pointer;
+  display: grid; place-items: center;
+  transition: transform .12s ease; }
+.lc-hearttap__glyph { display: block; transform: scaleY(.82);
+  font-size: 28px; line-height: 1; color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255,214,233,.85); text-shadow: 0 1px 4px rgba(0,0,0,.9);
+  transition: color .12s ease, text-shadow .12s ease; }
+.lc-hearttap:active { transform: translateX(-50%) scale(1.06); }
+.lc-hearttap:active .lc-hearttap__glyph,
+.lc-hearttap.is-on .lc-hearttap__glyph { color: #ff2d8f; -webkit-text-stroke: 1.5px #ff5fae;
+  text-shadow: 0 0 14px rgba(255,45,143,1), 0 0 30px rgba(255,45,143,.7); }
+.is-kept .lc-hearttap__glyph { color: rgba(255,45,143,.55);
+  -webkit-text-stroke: 1.5px rgba(255,145,190,.9);
+  text-shadow: 0 0 12px rgba(255,45,143,.75), 0 1px 4px rgba(0,0,0,.9); }
+@media (prefers-reduced-motion: reduce) { .lc-hearttap { transition: none; } }
+/* Heart count lives in the name pill, not the verdict row — identity and
+   popularity read as one fact, and the row stays two unambiguous icons. */
+/* Two columns, one line each: LEFT is him — name, heart count under it.
+   RIGHT is the show — clock, KEPT under it. Hearts and KEPT sit on the same
+   line at opposite edges, so a glance reads "how popular" vs "still in". */
+.chair__name { position: absolute; top: 4px; left: 4px;
+  padding: 2px 7px; border-radius: 10px; background: rgba(6,8,24,.6);
+  backdrop-filter: blur(6px); font-family: Archivo, sans-serif; font-weight: 800; font-size: 9px;
+  color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.9); }
+.chair__hearts { position: absolute; left: 4px; top: 24px;
+  display: flex; align-items: center; gap: 3px; padding: 1px 6px; border-radius: 9px;
+  background: rgba(6,8,24,.5); backdrop-filter: blur(6px);
+  font-family: 'Azeret Mono', monospace; font-weight: 700; font-size: 9px; color: var(--gold); }
+.kepttag { top: 24px; right: 4px; left: auto; }
+/* hearts stay put when kept — KEPT is on the opposite edge, not stacked */
+.hostctl__spacer { flex: 1; }
+
+/* THE LINE — always visible, never collapses. 4 faces + "+N". */
+#rt_line { display: block; }
+#lineitems { display: flex; gap: 7px; }
+#lineitems > * { flex: 1; min-height: 62px; padding: 4px 3px; border-radius: 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;
+  background: rgba(255,45,143,.14); border: 1px solid rgba(255,45,143,.45);
+  backdrop-filter: blur(6px); }
+#lineitems > *:active { transform: scale(.96); background: rgba(255,45,143,.32); }
+#lineitems .lc-more { flex: none; width: 44px; background: rgba(6,8,24,.5);
+  border: 1px dashed rgba(185,168,255,.4); color: var(--safe);
+  display: grid; place-items: center; }
+
+/* chat: transparent, over video, capped, fades at top */
+#rt_livelayer { max-height: min(26dvh, 138px); display: flex; flex-direction: column;
+  justify-content: flex-end; gap: 4px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(to top, #000 62%, transparent);
+          mask-image: linear-gradient(to top, #000 62%, transparent); }
+.floatmsg { display: flex; gap: 6px; align-items: baseline; color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,.98); }
+
+/* Role CTA lives INSIDE #inputbar, right of the field, replacing the send
+   arrow (Enter sends; the field's own affordance is enough). Costs the hero
+   no height at all — no extra row, no floating pill over her face. */
+/* Role CTAs are glass, not solid slabs — the video reads through them, so the
+   composer row never becomes an opaque bar across her feed. */
+#rt_endshow { flex: none; min-height: 48px; padding: 0 16px; cursor: pointer;
+  background: rgba(45,227,208,.24); border: 1.5px solid rgba(45,227,208,.85);
+  backdrop-filter: blur(10px); color: #aef7ee; text-shadow: 0 1px 4px rgba(0,0,0,.9);
+  box-shadow: 0 0 20px rgba(45,227,208,.35);
+  display: inline-flex; align-items: center; gap: 6px; border-radius: 20px;
+  background: linear-gradient(180deg,#6ff4e6,var(--accent) 52%,#12a898); color: var(--accent-ink);
+  font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 13px;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.7), 0 3px 0 #0b7c70, 0 0 22px rgba(45,227,208,.45); }
+#rt_endshow:active { transform: translateY(3px); box-shadow: inset 0 2px 0 rgba(255,255,255,.7); }
+
+/* spectator CTA: same slot in #inputbar. Keeps the white ring + pink halo so
+   it still reads as the loudest control even at pill width. */
+#rt_joinline { flex: none; min-height: 48px; padding: 0 18px; cursor: pointer;
+  border-radius: 24px; display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,45,143,.34); border: 1.5px solid rgba(255,255,255,.9);
+  backdrop-filter: blur(10px); color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.9);
+  box-shadow: 0 0 30px rgba(255,45,143,.7);
+  background: linear-gradient(180deg,#ffb4d9,#ff2d8f 52%,#c60d68); color: #fff;
+  font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 17px; letter-spacing: .06em;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.85), 0 0 0 2.5px rgba(255,255,255,.9),
+              0 6px 0 #8c0847, 0 0 40px rgba(255,45,143,.75); }
+#rt_joinline:active { transform: translateY(6px);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.85), 0 0 0 2.5px rgba(255,255,255,.9); }
+
+/* composer: field + role CTA. No gift button and no send arrow here —
+   gift moved to .lc-rail, Enter/Return sends. */
+#inputbar { display: flex; gap: 8px; align-items: center; }
+#inputbar input { flex: 1; min-width: 0; min-height: 48px; padding: 0 15px; border-radius: 24px;
+  background: rgba(6,8,24,.6); border: 1px solid rgba(185,168,255,.4); backdrop-filter: blur(10px);
+  font-family: Archivo, sans-serif; font-size: 14px; color: #fff; }
+#inputbar input::placeholder { color: rgba(238,240,255,.55); }
+#inputbar input:focus { outline: 0; border-color: #ff2d8f; box-shadow: 0 0 18px rgba(255,45,143,.4); }
+/* right rail over the video: safety (host only), gift, live heart count.
+   All 44px, stacked clear of her face zone. */
+.lc-rail { position: absolute; z-index: 3; right: 13px; top: calc(var(--lc-safe-t) + 70px);
+  display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.lc-rail button { width: 44px; height: 44px; flex: none; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center; background: rgba(6,8,24,.6);
+  border: 1px solid rgba(185,168,255,.45); backdrop-filter: blur(8px); font-size: 19px; }
+.lc-rail .lc-safebtn { position: static; border-color: var(--safe); color: var(--safe); font-size: 16px; }
+.lc-rail__hearts { width: 44px; height: 44px; flex: none; border-radius: 50%; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: rgba(255,45,143,.14); border: 1px solid rgba(255,45,143,.45); backdrop-filter: blur(8px);
+  font-family: 'Azeret Mono', monospace; font-size: 8px; font-weight: 700; color: var(--gold); }
+.lc-rail__hearts:active { transform: scale(.94); background: rgba(255,45,143,.34); }
+/* Rail is identical in every role: 🛡 safety, 🎁 gift, ♥ heart-tap with count.
+   Order is fixed — safety first, always, in the same place for everyone.
+   Gift opens a chair picker (send to chair 1/2/3 or to the host), so a host
+   can gift a suitor too. Her ✦ balance shows like everyone else's; earnings
+   just accrue to it instead of draining. */
+
+/* ---------- role states ---------- */
+.is-host      #rt_joinline,
+.is-suitor    #rt_joinline,
+.is-spectator .hostctl,
+.is-spectator #rt_endshow,
+.is-suitor    .hostctl,
+.is-suitor    #rt_endshow { display: none; }
+
+/* Suitor: the chairs row is UNCHANGED — same tiles, same size as every role.
+   His own chair is just marked: pink ring, YOU badge, and his clock enlarged,
+   since it's the only one counting against him. No floating self-view PiP and
+   no separate big clock — both duplicated what the tile already says. */
+/* In HIS view the row is weighted to him: his tile is 1.4fr / 136px, the two
+   rivals 0.8fr / 104px and bottom-aligned, so the row reads as a podium line.
+   Her view keeps all three equal — she's comparing them, he isn't. */
+.is-suitor #rt_chairs { align-items: flex-end; }
+.is-suitor #rt_chairs .chair { flex: .8; border-width: 1px; }
+.is-suitor #rt_chairs .chair video,
+.is-suitor #rt_chairs .chair .lc-feed { height: 104px; }
+.is-suitor .lc-selfview { flex: 1.4; border-color: #ff2d8f; border-width: 1.5px;
+  box-shadow: 0 0 16px rgba(255,45,143,.75); }
+.is-suitor .lc-selfview video,
+.is-suitor .lc-selfview .lc-feed { height: 136px; }
+.is-suitor .lc-selfview .chair__name { background: rgba(255,45,143,.85); }
+.is-suitor .lc-selfview .cclock { padding: 2px 7px; border-radius: 8px; font-size: 15px;
+  border-width: 1.5px; box-shadow: 0 0 14px rgba(255,45,143,.6); }
+
+/* empty room: no dead grid, chairs collapse to one strip */
+.is-empty #rt_chairs { display: flex; gap: 6px; align-items: center; padding: 9px 12px;
+  border-radius: 14px; background: rgba(6,8,24,.5); border: 1px dashed rgba(45,227,208,.4);
+  backdrop-filter: blur(6px); }
+.is-empty #rt_chairs .chair { display: none; }
+/* Strip copy comes from the MARKUP, never a ::before — it carries a live
+   waiting count that generated content can't express, and a second source
+   would double the text. Same rule as .cclock__pause / .lc-floor__sep.
+   Markup: <b class="lc-strip__label">3 CHAIRS OPEN</b>
+           <span class="lc-strip__hint">they fill from the line</span>
+           <b class="lc-strip__count">0 WAITING</b> */
+.lc-strip__label { font-family: 'Azeret Mono', monospace; font-size: 8.5px; font-weight: 700;
+  letter-spacing: .14em; color: rgba(45,227,208,.85); white-space: nowrap; }
+.lc-strip__hint { flex: 1; min-width: 0; font-family: Archivo, sans-serif; font-size: 11px;
+  color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lc-strip__count { font-family: 'Azeret Mono', monospace; font-size: 9px; font-weight: 700;
+  color: var(--safe); white-space: nowrap; }
+
+/* The rail NEVER hides — not in any role, not with the keyboard up. Typing is
+   exactly when someone may need to report, and the rail's band (y≈112–264)
+   sits over unmoved video well above the keyboard. Do not add a
+   .kb-open .lc-rail { display:none } rule. */
+.kb-open .lc-rail { display: flex; }
+
+/* keyboard open: ONLY the overlay rises; #rt_hero is untouched */
+.kb-open #rt_livelayer { max-height: 96px; }
+.kb-open #rt_chairs .chair video { height: 58px; }
+.kb-open #rt_endshow { display: none; }
+.kb-open #lineitems > * { min-height: 0; flex-direction: row; }
+
+/* Set --lc-overlay-h from the overlay's measured height so the floating
+   LAST CALL pill always sits just above the stack:
+   const ro = new ResizeObserver(([e]) => room.style.setProperty(
+     '--lc-overlay-h', e.contentRect.height + 'px'));
+   ro.observe(document.querySelector('.lc-overlay'));
+
+   JS hook:
+   const vv = window.visualViewport;
+   const sync = () => document.documentElement.style.setProperty('--lc-kb',
+     Math.max(0, innerHeight - vv.height - vv.offsetTop) + 'px');
+   vv.addEventListener('resize', sync); vv.addEventListener('scroll', sync); sync();
+   input.addEventListener('focus', () => room.classList.add('kb-open'));
+   input.addEventListener('blur',  () => room.classList.remove('kb-open'));
+*/
+
+
+/* ==========================================================================
+   TAKE THE FLOOR — suitor-only. Spends ✦ to blur + mute the other chairs for
+   15/30/60s. Their shot clocks FREEZE for the duration, so buying attention
+   never costs a rival their time (that would make it pay-to-win).
+   Server owns the timer; the client only renders it.
+   Root/tile classes: .is-floor-held on #rt_chairs, .is-dimmed on a rival's
+   .chair__feed, .is-paused on its .cclock.
+   ========================================================================== */
+
+/* WHERE IT LIVES: a 🔇 button in .lc-rail, suitor-only, SECOND slot — directly
+   under 🛡, which never moves from the top in any role.
+   Tap → .lc-floor__pop popover anchored beside it with ONE action: 15s for 10 ✦.
+   Fixed duration on purpose — a suitor's whole turn is ~45s, so a 30 or 60s hold
+   would swallow the round, and letting money buy a longer silence is the
+   pay-to-win version of this. One length, one price, one tap. */
+   While it runs the same button becomes the countdown, and a thin progress line
+   sits above the chairs. Tap it again to end early (no refund). */
+.lc-floorbtn { position: relative; width: 44px; height: 44px; flex: none; cursor: pointer;
+  border-radius: 50%; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; background: rgba(6,8,24,.6);
+  border: 1px solid rgba(45,227,208,.5); backdrop-filter: blur(8px); font-size: 19px; }
+.lc-floorbtn small { font-family: 'Azeret Mono', monospace; font-weight: 700; font-size: 7.5px;
+  color: #aef7ee; }
+.lc-floorbtn.is-active { background: rgba(45,227,208,.28); border: 1.5px solid var(--accent);
+  box-shadow: 0 0 18px rgba(45,227,208,.55); font-size: 14px; }
+.is-host .lc-floorbtn, .is-spectator .lc-floorbtn { display: none; }
+
+.lc-floor__pop { position: absolute; z-index: 4; right: 62px; top: 104px; width: 158px;
+  display: flex; flex-direction: column; gap: 6px; padding: 9px; border-radius: 16px;
+  background: rgba(6,8,24,.8); border: 1.5px solid rgba(45,227,208,.6);
+  backdrop-filter: blur(14px); box-shadow: 0 12px 30px rgba(0,0,0,.6); }
+.lc-floor__pop[hidden] { display: none; }
+
+.lc-floor { display: flex; flex-direction: column; gap: 5px; padding: 8px 10px;
+  border-radius: 16px; background: rgba(45,227,208,.12);
+  border: 1.5px solid rgba(45,227,208,.55); backdrop-filter: blur(10px); }
+.lc-floor__head { display: flex; align-items: center; gap: 8px;
+  font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 13px; color: #aef7ee;
+  text-shadow: 0 1px 4px rgba(0,0,0,.9); }
+.lc-floor__clock { margin-left: auto; font-family: 'Azeret Mono', monospace; font-weight: 700;
+  font-size: 14px; color: #fff; text-shadow: 0 0 10px rgba(45,227,208,.8); }
+.lc-floor__bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,.18); overflow: hidden; }
+.lc-floor__bar > i { display: block; height: 100%; background: linear-gradient(90deg,#2de3d0,#aef7ee);
+  transition: width 1s linear; }
+.lc-floor__note { font-family: Archivo, sans-serif; font-size: 10px; line-height: 1.4;
+  color: rgba(174,247,238,.85); text-shadow: 0 1px 4px rgba(0,0,0,.9); }
+
+/* single action, cost stated on the control itself — never a confirm dialog. */
+.lc-floor__go { min-height: 46px; border-radius: 13px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: rgba(45,227,208,.24); border: 1.5px solid rgba(45,227,208,.85);
+  box-shadow: 0 0 16px rgba(45,227,208,.35);
+  font-family: 'Azeret Mono', monospace; font-weight: 700; font-size: 14px; color: #fff; }
+.lc-floor__go small { font-size: 11px; color: var(--gold); }
+/* real separator element, not a ::before — a bare text node is an anonymous
+   flex item that can't be reordered, so an ::before with order:1 lands last. */
+.lc-floor__sep { width: 1px; height: 14px; background: rgba(255,255,255,.3); }
+.lc-floor__go:active { transform: scale(.96); background: rgba(45,227,208,.4); }
+.lc-floor__go:disabled { opacity: .4; cursor: default; }   /* not enough ✦ */
+
+/* dimmed rival: blur the FEED layer, never the labels — his name and frozen
+   clock must stay readable so it's clear what's happening and to whom. */
+.chair__feed.is-dimmed > .chair__video { filter: blur(9px); transform: scale(1.12); }
+.chair__feed.is-dimmed::after { content: ""; position: absolute; inset: 0;
+  background: rgba(6,10,30,.34); pointer-events: none; }
+.chair__feed.is-dimmed .chair__hearts { display: none; }   /* can't back who you can't see */
+.chair__muted { position: absolute; left: 0; right: 0; bottom: 6px; display: flex;
+  flex-direction: column; align-items: center; gap: 2px;
+  font-family: 'Azeret Mono', monospace; font-size: 7px; font-weight: 700; letter-spacing: .14em;
+  color: rgba(255,255,255,.78); text-shadow: 0 1px 4px rgba(0,0,0,.95); }
+
+/* frozen clock: dashed border + pause glyph, dimmed but still legible. It must
+   NOT keep ticking — a rival watching their own tile has to see it held. */
+.cclock.is-paused { background: rgba(6,8,24,.6); border: 1px dashed rgba(45,227,208,.5);
+  color: rgba(127,242,230,.7); display: flex; align-items: center; gap: 3px; }
+/* The ❙❙ is a real child element in the markup, NOT a ::before — same rule as
+   .lc-floor__sep. Never inject it here too, or markup + this sheet double it.
+   Markup: <span class="cclock__pause">❙❙</span>0:42 */
+.cclock__pause { font-size: 7px; }
+
+.is-host .lc-floor, .is-spectator .lc-floor { display: none; }
+@media (prefers-reduced-motion: reduce) { .lc-floor__bar > i { transition: none; } }
+
+
+/* ==========================================================================
+   THE DRAFT — a chair opened; host has 5s to seat one of the four on deck.
+   Root: .is-drafting on .lc-room. The open chair becomes the countdown tile
+   (#rt_chairs .chair.is-drafting), and #rt_line swaps its rail for the picker.
+   On expiry the server seats the crowd favourite — the client never decides.
+   ========================================================================== */
+
+.lc-draft { display: flex; flex-direction: column; gap: 7px; padding: 10px; border-radius: 18px;
+  background: rgba(255,45,143,.1); border: 1.5px solid rgba(255,45,143,.5); backdrop-filter: blur(10px); }
+.lc-draft__head { display: flex; align-items: center; gap: 8px;
+  font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 14px; color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,.9); }
+.lc-draft__opts { display: flex; gap: 6px; }
+.lc-draft__opt { flex: 1; position: relative; padding: 3px; border-radius: 14px; cursor: pointer;
+  background: rgba(6,8,24,.42); border: 1px solid rgba(185,168,255,.45); backdrop-filter: blur(6px); }
+.lc-draft__opt:active { transform: scale(.96); background: rgba(255,45,143,.22); }
+.lc-draft__opt img, .lc-draft__photo { height: 74px; width: 100%; object-fit: cover;
+  border-radius: 11px; background: var(--video); display: block; }
+.lc-draft__opt figcaption { display: flex; align-items: center; justify-content: center; gap: 3px;
+  padding-top: 4px; font-family: 'Azeret Mono', monospace; font-weight: 700; font-size: 10px;
+  color: rgba(255,214,233,.9); }
+/* crowd favourite is pre-highlighted: it's what happens on no pick, so the
+   default outcome is visible before the clock runs out. */
+.lc-draft__opt.is-favourite { background: rgba(255,45,143,.2); border: 1.5px solid #ff2d8f;
+  box-shadow: 0 0 16px rgba(255,45,143,.55); }
+.lc-draft__opt.is-favourite figcaption { color: #fff; }
+.lc-draft__badge { position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+  padding: 1px 6px; border-radius: 8px; background: #ff2d8f; white-space: nowrap;
+  font-family: 'Azeret Mono', monospace; font-weight: 700; font-size: 6.5px; letter-spacing: .1em;
+  color: #fff; }
+/* No progress bar in the draft: a thin horizontal track under a row of tiles
+   reads as a scrollbar, and the 0:10 clock in the open chair already carries the
+   timing. Countdown lives there and only there. */
+.lc-draft__foot { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-family: Archivo, sans-serif; font-size: 10px; color: rgba(255,214,233,.85);
+  text-shadow: 0 1px 4px rgba(0,0,0,.9); }
+.lc-draft__foot > * { white-space: nowrap; }
+
+/* the open chair becomes the clock while drafting */
+#rt_chairs .chair.is-drafting { background: rgba(255,45,143,.12); border: 2px solid #ff2d8f;
+  border-style: solid; box-shadow: 0 0 18px rgba(255,45,143,.85); }
+#rt_chairs .chair.is-drafting .lc-feed { background: rgba(6,8,24,.5); display: flex;
+  flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+.lc-draft__clock { font-family: 'Azeret Mono', monospace; font-weight: 700; font-size: 26px;
+  line-height: 1; color: #fff; text-shadow: 0 0 14px rgba(255,45,143,.9); }
+
+/* spectators see the draft read-only — no tap targets, same information */
+.is-spectator .lc-draft__opt, .is-suitor .lc-draft__opt { pointer-events: none; }
+.is-drafting #rt_line { display: none; }
+@media (prefers-reduced-motion: reduce) { .lc-draft__bar > i { transition: none; } }
+
+
+/* ==========================================================================
+   THE EPISODE ENGINE — phases layered on the room. Root classes on .lc-room,
+   composable with the role classes (.is-host / .is-spectator / .is-suitor):
+     .is-showstart  .is-spotlight  .is-asking  .is-mingle  .is-deciding
+     .is-drafting (amended below)
+   Server owns every phase timer and transition, and every consequential
+   outcome. The client renders state and sends intent.
+
+   LOOP: PRE-SHOW -> 3 chairs fill -> SHOW START (3s) ->
+     R1 SPOTLIGHT 30s -> MINGLE 45s -> R2 -> MINGLE -> R3 -> DELIBERATION 90s ->
+     DECISION: keep one (win -> finale -> backstage) | pass one (1 blind refill)
+             | clear the deck (3 blind refills) | walk away (finale alone)
+   Host can skip any timed phase - .lc-skip ("HEARD ENOUGH").
+   ========================================================================== */
+
+/* ---------- S1 SHOW START ---------- */
+.lc-showstart { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 22px; padding: 0 30px; text-align: center;
+  background: radial-gradient(120% 70% at 50% 40%, rgba(255,45,143,.3), rgba(4,6,18,.93) 72%); }
+.lc-showstart__mark { font-family: Monoton, cursive; font-size: 44px; line-height: 1.1;
+  letter-spacing: .02em; color: #fff;
+  text-shadow: 0 0 12px rgba(255,255,255,.6), 0 0 30px rgba(255,45,143,1), 0 0 70px rgba(255,45,143,.55); }
+.lc-showstart__cast { display: flex; gap: 8px; width: 100%; }
+.lc-showstart__cast > * { flex: 1; padding: 9px 6px; border-radius: 14px;
+  background: rgba(6,8,24,.6); border: 1px solid rgba(45,227,208,.5); backdrop-filter: blur(8px); }
+/* Same beat for all three roles - suitors need to feel the spotlight coming. */
+
+/* ---------- S2 SPOTLIGHT ---------- */
+/* Banner sits BELOW her face zone (top ~326px at 844) - never over it. */
+/* Deliberately translucent (.3) so her video reads through the banner - a solid
+   panel across the frame kills the "live show" feel. Legibility comes from a
+   heavier blur + a doubled text-shadow, not from opacity. */
+.lc-question { position: absolute; z-index: 3; left: 12px; right: 12px; top: 326px;
+  padding: 12px 14px; border-radius: 18px; background: rgba(6,8,24,.3);
+  border: 1px solid rgba(45,227,208,.28); border-left: 3px solid var(--accent);
+  backdrop-filter: blur(16px) saturate(1.1); box-shadow: 0 0 24px rgba(45,227,208,.2); }
+.lc-question__text { font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 19px;
+  line-height: 1.22; color: #fff;
+  text-shadow: 0 2px 6px rgba(0,0,0,1), 0 1px 3px rgba(0,0,0,.95); }
+.lc-question__for { font-family: 'Azeret Mono', monospace; font-size: 9px; font-weight: 700;
+  letter-spacing: .16em; color: #7ff2e6; }
+/* On the spotlighted suitor's own screen the banner goes pink and larger - it is
+   addressed to him, and pink means "she chose you". */
+.is-suitor.is-target .lc-question { top: 300px; background: rgba(6,8,24,.34);
+  border-left-color: #ff2d8f; border-color: rgba(255,45,143,.3);
+  box-shadow: 0 0 30px rgba(255,45,143,.35); }
+.is-suitor.is-target .lc-question__text { font-size: 22px; }
+
+/* Target chair: her choice, so pink — and it GROWS. The spotlight has to be
+   literal: 1.56fr / 160px while the rivals recede to .72fr / 104px and
+   bottom-align, so the row reads as one lit podium plus two waiting ones.
+   Equal tiles undersold the moment. */
+.is-spotlight #rt_chairs { align-items: flex-end; }
+#rt_chairs .chair.is-target { flex: 1.56; padding: 4px; border-radius: 18px;
+  background: rgba(255,45,143,.14); border: 2px solid #ff2d8f;
+  box-shadow: 0 0 28px rgba(255,45,143,.9), 0 0 60px rgba(255,45,143,.35); }
+#rt_chairs .chair.is-target video,
+#rt_chairs .chair.is-target .lc-feed { height: 160px; border-radius: 14px; }
+.is-spotlight #rt_chairs .chair:not(.is-target) { flex: .72; border-radius: 14px; }
+.is-spotlight #rt_chairs .chair:not(.is-target) video,
+.is-spotlight #rt_chairs .chair:not(.is-target) .lc-feed { height: 104px; }
+/* chat gives up the height: max-height 82px during a spotlight */
+.is-spotlight #rt_livelayer { max-height: 82px; }
+#rt_chairs .chair.is-target .chair__name { background: rgba(255,45,143,.85); }
+.lc-mic { display: flex; align-items: flex-end; gap: 1px; height: 8px; }
+.lc-mic > i { width: 2px; background: #fff; animation: mic .9s ease-in-out infinite; }
+.lc-mic > i:nth-child(1) { height: 5px; }
+.lc-mic > i:nth-child(2) { height: 8px; animation-delay: .15s; }
+.lc-mic > i:nth-child(3) { height: 6px; animation-delay: .3s; }
+@keyframes mic { 0%,100% { opacity: 1; transform: scaleY(1); } 50% { opacity: .55; transform: scaleY(.5); } }
+
+/* answer clock: cool token, flips to neon under 10s */
+.lc-answerclock { padding: 2px 7px; border-radius: 8px; background: rgba(4,33,31,.78);
+  border: 1.5px solid var(--accent); box-shadow: 0 0 12px rgba(45,227,208,.5);
+  font-family: 'Azeret Mono', monospace; font-weight: 700; font-size: 18px; color: #7ff2e6; }
+.lc-answerclock.is-urgent { background: rgba(61,3,36,.8); border-color: #ff2d8f;
+  color: var(--gold); box-shadow: 0 0 14px rgba(255,45,143,.7); }
+
+/* non-target chairs dim; their audition clocks pause. */
+.is-spotlight #rt_chairs .chair:not(.is-target) { opacity: .5; border-color: rgba(45,227,208,.3);
+  border-width: 1px; box-shadow: none; }
+.is-spotlight #rt_chairs .chair:not(.is-target) .chair__video { filter: blur(3px); }
+.is-spotlight #rt_chairs .chair:not(.is-target) .chair__hearts { display: none; }
+/* A recessed rival tile is only ~78px wide — name + a full "❙❙ 0:42" clock needs
+   ~88px and both are absolutely positioned, so they collide. Drop the numerals:
+   a muted rival's exact remaining time is noise mid-spotlight, "held" is the
+   whole message. Ambient, not a scoreboard. */
+.is-spotlight #rt_chairs .chair:not(.is-target) .cclock { width: 20px; height: 16px;
+  padding: 0; justify-content: center; font-size: 7px; }
+.is-spotlight #rt_chairs .chair:not(.is-target) .cclock time,
+.cclock.is-heldonly time { display: none; }
+/* The TARGET's audition clock pauses too - answering must never eat the time he
+   is being judged on. Only the answer clock runs. */
+
+/* paid mute and gifts are OFF during a spotlight: money must never eat an
+   answer. Safety is never disabled, in any phase. */
+.is-spotlight .lc-floorbtn,
+.is-spotlight .lc-rail .lc-giftbtn { opacity: .4; pointer-events: none; border-style: dashed; }
+.is-spotlight .lc-safebtn { opacity: 1; pointer-events: auto; }
+/* Chat stays live in every phase - the crowd stays rowdy in text while audio
+   is directed. Never gate #rt_livelayer or #inputbar on phase. */
+
+/* round tracker: ambient, not a scoreboard */
+.lc-rounds { display: flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 11px;
+  background: rgba(45,227,208,.14); border: 1px solid rgba(45,227,208,.45); backdrop-filter: blur(8px);
+  font-family: 'Azeret Mono', monospace; font-size: 8px; font-weight: 700; letter-spacing: .14em;
+  color: #aef7ee; }
+.lc-rounds__dots { display: flex; gap: 3px; align-items: center; }
+.lc-rounds__dots > i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.22); }
+.lc-rounds__dots > i.is-done { background: var(--accent); box-shadow: 0 0 6px rgba(45,227,208,.9); }
+
+.lc-skip { flex: none; min-height: 48px; padding: 0 15px; cursor: pointer; border-radius: 24px;
+  display: inline-flex; align-items: center; gap: 6px; background: rgba(45,227,208,.24);
+  border: 1.5px solid rgba(45,227,208,.85); backdrop-filter: blur(10px); color: #aef7ee;
+  font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 13px;
+  text-shadow: 0 1px 4px rgba(0,0,0,.9); box-shadow: 0 0 20px rgba(45,227,208,.35); }
+
+/* ---------- S3 QUESTION DRAWER ---------- */
+/* ASK takes #inputbar's CTA slot during the show - it is her primary verb.
+   #rt_endshow (now WALK AWAY) moves into the decision tray's footer. */
+.lc-ask { flex: none; min-height: 48px; padding: 0 20px; cursor: pointer; border-radius: 24px;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,45,143,.34); border: 1.5px solid rgba(255,255,255,.9);
+  backdrop-filter: blur(10px); color: #fff; font-family: 'Baloo 2', sans-serif; font-weight: 800;
+  font-size: 15px; text-shadow: 0 1px 4px rgba(0,0,0,.9); box-shadow: 0 0 30px rgba(255,45,143,.7); }
+
+.lc-drawer { position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; height: 596px;
+  display: flex; flex-direction: column; padding: 12px 14px 22px;
+  border-radius: 26px 26px 42px 42px; background: rgba(9,12,34,.94);
+  border-top: 1.5px solid rgba(45,227,208,.5); backdrop-filter: blur(20px);
+  box-shadow: 0 -20px 50px rgba(0,0,0,.6); }
+.lc-drawer__grip { width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.22);
+  align-self: center; margin-bottom: 12px; }
+/* Four categories don't fit 390px at full width, so the row scrolls — never
+   clip it to hidden, which leaves a half-visible tab reading as a bug. */
+.lc-drawer__tabs { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto;
+  scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.lc-drawer__tabs::-webkit-scrollbar { display: none; }
+.lc-drawer__tab { flex: none; min-height: 34px; padding: 0 11px; border-radius: 17px; cursor: pointer;
+  display: inline-flex; align-items: center; background: rgba(6,8,24,.6);
+  border: 1px solid rgba(185,168,255,.35); font-family: Archivo, sans-serif; font-weight: 700;
+  font-size: 11px; letter-spacing: .06em; color: rgba(238,240,255,.7); }
+.lc-drawer__tab[aria-selected="true"] { background: rgba(45,227,208,.26); color: #fff;
+  border: 1.5px solid rgba(45,227,208,.85); font-weight: 800; }
+.lc-drawer__tab.is-spicy { background: rgba(255,45,143,.14); border-color: rgba(255,45,143,.5);
+  color: var(--gold); }
+/* scrolls, but no visible bar — a scrollbar over a neon drawer reads as chrome */
+.lc-qlist { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch; }
+.lc-qlist::-webkit-scrollbar { display: none; }
+.lc-qcard { padding: 13px 14px; border-radius: 16px; cursor: pointer;
+  background: rgba(45,227,208,.07); border: 1px solid rgba(45,227,208,.28);
+  font-family: 'Baloo 2', sans-serif; font-weight: 600; font-size: 15px; line-height: 1.3; color: #fff; }
+.lc-qcard:active { transform: scale(.985); background: rgba(45,227,208,.2);
+  border-color: rgba(45,227,208,.7); }
+/* Target chip: pre-locked when she tapped a chair first. Clearing it shows a
+   "pick a chair" step instead - both tap orders land in this same drawer. */
+.lc-target { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 6px;
+  border-radius: 22px; background: rgba(255,45,143,.16);
+  border: 1.5px solid rgba(255,45,143,.7); backdrop-filter: blur(8px); }
+.lc-target__clear { min-width: 24px; min-height: 24px; display: grid; place-items: center;
+  cursor: pointer; color: rgba(255,255,255,.6); }
+
+/* ---------- S4 MINGLE ---------- */
+/* Open floor: all mics restored, rail fully active. This is the ONLY phase the
+   paid floor hold works in. Phase clock is calm - a teal chip, not a bar. */
+.is-mingle .lc-floorbtn, .is-mingle .lc-rail .lc-giftbtn { opacity: 1; pointer-events: auto;
+  border-style: solid; }
+.lc-phase { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 9px;
+  border-radius: 14px; background: rgba(45,227,208,.14); border: 1px solid rgba(45,227,208,.5);
+  backdrop-filter: blur(8px); font-family: 'Azeret Mono', monospace; font-size: 9px;
+  font-weight: 700; letter-spacing: .1em; color: #aef7ee; }
+/* after round 3 the same chip reads DELIBERATION and runs 90s */
+
+/* ---------- S5 DECISION TRAY ---------- */
+.lc-decide { position: absolute; z-index: 5; left: 0; right: 0; bottom: 0;
+  padding: 16px 14px 24px; display: flex; flex-direction: column; gap: 11px;
+  border-radius: 26px 26px 42px 42px; background: rgba(9,12,34,.94);
+  border-top: 1.5px solid rgba(255,45,143,.5); backdrop-filter: blur(20px);
+  box-shadow: 0 -20px 50px rgba(0,0,0,.6); }
+/* Ranked by consequence: KEEP is the win and gets the shine; CLEAR THE DECK is
+   the quietest and needs a confirm. Nothing here is time-pressured. */
+.lc-decide__opt { display: flex; flex-direction: column; gap: 4px; padding: 13px 14px;
+  border-radius: 18px; cursor: pointer; }
+.lc-decide__opt:active { transform: scale(.985); }
+.lc-decide__opt--keep { background: rgba(255,45,143,.2); border: 1.5px solid rgba(255,255,255,.85);
+  box-shadow: 0 0 34px rgba(255,45,143,.6); }
+.lc-decide__opt--pass { background: rgba(6,8,24,.6); border: 1.5px solid rgba(185,168,255,.45); }
+.lc-decide__opt--pass:active { background: rgba(185,168,255,.16); }
+.lc-decide__opt--clear { background: rgba(6,8,24,.5); border: 1px dashed rgba(185,168,255,.4); }
+.lc-decide__walk { align-self: center; font-family: 'Baloo 2', sans-serif; font-weight: 800;
+  font-size: 13px; color: rgba(174,247,238,.9); border-bottom: 1px solid rgba(174,247,238,.4);
+  cursor: pointer; }
+
+/* crowd/suitor side: the drum roll. Chairs neutral and EQUAL - no tell. */
+.is-deciding:not(.is-host) #rt_chairs .chair { border: 1px solid rgba(185,168,255,.4);
+  background: rgba(6,8,24,.42); box-shadow: none; }
+.is-deciding:not(.is-host) .lc-hearttap { pointer-events: auto; }
+.lc-drumroll { position: absolute; z-index: 3; left: 0; right: 0; top: 250px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 0 34px;
+  text-align: center; }
+.lc-drumroll__dots { display: flex; gap: 7px; }
+.lc-drumroll__dots > i { width: 7px; height: 7px; border-radius: 50%; background: #ff2d8f;
+  box-shadow: 0 0 10px rgba(255,45,143,.9); animation: tally 1.4s infinite; }
+.lc-drumroll__dots > i:nth-child(2) { animation-delay: .2s; }
+.lc-drumroll__dots > i:nth-child(3) { animation-delay: .4s; }
+
+/* ---------- S6 BLIND REFILL - amends .is-drafting ---------- */
+/* KEY CHANGE: the HOST CANNOT SEE FACES. She reads silhouettes + the crowd's
+   hearts, so the crowd effectively casts the show. 5s -> 10s: a blind read of
+   heart counts needs a breath. Server still seats the favourite on expiry.
+   Crowd and suitor views are UNCHANGED - real photos, names, hearts tappable. */
+.is-host.is-drafting .lc-draft__photo,
+.is-host.is-drafting .lc-draft__opt img { visibility: hidden; }
+.is-host.is-drafting .lc-draft__opt .lc-name { display: none; }
+.lc-silhouette { position: relative; height: 84px; border-radius: 12px; overflow: hidden;
+  background: linear-gradient(180deg,#232045,#101227); }
+.lc-silhouette::before { content: ""; position: absolute; left: 50%; top: 26%;
+  transform: translate(-50%,-50%); width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(185,168,255,.3); }
+.lc-silhouette::after { content: ""; position: absolute; left: 50%; top: 52%;
+  transform: translate(-50%,-50%); width: 34px; height: 46px;
+  border-radius: 17px 17px 12px 12px;
+  background: linear-gradient(180deg, rgba(185,168,255,.3), rgba(185,168,255,.1)); }
+.is-favourite .lc-silhouette { background: linear-gradient(180deg,#2a2450,#12142e); }
+.is-favourite .lc-silhouette::before { background: rgba(185,168,255,.42); }
+.is-favourite .lc-silhouette::after {
+  background: linear-gradient(180deg, rgba(185,168,255,.42), rgba(185,168,255,.14)); }
+/* Blind pick chrome is GOLD, not pink - this beat belongs to the crowd. */
+.is-host.is-drafting .lc-draft { border-color: rgba(255,214,233,.5);
+  background: rgba(255,214,233,.08); }
+
+/* camera-flip reveal - the signature beat when she taps */
+@keyframes lc-reveal {
+  0%   { transform: perspective(600px) rotateY(0deg);   filter: brightness(.7); }
+  49%  { transform: perspective(600px) rotateY(90deg);  filter: brightness(1.6); }
+  50%  { transform: perspective(600px) rotateY(-90deg); filter: brightness(1.6); }
+  100% { transform: perspective(600px) rotateY(0deg);   filter: brightness(1); }
+}
+.lc-reveal { animation: lc-reveal .62s cubic-bezier(.7,0,.3,1) both;
+  transform-style: preserve-3d; backface-visibility: hidden; }
+@media (prefers-reduced-motion: reduce) { .lc-reveal { animation: none; } }
+
+/* Refill has exactly TWO shapes — never a partial fill:
+     PASS ONE        → one blind pick. No "n of 3" framing at all; the chip
+                       reads "ONE SEAT" and the other two chairs are untouched.
+     CLEAR THE DECK  → this state three times, sequential, chip reads
+                       "NEW CAST · n OF 3", so the crowd watches the new cast
+                       assemble one seat at a time.
+   There is no state where two of three seats are being filled. */
+.lc-seatprogress[data-mode="single"] .lc-seatprogress__n { display: none; }
+.lc-seatprogress { display: inline-flex; align-items: center; gap: 4px; height: 28px;
+  padding: 0 9px; border-radius: 14px; background: rgba(255,214,233,.2);
+  border: 1px solid rgba(255,214,233,.7); font-family: 'Azeret Mono', monospace;
+  font-size: 9px; font-weight: 700; letter-spacing: .1em; color: var(--gold); }
+
+/* ---------- amendments to existing states ---------- */
+/* KEEP is the win - there is no banked-kept state any more. .is-kept now only
+   describes the winner during the finale handoff, never a persistent chair. */
+
+/* #rt_endshow is now WALK AWAY: ends the night keeping no one -> "walked alone"
+   finale. Treatment unchanged; it needs a confirm step.
+   Copy: "End the night alone?" / "Pass on all three? They won't be back." */
+.lc-confirm { position: absolute; z-index: 7; inset: 0; display: grid; place-items: center;
+  padding: 0 34px; background: rgba(4,6,18,.82); backdrop-filter: blur(10px); text-align: center; }
+.lc-confirm__card { padding: 20px 18px; border-radius: 22px; background: rgba(9,12,34,.96);
+  border: 1.5px solid rgba(185,168,255,.5); display: flex; flex-direction: column; gap: 13px; }
+
+/* PRE-SHOW: the existing .is-empty strip carries fill progress -
+   "SHOW STARTS WHEN 3 CHAIRS FILL - 2 OF 3". Set it in markup, not content:. */
+
+
+/* ==========================================================================
+   LOBBY CARD — full-bleed live feed per room, not a thumbnail. Labels ride on
+   the video; the seat strip answers "can I get on?" before you tap.
+   ========================================================================== */
+.lc-card { padding: 3px; border-radius: 22px; background: rgba(6,8,24,.5);
+  border: 1.5px solid rgba(185,168,255,.4); cursor: pointer; }
+.lc-card__feed { position: relative; height: 210px; border-radius: 19px; overflow: hidden;
+  background: var(--video); }
+.lc-card__feed > video { width: 100%; height: 100%; object-fit: cover; }
+/* Baloo 2 at 22px has a ~30px ink box. With overflow:hidden (needed for the
+   ellipsis) a 1.1 line-height clips ascenders and descenders on BOTH axes —
+   overflow-y:visible is not an escape, CSS forces it to auto. Give the line
+   box the room instead. */
+.lc-card__host { font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 22px;
+  line-height: 1.4; color: #fff; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; text-shadow: 0 1px 5px rgba(0,0,0,.95); }
+.lc-card__cta { flex: none; min-height: 44px; padding: 0 15px; border-radius: 22px;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  backdrop-filter: blur(10px); font-family: 'Baloo 2', sans-serif; font-weight: 800;
+  font-size: 13px; text-shadow: 0 1px 4px rgba(0,0,0,.9); }
+.lc-card__cta--seat { background: rgba(255,45,143,.34); border: 1.5px solid rgba(255,255,255,.9);
+  color: #fff; box-shadow: 0 0 26px rgba(255,45,143,.6); }
+.lc-card__cta--watch { background: rgba(6,8,24,.62); border: 1.5px solid rgba(185,168,255,.6);
+  color: #d6cdff; }
+/* seat strip: teal = open, pink = taken, grey = opens next round */
+.lc-card__seats { display: flex; gap: 4px; }
+.lc-card__seats > i { width: 26px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.2); }
+.lc-card__seats > i.is-open { background: rgba(45,227,208,.85); box-shadow: 0 0 8px rgba(45,227,208,.7); }
+.lc-card__seats > i.is-taken { background: rgba(255,45,143,.8); box-shadow: 0 0 8px rgba(255,45,143,.6); }
+
+/* GO LIVE is a fixed bar, never a feed card — it must not scroll away. */
+.lc-golive { min-height: 60px; border-radius: 30px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: rgba(255,45,143,.34); border: 1.5px solid rgba(255,255,255,.9);
+  backdrop-filter: blur(10px); color: #fff; font-family: 'Baloo 2', sans-serif;
+  font-weight: 800; font-size: 18px; letter-spacing: .04em;
+  text-shadow: 0 1px 4px rgba(0,0,0,.9); box-shadow: 0 0 38px rgba(255,45,143,.7); }
+
+/* RADIUS FILTER IS GATED AT LAUNCH: distance is shown on cards, never filtered.
+   Sign-up hands straight to the lobby; the WITHIN slider is replaced by an
+   explainer. Switch on per-market at ~10 concurrent rooms. */
+.lc-gated { opacity: .9; }
+.lc-gated__badge { position: absolute; z-index: 4; top: 52px; left: 13px;
+  padding: 4px 10px; border-radius: 13px; background: rgba(185,168,255,.2);
+  border: 1px solid rgba(185,168,255,.65); backdrop-filter: blur(8px);
+  font-family: 'Azeret Mono', monospace; font-size: 8.5px; font-weight: 700;
+  letter-spacing: .14em; color: #d6cdff; }
+html:not([data-radius-filter="on"]) .lc-within { display: none; }
+
+
+/* ==========================================================================
+   ROOM ↔ EPISODE COHESION (supersedes the pre-episode room rules above)
+   ========================================================================== */
+
+/* KEEP/PASS LEFT THE CHAIRS. In the episode model the verdict happens once, in
+   the decision tray after round 3 — so a chair during rounds is a TARGET, not a
+   judgement. .hostctl is now a single "TAP TO ASK" affordance per chair, and her
+   primary verb sits in the composer as .lc-ask. #rt_endshow becomes WALK AWAY
+   and moves into the decision tray footer. */
+.hostctl { display: flex; align-items: center; justify-content: center; min-height: 32px;
+  border-radius: 11px; cursor: pointer; background: rgba(255,45,143,.14);
+  border: 1px dashed rgba(255,45,143,.5); backdrop-filter: blur(6px);
+  font-family: 'Azeret Mono', monospace; font-size: 8px; font-weight: 700;
+  letter-spacing: .14em; color: var(--gold); text-shadow: 0 1px 4px rgba(0,0,0,.95); }
+.hostctl:active { background: rgba(255,45,143,.3); }
+.is-spectator .hostctl, .is-suitor .hostctl { display: none; }
+
+/* Phase chip + round tracker live in .lc-top beside the LIVE tally, so the
+   rhythm is readable in every role without a scoreboard. The chip is terse
+   ("R2" + dots) because the bar already carries back, wordmark, LIVE, viewers
+   and credits — spelling out "OPEN FLOOR" there overflows 390px and spills.
+   The bar never wraps; chips shrink or truncate instead. */
+.lc-top { flex-wrap: nowrap; overflow: hidden; gap: 7px; }
+.lc-top .lc-phase { flex: none; }
+
+/* THE DRAFT: four on deck, never scrolling. The deck is a fixed 4-up grid — if
+   it scrolled she'd be reading a list against a 10s clock. When a seat fills,
+   the next in line animates up into the vacated slot so the deck stays 4 deep;
+   the "+N in line" counter is replaced by a 3-avatar stack of who's next. */
+#lineitems, .lc-draft__opts { display: flex; gap: 6px; overflow: hidden; }
+#lineitems > *, .lc-draft__opt { flex: 1 1 0; min-width: 0; }
+.lc-draft__opts > :nth-child(n+5) { display: none; }   /* hard cap at four */
+@keyframes lc-stepup {
+  from { opacity: 0; transform: translateY(14px) scale(.94); }
+  to   { opacity: 1; transform: none; }
+}
+.lc-draft__opt.is-new { animation: lc-stepup .34s cubic-bezier(.2,.9,.3,1) both; }
+@media (prefers-reduced-motion: reduce) { .lc-draft__opt.is-new { animation: none; } }
+.lc-nextup { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.lc-nextup__stack { display: flex; align-items: center; }
+.lc-nextup__stack > i { width: 16px; height: 16px; border-radius: 50%;
+  background: linear-gradient(180deg,#3b2a72,#1c1444); border: 1px solid rgba(185,168,255,.5); }
+.lc-nextup__stack > i + i { margin-left: -5px; }
+
+
+/* ==========================================================================
+   THE DRAFT STORM — the line is DARK during play (count only, every role).
+   A chair opens → candidates revealed to the ROOM at once for 15s, hearts
+   hammered live, host picks blind off climbing tallies. Server owns the window,
+   the tallies, heart rate-limiting and the fallback seat.
+   Root: .is-storm on .lc-room (composes with the role classes).
+   ========================================================================== */
+
+/* during play: one shell, count only, no faces anywhere */
+.lc-room:not(.is-storm) #rt_line { display: flex; align-items: center; gap: 8px;
+  min-height: 38px; padding: 9px 11px; border-radius: 14px; background: rgba(6,8,24,.5);
+  border: 1px solid rgba(185,168,255,.35); backdrop-filter: blur(8px); }
+.lc-room:not(.is-storm) #lineitems > * { display: none; }   /* faces never render */
+
+/* TWO LIT CARDS, ONE RACE — .is-leading AND .is-surging light SIMULTANEOUSLY in
+   the same window. That coexistence is the point: a single winner is a result,
+   a leader plus a challenger is a contest, and the gap between them is why the
+   room keeps tapping. Do not make these mutually exclusive.
+     .is-leading  amber — a STANDING (who's ahead right now)
+     .is-surging  rose  — a RATE OF CHANGE (who's accelerating)
+     .is-mine     rose  — the candidate's own card, same challenger semantics
+   Both hues sit in the crowd's gold→rose ramp, so teal stays show machinery and
+   lilac stays safety. Position NEVER reorders mid-storm; only glow and badge
+   move. Everything else banks back to neutral blush at low glow. */
+.lc-lane { --lane: #ffe0ec; --lane-soft: 255,224,236; position: relative;
+  flex: 1; padding: 2.5px; border-radius: 15px; cursor: pointer;
+  background: rgba(var(--lane-soft), .07);
+  border: 1px solid rgba(var(--lane-soft), .45);
+  box-shadow: 0 0 10px rgba(var(--lane-soft), .28); }
+.lc-lane.is-leading { --lane: #ffc24d; --lane-soft: 255,194,77; }   /* ahead   */
+.lc-lane.is-surging { --lane: #ff7ab8; --lane-soft: 255,122,184; }  /* closing */
+.lc-lane.is-mine    { --lane: #ff7ab8; --lane-soft: 255,122,184; }  /* his own card */
+.lc-lane__heart, .lc-lane__n { color: var(--lane); }
+/* front-runner: full glow + surge. Everyone else banks back. */
+.lc-lane.is-leading, .lc-lane.is-surging, .lc-lane.is-mine {
+  background: rgba(var(--lane-soft), .18); border: 1.5px solid var(--lane);
+  box-shadow: 0 0 22px rgba(var(--lane-soft), .7);
+  animation: lc-surge 1.4s ease-in-out infinite; }
+/* The >2x pulse-rate split is load-bearing: rose has to read as ACCELERATING,
+   not merely "also lit". Never flatten these to one duration. */
+.lc-lane.is-leading { animation-duration: 1.4s; }
+.lc-lane.is-surging,
+.lc-lane.is-mine    { animation-duration: .62s; }
+.lc-lane.is-leading .lc-lane__n { animation: lc-climb 1.4s ease-in-out infinite; }
+.lc-lane.is-surging .lc-lane__n,
+.lc-lane.is-mine    .lc-lane__n { animation: lc-climb .62s ease-in-out infinite; }
+/* the badge names the state, so it wears that state's hue */
+.lc-lane.is-leading .lc-lane__badge,
+.lc-lane.is-surging .lc-lane__badge,
+.lc-lane.is-mine    .lc-lane__badge { background: var(--lane); }
+.lc-lane.is-leading .lc-lane__heart, .lc-lane.is-leading .lc-lane__n,
+.lc-lane.is-surging .lc-lane__heart, .lc-lane.is-surging .lc-lane__n,
+.lc-lane.is-mine .lc-lane__heart, .lc-lane.is-mine .lc-lane__n { color: #fff; }
+.lc-lane__badge { position: absolute; z-index: 2; top: -7px; left: 50%;
+  transform: translateX(-50%); padding: 1px 6px; border-radius: 8px;
+  background: var(--lane); white-space: nowrap; font-family: 'Azeret Mono', monospace;
+  font-weight: 700; font-size: 6px; letter-spacing: .08em; color: #2e0038; }
+
+/* the tap target IS the card foot — built for rapid multi-tap, not one press.
+   Never rate-limit in the client; the server throttles and reconciles. */
+.lc-lane__tap { position: relative; min-height: 38px; margin-top: 3px; border: 0;
+  border-radius: 12px; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; gap: 4px; background: rgba(var(--lane-soft), .12);
+  border: 1px solid rgba(var(--lane-soft), .5); }
+.is-leading .lc-lane__tap, .is-surging .lc-lane__tap, .is-mine .lc-lane__tap {
+  background: rgba(var(--lane-soft), .3); border: 1.5px solid rgba(var(--lane-soft), .9); }
+.lc-lane__tap::after { content: ""; position: absolute; left: 50%; top: 50%;
+  width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%;
+  border: 2px solid var(--lane); opacity: 0; }
+.lc-lane__tap:active::after { animation: lc-ripple .5s ease-out; }
+
+/* An animated box-shadow overrides the element's own box-shadow for the entire
+   cycle, so a hardcoded hue here silently repaints every lit card the same
+   colour. The hue must travel in as --lane-soft. */
+@keyframes lc-surge {
+  0%,100% { box-shadow: 0 0 14px rgba(var(--lane-soft), .5); }
+  50%     { box-shadow: 0 0 30px rgba(var(--lane-soft), .95), 0 0 60px rgba(var(--lane-soft), .4); }
+}
+@keyframes lc-climb { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@keyframes lc-ripple { 0% { transform: scale(.6); opacity: .8; } 100% { transform: scale(2.1); opacity: 0; } }
+.lc-lane__n.is-climbing { animation: lc-climb .7s ease-in-out infinite; }
+
+/* HOST sees lanes as silhouettes — colour + momentum, never a face. */
+.is-host .lc-lane__face { visibility: hidden; }
+.is-host .lc-lane__sil { display: block; }
+/* CHAIRS are read-only spectators of the draft: no hearts, no surge. */
+.is-suitor .lc-lane { pointer-events: none; animation: none; box-shadow: none;
+  background: rgba(6,8,24,.4); border-color: rgba(185,168,255,.3); }
+.is-suitor .lc-lane__tap { background: rgba(6,8,24,.4);
+  border: 1px dashed rgba(185,168,255,.3); }
+/* Mutes and floor holds are INERT during a storm, and the mingle clock suspends. */
+.is-storm .lc-floorbtn, .is-storm .lc-rail .lc-giftbtn { opacity: .36;
+  pointer-events: none; border-style: dashed; }
+.is-storm .lc-safebtn { opacity: 1; pointer-events: auto; }
+
+/* EDGE STATES — 0 in line: no storm, show continues two-up, the open chair is a
+   standing recruiting slot. Exactly 1: skip the window, 2s mini-reveal (faking a
+   vote with one option teaches the crowd their hearts don't matter). Tie at
+   0:00: server picks randomly among leaders and SAYS SO on screen — a crowd
+   that can't see the tiebreak assumes the house cheated. */
+.lc-storm__deadheat .lc-lane.is-tied { animation: lc-surge .6s ease-in-out 2; }
+@media (prefers-reduced-motion: reduce) {
+  .lc-lane.is-leading, .lc-lane.is-surging, .lc-lane.is-mine,
+  .lc-lane__n.is-climbing, .lc-lane__tap:active::after { animation: none; }
+}
+
+
+/* ==========================================================================
+   THE LINE IS FIFO, AND STRIKES COST YOU IT
+   Order, never popularity: #lineitems / .lc-draft__opts hold the front four of
+   the queue in join order, and a draft NEVER reorders them. Hearts decide who
+   gets seated out of those four; they do not decide position.
+   When one is seated the rest shift LEFT one slot and the next in line enters
+   the window — animate the shift, never a re-sort.
+   Lose a storm → keep your place, take a strike. Third strike → removed from
+   the line and cannot rejoin tonight. That stops a permanent loser clogging the
+   front of the queue, and gives the crowd a reason to save someone on their
+   last life. Server owns strike counts and removal.
+   ========================================================================== */
+.lc-lane__pips { display: flex; align-items: center; justify-content: center; gap: 3px;
+  padding: 3px 0 1px; }
+.lc-lane__pips > i { width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(255,255,255,.22); }
+.lc-lane__pips > i.is-struck { background: #ff7ab8; box-shadow: 0 0 6px rgba(255,122,184,.85); }
+/* last life: the pips read as a warning, and the crowd can see it */
+.lc-lane.is-lastlife .lc-lane__pips > i.is-struck { background: #ff4d6d;
+  box-shadow: 0 0 8px rgba(255,77,109,.95); }
+.lc-lane.is-lastlife .lc-lane__badge::after { content: " · LAST LIFE"; }
+
+/* shift-left when a seat is taken — order is preserved, so this is a translate,
+   never a reflow into a new sort */
+@keyframes lc-shiftleft {
+  from { transform: translateX(calc(100% + 6px)); opacity: .5; }
+  to   { transform: none; opacity: 1; }
+}
+.lc-lane.is-shifting { animation: lc-shiftleft .3s cubic-bezier(.2,.9,.3,1) both; }
+/* the newcomer entering the 4-up window from the queue */
+.lc-lane.is-entering { animation: lc-stepup .34s cubic-bezier(.2,.9,.3,1) both; }
+/* struck out: flare, then leave. They cannot rejoin — the JOIN CTA must read
+   "OUT FOR TONIGHT" and be disabled for that user. */
+@keyframes lc-strikeout {
+  0%   { opacity: 1; }
+  30%  { opacity: 1; box-shadow: 0 0 26px rgba(255,77,109,.9); }
+  100% { opacity: 0; transform: translateY(10px) scale(.94); }
+}
+.lc-lane.is-out { animation: lc-strikeout .5s ease-in both; }
+#rt_joinline.is-out { pointer-events: none; opacity: .45; }
+@media (prefers-reduced-motion: reduce) {
+  .lc-lane.is-shifting, .lc-lane.is-entering, .lc-lane.is-out { animation: none; }
+}
 
 .gifttray-pop{position:absolute;left:12px;right:12px;bottom:110px;z-index:40;background:rgba(8,11,32,.97);border:1px solid var(--gold);border-radius:14px;padding:12px;display:none;gap:8px;justify-content:space-around;flex-wrap:wrap}
 .gifttray-pop.show{display:flex}
@@ -327,42 +1521,47 @@ main{flex:1;overflow-y:auto;position:relative}
     </div>
 
     <!-- ROOM — full show on one screen -->
-    <div id="room">
-      <div class="roomtop">
-        <button class="backbtn" id="roomback">‹ Lobby</button>
+    <div id="room" class="lc-room" data-skin="neon">
+      <!-- hero backdrop: never reflows -->
+      <div id="rt_hero"><div class="vid" id="rt_vid"></div><div class="reactlayer" id="rt_reactlayer"></div></div>
+
+      <!-- top overlay: one row -->
+      <div class="lc-top">
+        <button class="lc-top__back" id="roomback">‹</button>
+        <span class="lc-top__mark">LAST CALL</span>
         <div class="roomtitle" id="rt_title"></div>
-        <div class="cnt" id="rt_count">👁 0</div>
+        <span class="lc-top__spacer"></span>
+        <span class="chip" id="rt_count">👁 0</span>
+        <span class="chip" id="rt_coinchip">✦ 0</span>
       </div>
 
-      <!-- STAGE: contestant + chairs + line, fixed, always visible -->
-      <div class="stage" id="rt_stage">
-        <div class="contestant-hero" id="rt_hero">
-          <div class="vid" id="rt_vid"></div>
-          <div class="hostbadge" id="rt_hostbadge" style="display:none">HOST</div>
-          <div class="plate"><div class="role">CONTESTANT</div><div class="nm" id="rt_host"></div></div>
-          <div class="reactlayer" id="rt_reactlayer"></div>
+      <!-- her name, over the video -->
+      <div id="rt_host_wrap" style="position:absolute;z-index:3;left:13px;top:calc(env(safe-area-inset-top,0px) + 68px);display:flex;align-items:center;gap:7px">
+        <div id="rt_host" class="lc-over-video"></div>
+        <div class="hostbadge" id="rt_hostbadge" style="display:none">HOST</div>
+      </div>
+
+      <!-- right rail: safety first, always -->
+      <div class="lc-rail">
+        <button class="lc-safebtn" id="rt_safebtn" title="Report a problem">🛡</button>
+        <button id="rt_giftbtn">🎁</button>
+        <button class="lc-rail__hearts" id="rt_heartbtn">♥<span id="rt_hearttotal">0</span></button>
+      </div>
+
+      <!-- bottom-anchored overlay stack -->
+      <div class="lc-overlay">
+        <div id="rt_chairs"></div>
+        <div id="rt_line_block">
+          <div class="lc-line__head"><span class="lc-kicker lc-over-video">THE LINE <span id="rt_hosthint" style="display:none">· tap to seat</span></span><span class="lc-kicker lc-over-video" id="rt_watchbar"></span></div>
+          <div id="rt_line"><span class="emptyrole">empty</span></div>
         </div>
-        <div class="chairs-grid" id="rt_chairs"></div>
-        <div class="linestrip">
-          <div class="linelabel">THE LINE <span id="rt_hosthint" style="display:none">· tap to seat</span> <span class="watchcount" id="rt_watchbar"></span></div>
-          <div class="lineitems" id="rt_line"><span class="emptyrole">empty</span></div>
+        <div class="chatstrip" id="rt_livelayer"></div>
+        <div id="inputbar">
+          <input type="text" id="rt_chatinput" placeholder="Say something…" maxlength="140" enterkeyhint="send">
+          <button id="rt_chatsend" hidden>➤</button>
+          <button id="rt_endshow" style="display:none">🎬 LAST CALL</button>
+          <button id="rt_joinline">JOIN THE LINE</button>
         </div>
-      </div>
-
-      <!-- CHAT STRIP: ~4-5 messages scroll up and vanish under the lineup -->
-      <div class="chatstrip" id="rt_livelayer"></div>
-
-      <!-- INPUT BAR -->
-      <div class="inputbar">
-        <input type="text" id="rt_chatinput" placeholder="Say something…" maxlength="140">
-        <button class="ib-gift" id="rt_giftbtn">🎁</button>
-        <button class="ib-send" id="rt_chatsend">➤</button>
-      </div>
-
-      <!-- host: last call. suitor: join/leave line. exit is the ‹ Lobby arrow up top. -->
-      <div class="roomact">
-        <button class="endshow" id="rt_endshow" style="display:none">🎬 Last Call</button>
-        <button class="joinline" id="rt_joinline">Join the Line</button>
       </div>
 
       <div class="gifttray-pop" id="rt_gifts"></div>
@@ -706,16 +1905,17 @@ function renderRoom(){
       const p=profs[c.user_id]; const nm=p?.display_name||"someone";
       const kept=c.role==="kept";
       const secs=clockRemaining(c);
-      chairsHtml+=`<div class="chair filled${kept?' kept':''} heart-tap" data-heartuid="${c.user_id}">
-        ${kept?'<div class="kepttag">KEPT ✦</div>':''}
-        <div class="cf av" style="${avatarStyle(c.user_id,nm)}">${avInitial(nm)}</div>
-        <div class="cn">${escapeHtml(nm)}${c.user_id===ME.id?' (you)':''}</div>
-        ${kept?'':`<div class="cclock${secs<=10?' low':''}" data-uid="${c.user_id}">${fmtClock(secs)}</div>`}
-        <div class="chearts" data-hearts="${c.user_id}">♥ ${HEARTS[c.user_id]||0}</div>
-        ${(AMHOST&&!kept)?`<div class="hostctl"><button class="hc-keep" data-uid="${c.user_id}">Keep</button><button class="hc-pass" data-uid="${c.user_id}">Pass</button></div>`:''}
+      const isMe = c.user_id===ME.id;
+      chairsHtml+=`<div class="chair is-filled${kept?' is-kept':''}${(isMe&&!AMHOST)?' lc-selfview':''} heart-tap" data-heartuid="${c.user_id}">
+        <div class="lc-feed"><div class="av" style="${avatarStyle(c.user_id,nm)}">${avInitial(nm)}</div></div>
+        <div class="chair__name lc-over-video">${escapeHtml(nm)}${isMe?' · YOU':''}</div>
+        <div class="chair__hearts" data-hearts="${c.user_id}">♥ ${HEARTS[c.user_id]||0}</div>
+        ${kept?'<div class="kepttag">KEPT</div>':`<div class="cclock${secs<=10?' low':''}" data-uid="${c.user_id}">${fmtClock(secs)}</div>`}
+        ${(AMHOST&&!kept)?`<div class="hostctl"><button class="hostctl__pass" data-uid="${c.user_id}">✕</button><span class="hostctl__spacer"></span><button class="hostctl__keep" data-uid="${c.user_id}">✓</button></div>`:''}
+        ${(!AMHOST)?`<button class="lc-hearttap" data-uid="${c.user_id}"><span class="lc-hearttap__glyph">♥</span></button>`:''}
       </div>`;
     } else {
-      chairsHtml+=`<div class="chair"><div class="cempty">empty chair</div></div>`;
+      chairsHtml+=`<div class="chair is-empty"><div class="lc-feed">EMPTY CHAIR</div></div>`;
     }
   }
   $("rt_chairs").innerHTML=chairsHtml;
@@ -738,8 +1938,8 @@ function renderRoom(){
     $("rt_line").querySelectorAll(".pickable").forEach(el=>{
       el.onclick=()=>hostSeat(el.dataset.uid);
     });
-    $("rt_chairs").querySelectorAll(".hc-keep").forEach(b=>b.onclick=(e)=>{e.stopPropagation();hostKeep(b.dataset.uid);});
-    $("rt_chairs").querySelectorAll(".hc-pass").forEach(b=>b.onclick=(e)=>{e.stopPropagation();hostPass(b.dataset.uid);});
+    $("rt_chairs").querySelectorAll(".hostctl__keep").forEach(b=>b.onclick=(e)=>{e.stopPropagation();hostKeep(b.dataset.uid);});
+    $("rt_chairs").querySelectorAll(".hostctl__pass").forEach(b=>b.onclick=(e)=>{e.stopPropagation();hostPass(b.dataset.uid);});
   } else {
     // non-host: tap a line face to heart that suitor too
     $("rt_line").querySelectorAll(".lineface").forEach(el=>{
@@ -750,6 +1950,16 @@ function renderRoom(){
   $("rt_chairs").querySelectorAll(".heart-tap").forEach(el=>{
     el.onclick=(ev)=>{ if(ev.target.closest(".hostctl")) return; sendHeart(el.dataset.heartuid, ev.clientX, ev.clientY); };
   });
+  // role root classes drive the Rev 2 layered CSS
+  const meSeated = chairs.some(c=>c.user_id===ME.id);
+  const root=$("room");
+  root.classList.toggle("is-host", AMHOST);
+  root.classList.toggle("is-suitor", !AMHOST && meSeated);
+  root.classList.toggle("is-spectator", !AMHOST && !meSeated);
+  root.classList.toggle("is-empty", chairs.length===0 && line.length===0);
+  // rail heart total + coin mirror
+  const total=Object.values(HEARTS||{}).reduce((a,b)=>a+(+b||0),0);
+  const ht=$("rt_hearttotal"); if(ht) ht.textContent=total;
   updateJoinBtn();
 }
 
@@ -917,6 +2127,66 @@ function renderGiftTray(){
 }
 /* input bar: gift button toggles tray */
 $("rt_giftbtn").onclick=()=>$("rt_gifts").classList.toggle("show");
+
+/* ===== Rev 2 shell behaviors ===== */
+// keyboard: shift only the overlay; the hero never moves
+(function(){
+  const room=$("room"); if(!room) return;
+  const vv=window.visualViewport;
+  if(vv){
+    const sync=()=>document.documentElement.style.setProperty('--lc-kb',
+      Math.max(0, innerHeight - vv.height - vv.offsetTop) + 'px');
+    vv.addEventListener('resize',sync); vv.addEventListener('scroll',sync); sync();
+  }
+  const inp=$("rt_chatinput");
+  if(inp){
+    inp.addEventListener('focus',()=>room.classList.add('kb-open'));
+    inp.addEventListener('blur',()=>room.classList.remove('kb-open'));
+    inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); $("rt_chatsend").click(); } });
+  }
+  // rail heart: heart the host
+  const hb=$("rt_heartbtn");
+  if(hb) hb.onclick=(ev)=>{ if(CURRENT_ROOM) sendHeart(CURRENT_ROOM.host_id, ev.clientX, ev.clientY); };
+  // coin chip mirror: keep the in-room chip synced with the lobby chip
+  const mirror=()=>{ const src=$("coins"), dst=$("rt_coinchip"); if(src&&dst) dst.textContent=src.textContent; };
+  setInterval(mirror, 2000); mirror();
+})();
+
+// 🛡 minimal report flow (reuses the modal styles)
+$("rt_safebtn").onclick=()=>{
+  if(!CURRENT_ROOM) return;
+  const people=[{user_id:CURRENT_ROOM.host_id, nm:(CURRENT_ROOM.contestant_name||"Host")}]
+    .concat(ROOM_STATE.members.filter(m=>m.user_id!==ME.id)
+      .map(m=>({user_id:m.user_id, nm:(ROOM_STATE.profs[m.user_id]?.display_name||"someone")})))
+    .filter(p=>p.user_id!==ME.id);
+  const overlay=document.createElement("div");
+  overlay.className="modal show"; overlay.id="reportmodal";
+  overlay.innerHTML=`<div class="mbox"><h3>Report a problem</h3>
+    <div style="font-size:13px;color:var(--dim);margin-bottom:10px">Reporting someone also blocks them for you.</div>
+    <div id="rp_who">${people.map(p=>`<button class="fbtn ghost" data-uid="${p.user_id}" style="display:block;width:100%;margin:4px 0">${escapeHtml(p.nm)}</button>`).join("")||'<div class="emptyrole">nobody else here</div>'}</div>
+    <div id="rp_why" style="display:none"></div>
+    <button class="fbtn ghost" id="rp_cancel" style="width:100%;margin-top:8px">Cancel</button></div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector("#rp_cancel").onclick=()=>overlay.remove();
+  overlay.querySelectorAll("#rp_who button").forEach(b=>b.onclick=()=>{
+    const uid=b.dataset.uid;
+    const why=overlay.querySelector("#rp_why");
+    overlay.querySelector("#rp_who").style.display="none";
+    why.style.display="block";
+    why.innerHTML=["harassment","nudity","underage","spam","impersonation","other"]
+      .map(r=>`<button class="fbtn ghost" data-r="${r}" style="display:block;width:100%;margin:4px 0;text-transform:capitalize">${r}</button>`).join("");
+    why.querySelectorAll("button").forEach(rb=>rb.onclick=async()=>{
+      try{
+        const {error}=await sb.rpc("report_user",{reported:uid,room:CURRENT_ROOM.id,reason:rb.dataset.r,details:""});
+        if(error) toast("Report failed: "+error.message);
+        else toast("Reported.  They're now blocked for you.");
+      }catch(e){ toast("Report failed."); }
+      overlay.remove();
+      loadRoomState();
+    });
+  });
+};
+
 
 async function sendHeart(targetUid,x,y){
   if(targetUid===ME.id){ toast("You can't heart yourself — that's for the crowd to decide."); return; }

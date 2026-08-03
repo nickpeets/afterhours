@@ -171,6 +171,73 @@ main{flex:1;overflow-y:auto;position:relative}
 .chair.is-target{border-color:#ff2d8f !important;box-shadow:0 0 14px rgba(255,45,143,.8)}
 .is-spotlight .chair.is-target video,.is-spotlight .chair.is-target .lc-feed{height:150px}
 #eg_qlist textarea{display:none}
+/* ===== C2: PANEL OF 4 + THE BENCH (overrides the hero-backdrop layout) ===== */
+/* two lamps: her light spills past the frame; chairs stay cool and contained */
+#rt_hero{border-color:#ffb86c;box-shadow:0 0 22px rgba(255,150,90,.5),0 0 60px rgba(255,45,143,.35)}
+#rt_chairs .chair.is-filled{box-shadow:inset 0 0 0 1.5px rgba(45,227,208,.45)}
+/* engine mode: per-chair verdicts retire — the verdict lives in the decision tray */
+.eg-on .hostctl{display:none !important}
+/* spotlight: rivals recede hard (two-up split approximated) */
+.is-spotlight #rt_chairs .chair:not(.is-target):not(.is-empty){opacity:.32;filter:saturate(.4)}
+.is-spotlight #rt_chairs .chair.is-target{box-shadow:0 0 22px rgba(255,45,143,.9)}
+/* THE BENCH: square scored cards, not a thumbnail strip */
+#rt_line{gap:8px;min-height:0}
+#rt_line .benchcard{position:relative;width:29vw;max-width:118px;aspect-ratio:1;border-radius:12px;overflow:hidden;
+  background:linear-gradient(180deg,#241a52,#0d1129);display:grid;place-items:center;cursor:pointer;
+  box-shadow:inset 0 0 0 1.5px rgba(255,214,233,.25)}
+#rt_line .benchcard .bc-init{font-size:34px;font-weight:800;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.9)}
+#rt_line .benchcard .bc-face{position:absolute;inset:0;background-size:cover;background-position:center}
+#rt_line .benchcard .bc-hearts{position:absolute;top:5px;left:5px;z-index:2;font:700 10px 'Azeret Mono',monospace;
+  color:#2a1010;background:var(--gold,#ffd6e9);border-radius:7px;padding:2px 6px}
+#rt_line .benchcard .bc-name{position:absolute;bottom:5px;left:5px;right:5px;z-index:2;font-size:10px;font-weight:700;color:#fff;
+  text-shadow:0 1px 4px rgba(0,0,0,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rt_line .benchcard .bc-next{position:absolute;top:5px;right:5px;z-index:2;font:700 8px 'Azeret Mono',monospace;
+  color:#042b28;background:var(--cool,#2de3d0);border-radius:6px;padding:2px 5px;letter-spacing:.06em}
+#rt_line .benchcard .bc-pips{position:absolute;bottom:22px;left:6px;z-index:2;font-size:9px;color:#ff8ac2;letter-spacing:2px}
+#rt_line .benchcard.is-lastlife .bc-pips{color:#ff4d4d}
+#rt_line .benchcard.is-me{box-shadow:inset 0 0 0 2px var(--neon,#ff2d8f)}
+
+.lc-room{display:none;position:fixed;inset:0;z-index:60;background:var(--field,#080b20);flex-direction:column}
+.lc-room.show{display:flex}
+/* top bar becomes flow, not overlay */
+.lc-room .lc-top{position:static;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 6px}
+/* the grid: host + 3 chairs as equal cells */
+.lc-grid{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(0,1fr);gap:6px;padding:4px 8px;height:52dvh}
+#rt_hero{position:relative;inset:auto;z-index:auto;border-radius:14px;overflow:hidden;border:2px solid var(--neon,#ff2d8f);box-shadow:0 0 12px rgba(255,45,143,.55);background:var(--video,#141a3a)}
+#rt_hero .vid{position:absolute;inset:0}
+#rt_hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#rt_chairs{display:contents}
+#rt_chairs .chair{position:relative;border-radius:14px;overflow:hidden;background:var(--video,#141a3a);padding:0;min-height:0}
+#rt_chairs .chair .lc-feed{position:absolute;inset:0;height:auto !important;border-radius:0}
+#rt_chairs .chair video{position:absolute;inset:0;width:100%;height:100%;height:auto !important;min-height:100%;object-fit:cover}
+.is-host #rt_chairs .chair.is-filled .lc-feed{height:auto !important}
+#rt_chairs .chair .chair__name{top:auto;bottom:6px;left:6px;font-size:11px;z-index:6}
+#rt_chairs .chair .chair__hearts{top:6px;left:6px;font-size:11px;z-index:6}
+#rt_chairs .chair .cclock{top:6px;right:6px;z-index:6}
+#rt_chairs .chair .kepttag{top:28px;right:6px;z-index:6}
+.is-host .chair.is-filled .hostctl{left:6px;right:6px;bottom:26px;z-index:7}
+#rt_chairs .chair.is-empty{display:grid;place-items:center;border:1.5px dashed rgba(45,227,208,.5);background:rgba(45,227,208,.05);cursor:pointer}
+#rt_chairs .chair.is-empty .lc-feed{position:static;display:grid;place-items:center;background:none;height:auto !important;
+  font-family:'Azeret Mono',monospace;font-size:10px;letter-spacing:.14em;color:#7ff2e6;text-align:center}
+.is-host #rt_chairs .chair.is-empty{cursor:default}
+/* host name pill rides the host cell */
+#rt_host_wrap{position:absolute;z-index:3;left:14px;top:auto;bottom:8px}
+#rt_host_wrap #rt_host{font-size:12px}
+/* rail: compact, over the grid's right edge */
+.lc-rail{top:calc(env(safe-area-inset-top,0px) + 56px);right:10px;z-index:8}
+/* THE BENCH: 3 faces + overflow chip */
+#rt_line_block{flex:0 0 auto;padding:6px 12px 2px}
+#rt_line{display:flex;gap:14px;align-items:flex-start;min-height:64px}
+#rt_line .lineface .lf{width:52px;height:52px;font-size:18px}
+#rt_line .lineface .ln{font-size:9px;max-width:64px}
+.bench-more{align-self:center;font-family:'Azeret Mono',monospace;font-size:10px;color:var(--dim);border:1px solid rgba(238,240,255,.25);border-radius:999px;padding:4px 10px}
+/* chat + composer: normal flow below the bench */
+.lc-overlay{position:static;display:contents}
+#rt_livelayer{flex:1 1 auto;max-height:none;min-height:60px}
+#inputbar{flex:0 0 auto;position:static;transform:none;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px)}
+/* spotlight in the grid: target ring, rivals dim (engine states unchanged) */
+.is-spotlight #rt_chairs .chair.is-target{box-shadow:0 0 16px rgba(255,45,143,.85);border:2px solid var(--neon,#ff2d8f)}
+.is-spotlight .chair.is-target video,.is-spotlight .chair.is-target .lc-feed{height:auto !important}
 /* ===== Rev 2 integrated theme ===== */
 /* ==========================================================================
    LAST CALL — visual system
@@ -1576,8 +1643,9 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
 
     <!-- ROOM — full show on one screen -->
     <div id="room" class="lc-room" data-skin="neon">
-      <!-- hero backdrop: never reflows -->
-      <div id="rt_hero"><div class="vid" id="rt_vid"></div><div class="reactlayer" id="rt_reactlayer"></div></div>
+      <!-- panel of 4: host cell + three chairs -->
+      <div class="lc-grid" id="lc_grid">
+        <div id="rt_hero"><div class="vid" id="rt_vid"></div><div class="reactlayer" id="rt_reactlayer"></div>
 
       <!-- top overlay: one row -->
       <div class="lc-top">
@@ -1590,10 +1658,11 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
       </div>
 
       <!-- her name, over the video -->
-      <div id="rt_host_wrap" style="position:absolute;z-index:3;left:13px;top:calc(env(safe-area-inset-top,0px) + 68px);display:flex;align-items:center;gap:7px">
-        <div class="hostbadge" id="rt_hostbadge" style="display:none">HOST</div>
-        <div id="rt_host" class="lc-over-video"></div>
-      </div>
+          <div id="rt_host_wrap" style="display:flex;align-items:center;gap:7px">
+            <div class="hostbadge" id="rt_hostbadge" style="display:none">HOST</div>
+            <div id="rt_host" class="lc-over-video"></div>
+          </div>
+        </div><!-- /rt_hero -->
 
       <!-- right rail: safety first, always -->
       <div class="lc-rail">
@@ -1602,9 +1671,10 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         <button class="lc-rail__hearts" id="rt_heartbtn">♥<span id="rt_hearttotal">0</span></button>
       </div>
 
-      <!-- bottom-anchored overlay stack -->
-      <div class="lc-overlay">
         <div id="rt_chairs"></div>
+      </div><!-- /lc-grid -->
+
+      <div class="lc-overlay">
         <div id="rt_line_block">
           <div class="lc-line__head"><span class="lc-kicker lc-over-video">THE LINE <span id="rt_hosthint" style="display:none">· tap to seat</span></span><span class="lc-kicker lc-over-video" id="rt_watchbar"></span></div>
           <div id="rt_line"><span class="emptyrole">empty</span></div>
@@ -2008,6 +2078,17 @@ let ROOM_STATE={members:[],profs:{}};
 let I_WAS_PASSED=false; // pass is final for this show — set by pass event or 'passed' RPC error, reset on room entry
 
 async function openRoom(r){
+  // zombie check: live rooms must have a recent host heartbeat (2 min grace;
+  // rooms created before the heartbeat column treat created_at as the beat)
+  if(r && r.status==="live" && r.host_id!==ME.id){
+    const beat = Date.parse(r.host_seen_at||r.created_at||0);
+    if(beat && Date.now()-beat > 120000){
+      sb.from("rooms").update({status:"ended"}).eq("id",r.id).then(()=>{});  // janitor: best effort
+      toast("That show already ended 🌙");
+      loadRooms();
+      return;
+    }
+  }
   CURRENT_ROOM=r;
   I_WAS_PASSED=false;
   AMHOST=r.host_id===ME.id;
@@ -2084,7 +2165,7 @@ function renderRoom(){
         ${(!AMHOST)?`<button class="lc-hearttap" data-uid="${c.user_id}"><span class="lc-hearttap__glyph">♥</span></button>`:''}
       </div>`;
     } else {
-      chairsHtml+=`<div class="chair is-empty"><div class="lc-feed">EMPTY CHAIR</div></div>`;
+      chairsHtml+=`<div class="chair is-empty" data-takechair="1"><div class="lc-feed">${AMHOST?"EMPTY CHAIR":"TAKE THE CHAIR<br><span style='opacity:.6;font-size:8px'>joins the line</span>"}</div></div>`;
     }
   }
   if(chairs.length===0){
@@ -2099,7 +2180,29 @@ function renderRoom(){
     const pickable=AMHOST?' pickable':'';
     return `<div class="lineface${isMe?' me':''}${pickable}" data-uid="${m.user_id}"><div class="lf av" style="${avatarStyle(m.user_id,nm)}">${avInitial(nm)}</div><div class="ln">${isMe?'You':escapeHtml(nm)}</div></div>`;
   };
-  $("rt_line").innerHTML = line.length? line.map(lineFace).join("") : '<span class="emptyrole">'+(EG_ON?"empty — the line is hidden during play":"empty — no one waiting")+'</span>';
+  const benched=line.slice(0,3);
+  const benchCard=(m,i)=>{
+    const prof=ROOM_STATE.profs[m.user_id]||{};
+    const nm=prof.display_name||"?";               // masked in engine mode for the host: renders as ?
+    const isMe=m.user_id===ME.id;
+    const strikes=m.strikes||0;
+    return `<div class="benchcard${strikes>=2?' is-lastlife':''}${isMe?' is-me':''}" data-benchuid="${m.user_id}">
+      <div class="bc-init">${escapeHtml(nm[0]||"?")}</div>
+      <div class="bc-hearts">♥ ${HEARTS[m.user_id]||0}</div>
+      ${i===0?'<div class="bc-next">NEXT UP</div>':''}
+      ${strikes>0?`<div class="bc-pips">${"●".repeat(strikes)}${strikes>=2?" · LAST LIFE":""}</div>`:''}
+      <div class="bc-name">${escapeHtml(nm)}${isMe?" · YOU":""}</div>
+    </div>`;
+  };
+  $("rt_line").innerHTML = line.length
+    ? benched.map(benchCard).join("") + (line.length>3?`<span class="bench-more">+${line.length-3} in line</span>`:"")
+    : '<span class="emptyrole">'+(EG_ON?"empty — the bench is dark to her, live to you":"empty — no one waiting")+'</span>';
+  // the crowd scores the bench continuously (hosts can't — they see silhouettes)
+  if(!AMHOST){
+    $("rt_line").querySelectorAll(".benchcard").forEach(el=>{
+      el.onclick=(ev)=>sendHeart(el.dataset.benchuid, ev.clientX, ev.clientY);
+    });
+  }
   $("rt_hosthint").style.display = (AMHOST && line.length) ? "inline" : "none";
 
   // WATCHING — count only
@@ -2123,6 +2226,7 @@ function renderRoom(){
     el.onclick=async(ev)=>{
       if(ev.target.closest(".hostctl")) return;
       const uid=el.dataset.heartuid;
+      if(AMHOST && EG_ON && egRoomPhase(CURRENT_ROOM)==="spotlight" && !CURRENT_ROOM.phase_deadline && !$("room").classList.contains("is-asking")){ egOpenDrawer(uid); return; }
       if(AMHOST && EG_ON && $("room").classList.contains("is-asking") && EG_PICKQ){ EG_PICKTARGET=uid; egFireSpotlight(); return; }
       if(AMHOST && EG_ON && $("room").classList.contains("is-asking")){ EG_PICKTARGET=uid; egRenderTargetChip(); egOpenDrawer(uid); return; }
       if(AMHOST && EG_ON && EG_DECIDE_MODE){ if(await egDecideTap(uid)) return; }
@@ -2134,9 +2238,16 @@ function renderRoom(){
   if(AMHOST && EG_ON && egRoomPhase(CURRENT_ROOM)==="preshow" && chairs.filter(c=>c.role==="chair").length>=3){
     sb.rpc("start_show",{room_id:CURRENT_ROOM.id}).then(()=>egRefreshRoom()).catch(()=>{});
   }
+  // empty chairs are CTAs for non-hosts
+  if(!AMHOST){
+    $("rt_chairs").querySelectorAll('[data-takechair]').forEach(el=>{
+      el.onclick=()=>$("rt_joinline").click();
+    });
+  }
   // role root classes drive the Rev 2 layered CSS
   const meSeated = chairs.some(c=>c.user_id===ME.id);
   const root=$("room");
+  root.classList.toggle("eg-on", EG_ON);
   root.classList.toggle("is-host", AMHOST);
   root.classList.toggle("is-suitor", !AMHOST && meSeated);
   root.classList.toggle("is-spectator", !AMHOST && !meSeated);
@@ -2177,12 +2288,17 @@ let TIMING_OUT={};
 function startClockTick(){
   stopClockTick();
   CLOCK_TICK=setInterval(()=>{
+    // engine preshow: seats are safe until the show starts — clocks read ⏸
+    const preshowHold = EG_ON && egRoomPhase(CURRENT_ROOM)==="preshow";
     ROOM_STATE.members.filter(m=>m.role==="chair").forEach(c=>{
       const s=clockRemaining(c);
       const el=$("rt_chairs")?.querySelector(`.cclock[data-uid="${c.user_id}"]`);
-      if(el){ el.textContent=fmtClock(s); el.classList.toggle("low",s<=10); }
+      if(el){
+        if(preshowHold){ el.textContent="⏸"; el.classList.remove("low"); }
+        else { el.textContent=fmtClock(s); el.classList.toggle("low",s<=10); }
+      }
       // host drives expiry: when time's up, drop them to spectator (once)
-      if(AMHOST && s<=0 && !TIMING_OUT[c.user_id]){
+      if(AMHOST && !preshowHold && s<=0 && !TIMING_OUT[c.user_id]){
         TIMING_OUT[c.user_id]=true;
         sb.rpc("timeout_member",{room_id:CURRENT_ROOM.id,user_id:c.user_id}).then(({error})=>{
           if(error) console.log("timeout:",error.message);
@@ -2237,9 +2353,16 @@ document.addEventListener("visibilitychange",()=>{
 /* host doesn't receive room_members realtime pushes (no membership row / RLS),
    so poll the roster as a fallback. also: everyone polls room status so a
    suitor knows when the host ended the show. */
-let HOST_POLL=null, HOST_LAST_SEEN=0;
+let HOST_POLL=null, HOST_LAST_SEEN=0, HOST_BEAT=null;
+function startHostBeat(){
+  stopHostBeat();
+  const beat=()=>{ if(CURRENT_ROOM && AMHOST) sb.from("rooms").update({host_seen_at:new Date().toISOString()}).eq("id",CURRENT_ROOM.id).eq("host_id",ME.id).then(()=>{}); };
+  beat(); HOST_BEAT=setInterval(beat,25000);
+}
+function stopHostBeat(){ clearInterval(HOST_BEAT); HOST_BEAT=null; }
 function startHostPoll(){
   stopHostPoll();
+  if(AMHOST) startHostBeat();
   HOST_LAST_SEEN=Date.now();  // grace period from entry
   HOST_POLL=setInterval(async()=>{
     if(!CURRENT_ROOM) return;
@@ -2272,7 +2395,8 @@ function startHostPoll(){
     }
   },4000);
 }
-function stopHostPoll(){ if(HOST_POLL){clearInterval(HOST_POLL);HOST_POLL=null;} }
+function stopHostPoll(){
+  stopHostBeat(); if(HOST_POLL){clearInterval(HOST_POLL);HOST_POLL=null;} }
 
 // auto-seat: while chairs are open and people wait, seat them (host drives it)
 let AUTOSEATING=false;

@@ -1591,6 +1591,10 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
   display:block !important;margin:0 !important}
 #room #rt_chairs .chair.is-empty{display:grid !important;place-items:center !important}
 #room .lc-strip__label,#room .lc-strip__hint,#room .lc-strip__count{display:none !important}
+/* scrims retired: they existed to make text readable over full-bleed video;
+   the panel layout has no video behind the bar or the lower stack — the
+   gradients were just dimming UI on a solid field */
+#room.lc-room::before,#room.lc-room::after{display:none !important;content:none !important}
 /* top bar: in flow, above everything, safe-area padded — never buried again */
 #room .lc-top{position:static !important;display:flex !important;align-items:center !important;
   gap:8px !important;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 6px !important;

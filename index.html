@@ -1572,6 +1572,20 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
 .snapflash.go{animation:flashpop .5s ease-out}
 @keyframes flashpop{0%{opacity:0}12%{opacity:1}100%{opacity:0}}
 .winnerphoto{width:190px;height:250px;object-fit:cover;border-radius:16px;border:3px solid var(--gold);box-shadow:0 0 34px rgba(255,214,233,.55);margin:0 auto 12px;display:block}
+/* COMPLIANCE: signup consent, auth footer links, settings modal */
+.chk{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--paper);text-align:left;line-height:1.45;cursor:pointer}
+.chk input{margin-top:2px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--neon)}
+.chk a{color:var(--neon-soft)}
+.authlinks{font-size:10px;color:var(--dim);text-align:center;margin-top:-6px;letter-spacing:.04em}
+.authlinks a{color:var(--dim);text-decoration:underline}
+.iconbtn.gear{padding:5px 8px;font-size:14px;line-height:1.1}
+.mlinks{display:flex;gap:16px;font-size:13px;font-weight:700}
+.mlinks a{color:var(--neon-soft)}
+.mnote{font-size:12.5px;color:var(--dim);line-height:1.5}
+.mbtn{padding:12px;border-radius:10px;border:none;font-weight:700;cursor:pointer;font-size:14px}
+.mdanger{background:transparent;border:1.5px solid var(--danger);color:var(--danger);padding:12px;border-radius:10px;font-weight:800;cursor:pointer;font-size:14px}
+.mdanger:disabled{opacity:.5;cursor:not-allowed}
+.merr{color:var(--danger);font-size:12.5px;min-height:16px;line-height:1.4}
 </style>
 </head>
 <body data-skin="neon">
@@ -1580,7 +1594,8 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
     <div class="logo">LAST CALL</div>
     <div class="wallet">
       <span class="chip" id="coinchip">✦ 120</span>
-      <button class="iconbtn" id="signout" style="display:none">Sign out</button>
+      <button class="iconbtn gear" id="settingsbtn" style="display:none" title="Settings" aria-label="Settings">⚙</button>
+        <button class="iconbtn" id="signout" style="display:none">Sign out</button>
     </div>
   </header>
   <main>
@@ -1602,7 +1617,8 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
       <form class="panel" id="signupPanel" style="display:none" action="#">
         <input type="email" id="su_email" placeholder="Email" autocomplete="email" enterkeyhint="next">
         <input type="password" id="su_pass" placeholder="Password (6+ characters)" autocomplete="new-password" enterkeyhint="go">
-        <div class="err" id="su_err"></div>
+        <label class="chk" for="su_agree"><input type="checkbox" id="su_agree"><span>I’m 18 or older and accept the <a href="terms.html" target="_blank" rel="noopener">Terms</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a></span></label>
+          <div class="err" id="su_err"></div>
         <button class="bigbtn" id="su_go" type="submit">Create account</button>
       </form>
       <form class="panel" id="setpwPanel" style="display:none" action="#">
@@ -1613,6 +1629,7 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
+        <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1810,7 +1827,20 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
       </div>
     </div>
 
-    <div id="toast"></div>
+      <!-- SETTINGS MODAL -->
+  <div class="modal" id="settingsmodal">
+    <div class="mbox">
+      <h3>Settings</h3>
+      <div class="mlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a></div>
+      <div class="merr" id="st_err"></div>
+      <button class="mbtn mgo" id="st_signout">Sign out</button>
+      <div class="mnote" id="st_delnote" style="display:none">This erases your profile, any rooms you hosted, and your messages. It cannot be undone. Reports filed about you stay as a moderation record.</div>
+      <button class="mdanger" id="st_delete">Delete my account</button>
+      <button class="mbtn mcancel" id="st_close">Close</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
   </main>
 </div>
 
@@ -1897,6 +1927,7 @@ $("signupPanel").onsubmit=async(e)=>{
   const err=$("su_err"); err.textContent="";
   if(!email||!pass){err.textContent="Email and password required.";return;}
   if(pass.length<6){err.textContent="Password needs 6+ characters.";return;}
+  if(!$("su_agree").checked){err.textContent="Please confirm you are 18 or older and accept the Terms and Privacy Policy.";return;}
   $("su_go").disabled=true; $("su_go").textContent="Creating…";
   const {data,error}=await sb.auth.signUp({email,password:pass});
   if(error){
@@ -1914,6 +1945,9 @@ $("signupPanel").onsubmit=async(e)=>{
     const {error:pe}=await sb.from("profiles").upsert({id:uid,display_name:name});
     if(pe){err.textContent="Profile save failed: "+pe.message;$("su_go").disabled=false;$("su_go").textContent="Create account & step inside";return;}
   }
+  // fire-and-forget: record that they accepted the terms (needs a session, so this
+  // is a no-op when email confirmation is on and there is not one yet)
+  try{ sb.rpc("accept_terms").then(()=>{},()=>{}); }catch(e){}
   // If email confirmation is off, session exists now; if on, prompt to confirm.
   if(data.session){ enterApp(); }
   else { toast("Account made — check your email to confirm, then log in."); $("tab_login").click(); $("su_go").disabled=false; $("su_go").textContent="Create account & step inside"; }
@@ -1968,6 +2002,45 @@ $("signout").onclick=async()=>{
   await sb.auth.signOut(); location.reload();
 };
 
+/* ============ SETTINGS: legal links, sign out, delete account ============ */
+let ST_ARMED=false;
+function stReset(){
+  ST_ARMED=false;
+  $("st_err").textContent="";
+  $("st_delnote").style.display="none";
+  $("st_delete").disabled=false;
+  $("st_delete").textContent="Delete my account";
+}
+function stClose(){ $("settingsmodal").classList.remove("show"); stReset(); }
+$("settingsbtn").onclick=()=>{ stReset(); $("settingsmodal").classList.add("show"); };
+$("st_close").onclick=stClose;
+$("settingsmodal").onclick=(e)=>{ if(e.target.id==="settingsmodal") stClose(); };
+$("st_signout").onclick=()=>{ stClose(); $("signout").click(); };
+$("st_delete").onclick=async()=>{
+  const err=$("st_err"); err.textContent="";
+  // first tap arms it and shows what is about to happen
+  if(!ST_ARMED){
+    ST_ARMED=true;
+    $("st_delnote").style.display="block";
+    $("st_delete").textContent="Yes - delete it for good";
+    return;
+  }
+  // second tap: make them type it out
+  const typed=prompt("Last check. Type DELETE to erase your account for good.");
+  if(String(typed||"").trim().toUpperCase()!=="DELETE"){
+    err.textContent="Not deleted - you did not type DELETE.";
+    stReset();
+    return;
+  }
+  $("st_delete").disabled=true; $("st_delete").textContent="Deleting...";
+  try{
+    const {error}=await sb.rpc("delete_my_account");
+    if(error){ err.textContent="Could not delete: "+error.message; stReset(); return; }
+  }catch(e){ err.textContent="Could not delete: "+(e.message||"unknown error"); stReset(); return; }
+  try{ await sb.auth.signOut(); }catch(e){}
+  location.reload();
+};
+
 /* ============ APP ENTRY ============ */
 let ME=null, MYPROFILE=null;
 let COINS=120;
@@ -2012,6 +2085,7 @@ async function enterApp(){
   $("auth").classList.add("hide");
   $("lobby").style.display="block";
   $("signout").style.display="inline-block";
+  $("settingsbtn").style.display="inline-block";
   loadRooms();
   subscribeLobby();
 }

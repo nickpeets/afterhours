@@ -1591,6 +1591,17 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
   display:block !important;margin:0 !important}
 #room #rt_chairs .chair.is-empty{display:grid !important;place-items:center !important}
 #room .lc-strip__label,#room .lc-strip__hint,#room .lc-strip__count{display:none !important}
+/* top bar: in flow, above everything, safe-area padded — never buried again */
+#room .lc-top{position:static !important;display:flex !important;align-items:center !important;
+  gap:8px !important;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 6px !important;
+  z-index:30 !important;inset:auto !important;transform:none !important}
+/* rail: tucked to the grid's top-right corner, under the bar */
+#room .lc-rail{top:calc(env(safe-area-inset-top,0px) + 56px) !important;right:10px !important;z-index:9 !important}
+/* flow discipline: chat is the ONLY flexible child; mystery spacers collapse */
+#room .lc-overlay{display:contents !important}
+#room .lc-overlay>*{flex:0 0 auto !important}
+#room #rt_livelayer{flex:1 1 auto !important;min-height:40px !important;max-height:none !important}
+#room #inputbar{flex:0 0 auto !important;position:static !important;transform:none !important}
 @media(min-width:720px){
   #room .lc-grid{height:56dvh !important}
 }

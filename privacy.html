@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy - Last Call</title>
+<meta name="theme-color" content="#080b20">
+<style>
+  :root{--ink:#080b20;--paper:#eef0ff;--dim:#7d82ab;--neon:#ff2d8f;--neon-soft:#ff8ac2;--cool:#2de3d0;--rule:rgba(255,45,143,.22)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--ink);color:var(--paper);font-family:Archivo,"Segoe UI",system-ui,-apple-system,sans-serif;line-height:1.65;padding:34px 20px 80px;-webkit-text-size-adjust:100%}
+  .wrap{max-width:680px;margin:0 auto}
+  .mark{font-size:11px;letter-spacing:.3em;color:var(--neon-soft);font-weight:700}
+  h1{font-size:30px;line-height:1.15;margin:8px 0 6px;color:#fff}
+  .sub{color:var(--dim);font-size:13px}
+  .lede{margin:22px 0 4px;padding:16px 18px;border:1px solid var(--rule);border-radius:14px;background:rgba(255,45,143,.05)}
+  h2{font-size:17px;margin:32px 0 8px;color:#fff}
+  h2 b{color:var(--neon);font-weight:700;margin-right:9px}
+  p{margin:0 0 12px;font-size:15px;color:#d9dcf4}
+  ul{margin:0 0 12px 20px}
+  li{margin-bottom:7px;font-size:15px;color:#d9dcf4}
+  a{color:var(--neon-soft)}
+  strong{color:#fff}
+  .k{color:var(--cool);font-family:"Azeret Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+  hr{border:none;border-top:1px solid var(--rule);margin:34px 0 0}
+  .foot{color:var(--dim);font-size:12.5px;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="mark">LAST CALL</div>
+  <h1>Privacy Policy</h1>
+  <div class="sub">Last updated 2 August 2026 &middot; Scholls Development LLC (Oregon)</div>
+
+  <div class="lede">
+    <p><strong>The short version.</strong> We keep the smallest amount of data that makes the show work: an email, a display name, a zip code and search radius, and the things that happen inside a room - chat, hearts, gifts, and who sat where. Your live video and audio pass through and are <strong>not recorded by us</strong>. There is one deliberate exception, the end-of-show winner photo, and it is described below. We do not run ads, we do not sell anything about you, and there are no analytics or tracking SDKs in this app.</p>
+    <p style="margin:0">This policy describes what the app actually does today. It is a pilot, so it will change - and when the code changes, this page changes with it.</p>
+  </div>
+
+  <h2><b>1</b>What we store about you</h2>
+  <p><strong>Your account.</strong> Your email address and password are handled by Supabase Auth (our database and authentication provider). We never see your password. If you ask for an invite and are not on the list yet, we keep your email address so we can let you in later.</p>
+  <p><strong>Your profile.</strong> A display name (we start it from the part of your email before the @, and you can change it), your zip code, the search radius you picked, whether you want rooms outside that radius, some cosmetic avatar settings, and a note that you accepted these terms. The zip code is used to decide which rooms to show you - we do not ask for or collect precise GPS location.</p>
+  <p><strong>What happens in a room.</strong> While a show is running we store the room itself (its name, tagline, who is hosting, whether it is live), who is in it and in what role (in line, in a chair, kept, watching), presence timestamps so we can tell who is still there, and the events of the show: chat messages, hearts, gifts, and seat, keep, pass and timeout decisions.</p>
+  <p><strong>Contact swaps.</strong> If you win a show and go backstage, anything you type into the swap box - a handle, phone number, or email - is stored with that swap. It is only ever shown to the other person <strong>if you both offer</strong>. If only one of you offers, nothing is revealed.</p>
+  <p><strong>Reports and blocks.</strong> When you report someone we store who reported whom, the room, the reason you picked, and an email snapshot of both accounts. Blocks are stored so the person you blocked stays blocked.</p>
+
+  <h2><b>2</b>Live video and audio</h2>
+  <p>The live part of Last Call runs on <strong>Daily.co</strong>. Your camera and microphone streams go from your device to Daily and out to the other people in the room in real time. <strong>We do not record them.</strong> There is no recording feature in the app, no archive of shows, and nothing for us to replay later. Daily handles the media in transit; their own privacy practices apply to that leg of the trip.</p>
+  <p><strong>The one exception, said plainly:</strong> when someone wins a show, the app counts down from three and grabs a <em>single still frame</em> from that winner's own camera. The capture happens on their device, and the resulting image is saved with the room's events and shown to the room as the closing shot. It is one photo of the winner only, taken with a visible countdown, and it is deleted when that account is deleted. Nothing else about a show is captured.</p>
+
+  <h2><b>3</b>What we do not do</h2>
+  <ul>
+    <li><strong>No advertising.</strong> There are no ads and no ad networks in the app.</li>
+    <li><strong>No selling or sharing your data</strong> with data brokers, marketers, or anyone else for their own purposes. We have never done it and the pilot has no business model that depends on it.</li>
+    <li><strong>No analytics or tracking SDKs.</strong> There is no Google Analytics, no Facebook pixel, no session recorder, no attribution or fingerprinting library anywhere in the code.</li>
+    <li><strong>No email marketing.</strong> The only emails we send are the ones the app needs: invites, confirmations, and password resets.</li>
+    <li><strong>No precise location, no contacts, no photo library access.</strong> The app asks for your camera and microphone and nothing else.</li>
+  </ul>
+
+  <h2><b>4</b>Who else touches your data</h2>
+  <p>We are a two-person pilot, so the app leans on a few service providers. These are the only third parties involved, and each one only sees what it needs to do its job:</p>
+  <ul>
+    <li><strong>Supabase</strong> - database, authentication, realtime messaging, and the small server function that creates video rooms. This is where everything in section 1 lives.</li>
+    <li><strong>Daily.co</strong> - the live video and audio connection, in transit only.</li>
+    <li><strong>Google Fonts</strong> - serves the typefaces the app uses. Loading a font means Google's servers see your IP address and browser type. Nothing about your account is sent.</li>
+    <li><strong>jsDelivr and unpkg</strong> - public code CDNs that serve the Supabase and Daily JavaScript libraries. Same story: they see an IP address and a browser type when the page loads, nothing more.</li>
+  </ul>
+  <p>The font and CDN requests are the only third-party network calls the app makes that are not strictly ours, and they exist to deliver files, not to profile you. We would also hand over data if a valid legal demand required it, or if we genuinely believed someone was in danger.</p>
+
+  <h2><b>5</b>What is stored on your device</h2>
+  <p>Your sign-in session is kept in your browser's local storage so you are not logged out every time you close the app, and a service worker caches the app files so it loads fast and survives a flaky connection. That is it - no advertising cookies, no tracking pixels, no third-party cookies set by us.</p>
+
+  <h2><b>6</b>Who can see what</h2>
+  <p>Display names, avatars, and room activity are visible to the other people in a room - that is the point of a live show. Profile information is readable only by signed-in accounts, never by the anonymous public internet. Your email address is never shown to other players. Contact details are private until a mutual swap reveals them.</p>
+
+  <h2><b>7</b>How long we keep it</h2>
+  <p>Room events stay with the room. Profiles stay until you delete your account. Because this is a pilot, <strong>we may reset or wipe data at any time</strong> while rebuilding - do not treat Last Call as storage for anything you care about. Moderation records are the deliberate exception and are kept as long as we need them (see below).</p>
+
+  <h2><b>8</b>Deleting your account</h2>
+  <p>Open the settings menu in the lobby and choose <strong>Delete my account</strong>. You will be asked to confirm twice. Deleting removes your profile, any rooms you hosted, your memberships, and your messages and other room events, including the winner photo if you have one. It is immediate and it cannot be undone.</p>
+  <p>What survives, on purpose: if you were reported, the moderation record stays, and it keeps an email snapshot of the accounts involved. Without that, a banned account could be erased and re-created in a minute, and the report would mean nothing. If you would rather we handle the deletion for you, email us.</p>
+
+  <h2><b>9</b>Adults only</h2>
+  <p>Last Call is for people 18 and over. We do not knowingly collect anything from anyone younger. If we learn that a minor made an account, we delete it. If you believe a minor is using the app, report them in the app or email us.</p>
+
+  <h2><b>10</b>Security, honestly</h2>
+  <p>Data is encrypted in transit, access to the database is restricted by row-level rules so signed-in accounts can only reach what they are supposed to reach, and the video service issues short-lived tokens per room. That said: this is a pilot built by a very small team, and no system is perfectly secure. Do not put anything in Last Call that would hurt you if it leaked.</p>
+
+  <h2><b>11</b>Your choices</h2>
+  <p>You can change your display name, zip code, and radius in the app, delete your account at any time from the settings menu, or email us to ask what we hold about you, to get a copy, or to have it corrected or erased. Depending on where you live you may have formal rights along these lines - we will honor them regardless of where you live, and we will not treat you differently for asking.</p>
+
+  <h2><b>12</b>Changes</h2>
+  <p>When the app changes, this page changes. The date at the top tells you when it last did. If we ever start doing something materially different with your data, we will say so in the app before it happens.</p>
+
+  <h2><b>13</b>Contact</h2>
+  <p>Privacy questions, data requests, or anything else:<br>
+  <a href="mailto:lastcall.love.app@gmail.com">lastcall.love.app@gmail.com</a><br>
+  Scholls Development LLC, Oregon, USA</p>
+
+  <hr>
+  <div class="foot">
+    See also the <a href="terms.html">Terms of Service</a>.<br>
+    Written against the code as it stands on 2 August 2026. If you find something here that does not match what the app does, tell us - that is a bug.
+  </div>
+
+</div>
+</body>
+</html>

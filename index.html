@@ -2100,11 +2100,18 @@ async function loadRooms(){
     list.innerHTML='<div class="empty">No live rooms yet.<br>Be the first — hit <b>GO LIVE</b> and your friends will see your room appear here in real time.</div>';
     return;
   }
-  // member counts
-  const ids=rooms.map(r=>r.id);
-  const {data:members}=await sb.from("room_members").select("room_id,role").in("room_id",ids);
+  // member counts. a plain room_members read only returns rows for rooms you are
+  // already in (RLS: room_members_select_in_room), so every card for someone else
+  // counted 0. active_members() is the same SECURITY DEFINER roster the room view
+  // uses: it drops role=gone and anyone whose heartbeat is older than 60s, so this
+  // is live presence rather than stale rows. hosts hold no membership row, so the
+  // number means "people who showed up" - identical to the eye count inside the room.
   const counts={};
-  (members||[]).forEach(m=>{ if(m.role!=='gone'){counts[m.room_id]=(counts[m.room_id]||0)+1;} });
+  await Promise.all(rooms.map(async r=>{
+    const {data:mem,error:ce}=await sb.rpc("active_members",{room_id:r.id});
+    if(ce){ console.log("active_members(lobby):",ce.message); return; }
+    counts[r.id]=(mem||[]).filter(m=>m.role!=="gone" && m.user_id!==r.host_id).length;
+  }));
   list.innerHTML="";
   rooms.forEach(r=>{
     const card=document.createElement("div"); card.className="roomcard";
@@ -3349,14 +3356,19 @@ $("rt_joinline").onclick=async()=>{
     return;
   }
   if(I_WAS_PASSED){ toast("She passed — you're watching this one."); updateJoinBtn(); return; }
-  const {error}=await sb.rpc("join_line",{room_id:CURRENT_ROOM.id});
+  const {data:jl,error}=await sb.rpc("join_line",{room_id:CURRENT_ROOM.id});
   if(error){
     if((error.message||"").includes("passed")){ I_WAS_PASSED=true; updateJoinBtn(); toast("She passed — you're watching this one."); }
     else toast("Couldn't join line: "+error.message);
     return;
   }
-  toast("You're in the line.");
-  loadRoomState();
+  // join_line seats you on the spot when a chair is open and nobody is drafting for
+  // it, so ask the row it handed back - and the refreshed roster - what really happened.
+  const jrow=Array.isArray(jl)?jl[0]:jl;
+  await loadRoomState();
+  const mine=ROOM_STATE.members.find(m=>m.user_id===ME.id);
+  const seated=["chair","kept"].includes(jrow&&jrow.role)||["chair","kept"].includes(mine&&mine.role);
+  toast(seated?"You took a chair 🎬":"You're in the line.");
 };
 function updateJoinBtn(){
   if(AMHOST){ $("rt_joinline").style.display="none"; return; }

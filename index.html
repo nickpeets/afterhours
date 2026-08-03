@@ -1676,10 +1676,6 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
 
     <!-- ROOM — full show on one screen -->
     <div id="room" class="lc-room" data-skin="neon">
-      <!-- panel of 4: host cell + three chairs -->
-      <div class="lc-grid" id="lc_grid">
-        <div id="rt_hero"><div class="vid" id="rt_vid"></div><div class="reactlayer" id="rt_reactlayer"></div>
-
       <!-- top overlay: one row -->
       <div class="lc-top">
         <button class="lc-top__back" id="roomback">‹</button>
@@ -1690,12 +1686,19 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         <span class="chip" id="rt_coinchip">✦ 0</span>
       </div>
 
+      <!-- panel of 4: host cell + three chairs -->
+      <div class="lc-grid" id="lc_grid">
+        <div id="rt_hero"><div class="vid" id="rt_vid"></div><div class="reactlayer" id="rt_reactlayer"></div>
+
       <!-- her name, over the video -->
           <div id="rt_host_wrap" style="display:flex;align-items:center;gap:7px">
             <div class="hostbadge" id="rt_hostbadge" style="display:none">HOST</div>
             <div id="rt_host" class="lc-over-video"></div>
           </div>
         </div><!-- /rt_hero -->
+
+        <div id="rt_chairs"></div>
+      </div><!-- /lc-grid -->
 
       <!-- right rail: safety first, always -->
       <div class="lc-rail">
@@ -1704,8 +1707,6 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         <button class="lc-rail__hearts" id="rt_heartbtn">♥<span id="rt_hearttotal">0</span></button>
       </div>
 
-        <div id="rt_chairs"></div>
-      </div><!-- /lc-grid -->
 
       <div class="lc-overlay">
         <div id="rt_line_block">

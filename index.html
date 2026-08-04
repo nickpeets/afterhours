@@ -1580,7 +1580,7 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
    ============================================================ */
 #room .lc-grid{display:grid !important;grid-template-columns:1fr 1fr !important;
   grid-auto-rows:minmax(0,1fr) !important;gap:6px !important;padding:4px 8px !important;
-  height:52dvh !important;position:relative !important;flex-direction:unset !important}
+  height:min(52dvh,470px) !important;position:relative !important;flex-direction:unset !important}
 #room #rt_chairs{display:contents !important;position:static !important;inset:auto !important;
   flex-direction:unset !important;gap:0 !important;padding:0 !important}
 #room #rt_hero{position:relative !important;inset:auto !important;width:auto !important;
@@ -1591,6 +1591,25 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
   display:block !important;margin:0 !important}
 #room #rt_chairs .chair.is-empty{display:grid !important;place-items:center !important}
 #room .lc-strip__label,#room .lc-strip__hint,#room .lc-strip__count{display:none !important}
+/* the room IS a flex column — the theme's display:block was flattening it,
+   which is why chat couldn't grow and the composer floated mid-screen */
+#room.lc-room.show{display:flex !important;flex-direction:column !important}
+/* rail is gone — its jobs moved into the bar and composer */
+#room .lc-rail{display:none !important}
+.minibtn{flex:none;width:38px;height:38px;border-radius:50%;border:1px solid rgba(238,240,255,.25);
+  background:rgba(238,240,255,.06);color:var(--gold,#ffd6e9);font-size:15px;cursor:pointer;
+  display:grid;place-items:center;line-height:1;padding:0}
+.minibtn--heart{width:auto;min-width:38px;padding:0 9px;border-radius:999px;display:flex;gap:3px;align-items:center;
+  font-family:'Azeret Mono',monospace;font-size:12px;font-weight:700}
+.minibtn:active{transform:scale(.92)}
+/* desktop: the room is a phone-shaped stage, not a full-height tower */
+@media(min-width:720px){
+  #room.lc-room{width:520px;height:min(100dvh - 24px,900px);margin:12px auto;
+    border-radius:26px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+}
+/* the bar's room title reads as a title */
+#room .roomtitle{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
 /* scrims retired: they existed to make text readable over full-bleed video;
    the panel layout has no video behind the bar or the lower stack — the
    gradients were just dimming UI on a solid field */
@@ -1607,8 +1626,40 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
 #room #rt_livelayer{flex:1 1 auto !important;min-height:40px !important;max-height:none !important}
 #room #inputbar{flex:0 0 auto !important;position:static !important;transform:none !important}
 @media(min-width:720px){
-  #room .lc-grid{height:56dvh !important}
+  #room .lc-grid{height:min(56dvh,500px) !important}
 }
+
+/* ===== ported: compliance UI (PR #2) ===== */
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--paper);margin:14px 0;text-align:left}
+.chk{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;color:var(--paper);text-align:left;line-height:1.45;cursor:pointer}
+.chk input{width:auto}
+.chk input{margin-top:2px;width:16px;height:16px;flex:0 0 auto;accent-color:var(--neon)}
+.chk a{color:var(--neon-soft)}
+.authlinks{font-size:10px;color:var(--dim);text-align:center;margin-top:-6px;letter-spacing:.04em}
+.authlinks a{color:var(--dim);text-decoration:underline}
+.gear{padding:5px 8px;font-size:14px;line-height:1.1}
+.mlinks{display:flex;gap:16px;font-size:13px;font-weight:700}
+.mlinks a{color:var(--neon-soft)}
+.mbtn{padding:12px;border-radius:10px;border:none;font-weight:700;cursor:pointer;font-size:14px}
+.mgo{background:var(--neon);color:#fff}
+.mdanger{background:transparent;border:1.5px solid var(--danger);color:var(--danger);padding:12px;border-radius:10px;font-weight:800;cursor:pointer;font-size:14px}
+.mdanger:disabled{opacity:.5;cursor:not-allowed}
+.mnote{font-size:12.5px;color:var(--dim);line-height:1.5}
+
+/* ===== preferences: onboarding chips + settings + lobby meta ===== */
+.prefrow{display:flex;flex-direction:column;gap:6px;margin:12px 0;text-align:left}
+.preflabel{font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+.prefchips{display:flex;gap:7px;flex-wrap:wrap}
+.prefchips button{flex:1;min-width:84px;padding:10px 8px;border-radius:999px;border:1.5px solid rgba(238,240,255,.25);
+  background:rgba(238,240,255,.05);color:var(--paper,#eef0ff);font-weight:700;font-size:13px;cursor:pointer}
+.prefchips button.on{background:var(--neon,#ff2d8f);border-color:var(--neon,#ff2d8f);color:#fff}
+#set_bday{width:100%;background:rgba(238,240,255,.07);border:1px solid rgba(238,240,255,.25);border-radius:12px;
+  padding:12px 14px;color:#eef0ff;font-size:15px;font-family:Archivo}
+.agerange{display:flex;align-items:center;gap:10px}
+.agerange input{width:64px;background:rgba(238,240,255,.07);border:1px solid rgba(238,240,255,.25);border-radius:10px;
+  padding:9px;color:#eef0ff;text-align:center;font-family:'Azeret Mono',monospace}
+.roommeta{font-size:12px;color:var(--dim);margin-top:2px}
+.roommeta b{color:var(--gold,#ffd6e9);font-weight:700}
 </style>
 </head>
 <body data-skin="neon">
@@ -1617,6 +1668,7 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
     <div class="logo">LAST CALL</div>
     <div class="wallet">
       <span class="chip" id="coinchip">✦ 120</span>
+      <button class="iconbtn gear" id="settingsbtn" style="display:none" title="Settings" aria-label="Settings">⚙</button>
       <button class="iconbtn" id="signout" style="display:none">Sign out</button>
     </div>
   </header>
@@ -1639,6 +1691,7 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
       <form class="panel" id="signupPanel" style="display:none" action="#">
         <input type="email" id="su_email" placeholder="Email" autocomplete="email" enterkeyhint="next">
         <input type="password" id="su_pass" placeholder="Password (6+ characters)" autocomplete="new-password" enterkeyhint="go">
+        <label class="chk" for="su_agree"><input type="checkbox" id="su_agree"><span>I’m 18 or older and accept the <a href="terms.html" target="_blank" rel="noopener">Terms</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a></span></label>
         <div class="err" id="su_err"></div>
         <button class="bigbtn" id="su_go" type="submit">Create account</button>
       </form>
@@ -1650,6 +1703,7 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1657,6 +1711,16 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
       <h1>ALMOST<em> IN</em></h1>
       <div class="lsub">Where should we look for your rooms?</div>
       <div class="panel">
+        <div class="prefrow"><span class="preflabel">Your birthday</span>
+          <input type="date" id="set_bday" max="2008-08-03" style="color-scheme:dark"></div>
+        <div class="prefrow"><span class="preflabel">I am</span>
+          <div class="prefchips" id="set_gender">
+            <button type="button" data-v="woman">Woman</button><button type="button" data-v="man">Man</button><button type="button" data-v="nonbinary">Nonbinary</button>
+          </div></div>
+        <div class="prefrow"><span class="preflabel">Here for</span>
+          <div class="prefchips" id="set_seeking">
+            <button type="button" data-v="women">Women</button><button type="button" data-v="men">Men</button><button type="button" data-v="everyone" class="on">Everyone</button>
+          </div></div>
         <input type="text" id="set_zip" placeholder="Zip code" maxlength="10" inputmode="numeric">
         <div class="llabel" style="margin-top:10px">SEARCH RADIUS</div>
         <select id="set_radius">
@@ -1704,13 +1768,6 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         <div id="rt_chairs"></div>
       </div><!-- /lc-grid -->
 
-      <!-- right rail: safety first, always -->
-      <div class="lc-rail">
-        <button class="lc-safebtn" id="rt_safebtn" title="Report a problem">🛡</button>
-        <button id="rt_giftbtn">🎁</button>
-        <button class="lc-rail__hearts" id="rt_heartbtn">♥<span id="rt_hearttotal">0</span></button>
-      </div>
-
 
       <div class="lc-overlay">
         <div id="rt_line_block">
@@ -1719,12 +1776,36 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         </div>
         <div class="chatstrip" id="rt_livelayer"></div>
         <div id="inputbar">
+          <button class="minibtn" id="rt_safebtn" title="Report a problem">🛡</button>
+          <button class="minibtn" id="rt_giftbtn" title="Send a gift">🎁</button>
+          <button class="minibtn minibtn--heart" id="rt_heartbtn" title="Heart the host">♥<span id="rt_hearttotal">0</span></button>
           <input type="text" id="rt_chatinput" placeholder="Say something…" maxlength="140" enterkeyhint="send">
           <button id="rt_chatsend" hidden>➤</button>
           <button id="rt_endshow" style="display:none">🎬 LAST CALL</button>
           <button id="rt_joinline">JOIN THE LINE</button>
         </div>
       </div>
+
+      <div class="modal" id="settingsmodal">
+    <div class="mbox">
+      <h3>Settings</h3>
+      <div class="mlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a></div>
+      <div class="merr" id="st_err"></div>
+      <div class="prefrow" style="margin-top:2px"><span class="preflabel">Here for</span>
+        <div class="prefchips" id="st_seeking">
+          <button type="button" data-v="women">Women</button><button type="button" data-v="men">Men</button><button type="button" data-v="everyone">Everyone</button>
+        </div></div>
+      <div class="prefrow"><span class="preflabel">Age range</span>
+        <div class="agerange"><input type="number" id="st_agemin" min="18" max="99" value="21"> <span style="color:var(--dim)">to</span> <input type="number" id="st_agemax" min="18" max="99" value="99"></div></div>
+      <div class="prefrow"><span class="preflabel">Distance</span>
+        <div class="agerange"><input type="number" id="st_radius" min="1" max="500" value="25"> <span style="color:var(--dim)">miles</span></div></div>
+      <button class="mbtn" id="st_saveprefs" style="border-color:var(--cool,#2de3d0);color:var(--cool,#2de3d0)">Save preferences</button>
+      <button class="mbtn mgo" id="st_signout">Sign out</button>
+      <div class="mnote" id="st_delnote" style="display:none">This erases your profile, any rooms you hosted, and your messages. It cannot be undone. Reports filed about you stay as a moderation record.</div>
+      <button class="mdanger" id="st_delete">Delete my account</button>
+      <button class="mbtn mcancel" id="st_close">Close</button>
+    </div>
+  </div>
 
       <div class="gifttray-pop" id="rt_gifts"></div>
       <div id="finale"><div id="finale_inner"></div></div>
@@ -1936,6 +2017,7 @@ $("signupPanel").onsubmit=async(e)=>{
   if(!email||!pass){err.textContent="Email and password required.";return;}
   if(pass.length<6){err.textContent="Password needs 6+ characters.";return;}
   $("su_go").disabled=true; $("su_go").textContent="Creating…";
+  if(!$("su_agree").checked){err.textContent="Please confirm you are 18 or older and accept the Terms and Privacy Policy.";return;}
   const {data,error}=await sb.auth.signUp({email,password:pass});
   if(error){
     if(/not invited/i.test(error.message||"")){
@@ -1953,11 +2035,19 @@ $("signupPanel").onsubmit=async(e)=>{
     if(pe){err.textContent="Profile save failed: "+pe.message;$("su_go").disabled=false;$("su_go").textContent="Create account & step inside";return;}
   }
   // If email confirmation is off, session exists now; if on, prompt to confirm.
-  if(data.session){ enterApp(); }
+  if(data.session){ try{ sb.rpc("accept_terms"); }catch(e){} enterApp(); }
   else { toast("Account made — check your email to confirm, then log in."); $("tab_login").click(); $("su_go").disabled=false; $("su_go").textContent="Create account & step inside"; }
 };
 
 /* ============ LOGIN ============ */
+
+["set_gender","set_seeking","st_seeking"].forEach(gid=>{
+  const g=document.getElementById(gid); if(!g) return;
+  g.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    g.querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+  });
+});
 
 $("setpwPanel").onsubmit=async(e)=>{
   e.preventDefault();
@@ -2022,9 +2112,23 @@ $("set_go").onclick=async()=>{
   const radius=parseInt($("set_radius").value,10)||25;
   const expand=$("set_expand").checked;
   // upsert + select so a silently-blocked write (RLS, missing row) can't fake success
-  const {data:saved,error}=await sb.from("profiles")
-    .upsert({id:ME.id,zip_code:zip,radius_miles:radius,expand_ok:expand})
-    .select("zip_code").single();
+  const bday=$("set_bday").value||null;
+  const gsel=$("set_gender").querySelector(".on")?.dataset.v||null;
+  const ssel=$("set_seeking").querySelector(".on")?.dataset.v||"everyone";
+  if(bday){
+    const age=(Date.now()-Date.parse(bday))/31557600000;
+    if(age<18){ err.textContent="Last Call is 21+ energy and 18+ strictly — see you in a few years."; return; }
+  }
+  const payload={id:ME.id,zip_code:zip,radius_miles:radius,expand_ok:expand};
+  if(bday) payload.birthdate=bday;
+  if(gsel) payload.gender=gsel;
+  if(ssel) payload.seeking=ssel;
+  let {data:saved,error}=await sb.from("profiles").upsert(payload).select("zip_code").single();
+  if(error && /column|birthdate|gender|seeking/i.test(error.message||"")){
+    // prefs columns not migrated yet — save the basics, stash prefs for later
+    try{ localStorage.setItem("lc_prefs_pending", JSON.stringify({birthdate:bday,gender:gsel,seeking:ssel})); }catch(e){}
+    ({data:saved,error}=await sb.from("profiles").upsert({id:ME.id,zip_code:zip,radius_miles:radius,expand_ok:expand}).select("zip_code").single());
+  }
   if(error){ err.textContent="Couldn't save: "+error.message; return; }
   if(!saved || saved.zip_code!==zip){ err.textContent="Save didn't stick (permissions?) — tell Nick."; return; }
   MYPROFILE={...MYPROFILE,zip_code:zip,radius_miles:radius,expand_ok:expand};
@@ -2049,7 +2153,7 @@ async function enterApp(){
   }catch(e){}
   $("auth").classList.add("hide");
   $("lobby").style.display="block";
-  $("signout").style.display="inline-block";
+  $("signout").style.display="inline-block"; $("settingsbtn").style.display="inline-block";
   loadRooms();
   subscribeLobby();
 }
@@ -2061,10 +2165,34 @@ async function loadRooms(){
   const {data:allrooms,error}=await sb.from("rooms").select("*").eq("status","live").order("created_at",{ascending:false});
   if(error){list.innerHTML='<div class="empty">Couldn\'t load rooms: '+error.message+'</div>';return;}
   // ghost filter: a "live" room needs a host heartbeat inside 2 min (or be brand new)
-  const rooms=(allrooms||[]).filter(r=>{
+  let rooms=(allrooms||[]).filter(r=>{
     const beat=Date.parse(r.host_seen_at||r.created_at||0);
     return !beat || Date.now()-beat<120000 || r.host_id===ME.id;
   });
+  // matching: fetch host profiles; filter by mutual seeking + age window (degrades if columns absent)
+  let HOSTP={};
+  try{
+    const hostIds=[...new Set(rooms.map(r=>r.host_id))];
+    if(hostIds.length){
+      const {data:hps}=await sb.from("profiles").select("*").in("id",hostIds);
+      (hps||[]).forEach(p=>HOSTP[p.id]=p);
+      const me=MYPROFILE||{};
+      const wants=(seeker,person)=>{
+        if(!seeker?.seeking||seeker.seeking==="everyone") return true;
+        if(!person?.gender) return true;                       // unknown identity: don't hide
+        return (seeker.seeking==="women"&&person.gender==="woman")||(seeker.seeking==="men"&&person.gender==="man");
+      };
+      const ageOf=(p)=>p?.birthdate?Math.floor((Date.now()-Date.parse(p.birthdate))/31557600000):null;
+      rooms=rooms.filter(r=>{
+        if(r.host_id===ME.id) return true;                     // always see your own
+        const hp=HOSTP[r.host_id];
+        if(!wants(me,hp)||!wants(hp,me)) return false;         // mutual interest
+        const ha=ageOf(hp);
+        if(ha && me.seek_min && (ha<me.seek_min||ha>(me.seek_max||99))) return false;
+        return true;
+      });
+    }
+  }catch(e){ /* prefs columns not migrated: show everything */ }
   if(!rooms||!rooms.length){
     list.innerHTML='<div class="empty">No live rooms yet.<br>Be the first — hit <b>GO LIVE</b> and your friends will see your room appear here in real time.</div>';
     return;
@@ -2082,9 +2210,17 @@ async function loadRooms(){
       <div class="live"><span class="livedot"></span>LIVE</div>
       <h2>${escapeHtml(r.contestant_name||"Untitled Room")}</h2>
       <div class="tag">${escapeHtml(r.tagline||"")}</div>
-      <div class="meta">👁 ${counts[r.id]||0} in the room</div>`;
+      <div class="meta">👁 ${counts[r.id]||0} in the room</div>
+      <div class="roommeta" id="meta_${r.id}"></div>`;
     card.onclick=()=>openRoom(r);
     list.appendChild(card);
+    const hp=HOSTP[r.host_id];
+    if(hp){
+      const ha=hp.birthdate?Math.floor((Date.now()-Date.parse(hp.birthdate))/31557600000):null;
+      const seek=hp.seeking&&hp.seeking!=="everyone"?("looking for "+hp.seeking):(hp.seeking==="everyone"?"open to everyone":"");
+      const bits=[hp.display_name?`<b>${hp.display_name}</b>`:null, ha?ha:null, seek||null].filter(Boolean).join(" · ");
+      const mEl=document.getElementById("meta_"+r.id); if(mEl&&bits) mEl.innerHTML=bits;
+    }
   });
 }
 function escapeHtml(s){return (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -2138,7 +2274,7 @@ async function openRoom(r){
   await syncServerClock();
   $("lobby").style.display="none";
   $("room").classList.add("show");
-  $("rt_title").textContent=r.contestant_name||"Room";
+  $("rt_title").textContent=(r.contestant_name?r.contestant_name+"'s Room":"Live Room");
   $("rt_host").textContent=r.contestant_name||"";
   $("rt_hostbadge").style.display=AMHOST?"block":"none";
   $("rt_joinline").style.display=AMHOST?"none":"block";
@@ -2277,6 +2413,12 @@ function renderRoom(){
   if(EG_ON===false && CURRENT_ROOM && typeof CURRENT_ROOM.phase==="string") EG_ON=true;
   if(AMHOST && EG_ON && egRoomPhase(CURRENT_ROOM)==="preshow" && chairs.filter(c=>c.role==="chair").length>=3){
     sb.rpc("start_show",{room_id:CURRENT_ROOM.id}).then(()=>egRefreshRoom()).catch(()=>{});
+  }
+  // host name backfill: if the room was made without a name, use her profile
+  const hostEl=$("rt_host");
+  if(hostEl && !hostEl.textContent){
+    const hp=ROOM_STATE.profs[CURRENT_ROOM?.host_id];
+    if(hp?.display_name){ hostEl.textContent=hp.display_name; $("rt_title").textContent=hp.display_name+"'s Room"; }
   }
   // empty chairs are CTAs for non-hosts
   if(!AMHOST){
@@ -2499,7 +2641,7 @@ $("rt_giftbtn").onclick=()=>$("rt_gifts").classList.toggle("show");
    resolve_draft, get_draft_tallies; tables question_decks/questions;
    draft state via room_events draft_open payload.
    ===================================================================== */
-let EG_ON=false, EG_PHASE=null, EG_DEADLINE=0, EG_TICK=null, EG_ADV_LOCK=0;
+let EG_ON=false, EG_PHASE=null, EG_DEADLINE=0, EG_TICK=null, EG_ADV_LOCK=0, EG_ROOM_ID=null;
 let EG_DECKS=null, EG_PICKQ=null, EG_PICKTARGET=null, EG_DECIDE_MODE=null;
 let EG_DRAFT=null, EG_TALLYPOLL=null, EG_MYHEARTS=0;
 
@@ -2513,6 +2655,16 @@ async function egRefreshRoom(){
 
 function egApply(){
   const r=CURRENT_ROOM; if(!r) return;
+  if(r.id!==EG_ROOM_ID){
+    // new room: stale engine state from a previous show must never leak in
+    EG_ROOM_ID=r.id; EG_PHASE=null; EG_DEADLINE=-1;
+    EG_DRAFT=null; EG_VIEW=null; EG_PICKQ=null; EG_PICKTARGET=null; EG_DECIDE_MODE=null;
+    egStopTallyPoll(); clearInterval(EG_TICK);
+    const root=$("room");
+    ["is-showstart","is-spotlight","is-mingle","is-deciding","is-drafting","is-asking","eg-on"].forEach(c=>root.classList.remove(c));
+    ["eg_showstart","eg_question","eg_decide","eg_drumroll","eg_draft","eg_drawer"].forEach(id=>{const el=$(id);if(el)el.style.display="none";});
+    ["eg_phase","eg_skip","eg_ask"].forEach(id=>{const el=$(id);if(el)el.style.display="none";});
+  }
   const phase=egRoomPhase(r);
   EG_ON = phase!==null;
   const root=$("room");
@@ -2728,6 +2880,65 @@ function egStartTallyPoll(){
 }
 function egStopTallyPoll(){ clearInterval(EG_TALLYPOLL); EG_TALLYPOLL=null; EG_DRAFT=null; }
 
+function stReset(){
+  ST_ARMED=false;
+  $("st_err").textContent="";
+  $("st_delnote").style.display="none";
+  $("st_delete").disabled=false;
+  $("st_delete").textContent="Delete my account";
+}
+function stClose(){ $("settingsmodal").classList.remove("show"); stReset(); }
+$("settingsbtn").onclick=async()=>{
+  stReset(); $("settingsmodal").classList.add("show");
+  try{
+    const {data:p}=await sb.from("profiles").select("*").eq("id",ME.id).single();
+    if(p){
+      if(p.seeking){ $("st_seeking").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.v===p.seeking)); }
+      if(p.seek_min) $("st_agemin").value=p.seek_min;
+      if(p.seek_max) $("st_agemax").value=p.seek_max;
+      if(p.radius_miles) $("st_radius").value=p.radius_miles;
+    }
+  }catch(e){}
+};
+$("st_saveprefs").onclick=async()=>{
+  const seeking=$("st_seeking").querySelector(".on")?.dataset.v||"everyone";
+  const seek_min=parseInt($("st_agemin").value,10)||18, seek_max=parseInt($("st_agemax").value,10)||99;
+  const radius=parseInt($("st_radius").value,10)||25;
+  let {error}=await sb.from("profiles").update({seeking,seek_min,seek_max,radius_miles:radius}).eq("id",ME.id);
+  if(error && /column/i.test(error.message||"")){
+    ({error}=await sb.from("profiles").update({radius_miles:radius}).eq("id",ME.id));
+    toast(error?("Couldn't save: "+error.message):"Saved (matching prefs need the DB migration)");
+  } else toast(error?("Couldn't save: "+error.message):"Preferences saved ✦");
+  MYPROFILE={...MYPROFILE,seeking,seek_min,seek_max,radius_miles:radius};
+};
+$("st_close").onclick=stClose;
+$("settingsmodal").onclick=(e)=>{ if(e.target.id==="settingsmodal") stClose(); };
+$("st_signout").onclick=()=>{ stClose(); $("signout").click(); };
+$("st_delete").onclick=async()=>{
+  const err=$("st_err"); err.textContent="";
+  // first tap arms it and shows what is about to happen
+  if(!ST_ARMED){
+    ST_ARMED=true;
+    $("st_delnote").style.display="block";
+    $("st_delete").textContent="Yes - delete it for good";
+    return;
+  }
+  // second tap: make them type it out
+  const typed=prompt("Last check. Type DELETE to erase your account for good.");
+  if(String(typed||"").trim().toUpperCase()!=="DELETE"){
+    err.textContent="Not deleted - you did not type DELETE.";
+    stReset();
+    return;
+  }
+  $("st_delete").disabled=true; $("st_delete").textContent="Deleting...";
+  try{
+    const {error}=await sb.rpc("delete_my_account");
+    if(error){ err.textContent="Could not delete: "+error.message; stReset(); return; }
+  }catch(e){ err.textContent="Could not delete: "+(e.message||"unknown error"); stReset(); return; }
+  try{ await sb.auth.signOut(); }catch(e){}
+  location.reload();
+};
+
 /* ---------- wiring into the existing app ---------- */
 $("eg_skip").onclick=async()=>{ const {error}=await sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}); if(error) toast(error.message); else egRefreshRoom(); };
 $("eg_ask").onclick=()=>egOpenDrawer(null);
@@ -2760,6 +2971,13 @@ egWireDecision();
   // rail heart: heart the host
   const hb=$("rt_heartbtn");
   if(hb) hb.onclick=(ev)=>{ if(CURRENT_ROOM) sendHeart(CURRENT_ROOM.host_id, ev.clientX, ev.clientY); };
+  // flush any prefs stashed before the DB migration existed (fire-and-forget)
+  try{
+    const pend=JSON.parse(localStorage.getItem("lc_prefs_pending")||"null");
+    if(pend){
+      sb.from("profiles").update(pend).eq("id",ME.id).then(({error})=>{ if(!error) localStorage.removeItem("lc_prefs_pending"); });
+    }
+  }catch(e){}
   updateWallet();  // sync the in-room coin chip on entry
   egRefreshRoom();  // engine wakes if the backend has shipped phases
 })();

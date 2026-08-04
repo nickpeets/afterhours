@@ -1945,16 +1945,17 @@ const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
    accounts can coexist in one browser. No param = shared default (unchanged). */
 function ahSessionSlot(){
   try{
-    let slot=sessionStorage.getItem("ah.session.slot");
-    if(!slot){
-      const m=(location.search+location.hash).match(/[?#&]session=([^&#]+)/);
-      if(m){
-        slot=decodeURIComponent(m[1]).toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,24);
-        if(slot==="tab") slot="tab-"+Math.random().toString(36).slice(2,10);
-        sessionStorage.setItem("ah.session.slot",slot);
-      }
+    // URL wins: an explicit ?session= always sets the slot (fixes duplicated
+    // tabs inheriting a stale slot via sessionStorage and re-used tabs
+    // keeping their old identity after navigating to a new session URL)
+    const m=(location.search+location.hash).match(/[?#&]session=([^&#]+)/);
+    if(m){
+      let slot=decodeURIComponent(m[1]).toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,24);
+      if(slot==="tab") slot="tab-"+Math.random().toString(36).slice(2,10);
+      sessionStorage.setItem("ah.session.slot",slot);
+      return slot;
     }
-    return slot||null;
+    return sessionStorage.getItem("ah.session.slot")||null;
   }catch(e){ return null; }
 }
 const AH_SESSION_SLOT=ahSessionSlot();

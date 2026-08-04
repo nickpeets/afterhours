@@ -1788,26 +1788,7 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         </div>
       </div>
 
-      <div class="modal" id="settingsmodal">
-    <div class="mbox">
-      <h3>Settings</h3>
-      <div class="mlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a></div>
-      <div class="merr" id="st_err"></div>
-      <div class="prefrow" style="margin-top:2px"><span class="preflabel">Here for</span>
-        <div class="prefchips" id="st_seeking">
-          <button type="button" data-v="women">Women</button><button type="button" data-v="men">Men</button><button type="button" data-v="everyone">Everyone</button>
-        </div></div>
-      <div class="prefrow"><span class="preflabel">Age range</span>
-        <div class="agerange"><input type="number" id="st_agemin" min="18" max="99" value="21"> <span style="color:var(--dim)">to</span> <input type="number" id="st_agemax" min="18" max="99" value="99"></div></div>
-      <div class="prefrow"><span class="preflabel">Distance</span>
-        <div class="agerange"><input type="number" id="st_radius" min="1" max="500" value="25"> <span style="color:var(--dim)">miles</span></div></div>
-      <button class="mbtn" id="st_saveprefs" style="border-color:var(--cool,#2de3d0);color:var(--cool,#2de3d0)">Save preferences</button>
-      <button class="mbtn mgo" id="st_signout">Sign out</button>
-      <div class="mnote" id="st_delnote" style="display:none">This erases your profile, any rooms you hosted, and your messages. It cannot be undone. Reports filed about you stay as a moderation record.</div>
-      <button class="mdanger" id="st_delete">Delete my account</button>
-      <button class="mbtn mcancel" id="st_close">Close</button>
-    </div>
-  </div>
+      
 
       <div class="gifttray-pop" id="rt_gifts"></div>
       <div id="finale"><div id="finale_inner"></div></div>
@@ -1934,6 +1915,27 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
     <div id="toast"></div>
   </main>
 </div>
+
+<div class="modal" id="settingsmodal">
+    <div class="mbox">
+      <h3>Settings</h3>
+      <div class="mlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a></div>
+      <div class="merr" id="st_err"></div>
+      <div class="prefrow" style="margin-top:2px"><span class="preflabel">Here for</span>
+        <div class="prefchips" id="st_seeking">
+          <button type="button" data-v="women">Women</button><button type="button" data-v="men">Men</button><button type="button" data-v="everyone">Everyone</button>
+        </div></div>
+      <div class="prefrow"><span class="preflabel">Age range</span>
+        <div class="agerange"><input type="number" id="st_agemin" min="18" max="99" value="21"> <span style="color:var(--dim)">to</span> <input type="number" id="st_agemax" min="18" max="99" value="99"></div></div>
+      <div class="prefrow"><span class="preflabel">Distance</span>
+        <div class="agerange"><input type="number" id="st_radius" min="1" max="500" value="25"> <span style="color:var(--dim)">miles</span></div></div>
+      <button class="mbtn" id="st_saveprefs" style="border-color:var(--cool,#2de3d0);color:var(--cool,#2de3d0)">Save preferences</button>
+      <button class="mbtn mgo" id="st_signout">Sign out</button>
+      <div class="mnote" id="st_delnote" style="display:none">This erases your profile, any rooms you hosted, and your messages. It cannot be undone. Reports filed about you stay as a moderation record.</div>
+      <button class="mdanger" id="st_delete">Delete my account</button>
+      <button class="mbtn mcancel" id="st_close">Close</button>
+    </div>
+  </div>
 
 <script>
 /* ============ SUPABASE ============ */

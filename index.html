@@ -175,8 +175,10 @@ main{flex:1;overflow-y:auto;position:relative}
 /* two lamps: her light spills past the frame; chairs stay cool and contained */
 #rt_hero{border-color:#ffb86c;box-shadow:0 0 22px rgba(255,150,90,.5),0 0 60px rgba(255,45,143,.35)}
 #rt_chairs .chair.is-filled{box-shadow:inset 0 0 0 1.5px rgba(45,227,208,.45)}
-/* engine mode: per-chair verdicts retire — the verdict lives in the decision tray */
-.eg-on .hostctl{display:none !important}
+/* engine phases own the verdict (decision tray) — but preshow and partial
+   rooms keep classic per-chair PASS/KEEP so the host is never control-less */
+.eg-on.is-spotlight .hostctl,.eg-on.is-mingle .hostctl,
+.eg-on.is-deciding .hostctl,.eg-on.is-drafting .hostctl{display:none !important}
 /* spotlight: rivals recede hard (two-up split approximated) */
 .is-spotlight #rt_chairs .chair:not(.is-target):not(.is-empty){opacity:.32;filter:saturate(.4)}
 .is-spotlight #rt_chairs .chair.is-target{box-shadow:0 0 22px rgba(255,45,143,.9)}

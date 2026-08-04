@@ -2563,6 +2563,16 @@ function startHostPoll(){
       await loadRoomState();
       autoSeatFromLine();  // fill any open chair with the next person in line
     }
+    // line members: if a preshow chair is open, claim it (self-seat; ids are real to yourself)
+    if(!AMHOST && CURRENT_ROOM){
+      const meRow=ROOM_STATE.members.find(m=>m.user_id===ME.id);
+      const seatedCt=ROOM_STATE.members.filter(m=>m.role==="chair"||m.role==="kept").length;
+      const ph=egRoomPhase(CURRENT_ROOM);
+      if(meRow && meRow.role==="line" && seatedCt<3 && (ph===null||ph==="preshow")){
+        try{ const {data}=await sb.rpc("claim_open_chair",{room_id:CURRENT_ROOM.id});
+             if(data===true||data==="seated"){ toast("You took a chair 🎬"); loadRoomState(); } }catch(e){}
+      }
+    }
     // non-hosts: if the host has vanished from the video call for ~80s while the
     // room still claims to be live, call it — the show can't outlive its host.
     if(!AMHOST && DAILY && DAILY_JOINED){
@@ -2592,6 +2602,7 @@ function stopHostPoll(){
 let AUTOSEATING=false;
 async function autoSeatFromLine(){
   if(!AMHOST || AUTOSEATING) return;
+  if(EG_ON) return;  // engine rooms: the line is masked to the host — joiners self-seat via claim_open_chair
   const seated=ROOM_STATE.members.filter(m=>m.role==="chair"||m.role==="kept");
   const line=ROOM_STATE.members.filter(m=>m.role==="line");
   if(seated.length>=3 || !line.length) return;
@@ -3547,7 +3558,10 @@ $("rt_joinline").onclick=async()=>{
     else toast("Couldn't join line: "+error.message);
     return;
   }
-  toast("You're in the line.");
+  // engine rooms: try to self-seat immediately (preshow chairs fill from the line)
+  let seated=false;
+  try{ const {data}=await sb.rpc("claim_open_chair",{room_id:CURRENT_ROOM.id}); seated=(data===true||data==="seated"); }catch(e){}
+  toast(seated?"You took a chair 🎬":"You're in the line.");
   loadRoomState();
 };
 function updateJoinBtn(){

@@ -1705,7 +1705,7 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0804.0402</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1969,6 +1969,7 @@ try{
     }
   });
 }catch(e){}
+console.info("[lastcall] build b0804.0402");
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2019,6 +2020,9 @@ $("signupPanel").onsubmit=async(e)=>{
   if(!email||!pass){err.textContent="Email and password required.";return;}
   if(pass.length<6){err.textContent="Password needs 6+ characters.";return;}
   $("su_go").disabled=true; $("su_go").textContent="Creating…";
+  // watchdog: no matter what hangs or throws below, the button comes back
+  clearTimeout(window.__su_wd);
+  window.__su_wd=setTimeout(()=>{ const b=$("su_go"); if(b.disabled){ b.disabled=false; b.textContent="Create account & step inside"; $("su_err").textContent="That took too long — check your connection and try again."; } },12000);
   if(!$("su_agree").checked){err.textContent="Please confirm you are 18 or older and accept the Terms and Privacy Policy.";$("su_go").disabled=false;$("su_go").textContent="Create account & step inside";return;}
   const {data,error}=await sb.auth.signUp({email,password:pass});
   if(error){

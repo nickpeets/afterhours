@@ -2019,7 +2019,7 @@ $("signupPanel").onsubmit=async(e)=>{
   if(!email||!pass){err.textContent="Email and password required.";return;}
   if(pass.length<6){err.textContent="Password needs 6+ characters.";return;}
   $("su_go").disabled=true; $("su_go").textContent="Creating…";
-  if(!$("su_agree").checked){err.textContent="Please confirm you are 18 or older and accept the Terms and Privacy Policy.";return;}
+  if(!$("su_agree").checked){err.textContent="Please confirm you are 18 or older and accept the Terms and Privacy Policy.";$("su_go").disabled=false;$("su_go").textContent="Create account & step inside";return;}
   const {data,error}=await sb.auth.signUp({email,password:pass});
   if(error){
     if(/not invited/i.test(error.message||"")){

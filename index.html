@@ -735,7 +735,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0805.2249</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0805.2304</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1276,10 +1276,9 @@ $("loginPanel").onsubmit=async(e)=>{
 
 $("signout").onclick=async()=>{
   if(CURRENT_ROOM){
-    try{
-      if(AMHOST){ await sb.rpc("end_show",{room_id:CURRENT_ROOM.id,winner_id:null}); }
-      else { await sb.rpc("leave_room",{room_id:CURRENT_ROOM.id}); }
-    }catch(e){}
+    // leaveRoom ends the show properly (with the stubborn fallback) — a
+    // bare end_show RPC here once failed silently and left a zombie room
+    try{ await leaveRoom(); }catch(e){}
   } else if(ME){
     // not in a room view, but might own a live room (e.g. signed out from the lobby) — end any
     try{ const {data:mine}=await sb.from("rooms").select("id").eq("host_id",ME.id).eq("status","live");
@@ -1349,6 +1348,11 @@ async function enterApp(){
   $("signout").style.display="inline-block"; $("settingsbtn").style.display="inline-block";
   loadRooms();
   subscribeLobby();
+  clearInterval(window.__LOBBY_POLL);
+  window.__LOBBY_POLL=setInterval(()=>{
+    const lb=$("lobby");
+    if(lb && getComputedStyle(lb).display!=="none" && !CURRENT_ROOM) loadRooms();
+  },15000);
 }
 
 /* ============ LOBBY ============ */
@@ -1913,14 +1917,22 @@ function startHostPoll(){
         return;
       }
     }
-    // everyone: detect the room being ended out from under them
-    const {data:rm}=await sb.from("rooms").select("status,winner_id").eq("id",CURRENT_ROOM.id).single();
-    if(rm && rm.status==="ended" && !AWAITING_PHOTO && !$("snap").classList.contains("show") && !$("finale").classList.contains("show") && !$("backstage").classList.contains("show")){
-      // ended out from under us with no ceremony running (e.g. host left) — plain reveal
-      if(rm.winner_id && rm.winner_id!==ME.id){ enterPhotoWait(rm.winner_id); }
-      else renderFinale(rm.winner_id||null);
-    }
+    // everyone: detect the room being ended out from under them (poll fallback
+    // for the realtime rooms listener)
+    const {data:rm}=await sb.from("rooms").select("id,status,winner_id").eq("id",CURRENT_ROOM.id).single();
+    if(rm && rm.status==="ended") roomEndedUnderUs(rm);
   },4000);
+}
+function roomEndedUnderUs(rm){
+  if(!CURRENT_ROOM) return;
+  if(AWAITING_PHOTO || $("snap").classList.contains("show") ||
+     $("finale").classList.contains("show") || $("backstage").classList.contains("show")) return;
+  if(rm.winner_id && rm.winner_id!==ME.id){ enterPhotoWait(rm.winner_id); return; }
+  if(rm.winner_id){ renderFinale(rm.winner_id); return; }
+  // no winner + no ceremony = the host walked (left / signed out / closed the
+  // tab).  Say it plainly and go home.
+  toast("The host ended the show 🌙");
+  leaveRoom();
 }
 function stopHostPoll(){
   stopHostBeat(); if(HOST_POLL){clearInterval(HOST_POLL);HOST_POLL=null;} }
@@ -2875,6 +2887,14 @@ function subscribeRoom(roomId){
       handleEvent(payload.new);
       // membership-affecting events also refresh roster
       if(["seat","keep","pass","block","timeout"].includes(payload.new.type)) loadRoomState();
+    })
+    .on("postgres_changes",{event:"UPDATE",schema:"public",table:"rooms",filter:"id=eq."+roomId},(payload)=>{
+      const rm=payload.new; if(!rm || !CURRENT_ROOM || rm.id!==CURRENT_ROOM.id) return;
+      if(rm.status==="ended"){ roomEndedUnderUs(rm); return; }
+      // phase / spotlight / promotion changes land instantly instead of on the 4s poll
+      CURRENT_ROOM=Object.assign({},CURRENT_ROOM,rm);
+      if(typeof egRefreshRoom==="function") egRefreshRoom();
+      renderRoom();
     })
     .subscribe();
 }

@@ -148,99 +148,7 @@ main{flex:1;overflow-y:auto;position:relative}
 .chair .av{position:absolute;inset:0;display:grid;place-items:center;font-size:26px;font-weight:800;color:#fff;background-size:cover;background-position:center}
 .kb-open #rt_endshow{display:none}
 .kb-open #rt_chairs .chair video,.kb-open #rt_chairs .chair .lc-feed{height:58px}
-/* engine glue */
-/* chair overlays: explicit stacking — video/avatar at 1, info at 6, verdicts at 7 */
-#rt_chairs .chair .lc-feed video,#rt_chairs .chair .av{z-index:1}
-#rt_chairs .chair .chair__name{z-index:6;display:inline-block}
-#rt_chairs .chair .chair__hearts{z-index:6;display:flex}
-#rt_chairs .chair .cclock{z-index:6}
-#rt_chairs .chair .kepttag{z-index:6}
-.is-host .chair.is-filled .hostctl{z-index:7}
-/* KEPT chip: one anchor only — the bottom+top collision made it a full-height bar */
-#rt_chairs .chair .kepttag{top:24px;right:4px;left:auto;bottom:auto;height:auto;
-  padding:2px 8px;font-size:9px;font-weight:800;letter-spacing:.08em;border-radius:9px;
-  background:var(--keep);color:#fff;box-shadow:0 0 8px rgba(255,45,143,.7)}
-/* host identity: one tidy line — badge · name, no wrapping */
-#rt_host_wrap{align-items:center;gap:6px}
-#rt_host{white-space:nowrap;max-width:48vw;overflow:hidden;text-overflow:ellipsis;font-size:15px}
-.hostbadge{flex:none}
-
-.eg-sil{height:74px;border-radius:12px;background:linear-gradient(180deg,#241a52,#0d1129);display:grid;place-items:center;font-size:30px;color:rgba(238,240,255,.35)}
-.lc-draft__opt .eg-tally{font-family:'Azeret Mono',monospace;font-weight:700;color:#ffd6e9}
-.lc-draft__opt .eg-heartbtn{position:absolute;inset:0;background:none;border:none;cursor:pointer}
-.chair.is-target{border-color:#ff2d8f !important;box-shadow:0 0 14px rgba(255,45,143,.8)}
-.is-spotlight .chair.is-target video,.is-spotlight .chair.is-target .lc-feed{height:150px}
-#eg_qlist textarea{display:none}
-/* ===== C2: PANEL OF 4 + THE BENCH (overrides the hero-backdrop layout) ===== */
-/* two lamps: her light spills past the frame; chairs stay cool and contained */
-#rt_hero{border-color:#ffb86c;box-shadow:0 0 22px rgba(255,150,90,.5),0 0 60px rgba(255,45,143,.35)}
-#rt_chairs .chair.is-filled{box-shadow:inset 0 0 0 1.5px rgba(45,227,208,.45)}
-/* engine phases own the verdict (decision tray) — but preshow and partial
-   rooms keep classic per-chair PASS/KEEP so the host is never control-less */
-.eg-on.is-spotlight .hostctl,.eg-on.is-mingle .hostctl,
-.eg-on.is-deciding .hostctl,.eg-on.is-drafting .hostctl{display:none !important}
-/* spotlight: rivals recede hard (two-up split approximated) */
-.is-spotlight #rt_chairs .chair:not(.is-target):not(.is-empty){opacity:.32;filter:saturate(.4)}
-.is-spotlight #rt_chairs .chair.is-target{box-shadow:0 0 22px rgba(255,45,143,.9)}
-/* THE BENCH: square scored cards, not a thumbnail strip */
-#rt_line{gap:8px;min-height:0}
-#rt_line .benchcard{position:relative;width:29vw;max-width:118px;aspect-ratio:1;border-radius:12px;overflow:hidden;
-  background:linear-gradient(180deg,#241a52,#0d1129);display:grid;place-items:center;cursor:pointer;
-  box-shadow:inset 0 0 0 1.5px rgba(255,214,233,.25)}
-#rt_line .benchcard .bc-init{font-size:34px;font-weight:800;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.9)}
-#rt_line .benchcard .bc-face{position:absolute;inset:0;background-size:cover;background-position:center}
-#rt_line .benchcard .bc-hearts{position:absolute;top:5px;left:5px;z-index:2;font:700 10px 'Azeret Mono',monospace;
-  color:#2a1010;background:var(--gold,#ffd6e9);border-radius:7px;padding:2px 6px}
-#rt_line .benchcard .bc-name{position:absolute;bottom:5px;left:5px;right:5px;z-index:2;font-size:10px;font-weight:700;color:#fff;
-  text-shadow:0 1px 4px rgba(0,0,0,.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#rt_line .benchcard .bc-next{position:absolute;top:5px;right:5px;z-index:2;font:700 8px 'Azeret Mono',monospace;
-  color:#042b28;background:var(--cool,#2de3d0);border-radius:6px;padding:2px 5px;letter-spacing:.06em}
-#rt_line .benchcard .bc-pips{position:absolute;bottom:22px;left:6px;z-index:2;font-size:9px;color:#ff8ac2;letter-spacing:2px}
-#rt_line .benchcard.is-lastlife .bc-pips{color:#ff4d4d}
-#rt_line .benchcard.is-me{box-shadow:inset 0 0 0 2px var(--neon,#ff2d8f)}
-
-.lc-room{display:none;position:fixed;inset:0;z-index:60;background:var(--field,#080b20);flex-direction:column}
-.lc-room.show{display:flex}
-/* top bar becomes flow, not overlay */
-.lc-room .lc-top{position:static;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 6px}
-/* the grid: host + 3 chairs as equal cells */
-.lc-grid{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(0,1fr);gap:6px;padding:4px 8px;height:52dvh}
-#rt_hero{position:relative;inset:auto;z-index:auto;border-radius:14px;overflow:hidden;border:2px solid var(--neon,#ff2d8f);box-shadow:0 0 12px rgba(255,45,143,.55);background:var(--video,#141a3a)}
-#rt_hero .vid{position:absolute;inset:0}
-#rt_hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-#rt_chairs{display:contents}
-#rt_chairs .chair{position:relative;border-radius:14px;overflow:hidden;background:var(--video,#141a3a);padding:0;min-height:0}
-#rt_chairs .chair .lc-feed{position:absolute;inset:0;height:auto !important;border-radius:0}
-#rt_chairs .chair video{position:absolute;inset:0;width:100%;height:100%;height:auto !important;min-height:100%;object-fit:cover}
-.is-host #rt_chairs .chair.is-filled .lc-feed{height:auto !important}
-#rt_chairs .chair .chair__name{top:auto;bottom:6px;left:6px;font-size:11px;z-index:6}
-#rt_chairs .chair .chair__hearts{top:6px;left:6px;font-size:11px;z-index:6}
-#rt_chairs .chair .cclock{top:6px;right:6px;z-index:6}
-#rt_chairs .chair .kepttag{top:28px;right:6px;z-index:6}
-.is-host .chair.is-filled .hostctl{left:6px;right:6px;bottom:26px;z-index:7}
-#rt_chairs .chair.is-empty{display:grid;place-items:center;border:1.5px dashed rgba(45,227,208,.5);background:rgba(45,227,208,.05);cursor:pointer}
-#rt_chairs .chair.is-empty .lc-feed{position:static;display:grid;place-items:center;background:none;height:auto !important;
-  font-family:'Azeret Mono',monospace;font-size:10px;letter-spacing:.14em;color:#7ff2e6;text-align:center}
-.is-host #rt_chairs .chair.is-empty{cursor:default}
-/* host name pill rides the host cell */
-#rt_host_wrap{position:absolute;z-index:3;left:14px;top:auto;bottom:8px}
-#rt_host_wrap #rt_host{font-size:12px}
-/* rail: compact, over the grid's right edge */
-.lc-rail{top:calc(env(safe-area-inset-top,0px) + 56px);right:10px;z-index:8}
-/* THE BENCH: 3 faces + overflow chip */
-#rt_line_block{flex:0 0 auto;padding:6px 12px 2px}
-#rt_line{display:flex;gap:14px;align-items:flex-start;min-height:64px}
-#rt_line .lineface .lf{width:52px;height:52px;font-size:18px}
-#rt_line .lineface .ln{font-size:9px;max-width:64px}
-.bench-more{align-self:center;font-family:'Azeret Mono',monospace;font-size:10px;color:var(--dim);border:1px solid rgba(238,240,255,.25);border-radius:999px;padding:4px 10px}
-/* chat + composer: normal flow below the bench */
-.lc-overlay{position:static;display:contents}
-#rt_livelayer{flex:1 1 auto;max-height:none;min-height:60px}
-#inputbar{flex:0 0 auto;position:static;transform:none;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px)}
-/* spotlight in the grid: target ring, rivals dim (engine states unchanged) */
-.is-spotlight #rt_chairs .chair.is-target{box-shadow:0 0 16px rgba(255,45,143,.85);border:2px solid var(--neon,#ff2d8f)}
-.is-spotlight .chair.is-target video,.is-spotlight .chair.is-target .lc-feed{height:auto !important}
-/* ===== Rev 2 integrated theme ===== */
+/* ===== LAST CALL THEME (Rev 3, adopted verbatim) ===== */
 /* ==========================================================================
    LAST CALL — visual system
    Drop this into your single-file app and set data-skin on <html> or <body>.
@@ -701,8 +609,14 @@ a:hover { color: #fff; border-bottom-color: #fff; }
   border: 1px dashed rgba(185,168,255,.4); color: var(--safe);
   display: grid; place-items: center; }
 
-/* chat: transparent, over video, capped, fades at top */
-#rt_livelayer { max-height: min(26dvh, 138px); display: flex; flex-direction: column;
+/* chat: transparent, over video, fades at top.
+   CAPPED in STAGE, ABSORBING in PANEL — and the cap must stay on the global
+   selector. STAGE's .lc-overlay is position:absolute with a bottom offset and
+   no height, so it is auto-sized: flex:1 there has zero free space to
+   distribute and chat becomes content-sized and effectively uncapped, growing
+   the overlay up through her face zone. The panel's column IS height-bounded,
+   so it can safely let chat absorb the slack. */
+#chatstrip { max-height: min(26dvh, 138px); display: flex; flex-direction: column;
   justify-content: flex-end; gap: 4px; overflow: hidden;
   -webkit-mask-image: linear-gradient(to top, #000 62%, transparent);
           mask-image: linear-gradient(to top, #000 62%, transparent); }
@@ -817,7 +731,7 @@ a:hover { color: #fff; border-bottom-color: #fff; }
 .kb-open .lc-rail { display: flex; }
 
 /* keyboard open: ONLY the overlay rises; #rt_hero is untouched */
-.kb-open #rt_livelayer { max-height: 96px; }
+.kb-open #chatstrip { max-height: 96px; }
 .kb-open #rt_chairs .chair video { height: 58px; }
 .kb-open #rt_endshow { display: none; }
 .kb-open #lineitems > * { min-height: 0; flex-direction: row; }
@@ -1036,7 +950,7 @@ a:hover { color: #fff; border-bottom-color: #fff; }
 .is-spotlight #rt_chairs .chair:not(.is-target) video,
 .is-spotlight #rt_chairs .chair:not(.is-target) .lc-feed { height: 104px; }
 /* chat gives up the height: max-height 82px during a spotlight */
-.is-spotlight #rt_livelayer { max-height: 82px; }
+.is-spotlight #chatstrip { max-height: 82px; }
 #rt_chairs .chair.is-target .chair__name { background: rgba(255,45,143,.85); }
 .lc-mic { display: flex; align-items: flex-end; gap: 1px; height: 8px; }
 .lc-mic > i { width: 2px; background: #fff; animation: mic .9s ease-in-out infinite; }
@@ -1074,7 +988,7 @@ a:hover { color: #fff; border-bottom-color: #fff; }
 .is-spotlight .lc-rail .lc-giftbtn { opacity: .4; pointer-events: none; border-style: dashed; }
 .is-spotlight .lc-safebtn { opacity: 1; pointer-events: auto; }
 /* Chat stays live in every phase - the crowd stays rowdy in text while audio
-   is directed. Never gate #rt_livelayer or #inputbar on phase. */
+   is directed. Never gate #chatstrip or #inputbar on phase. */
 
 /* round tracker: ambient, not a scoreboard */
 .lc-rounds { display: flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 11px;
@@ -1312,6 +1226,10 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
   font-family: 'Azeret Mono', monospace; font-size: 8px; font-weight: 700;
   letter-spacing: .14em; color: var(--gold); text-shadow: 0 1px 4px rgba(0,0,0,.95); }
 .hostctl:active { background: rgba(255,45,143,.3); }
+/* There is deliberately NO .hostctl--verdict. Per-chair keep/pass does not
+   exist in the episode model at any cell size — the verdict happens once, in
+   the decision tray after round 3. A layout exploration must not quietly
+   reinstate it just because bigger cells leave room for two buttons. */
 .is-spectator .hostctl, .is-suitor .hostctl { display: none; }
 
 /* Phase chip + round tracker live in .lc-top beside the LIVE tally, so the
@@ -1493,143 +1411,221 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
   .lc-lane.is-shifting, .lc-lane.is-entering, .lc-lane.is-out { animation: none; }
 }
 
-.gifttray-pop{position:absolute;left:12px;right:12px;bottom:110px;z-index:40;background:rgba(8,11,32,.97);border:1px solid var(--gold);border-radius:14px;padding:12px;display:none;gap:8px;justify-content:space-around;flex-wrap:wrap}
-.gifttray-pop.show{display:flex}
-.giftbtn{background:rgba(255,214,233,.1);border:1px solid rgba(255,214,233,.35);border-radius:10px;padding:8px 12px;font-size:22px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
-.giftbtn .gc{font-size:9px;color:var(--gold);font-weight:700}
-/* finale */
-.endshow{background:var(--cool);color:var(--cool-ink);box-shadow:inset 0 2px 0 rgba(255,255,255,.5),0 3px 0 rgba(0,0,0,.35);border:none;border-radius:10px;padding:11px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;font-family:"Baloo 2",sans-serif;font-weight:800}
-#finale{position:absolute;inset:0;z-index:120;background:radial-gradient(ellipse 80% 55% at 50% 20%,rgba(59,42,114,.96),rgba(6,8,24,.99));display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;overflow-y:auto}
-#finale.show{display:flex}
-#finale h1{font-size:30px;color:#fff;margin-bottom:6px;text-shadow:0 0 12px rgba(255,255,255,.5),0 0 30px rgba(255,45,143,.9)}
-#finale .fsub{font-size:13px;color:var(--neon-soft);margin-bottom:20px;line-height:1.5}
-.finalists{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:20px}
-.finalist{border-radius:14px;border:2px solid var(--gold);background:rgba(8,11,32,.5);padding:14px;width:120px;cursor:pointer;transition:transform .15s}
-.finalist:hover{transform:scale(1.05);border-color:var(--neon)}
-.finalist .ff{width:64px;height:64px;border-radius:50%;background-size:cover;margin:0 auto 8px}
-.finalist .fn{font-size:13px;font-weight:700}
-.finalist .fh{font-size:11px;color:var(--neon-soft);margin-top:2px}
-.finalist.picked{border-color:var(--neon);box-shadow:0 0 20px rgba(255,45,143,.5)}
-.winnerbig{margin:10px 0 18px}
-.winnerbig .wf{width:120px;height:120px;border-radius:50%;background-size:cover;margin:0 auto 12px;border:3px solid var(--gold);box-shadow:0 0 30px rgba(255,214,233,.5)}
-.winnerbig .wn{font-size:24px;font-family:"Baloo 2",sans-serif;font-weight:800;color:var(--gold)}
-.fbtn{padding:13px 24px;border:none;border-radius:12px;font-weight:800;cursor:pointer;font-size:14px;margin:5px}
-.fbtn.gold{background:var(--gold);color:#3a2a00}
-.fbtn.ghost{background:transparent;border:1.5px solid var(--dim);color:var(--dim)}
-.fbtn.neon{background:var(--neon);color:#fff;font-family:"Baloo 2",sans-serif;font-weight:800}
-.recapcard{background:rgba(8,11,32,.6);border:1px solid var(--gold);border-radius:16px;padding:20px;max-width:320px;margin:0 auto}
-.recapcard .rline{font-size:13px;color:var(--paper);margin:6px 0;line-height:1.5}
-#setup{max-width:400px;margin:40px auto;padding:0 18px;text-align:center}
-#setup h1{font-family:"Baloo 2",sans-serif;font-weight:800;font-size:30px}
-#setup h1 em{color:var(--neon);font-style:normal}
-#setup select{width:100%;background:rgba(238,240,255,.07);border:1px solid rgba(238,240,255,.18);border-radius:10px;color:var(--paper);padding:12px;font-size:14px;margin-top:6px}
-#setup .chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--paper);margin:14px 0;text-align:left}
-#setup .chk input{width:auto}
-.av{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-family:"Baloo 2",sans-serif;font-weight:800;font-size:17px;text-shadow:0 1px 2px rgba(0,0,0,.4)}
-.av.avbig{font-size:34px}
-/* WINNER'S ROOM — backstage */
-#backstage{position:absolute;inset:0;z-index:130;background:radial-gradient(ellipse 90% 70% at 50% 30%,#1a1240,#060818);display:none;flex-direction:column;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px));gap:12px}
-#backstage.show{display:flex}
-.bs-clock{align-self:center;font-family:"Azeret Mono",monospace;font-size:15px;font-weight:700;letter-spacing:.06em;color:var(--cool-ink);background:var(--cool);border-radius:8px;padding:3px 12px;display:none}
-.bs-clock.on{display:block}
-.bs-clock.low{background:var(--neon);color:#fff}
-#bsdecide{position:absolute;inset:0;z-index:145;background:rgba(6,8,24,.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
-#bsdecide.show{display:flex}
-.bsd-title{font-family:"Baloo 2",sans-serif;font-weight:800;font-size:24px;color:#fff;text-shadow:0 0 18px rgba(255,45,143,.7)}
-.bsd-sub{color:var(--dim);font-size:14px;max-width:320px}
-.bsd-count{font-family:"Azeret Mono",monospace;font-size:14px;font-weight:700;color:var(--cool-ink);background:var(--cool);border-radius:8px;padding:2px 10px}
-.bsd-count.low{background:var(--neon);color:#fff}
-.chiprow{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:360px}
-.ctypechip{padding:8px 14px;border-radius:999px;border:1.5px solid rgba(45,227,208,.45);background:transparent;color:var(--paper);font-size:13px;font-weight:700;cursor:pointer}
-.ctypechip.on{background:var(--cool);color:var(--cool-ink);border-color:var(--cool)}
-#bsd_val{width:100%;max-width:340px;padding:12px 14px;border-radius:12px;border:1px solid rgba(238,240,255,.25);background:rgba(238,240,255,.08);color:var(--paper);font-size:15px}
-.bsd-offer{padding:13px 30px;border:none;border-radius:999px;background:var(--keep);color:#fff;font-family:"Baloo 2",sans-serif;font-weight:800;font-size:15px;letter-spacing:.04em;cursor:pointer;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 4px 0 var(--keep-bevel)}
-.bsd-offer:disabled{opacity:.5}
-.bsd-skip{padding:11px 22px;border:1px solid rgba(238,240,255,.3);border-radius:999px;background:transparent;color:var(--dim);font-size:14px;cursor:pointer}
-.bsd-reveal{background:rgba(255,214,233,.1);border:1.5px solid var(--gold);border-radius:16px;padding:16px 20px;max-width:340px}
-.bsd-reveal .who{color:var(--gold);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
-.bsd-reveal .what{font-family:"Azeret Mono",monospace;font-size:17px;color:#fff;margin:6px 0 10px;word-break:break-all}
-.bsd-copy{padding:8px 18px;border:none;border-radius:999px;background:var(--gold);color:#2a1010;font-weight:800;font-size:13px;cursor:pointer}
-.bs-head{font-family:"Baloo 2",sans-serif;font-weight:800;font-size:16px;color:var(--gold);text-align:center;letter-spacing:.1em}
-.bs-live{font-size:10px;color:var(--neon);letter-spacing:.15em;margin-left:8px}
-.bs-tiles{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
-.bs-tile{flex:1;min-height:0;border-radius:16px;border:2px solid rgba(255,214,233,.5);position:relative;overflow:hidden;background:#000}
-.bs-nm{position:absolute;bottom:8px;left:12px;z-index:3;font-weight:800;font-size:14px;text-shadow:0 1px 4px rgba(0,0,0,.95);font-family:"Baloo 2",sans-serif;font-weight:800}
-.bs-wait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-style:italic;font-size:13px;z-index:2}
-.bs-actions{flex-shrink:0;display:flex;gap:10px}
-.bs-cut{flex:1;padding:14px;border:none;border-radius:12px;background:var(--danger);color:#fff;font-weight:800;font-size:14px;cursor:pointer;font-family:"Baloo 2",sans-serif;font-weight:800;letter-spacing:.04em}
-.bs-leave{flex:1;padding:14px;border:1.5px solid var(--dim);border-radius:12px;background:transparent;color:var(--dim);font-weight:800;font-size:13px;cursor:pointer}
-.fbtn.bsgo{background:linear-gradient(180deg,#ff5c95,#ff3d7f);color:#fff;font-family:"Baloo 2",sans-serif;font-weight:800}
-/* winner snapshot */
-#snap{position:absolute;inset:0;z-index:140;background:#0a0407;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
-#snap.show{display:flex}
-#snap h1{font-family:"Baloo 2",sans-serif;font-weight:800;font-size:22px;color:var(--gold);margin-bottom:4px}
-#snap .ssub{font-size:13px;color:var(--neon-soft);margin-bottom:14px}
-.snapstage{position:relative;width:min(78vw,300px);aspect-ratio:3/4;border-radius:18px;overflow:hidden;border:3px solid var(--gold);background:#000}
-.snapstage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.snapguide{position:absolute;inset:0;pointer-events:none}
-.snapguide .oval{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:62%;aspect-ratio:3/4;border:3px dashed rgba(255,255,255,.75);border-radius:50%}
-.snapcount{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:"Baloo 2",sans-serif;font-weight:800;font-size:88px;color:#fff;text-shadow:0 2px 18px rgba(0,0,0,.8);z-index:3}
-.snapflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:4}
-.snapflash.go{animation:flashpop .5s ease-out}
-@keyframes flashpop{0%{opacity:0}12%{opacity:1}100%{opacity:0}}
-.winnerphoto{width:190px;height:250px;object-fit:cover;border-radius:16px;border:3px solid var(--gold);box-shadow:0 0 34px rgba(255,214,233,.55);margin:0 auto 12px;display:block}
 
-/* ============================================================
-   FINAL PANEL ASSERTIONS — this block is last on purpose.
-   The panel-of-4 grid must win over every earlier theme rule
-   (the desktop media block was overriding it into columns).
-   ============================================================ */
-#room .lc-grid{display:grid !important;grid-template-columns:1fr 1fr !important;
-  grid-auto-rows:minmax(0,1fr) !important;gap:6px !important;padding:4px 8px !important;
-  height:min(52dvh,470px) !important;position:relative !important;flex-direction:unset !important}
-#room #rt_chairs{display:contents !important;position:static !important;inset:auto !important;
-  flex-direction:unset !important;gap:0 !important;padding:0 !important}
-#room #rt_hero{position:relative !important;inset:auto !important;width:auto !important;
-  height:auto !important;min-height:0 !important;border-radius:14px !important;overflow:hidden !important;
-  grid-row:auto !important;grid-column:auto !important}
-#room #rt_chairs .chair{position:relative !important;width:auto !important;height:auto !important;
-  min-height:0 !important;flex:none !important;border-radius:14px !important;overflow:hidden !important;
-  display:block !important;margin:0 !important}
-#room #rt_chairs .chair.is-empty{display:grid !important;place-items:center !important}
-#room .lc-strip__label,#room .lc-strip__hint,#room .lc-strip__count{display:none !important}
-/* the room IS a flex column — the theme's display:block was flattening it,
-   which is why chat couldn't grow and the composer floated mid-screen */
-#room.lc-room.show{display:flex !important;flex-direction:column !important}
-/* rail is gone — its jobs moved into the bar and composer */
-#room .lc-rail{display:none !important}
-.minibtn{flex:none;width:38px;height:38px;border-radius:50%;border:1px solid rgba(238,240,255,.25);
-  background:rgba(238,240,255,.06);color:var(--gold,#ffd6e9);font-size:15px;cursor:pointer;
-  display:grid;place-items:center;line-height:1;padding:0}
-.minibtn--heart{width:auto;min-width:38px;padding:0 9px;border-radius:999px;display:flex;gap:3px;align-items:center;
-  font-family:'Azeret Mono',monospace;font-size:12px;font-weight:700}
-.minibtn:active{transform:scale(.92)}
-/* desktop: the room is a phone-shaped stage, not a full-height tower */
-@media(min-width:720px){
-  #room.lc-room{width:520px;height:min(100dvh - 24px,900px);margin:12px auto;
-    border-radius:26px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+/* ==========================================================================
+   DIRECTION C — THE PANEL (host-owned view toggle, NOT the default)
+   Four equal cells in a 2x2 filling the upper 58%. Keeps seat_total = 3.
+   Ship STAGE (host backdrop) as default; PANEL is a control in her rail,
+   remembered per host, so the layout question can be A/B'd instead of guessed.
+
+   MINIMAL DOM CHANGE — one move, additive:
+     #rt_hero goes from sibling of .lc-overlay to FIRST CHILD of #rt_chairs,
+     wrapped in .chair.is-host. Both layouts then read one tree, and the JS
+     never learns which view is on:
+       STAGE  .chair.is-host { position: fixed; inset: 0; z-index: 0; }
+       PANEL  .chair.is-host stays in grid flow as cell 1.
+     .chair · .cclock · .hostctl · #rt_line · #chatstrip · #inputbar ·
+     #rt_joinline are untouched.
+   ========================================================================== */
+[data-view="panel"] #rt_chairs { display: grid; grid-template-columns: 1fr 1fr;
+  gap: 5px; padding: 0 9px; }
+[data-view="panel"] #rt_chairs .chair video,
+[data-view="panel"] #rt_chairs .chair .lc-feed { height: 150px; width: 100%;
+  object-fit: cover; border-radius: 14px; }
+
+/* TWO LAMPS, NOT TWO BADGES. At equal size a ring is a label; light is a place.
+   Her cell gets a warm rose-gold key from upper-left, a warm floor bounce, and
+   a glow that spills PAST the frame — the spill is the tell, no chair ever
+   lights outside its own border. The chairs get one flat cool key, contained,
+   identical across all three so no chair outranks another. Colour temperature
+   is felt before it is read, which is the only mechanism strong enough to carry
+   her primacy once the cells are the same size. */
+[data-view="panel"] .chair.is-host {
+  border: 2px solid var(--neon-pink);
+  background: rgba(255,45,143,.14);
+  box-shadow: 0 0 26px rgba(255,45,143,.6), 0 0 60px rgba(255,138,194,.28); }
+[data-view="panel"] .chair.is-host .chair__feed {
+  background: #1a1230;
+  background-image:
+    radial-gradient(120% 88% at 24% 12%, rgba(255,168,200,.34), transparent 62%),
+    radial-gradient(90% 60% at 62% 108%, rgba(255,110,170,.22), transparent 66%); }
+[data-view="panel"] .chair:not(.is-host) .chair__feed {
+  background: #101a30;
+  background-image: radial-gradient(closest-side at 46% 30%, rgba(45,227,208,.19), transparent 68%); }
+/* a suitor never borrows her light, not even in his own view */
+[data-view="panel"].is-suitor .chair.is-you .chair__feed { background: #101a30; }
+
+/* SPOTLIGHT = SPLIT SCREEN. For the 30s of a direct question the quad breaks to
+   a two-up — her left, target right, both 305px — with the other two collapsed
+   to a muted 46px strip so nobody vanishes mid-show. One grid-template
+   interpolation drives the whole break, so the video keeps playing and no tile
+   pops; it reads like a director cutting cameras. Reverses on resolve. */
+[data-view="panel"].is-spotlight #rt_chairs {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 305px 46px;
+  transition: grid-template-rows .28s cubic-bezier(.4,0,.2,1); }
+[data-view="panel"].is-spotlight .chair.is-host,
+[data-view="panel"].is-spotlight .chair.is-target { grid-row: 1; }
+[data-view="panel"].is-spotlight .chair.is-host video,
+[data-view="panel"].is-spotlight .chair.is-target video { height: 305px; }
+[data-view="panel"].is-spotlight .chair:not(.is-host):not(.is-target) {
+  grid-row: 2; grid-column: 1 / -1; opacity: .42; }
+[data-view="panel"].is-spotlight .chair:not(.is-host):not(.is-target) video {
+  height: 46px; filter: blur(3px); }
+
+/* KEYBOARD: rows shrink by one ratio, cells scale in place. No cell ever
+   changes column — a reflow mid-broadcast is the one thing that reads broken. */
+[data-view="panel"].kb-open #rt_chairs { grid-auto-rows: 96px; }
+[data-view="panel"].kb-open #rt_chairs .chair video { height: 96px; }
+[data-view="panel"].kb-open #chatstrip { max-height: 44px; }
+
+/* EMPTY SEATS RECRUIT. An empty quadrant is an invitation in a way a dashed
+   strip never was — this is the panel's clearest win, so give it real copy. */
+[data-view="panel"] .chair.is-empty { border: 1.5px dashed rgba(45,227,208,.6);
+  background: rgba(45,227,208,.07); box-shadow: 0 0 14px rgba(45,227,208,.22); }
+
+/* DRAFT STORM: the candidate tray floats over the LOWER row only, so the top
+   row (her + the surviving chair) stays readable while the room votes. */
+[data-view="panel"].is-storm .lc-draft { position: absolute; z-index: 4;
+  left: 9px; right: 9px; top: 400px; }
+
+/* WINNER: rejected cells go cold and dark; his cool key warms to match hers as
+   he blooms out of the grid. The layout that made everyone equal is what makes
+   one card lighting up land. */
+[data-view="panel"].is-winner .chair:not(.is-winner) { opacity: .12; filter: grayscale(.6); }
+[data-view="panel"].is-winner .chair.is-winner .chair__feed {
+  background: #1a1230;
+  background-image: radial-gradient(closest-side at 42% 30%, rgba(255,196,214,.3), transparent 70%);
+  transition: background-image .5s ease; }
+@media (prefers-reduced-motion: reduce) {
+  [data-view="panel"].is-spotlight #rt_chairs { transition: none; }
 }
-/* the bar's room title reads as a title */
-#room .roomtitle{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
-/* scrims retired: they existed to make text readable over full-bleed video;
-   the panel layout has no video behind the bar or the lower stack — the
-   gradients were just dimming UI on a solid field */
-#room.lc-room::before,#room.lc-room::after{display:none !important;content:none !important}
-/* top bar: in flow, above everything, safe-area padded — never buried again */
-#room .lc-top{position:static !important;display:flex !important;align-items:center !important;
-  gap:8px !important;padding:calc(env(safe-area-inset-top,0px) + 8px) 12px 6px !important;
-  z-index:30 !important;inset:auto !important;transform:none !important}
-/* rail: tucked to the grid's top-right corner, under the bar */
-#room .lc-rail{top:calc(env(safe-area-inset-top,0px) + 56px) !important;right:10px !important;z-index:9 !important}
-/* flow discipline: chat is the ONLY flexible child; mystery spacers collapse */
-#room .lc-overlay{display:contents !important}
-#room .lc-overlay>*{flex:0 0 auto !important}
-#room #rt_livelayer{flex:1 1 auto !important;min-height:40px !important;max-height:none !important}
-#room #inputbar{flex:0 0 auto !important;position:static !important;transform:none !important}
-@media(min-width:720px){
-  #room .lc-grid{height:min(56dvh,500px) !important}
+
+
+/* ==========================================================================
+   THE BENCH — supersedes the draft storm entirely (see notes at the bottom).
+   Layout: 2x2 PLAYING SURFACE (host + 3 chairs, 168px cells) with THREE
+   half-height bench cells directly beneath. Seven faces, two tiers, every
+   face carrying a live number.
+   Hard rule: the playing surface is NEVER more than 4 cells and the bench is
+   NEVER more than 3. Past that a grid becomes wallpaper — the failure mode
+   isn't headcount, it's a flat grid where nothing is ranked.
+   ========================================================================== */
+/* Below the bench, CHAT IS THE SOLE FLEXIBLE CHILD — no max-height cap and no
+   margin-top:auto on the composer. Either one strands surplus column height as
+   a dead band (a capped chat stops growing; an auto margin collects the slack
+   below it), which is how a 120px void opened up under the bench twice. */
+#rt_line { margin-top: 8px; padding: 0 9px; display: flex; flex-direction: column; gap: 5px; }
+/* PANEL ONLY: chat is the sole flexible child, no cap and no margin-top:auto on
+   the composer. Either one strands surplus column height as a dead band — a
+   capped chat stops growing, an auto margin collects the slack below it — which
+   opened a 120px void under the bench twice. */
+[data-view="panel"] #chatstrip { flex: 1; min-height: 0; max-height: none; }
+#lineitems { display: flex; gap: 5px; }
+#lineitems > * { flex: 1; min-width: 0; }
+#lineitems > :nth-child(n+4) { display: none; }   /* hard cap at three */
+.lc-bench { position: relative; padding: 2px; border-radius: 14px; cursor: pointer;
+  background: rgba(6,8,24,.5); border: 1px solid rgba(185,168,255,.35); }
+/* Bench cells are SQUARE — 116px, matching the 3-up column width at 390. A
+   square reads as a portrait; a 120x78 letterbox reads as a thumbnail strip,
+   which is the "wallpaper" failure in miniature. The square also gives the
+   name plaque and heart chip room without cropping the face. */
+.lc-bench__feed { position: relative; height: 116px; border-radius: 11px; overflow: hidden;
+  background: var(--video); }
+.lc-bench__name { position: absolute; left: 4px; right: 4px; bottom: 4px; text-align: center;
+  font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 12px; line-height: 1.35;
+  color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.95); }
+/* per-cell score chip, upper-left — the crowd reads a grid as a leaderboard, so
+   put the number where they already look. Same slot on playing and bench cells. */
+.lc-hearts { position: absolute; top: 4px; left: 4px; display: flex; align-items: center;
+  gap: 2px; padding: 1px 6px; border-radius: 9px; background: rgba(6,8,24,.62);
+  backdrop-filter: blur(6px); font-family: 'Azeret Mono', monospace; font-weight: 700;
+  font-size: 9.5px; color: var(--gold); }
+/* name plaque rides the cell's bottom edge, inline status icons inside it */
+.chair__name { position: absolute; left: 6px; bottom: 6px; display: flex; align-items: center;
+  gap: 5px; padding: 3px 9px; border-radius: 11px; background: rgba(6,8,24,.66);
+  backdrop-filter: blur(8px); font-family: Archivo, sans-serif; font-weight: 800;
+  font-size: 11px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.9); }
+.chair.is-host .chair__name { background: rgba(255,45,143,.85); }
+/* leader carries NEXT UP so waiting on the bench reads as progress, not limbo */
+.lc-bench.is-next { --ls: 255,194,77; background: rgba(255,194,77,.16);
+  border: 1.5px solid #ffc24d; box-shadow: 0 0 18px rgba(255,194,77,.55);
+  animation: lc-surge 1.4s ease-in-out infinite; }
+.lc-bench.is-next .lc-hearts { color: #fff; }
+/* SHE picks blind: the same three render as silhouettes with live counts. */
+.is-host #lineitems .lc-bench__photo { visibility: hidden; }
+.is-host #lineitems .lc-bench__sil { display: block; }
+.is-host #lineitems .lc-bench__name { display: none; }
+
+/* THE TEAL "+" MEANS JOINABLE, AND ONLY THAT. It appears on open chairs and
+   nowhere else — never on a chair that is occupied-but-muted (.is-collapsed,
+   which gets a one-line strip) and never on one mid-promotion (.is-promoting,
+   which gets a gold countdown). A join glyph on a reserved seat tells the room
+   the opposite of the truth, and it has bitten this layout twice.
+
+   EMPTY SEAT IS THE JOIN BUTTON, not a dashed placeholder. Tapping an open
+   chair cell joins the bench — copy names the real mechanic, since seating
+   stays host-curated rather than self-serve. */
+.chair.is-empty { border: 1.5px dashed rgba(45,227,208,.65);
+  background: rgba(45,227,208,.08); box-shadow: 0 0 16px rgba(45,227,208,.26);
+  cursor: pointer; }
+.chair.is-empty:active { transform: scale(.98); }
+/* camera-off in a chair renders as our styled silhouette — NEVER a hollow
+   avatar bubble. A dead tile is what makes a big grid feel abandoned. */
+.chair.is-cameraoff .chair__feed { background: linear-gradient(180deg,#232045,#101227); }
+
+/* PROMOTION replaces the storm: chair opens, bench leader is already known, she
+   gets 5s to override, then he rises on the camera flip and the next in line
+   drops onto the bench. No modal, no countdown takeover. */
+@keyframes lc-rise {
+  from { transform: translateY(64px) scale(.82); opacity: .4; }
+  to   { transform: none; opacity: 1; }
 }
+.chair.is-promoting { border-color: #ffc24d; box-shadow: 0 0 24px rgba(255,194,77,.6);
+  background: rgba(255,194,77,.14); }
+.chair.is-promoting .lc-promo { position: absolute; inset: 0; display: flex;
+  flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; }
+.chair.is-promoting .lc-promo__clock { font-family: 'Azeret Mono', monospace; font-weight: 700;
+  font-size: 30px; line-height: 1; color: #fff; text-shadow: 0 0 16px rgba(255,194,77,.9); }
+.chair.is-promoting .lc-promo__who { padding: 2px 9px; border-radius: 11px;
+  background: rgba(255,194,77,.9); font-family: 'Azeret Mono', monospace; font-weight: 700;
+  font-size: 8px; letter-spacing: .12em; color: #3d2600; }
+.lc-bench.is-rising { animation: lc-surge .62s ease-in-out infinite; }
+.chair.is-arrived { animation: lc-rise .42s cubic-bezier(.2,.9,.3,1) both; }
+
+/* ADAPTIVE DENSITY: the grid breathes with occupancy instead of reserving dead
+   space. One suitor = a single tall row, not two empty quadrants. */
+#rt_chairs[data-occupied="2"] { grid-template-rows: 252px; }
+#rt_chairs[data-occupied="2"] .chair video { height: 252px; }
+#rt_chairs[data-occupied="4"] { grid-template-rows: 168px 168px; }
+
+/* Spotlight still breaks to the two-up split; the bench does NOT move — it
+   keeps earning through the whole question. */
+.is-spotlight #rt_line { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .lc-bench.is-next, .lc-bench.is-rising, .chair.is-arrived { animation: none; }
+}
+
+/* ===== APP ADAPTER (post-adoption, additive only) ===== */
+.hostctl{display:flex;align-items:center;gap:5px;padding:0}
+.is-host .chair.is-filled .hostctl{position:absolute;left:6px;right:6px;bottom:6px;z-index:6}
+.hostctl__pass,.hostctl__keep{min-height:40px;width:44px;flex:none;border:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;line-height:1;backdrop-filter:blur(8px);font-size:15px}
+.hostctl__pass{background:rgba(36,26,82,.72);border:1.5px solid rgba(255,145,180,.7);color:#ffc2d6}
+.hostctl__keep{background:rgba(255,45,143,.55);border:1.5px solid #ff5fae;color:#fff}
+.hostctl__pass::after{content:"PASS";font:700 6.5px 'Azeret Mono',monospace;letter-spacing:.12em;margin-top:1px}
+.hostctl__keep::after{content:"KEEP";font:700 6.5px 'Azeret Mono',monospace;letter-spacing:.12em;margin-top:1px}
+.is-spectator .hostctl,.is-suitor .hostctl{display:none}
+.eg-on.is-spotlight .hostctl,.eg-on.is-mingle .hostctl,.eg-on.is-deciding .hostctl,.eg-on.is-drafting .hostctl{display:none !important}
+.is-spotlight #rt_chairs .chair:not(.is-target):not(.is-empty):not(.is-host){opacity:.32;filter:saturate(.4)}
+.is-spotlight #rt_chairs .chair.is-target{box-shadow:0 0 22px rgba(255,45,143,.9);border-color:#ff2d8f}
+.chair.is-target{border-color:#ff2d8f !important}
+.lc-lane .lane-name{font-size:9px;font-weight:700;color:#fff;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roommeta{font-size:12px;color:#7d82ab;margin-top:2px}
+.roommeta b{color:#ffd6e9;font-weight:700}
+.eg-sil{height:74px;border-radius:12px;background:linear-gradient(180deg,#241a52,#0d1129);display:grid;place-items:center;font-size:30px;color:rgba(238,240,255,.35)}
+.lc-draft__opt .eg-tally{font-family:'Azeret Mono',monospace;font-weight:700;color:#ffd6e9}
+.lc-draft__opt .eg-heartbtn{position:absolute;inset:0;background:none;border:none;cursor:pointer}
+#buildstamp{opacity:.45;font-family:monospace;font-size:10px}
 
 /* ===== ported: compliance UI (PR #2) ===== */
 .chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--paper);margin:14px 0;text-align:left}
@@ -1745,7 +1741,7 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
     </div>
 
     <!-- ROOM — full show on one screen -->
-    <div id="room" class="lc-room" data-skin="neon">
+    <div id="room" class="lc-room" data-skin="neon" data-view="panel">
       <!-- top overlay: one row -->
       <div class="lc-top">
         <button class="lc-top__back" id="roomback">‹</button>
@@ -1755,32 +1751,35 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         <span class="chip" id="rt_count">👁 0</span>
         <span class="chip" id="rt_coinchip">✦ 0</span>
       </div>
+      <div class="lc-rail">
+        <button class="lc-safebtn" id="rt_safebtn" title="Report a problem">🛡</button>
+        <button id="rt_giftbtn" title="Send a gift">🎁</button>
+        <button class="lc-rail__hearts" id="rt_heartbtn">♥<span id="rt_hearttotal">0</span></button>
+      </div>
 
       <!-- panel of 4: host cell + three chairs -->
-      <div class="lc-grid" id="lc_grid">
-        <div id="rt_hero"><div class="vid" id="rt_vid"></div><div class="reactlayer" id="rt_reactlayer"></div>
+            <div id="rt_chairs">
+        <div class="chair is-host" id="hero_chair">
+          <div id="rt_hero"><div class="vid" id="rt_vid"></div><div class="reactlayer" id="rt_reactlayer"></div>
 
       <!-- her name, over the video -->
           <div id="rt_host_wrap" style="display:flex;align-items:center;gap:7px">
             <div class="hostbadge" id="rt_hostbadge" style="display:none">HOST</div>
             <div id="rt_host" class="lc-over-video"></div>
           </div>
-        </div><!-- /rt_hero -->
+        </div>
+        </div>
+      </div>
 
-        <div id="rt_chairs"></div>
-      </div><!-- /lc-grid -->
 
 
       <div class="lc-overlay">
         <div id="rt_line_block">
           <div class="lc-line__head"><span class="lc-kicker lc-over-video">THE LINE <span id="rt_hosthint" style="display:none">· tap to seat</span></span><span class="lc-kicker lc-over-video" id="rt_watchbar"></span></div>
-          <div id="rt_line"><span class="emptyrole">empty</span></div>
+          <div id="rt_line"><div id="lineitems"><span class="emptyrole">empty</span></div></div>
         </div>
         <div class="chatstrip" id="rt_livelayer"></div>
         <div id="inputbar">
-          <button class="minibtn" id="rt_safebtn" title="Report a problem">🛡</button>
-          <button class="minibtn" id="rt_giftbtn" title="Send a gift">🎁</button>
-          <button class="minibtn minibtn--heart" id="rt_heartbtn" title="Heart the host">♥<span id="rt_hearttotal">0</span></button>
           <input type="text" id="rt_chatinput" placeholder="Say something…" maxlength="140" enterkeyhint="send">
           <button id="rt_chatsend" hidden>➤</button>
           <button id="rt_endshow" style="display:none">🎬 LAST CALL</button>
@@ -1826,13 +1825,13 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         <div class="lc-question__for" id="eg_qfor"></div>
       </div>
 
-      <div class="lc-phase lc-over-video" id="eg_phase" style="display:none;position:absolute;z-index:3;top:calc(env(safe-area-inset-top,0px) + 104px);left:13px">
+      <div class="lc-phase" id="eg_phase" style="display:none">
         <span id="eg_phasename">OPEN FLOOR</span>
         <span id="eg_phaseclock" style="font-family:'Azeret Mono',monospace">0:45</span>
         <span id="eg_rounds">● ○ ○</span>
       </div>
-      <button id="eg_skip" style="display:none;position:absolute;z-index:3;top:calc(env(safe-area-inset-top,0px) + 104px);right:64px;background:rgba(6,8,24,.6);border:1px solid rgba(45,227,208,.5);color:#7ff2e6;border-radius:999px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">she's heard enough ▸</button>
-      <button id="eg_ask" style="display:none;position:absolute;z-index:4;bottom:214px;right:10px;background:var(--keep);border:none;color:#fff;border-radius:999px;padding:12px 18px;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;letter-spacing:.04em;cursor:pointer;box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 4px 0 var(--keep-bevel)">🎤 ASK</button>
+      <button id="eg_skip" class="lc-skip" style="display:none">she's heard enough ▸</button>
+      <button id="eg_ask" class="lc-ask" style="display:none">🎤 ASK</button>
 
       <div class="lc-drawer" id="eg_drawer" style="display:none">
         <div class="lc-drawer__grip"></div>
@@ -1857,7 +1856,7 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         <div class="lc-drumroll__dots"><i></i><i style="animation-delay:.2s"></i><i style="animation-delay:.4s"></i></div>
       </div>
 
-      <div class="lc-draft" id="eg_draft" style="display:none;position:absolute;z-index:5;left:8px;right:8px;bottom:120px">
+      <div class="lc-draft" id="eg_draft" style="display:none">
         <div class="lc-draft__head">
           <b id="eg_draft_head">A CHAIR JUST OPENED</b>
           <span class="lc-draft__clock" id="eg_draft_clock">0:15</span>
@@ -2356,7 +2355,9 @@ function renderRoom(){
       chairsHtml+=`<div class="chair is-empty" data-takechair="1"><div class="lc-feed">${AMHOST?"EMPTY CHAIR":"TAKE THE CHAIR<br><span style='opacity:.6;font-size:8px'>joins the line</span>"}</div></div>`;
     }
   }
-  $("rt_chairs").innerHTML=chairsHtml;
+  { const rc=$("rt_chairs");
+    rc.querySelectorAll(".chair:not(.is-host)").forEach(el=>el.remove());
+    rc.insertAdjacentHTML("beforeend", chairsHtml); }
 
   // LINE — horizontal face strip
   const lineFace=(m)=>{
@@ -2368,23 +2369,23 @@ function renderRoom(){
   const benched=line.slice(0,3);
   const benchCard=(m,i)=>{
     const prof=ROOM_STATE.profs[m.user_id]||{};
-    const nm=prof.display_name||"?";               // masked in engine mode for the host: renders as ?
+    const nm=prof.display_name||"?";
     const isMe=m.user_id===ME.id;
     const strikes=m.strikes||0;
-    return `<div class="benchcard${strikes>=2?' is-lastlife':''}${isMe?' is-me':''}" data-benchuid="${m.user_id}">
-      <div class="bc-init">${escapeHtml(nm[0]||"?")}</div>
-      <div class="bc-hearts">♥ ${HEARTS[m.user_id]||0}</div>
-      ${i===0?'<div class="bc-next">NEXT UP</div>':''}
-      ${strikes>0?`<div class="bc-pips">${"●".repeat(strikes)}${strikes>=2?" · LAST LIFE":""}</div>`:''}
-      <div class="bc-name">${escapeHtml(nm)}${isMe?" · YOU":""}</div>
-    </div>`;
+    return `<div class="lc-lane${isMe?' is-mine':''}${strikes>=2?' is-lastlife':''}" data-benchuid="${m.user_id}">` +
+      (i===0?'<span class="lc-nextup lc-lane__badge">NEXT UP</span>':'') +
+      '<div class="lc-silhouette"></div>' +
+      `<span><span class="lc-lane__heart">♥</span> <span class="lc-lane__n">${HEARTS[m.user_id]||0}</span></span>` +
+      (strikes>0?`<span class="lc-lane__pips">${"●".repeat(strikes)}</span>`:'') +
+      `<span class="lane-name">${escapeHtml(nm)}${isMe?" · YOU":""}</span>` +
+    `</div>`;
   };
-  $("rt_line").innerHTML = line.length
-    ? benched.map(benchCard).join("") + (line.length>3?`<span class="bench-more">+${line.length-3} in line</span>`:"")
+  $("lineitems").innerHTML = line.length
+    ? benched.map(benchCard).join("") + (line.length>3?`<div class="lc-more">+${line.length-3}</div>`:"")
     : '<span class="emptyrole">'+(EG_ON?"empty — the bench is dark to her, live to you":"empty — no one waiting")+'</span>';
-  // the crowd scores the bench continuously (hosts can't — they see silhouettes)
+  // the crowd scores the bench continuously (the host sees silhouettes)
   if(!AMHOST){
-    $("rt_line").querySelectorAll(".benchcard").forEach(el=>{
+    $("lineitems").querySelectorAll(".lc-lane").forEach(el=>{
       el.onclick=(ev)=>sendHeart(el.dataset.benchuid, ev.clientX, ev.clientY);
     });
   }
@@ -2395,9 +2396,11 @@ function renderRoom(){
 
   // host: tap line face to seat, keep/pass on chairs
   if(AMHOST){
-    $("rt_line").querySelectorAll(".pickable").forEach(el=>{
-      el.onclick=()=>hostSeat(el.dataset.uid);
-    });
+    if(!EG_ON){
+      $("lineitems").querySelectorAll(".lc-lane").forEach(el=>{
+        el.onclick=()=>hostSeat(el.dataset.benchuid);
+      });
+    }
     $("rt_chairs").querySelectorAll(".hostctl__keep").forEach(b=>b.onclick=(e)=>{e.stopPropagation();hostKeep(b.dataset.uid);});
     $("rt_chairs").querySelectorAll(".hostctl__pass").forEach(b=>b.onclick=(e)=>{e.stopPropagation();hostPass(b.dataset.uid);});
   } else {

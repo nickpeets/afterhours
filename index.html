@@ -1607,6 +1607,23 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
 }
 
 /* ===== APP ADAPTER (post-adoption, additive only) ===== */
+/* PANEL VIEW FLOW — the theme's base .lc-top/.lc-overlay are STAGE-positioned
+   (absolute over full-bleed video). Panel is a document: bar, grid, then the
+   overlay stack IN FLOW, chat growing, composer on the floor. */
+[data-view="panel"].lc-room{display:flex;flex-direction:column;min-height:100dvh}
+[data-view="panel"] .lc-top{position:static;padding:calc(var(--lc-safe-t,0px) + 10px) 13px 8px}
+[data-view="panel"] #rt_chairs{flex:none}
+[data-view="panel"] .lc-overlay{position:static;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:9px;padding:8px 12px calc(var(--lc-safe-b,0px) + 10px)}
+[data-view="panel"] #rt_livelayer{flex:1 1 auto;min-height:36px;overflow:hidden}
+[data-view="panel"] #rt_line_block,[data-view="panel"] #inputbar{flex:none}
+[data-view="panel"] .lc-rail{top:auto;bottom:calc(var(--lc-safe-b,0px) + 150px)}
+/* the title stays dark in-room no matter who tries to show it */
+.lc-room #rt_title{display:none !important}
+/* desktop: the room is a centered phone-shaped stage, not a right-shoved ribbon */
+@media(min-width:720px){
+  [data-view="panel"].lc-room{width:520px;min-height:0;height:min(100dvh - 24px,920px);
+    margin:12px auto;border-radius:26px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+}
 .hostctl{display:flex;align-items:center;gap:5px;padding:0}
 .is-host .chair.is-filled .hostctl{position:absolute;left:6px;right:6px;bottom:6px;z-index:6}
 .hostctl__pass,.hostctl__keep{min-height:40px;width:44px;flex:none;border:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;line-height:1;backdrop-filter:blur(8px);font-size:15px}
@@ -1765,7 +1782,7 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0805.1610</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0805.1621</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -2035,7 +2052,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0805.1610"); }catch(e){}
+try{ console.log("[lastcall] build b0805.1621"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----

@@ -388,6 +388,14 @@
 /* an unnamed host (name not loaded yet) must not leave an empty pink pill */
 #room .chair.is-host.is-unnamed .chair__name{ display:none; }
 
+/* her heart chip — upper-left of her box, same skin as the suitor chips */
+#room .chair.is-host .chair__hearts{
+  position:absolute; top:8px; left:8px; z-index:3;
+}
+
+/* the report modal must survive short phones: box scrolls, cancel reachable */
+.modal .mbox{ max-height:min(84dvh, 620px); overflow-y:auto; }
+
 /* muted "nobody here" text — still emitted by the report sheet */
 #room .emptyrole{ font-size:11px; color:rgba(214,205,255,.6); }
 
@@ -727,7 +735,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0805.2223</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0805.2249</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -787,7 +795,6 @@
       <div class="lc-rail">
         <button class="lc-safebtn" id="rt_safebtn" title="Report a problem" aria-label="Report a problem">🛡</button>
         <button id="rt_giftbtn" title="Send a gift" aria-label="Send a gift">🎁</button>
-        <button class="lc-rail__hearts" id="rt_heartbtn" aria-label="Hearts">♥<span id="rt_hearttotal">0</span></button>
       </div>
 
       <!-- PLAYING SURFACE — her cell + three chairs, never a fifth -->
@@ -796,6 +803,10 @@
         <div class="chair is-host" id="hero_chair">
           <div class="chair__feed" id="rt_hero">
             <div class="vid" id="rt_vid"></div>
+            <!-- Owner decision (Nick, 8/5): her heart total lives ON her box,
+                 like every suitor's — the rail counter is gone.  The crowd
+                 hearts her by tapping her tile. -->
+            <span class="chip chair__hearts lc-over-video" id="rt_hostheartchip"><span class="chair__hearts-h">♥</span><span class="chair__hearts-n" id="rt_hostheartn">0</span></span>
             <div class="chair__sil" aria-hidden="true"><i class="chair__sil-head"></i><i class="chair__sil-body"></i></div>
             <div class="reactlayer" id="rt_reactlayer"></div>
             <div class="chair__tag hostbadge" id="rt_hostbadge">HOST</div>
@@ -1734,6 +1745,10 @@ function renderRoom(){
     if(hp?.display_name){ hostEl.textContent=hp.display_name; $("rt_title").textContent=hp.display_name+"'s Room"; }
   }
   const badge=$("rt_hostbadge"); if(badge) badge.style.display="";   // everyone sees whose room it is
+  // her heart chip: same live selector every other cell uses
+  const hh=$("rt_hostheartchip");
+  if(hh && CURRENT_ROOM){ hh.dataset.hearts=CURRENT_ROOM.host_id;
+    setText($("rt_hostheartn"), String(HEARTS[CURRENT_ROOM.host_id]||0)); }
   // no name yet -> no empty plaque
   const heroCell=$("hero_chair");
   if(heroCell) heroCell.classList.toggle("is-unnamed", !(hostEl && hostEl.textContent.trim()));
@@ -1754,7 +1769,6 @@ function renderRoom(){
   root.classList.remove("is-empty");   // panel: an empty chair is a cell, never a strip
 
   const total=Object.values(HEARTS||{}).reduce((a,b)=>a+(+b||0),0);
-  const ht=$("rt_hearttotal"); if(ht) ht.textContent=total;
   updateJoinBtn();
 }
 
@@ -1801,7 +1815,7 @@ function startClockTick(){
         else { t.textContent=fmtClock(s); el.classList.toggle("low",s<=10); }
       }
       // host drives expiry: when time's up, drop them to spectator (once)
-      if(AMHOST && !preshowHold && s<=0 && !TIMING_OUT[c.user_id]){
+      if(AMHOST && !preshowHold && s<=-2 && !TIMING_OUT[c.user_id]){
         TIMING_OUT[c.user_id]=true;
         sb.rpc("timeout_member",{room_id:CURRENT_ROOM.id,user_id:c.user_id}).then(({error})=>{
           if(error) console.log("timeout:",error.message);
@@ -2303,9 +2317,14 @@ egWireDecision();
       }
     });
   }
-  // rail heart: heart the host
-  const hb=$("rt_heartbtn");
-  if(hb) hb.onclick=(ev)=>{ if(CURRENT_ROOM) sendHeart(CURRENT_ROOM.host_id, ev.clientX, ev.clientY); };
+  // her tile IS the heart button now (owner decision): the crowd hearts her
+  // where they heart everyone else — on the box.  Her own tap opens the drawer.
+  const hero=$("hero_chair");
+  if(hero) hero.onclick=(ev)=>{
+    if(!CURRENT_ROOM) return;
+    if(AMHOST){ if(EG_ON && typeof egOpenDrawer==="function") egOpenDrawer(null); return; }
+    sendHeart(CURRENT_ROOM.host_id, ev.clientX, ev.clientY);
+  };
   // flush any prefs stashed before the DB migration existed (fire-and-forget)
   try{
     const pend=JSON.parse(localStorage.getItem("lc_prefs_pending")||"null");
@@ -2324,8 +2343,10 @@ $("rt_safebtn").onclick=()=>{
     .concat(ROOM_STATE.members.filter(m=>m.user_id!==ME.id)
       .map(m=>({user_id:m.user_id, nm:(ROOM_STATE.profs[m.user_id]?.display_name||"someone")})))
     .filter(p=>p.user_id!==ME.id);
+  document.getElementById("reportmodal")?.remove();   // never stack two
   const overlay=document.createElement("div");
   overlay.className="modal show"; overlay.id="reportmodal";
+  overlay.addEventListener("click",(e)=>{ if(e.target===overlay) overlay.remove(); });
   overlay.innerHTML=`<div class="mbox"><h3>Report a problem</h3>
     <div style="font-size:13px;color:var(--dim);margin-bottom:10px">Reporting someone also blocks them for you.</div>
     <div id="rp_who">${people.map(p=>`<button class="fbtn ghost" data-uid="${p.user_id}" style="display:block;width:100%;margin:4px 0">${escapeHtml(p.nm)}</button>`).join("")||'<div class="emptyrole">nobody else here</div>'}</div>
@@ -2909,6 +2930,7 @@ $("roomback").onclick=()=>{
 };
 async function leaveRoom(){
   const leaving=CURRENT_ROOM;
+  document.getElementById("reportmodal")?.remove();   // room UI must not outlive the room
   stopHeartbeat(); stopClockTick(); stopHostPoll();
   await videoLeave();
   if(ROOM_CHANNEL){ sb.removeChannel(ROOM_CHANNEL); ROOM_CHANNEL=null; }

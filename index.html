@@ -704,7 +704,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0805.2049</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0805.2108</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -2260,15 +2260,18 @@ egWireDecision();
 (function(){
   const room=$("room"); if(!room) return;
   const vv=window.visualViewport;
-  if(vv){
-    const sync=()=>document.documentElement.style.setProperty('--lc-kb',
-      Math.max(0, innerHeight - vv.height - vv.offsetTop) + 'px');
-    vv.addEventListener('resize',sync); vv.addEventListener('scroll',sync); sync();
-  }
   const inp=$("rt_chatinput");
+  const kbInset=()=> vv ? Math.max(0, Math.round(innerHeight - vv.height*vv.scale - vv.offsetTop)) : 0;
+  const sync=()=>{
+    const k=kbInset();
+    document.documentElement.style.setProperty('--lc-kb', k+'px');
+    // engage only for a real keyboard while typing — zoom artifacts stay under 60px
+    room.classList.toggle('kb-open', k>60 && document.activeElement===inp);
+  };
+  if(vv){ vv.addEventListener('resize',sync); vv.addEventListener('scroll',sync); sync(); }
   if(inp){
-    inp.addEventListener('focus',()=>room.classList.add('kb-open'));
-    inp.addEventListener('blur',()=>room.classList.remove('kb-open'));
+    inp.addEventListener('focus',sync);
+    inp.addEventListener('blur',()=>{ room.classList.remove('kb-open'); sync(); });
     inp.addEventListener('keydown',(e)=>{
       if(e.key==='Enter'){
         e.preventDefault();

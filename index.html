@@ -73,7 +73,11 @@
 .lc-top{
   position:relative; z-index:3;
   display:flex; flex-wrap:nowrap; align-items:center; gap:7px;
-  padding:max(52px, calc(env(safe-area-inset-top,0px) + 14px)) 12px 8px;
+  /* 14px + the real notch inset.  Safari browsing: inset 0 -> 14px (was a 52px
+     floor -> ~38px reclaimed for chat).  Standalone / Capacitor: the true
+     safe-area applies.  --lc-statusbar exists so the pixel harness can reproduce
+     the mock's 52px status-bar allowance. */
+  padding:calc(14px + var(--lc-statusbar, env(safe-area-inset-top, 0px))) 12px 8px;
   overflow:hidden;
 }
 .lc-top__mark{
@@ -541,7 +545,9 @@
   background:linear-gradient(180deg,#3a2f18,#1a1508);
 }
 #lineitems.is-blind .lc-lane:not(.is-empty) .lc-lane__sil{ display:block; }
-#lineitems.is-blind .lc-lane__name{ display:none; }
+/* Owner decision (Nick, 8/5): the blind bench shows NAMES.  The handoff
+   authored nameless silhouettes, but "blind" here means she never sees FACES —
+   the name stays so she knows who she's promoting.  Faces remain hidden. */
 
 /* ============================================================================
    CHAT + COMPOSER — chat is the ONLY flexible child of this column.
@@ -639,14 +645,31 @@
    top bar's left gutter, 44px target, quiet until pressed. */
 #room .lc-top{ position:relative; }
 #room .lc-top__back{
-  position:absolute; left:2px; top:50%; transform:translateY(-50%);
-  width:44px; height:44px; z-index:5;
+  /* first flex item on the wordmark row — "slide it over to the left side of
+     LAST CALL" (owner request).  44px hit target, glyph pulled tight with
+     negative margins so the wordmark shifts as little as possible. */
+  position:static; order:-1; flex:0 0 auto;
+  /* 44px hit target; vertical margins swallow the overflow so the bar keeps
+     its mock height (the row is ~28px — a full 44px child grew it and shifted
+     the whole page down 15px) */
+  width:44px; height:44px; margin:-10px -12px -10px -10px; z-index:5;
   display:flex; align-items:center; justify-content:center;
   background:none; border:none; cursor:pointer;
   font-family:Archivo,sans-serif; font-weight:800; font-size:22px; line-height:1;
   color:rgba(255,214,233,.55); padding:0;
 }
 #room .lc-top__back:active{ color:#ff2d8f; }
+
+/* ---- short viewports (mobile browser chrome) -----------------------------
+   The mock is authored at 390x844; Safari's bars leave ~715px.  Fixed cells ate
+   the difference out of chat (one visible line) and pushed the rail onto the
+   bench.  Below 800px of height the cells and bench give ground so chat keeps
+   5-6 lines and the rail fits its gutter.  844px devices are untouched. */
+@media (max-height:799px){
+  #room.lc-room{ --cell-h:136px; --bench-h:88px; }
+  #room.is-spotlight .chair.is-target .chair__feed{ height:241px; }
+  #room .lc-rail{ gap:8px; bottom:72px; }
+}
 
 /* ---- reduced motion ------------------------------------------------------ */
 @keyframes mic{ 0%,100%{opacity:1;transform:scaleY(1)} 50%{opacity:.55;transform:scaleY(.5)} }
@@ -704,7 +727,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0805.2108</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0805.2223</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->

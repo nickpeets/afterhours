@@ -105,7 +105,7 @@ main{flex:1;overflow-y:auto;position:relative}
 
 /* ===== LAST CALL room shell (Rev 2 graft) — compat layer ===== */
 #room.lc-room{display:none;z-index:60}
-#room.lc-room.show{display:block}
+#room.lc-room.show{display:flex;flex-direction:column}
 /* the app header steps aside while the show is on */
 #app:has(#room.show) header{display:none}
 /* chairs are PiP cards, not a wall — keep her face clear on phones */
@@ -1619,11 +1619,7 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
 [data-view="panel"] .lc-rail{top:auto;bottom:calc(var(--lc-safe-b,0px) + 150px)}
 /* the title stays dark in-room no matter who tries to show it */
 .lc-room #rt_title{display:none !important}
-/* desktop: the room is a centered phone-shaped stage, not a right-shoved ribbon */
-@media(min-width:720px){
-  [data-view="panel"].lc-room{width:520px;min-height:0;height:min(100dvh - 24px,920px);
-    margin:12px auto;border-radius:26px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.6)}
-}
+
 .hostctl{display:flex;align-items:center;gap:5px;padding:0}
 .is-host .chair.is-filled .hostctl{position:absolute;left:6px;right:6px;bottom:6px;z-index:6}
 .hostctl__pass,.hostctl__keep{min-height:40px;width:44px;flex:none;border:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;line-height:1;backdrop-filter:blur(8px);font-size:15px}
@@ -1782,7 +1778,7 @@ html:not([data-radius-filter="on"]) .lc-within { display: none; }
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0805.1621</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0805.1632</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -2052,7 +2048,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0805.1621"); }catch(e){}
+try{ console.log("[lastcall] build b0805.1632"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----

@@ -388,6 +388,10 @@
 /* an unnamed host (name not loaded yet) must not leave an empty pink pill */
 #room .chair.is-host.is-unnamed .chair__name{ display:none; }
 
+/* NO TIMER ON THE CHAIRS (owner rule, 8/5): pacing lives in the top pill.
+   The engine's big answer clock on the spotlight target is separate and stays. */
+#room .chair .cclock{ display:none !important; }
+
 /* her heart chip — upper-left of her box, same skin as the suitor chips */
 #room .chair.is-host .chair__hearts{
   position:absolute; top:8px; left:8px; z-index:3;
@@ -679,6 +683,10 @@
   #room .lc-rail{ gap:8px; bottom:72px; }
 }
 
+/* owner directive (8/5): while the engine runs, pacing is the SHOW's — the
+   chairs' corner clocks go dark; the top pill carries the section timer. */
+#room.eg-on .chair .cclock{ display:none; }
+
 /* ---- reduced motion ------------------------------------------------------ */
 @keyframes mic{ 0%,100%{opacity:1;transform:scaleY(1)} 50%{opacity:.55;transform:scaleY(.5)} }
 @keyframes lc-lane-surge{   /* legacy ships a dead lc-surge that reads an undefined --lane-soft; do not collide with it */
@@ -735,7 +743,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0245</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0306</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1495,8 +1503,13 @@ async function openRoom(r){
   $("rt_joinline").style.display=AMHOST?"none":"block";
   $("rt_endshow").style.display=AMHOST?"block":"none";
 
-  const {data:hp}=await sb.from("profiles").select("*").eq("id",r.host_id).single();
-  HOST_PROFILE=hp;
+  const {data:hp,error:hpe}=await sb.from("profiles").select("*").eq("id",r.host_id).single();
+  if(hp){ HOST_PROFILE=hp; window.__PROFS_EVER=window.__PROFS_EVER||{}; window.__PROFS_EVER[hp.id]=hp; }
+  else if(!HOST_PROFILE && (window.__PROFS_EVER||{})[r.host_id]){ HOST_PROFILE=window.__PROFS_EVER[r.host_id]; }
+  if(hpe && !window.__HP_RETRY){ window.__HP_RETRY=true;
+    setTimeout(async()=>{ window.__HP_RETRY=false;
+      try{ const {data:h2}=await sb.from("profiles").select("*").eq("id",r.host_id).single();
+           if(h2){ HOST_PROFILE=h2; renderRoom(); } }catch(e){} }, 900); }
 
   if(!AMHOST){
     const {error:je}=await sb.rpc("join_room",{room_id:r.id});
@@ -1725,13 +1738,22 @@ function renderRoom(){
     // through open floor.  Only the phases that TAKE OVER the room name
     // themselves (spotlight, promotion, her call) replace it.
     let label = round ? ("R"+round+" "+dots(round)) : "WARMING UP";
+    // owner directive (8/5): the SECTION timer lives in this pill — the chairs'
+    // corner clocks go dark while the engine runs (pacing belongs to the show)
+    let secLeft=null;
+    if(EG_ON && CURRENT_ROOM?.phase_deadline){
+      secLeft=Math.max(0,Math.round((new Date(CURRENT_ROOM.phase_deadline).getTime()-(typeof serverNow==="function"?serverNow():Date.now()))/1000));
+    }
     if(phase==="preshow") label="WARMING UP";
     else if(phase==="showstart") label="SHOW START";
     else if(phase==="spotlight") label="SPOTLIGHT";
     else if(phase==="deliberation") label="DELIBERATING";
     else if(phase==="deciding") label="HER CALL";
     if(promo) label="PROMOTING";
-    chip.textContent=label;
+    // the pill owns the SECTION TIMER too (owner rule 8/5): the tick composes
+    // "M:SS · LABEL" from this dataset; chairs carry no clock at all
+    chip.textContent = (secLeft!=null ? (fmtClock(secLeft)+" · ") : "") + label;
+    chip.dataset.seclabel = label;   // the 1s tick re-derives from this
   }
 
   /* ---- handlers (elements are static, so assignment is idempotent) ------ */
@@ -1854,6 +1876,15 @@ function startClockTick(){
   stopClockTick();
   CLOCK_TICK=setInterval(()=>{
     if(!CURRENT_ROOM) return;   // left the room; a stale tick must not fire RPCs
+    // the pill's section timer: label from renderRoom, countdown from the engine
+    try{
+      const ph=$("rt_phase");
+      if(ph && ph.dataset.seclabel){
+        const dl=CURRENT_ROOM.phase_deadline ? Date.parse(CURRENT_ROOM.phase_deadline) : 0;
+        const left=dl ? Math.max(0, Math.round((dl - serverNow())/1000)) : 0;
+        ph.textContent = (EG_ON && dl && left>0) ? (fmtClock(left)+" · "+ph.dataset.seclabel) : ph.dataset.seclabel;
+      }
+    }catch(e){}
     // engine preshow: seats are safe until the show starts — clocks read ⏸
     const preshowHold = EG_ON && egRoomPhase(CURRENT_ROOM)!==null;   // ANY engine phase: the engine owns pacing
     ROOM_STATE.members.filter(m=>m.role==="chair").forEach(c=>{
@@ -1934,6 +1965,22 @@ function startHostPoll(){
   HOST_LAST_SEEN=Date.now();  // grace period from entry
   HOST_POLL=setInterval(async()=>{
     if(!CURRENT_ROOM) return;
+    if(AMHOST && EG_ON && CURRENT_ROOM){
+      const ph=egRoomPhase(CURRENT_ROOM);
+      const seatedNow=ROOM_STATE.members.some(m=>m.role==="chair"||m.role==="kept");
+      if(ph && ph!=="preshow" && !seatedNow){
+        window.__EMPTY_TICKS=(window.__EMPTY_TICKS||0)+1;
+        if(window.__EMPTY_TICKS>=2){
+          window.__EMPTY_TICKS=0;
+          try{
+            await sb.from("rooms").update({phase:"preshow",round:0,spotlight_target:null,phase_deadline:null})
+              .eq("id",CURRENT_ROOM.id).eq("host_id",ME.id);
+            toast("The stage emptied — back to warm-up 🌙");
+            await egRefreshRoom();
+          }catch(e){}
+        }
+      } else { window.__EMPTY_TICKS=0; }
+    }
     if(AMHOST){
       // sweep stale (abandoned) members to 'gone' before reading, so ghosts
       // don't inflate the roster. safe to call repeatedly; no-op if none stale.
@@ -2538,7 +2585,8 @@ function handleEvent(ev){
         HEARTS[p.target]=(HEARTS[p.target]||0)+1;
         paintHearts(p.target);
         // and make it FELT: a heart floats off the target's chair for everyone
-        const tile=$("rt_chairs")?.querySelector(`[data-heartuid="${p.target}"]`);
+        const tile=$("rt_chairs")?.querySelector(`[data-heartuid="${p.target}"]`)
+                || document.querySelector(`#lineitems .lc-lane[data-benchuid="${p.target}"]`);
         if(tile){ const r=tile.getBoundingClientRect(); flyAt("❤️", r.left+r.width/2+(Math.random()*30-15), r.top+14); }
         if(p.target===ME.id) toast("Someone hearted you ❤️");
       }
@@ -3018,6 +3066,8 @@ $("roomback").onclick=()=>{
 async function leaveRoom(){
   const leaving=CURRENT_ROOM;
   document.getElementById("reportmodal")?.remove();   // room UI must not outlive the room
+  try{ $("rt_gifts").classList.remove("show"); }catch(e){}
+  try{ ["eg_drawer","eg_decide","eg_question","eg_showstart","eg_drumroll"].forEach(id=>{ const el=$(id); if(el) el.style.display="none"; }); }catch(e){}
   stopHeartbeat(); stopClockTick(); stopHostPoll();
   await videoLeave();
   if(ROOM_CHANNEL){ sb.removeChannel(ROOM_CHANNEL); ROOM_CHANNEL=null; }

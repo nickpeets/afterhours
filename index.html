@@ -685,7 +685,36 @@
 
 /* owner directive (8/5): while the engine runs, pacing is the SHOW's — the
    chairs' corner clocks go dark; the top pill carries the section timer. */
-#room.eg-on .chair .cclock{ display:none; }
+/* UNCONDITIONAL (owner, 8/5 "I thought we got rid of chair timers"): no chair
+   carries a clock, engine or not.  Pacing is the section pill's job, always. */
+#room .chair .cclock{ display:none; }
+
+/* ---- "A CHAIR IS OPEN" over the bench ------------------------------------
+   Laid across the empty seats it is talking about — HEY, SIT HERE — instead of
+   a panel stranded under the chat.  JS parents it into #rt_line_block and adds
+   .lc-draft--over; flipping LC_DRAFT_OVERLAY to false restores the original. */
+#lineitems{ position:relative; }
+#room .lc-draft--over{
+  position:absolute; inset:-4px -2px; z-index:6; margin:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:6px; padding:10px 12px;
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(255,45,143,.22), rgba(6,8,24,.86));
+  border:1.5px solid rgba(255,45,143,.75);
+  box-shadow:0 0 30px rgba(255,45,143,.45), inset 0 0 40px rgba(255,45,143,.1);
+  backdrop-filter:blur(9px); text-align:center;
+  animation:lc-sithere 2.6s ease-in-out infinite;
+}
+#room .lc-draft--over .lc-draft__head{ justify-content:center; font-size:15px; }
+#room .lc-draft--over .lc-draft__clock{ font-size:30px; }
+#room .lc-draft--over .lc-draft__foot{ justify-content:center; gap:12px; }
+@keyframes lc-sithere{
+  0%,100%{ box-shadow:0 0 26px rgba(255,45,143,.38), inset 0 0 40px rgba(255,45,143,.08); }
+  50%    { box-shadow:0 0 44px rgba(255,45,143,.7),  inset 0 0 50px rgba(255,45,143,.16); }
+}
+/* she is not joining her own line — the call-out is for the room, not the host */
+#room.is-host .lc-draft{ display:none !important; }
+@media (prefers-reduced-motion:reduce){ #room .lc-draft--over{ animation:none; } }
 
 /* ---- reduced motion ------------------------------------------------------ */
 @keyframes mic{ 0%,100%{opacity:1;transform:scaleY(1)} 50%{opacity:.55;transform:scaleY(.5)} }
@@ -743,7 +772,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0306</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0347</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1519,6 +1548,7 @@ async function openRoom(r){
   await loadRoomState();
   await loadEventHistory();
   seedHearts();          // shared ledger LAST — overwrites the replay increments
+  lcMountDraft();        // the open-chair call-out lives over the bench
   renderGiftTray();
   subscribeRoom(r.id);
   startHeartbeat();
@@ -1740,10 +1770,7 @@ function renderRoom(){
     let label = round ? ("R"+round+" "+dots(round)) : "WARMING UP";
     // owner directive (8/5): the SECTION timer lives in this pill — the chairs'
     // corner clocks go dark while the engine runs (pacing belongs to the show)
-    let secLeft=null;
-    if(EG_ON && CURRENT_ROOM?.phase_deadline){
-      secLeft=Math.max(0,Math.round((new Date(CURRENT_ROOM.phase_deadline).getTime()-(typeof serverNow==="function"?serverNow():Date.now()))/1000));
-    }
+    let secLeft = (EG_ON && typeof lcSectionLeft==="function") ? lcSectionLeft() : null;
     if(phase==="preshow") label="WARMING UP";
     else if(phase==="showstart") label="SHOW START";
     else if(phase==="spotlight") label="SPOTLIGHT";
@@ -1800,6 +1827,15 @@ function renderRoom(){
   if(EG_ON===false && CURRENT_ROOM && typeof CURRENT_ROOM.phase==="string") EG_ON=true;
   if(AMHOST && EG_ON && egRoomPhase(CURRENT_ROOM)==="preshow" && chairs.filter(c=>c.role==="chair").length>=3){
     sb.rpc("start_show",{room_id:CURRENT_ROOM.id}).then(()=>egRefreshRoom()).catch(()=>{});
+  }
+  // the splash is a beat, not a resting place: after ~6s the host walks the
+  // room into SPOTLIGHT (choosing), where she can actually ask
+  if(AMHOST && EG_ON && egRoomPhase(CURRENT_ROOM)==="showstart" && !window.__SPLASH_ADV){
+    window.__SPLASH_ADV=true;
+    setTimeout(()=>{ window.__SPLASH_ADV=false;
+      if(AMHOST && CURRENT_ROOM && egRoomPhase(CURRENT_ROOM)==="showstart")
+        sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}).then(()=>egRefreshRoom()).catch(()=>{});
+    },6000);
   }
 
   // host name backfill
@@ -1880,9 +1916,8 @@ function startClockTick(){
     try{
       const ph=$("rt_phase");
       if(ph && ph.dataset.seclabel){
-        const dl=CURRENT_ROOM.phase_deadline ? Date.parse(CURRENT_ROOM.phase_deadline) : 0;
-        const left=dl ? Math.max(0, Math.round((dl - serverNow())/1000)) : 0;
-        ph.textContent = (EG_ON && dl && left>0) ? (fmtClock(left)+" · "+ph.dataset.seclabel) : ph.dataset.seclabel;
+        const left=lcSectionLeft();
+        ph.textContent = (EG_ON && left!=null) ? (fmtClock(left)+" · "+ph.dataset.seclabel) : ph.dataset.seclabel;
       }
     }catch(e){}
     // engine preshow: seats are safe until the show starts — clocks read ⏸
@@ -1896,7 +1931,7 @@ function startClockTick(){
         else { t.textContent=fmtClock(s); el.classList.toggle("low",s<=10); }
       }
       // host drives expiry: when time's up, drop them to spectator (once)
-      if(AMHOST && !preshowHold && s<=-2 && !TIMING_OUT[c.user_id]){
+      if(false && AMHOST && !preshowHold && s<=-2 && !TIMING_OUT[c.user_id]){   // retired with the chair clocks (owner, 8/5)
         TIMING_OUT[c.user_id]=true;
         sb.rpc("timeout_member",{room_id:CURRENT_ROOM.id,user_id:c.user_id}).then(({error})=>{
           if(error) console.log("timeout:",error.message);
@@ -2099,8 +2134,32 @@ $("rt_giftbtn").onclick=()=>$("rt_gifts").classList.toggle("show");
    ===================================================================== */
 let EG_ON=false, EG_PHASE=null, EG_DEADLINE=0, EG_TICK=null, EG_ADV_LOCK=0, EG_ROOM_ID=null;
 let EG_DECKS=null, EG_PICKQ=null, EG_PICKTARGET=null, EG_DECIDE_MODE=null;
+/* --- bench-overlay toggle: set to false to restore the old bottom panel --- */
+const LC_DRAFT_OVERLAY = true;
+function lcMountDraft(){
+  if(!LC_DRAFT_OVERLAY) return;
+  const d=$("eg_draft"), bench=$("lineitems");   // the LANES, not the header
+  if(d && bench && d.parentElement!==bench){ bench.appendChild(d); d.classList.add("lc-draft--over"); }
+}
 let EG_DRAFT=null, EG_TALLYPOLL=null, EG_MYHEARTS=0;
 
+// section lengths from the pacing spec (Nick, 8/5) — used when the server
+// sends no phase_deadline, so the pill always carries a countdown
+const LC_SECTION_SECS={showstart:6,spotlight:30,openfloor:45,mingle:45,deliberation:60,deciding:60};
+function lcSectionLeft(){
+  if(!CURRENT_ROOM) return null;
+  const ph=egRoomPhase(CURRENT_ROOM);
+  if(!ph || ph==="preshow") return null;
+  if(CURRENT_ROOM.phase_deadline){
+    const dl=Date.parse(CURRENT_ROOM.phase_deadline);
+    if(dl) return Math.max(0,Math.round((dl-serverNow())/1000));
+  }
+  const total=LC_SECTION_SECS[ph]; if(!total) return null;
+  window.__PH_SEEN=window.__PH_SEEN||{};
+  const key=ph+":"+(CURRENT_ROOM.round||0)+":"+(CURRENT_ROOM.spotlight_target||"");
+  if(!window.__PH_SEEN[key]){ window.__PH_SEEN={}; window.__PH_SEEN[key]=Date.now(); }
+  return Math.max(0,total-Math.round((Date.now()-window.__PH_SEEN[key])/1000));
+}
 function egRoomPhase(r){ return (r && typeof r.phase==="string") ? r.phase : null; }
 
 async function egRefreshRoom(){
@@ -2223,8 +2282,23 @@ async function egPickQuestion(qid){
   egFireSpotlight();
 }
 async function egFireSpotlight(){
-  const {error}=await sb.rpc("ask_question",{room_id:CURRENT_ROOM.id,question_id:EG_PICKQ,target:EG_PICKTARGET});
+  // she must have a subject: default to the chair that has answered least
+  if(!EG_PICKTARGET){
+    const chairs=ROOM_STATE.members.filter(m=>m.role==="chair"||m.role==="kept")
+      .sort((a,b)=>(a.seat_index??0)-(b.seat_index??0));
+    if(!chairs.length){ toast("Nobody's in a chair yet."); return; }
+    const asked=window.__ASKED_THIS_ROUND||{};
+    EG_PICKTARGET=(chairs.find(c=>!asked[c.user_id])||chairs[0]).user_id;
+  }
+  let {error}=await sb.rpc("ask_question",{room_id:CURRENT_ROOM.id,question_id:EG_PICKQ,target:EG_PICKTARGET});
+  if(error && /spotlight|phase/i.test(error.message||"")){
+    // the room is still on the splash — walk it into the choosing state and retry
+    try{ await sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}); }catch(e){}
+    ({error}=await sb.rpc("ask_question",{room_id:CURRENT_ROOM.id,question_id:EG_PICKQ,target:EG_PICKTARGET}));
+  }
   if(error){ toast("Couldn't ask: "+error.message); return; }
+  window.__ASKED_THIS_ROUND=window.__ASKED_THIS_ROUND||{};
+  window.__ASKED_THIS_ROUND[EG_PICKTARGET]=true;
   egCloseDrawer(); EG_PICKQ=null; EG_PICKTARGET=null;
   egRefreshRoom();
 }

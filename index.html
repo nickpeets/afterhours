@@ -735,7 +735,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0222</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0245</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1522,10 +1522,18 @@ async function loadRoomState(){
   if(error){console.log("active_members:",error.message);return;}
   const present=(members||[]).filter(m=>m.user_id!==CURRENT_ROOM.host_id && m.role!=="gone");
   const uids=[...new Set(present.map(m=>m.user_id))];
+  window.__PROFS_EVER = window.__PROFS_EVER || {};
   let profs={};
   if(uids.length){
-    const {data:pl}=await sb.from("profiles").select("id,display_name,face_json").in("id",uids);
-    (pl||[]).forEach(p=>profs[p.id]=p);
+    const {data:pl,error:perr}=await sb.from("profiles").select("id,display_name,face_json").in("id",uids);
+    (pl||[]).forEach(p=>{ profs[p.id]=p; window.__PROFS_EVER[p.id]=p; });
+    // a name once known is never forgotten: fill gaps from the ever-cache
+    uids.forEach(u=>{ if(!profs[u] && window.__PROFS_EVER[u]) profs[u]=window.__PROFS_EVER[u]; });
+    // transient failure or genuinely-missing rows: one delayed retry
+    if((perr || uids.some(u=>!profs[u])) && !window.__PROFS_RETRY){
+      window.__PROFS_RETRY=true;
+      setTimeout(()=>{ window.__PROFS_RETRY=false; loadRoomState(); }, 900);
+    }
   }
   ROOM_STATE={members:present,profs};
   renderRoom();
@@ -1803,6 +1811,11 @@ function renderRoom(){
   // so a vacated target never leaves the double-height ghost layout behind
   const effPhase = (phase==="spotlight" && !spotTarget) ? "openfloor" : phase;
   if(effPhase && PHASE_CLS[effPhase]) root.classList.add(PHASE_CLS[effPhase]);
+  // "she's heard enough" is re-gated on EVERY render: the roster can empty
+  // between phase refreshes, and a skip with nobody seated is a lie
+  { const sk=document.getElementById("eg_skip");
+    if(sk){ const anySeated=ROOM_STATE.members.some(m=>m.role==="chair"||m.role==="kept");
+      if(!(AMHOST && anySeated && ["showstart","spotlight","openfloor","deliberation"].includes(phase||""))) sk.style.display="none"; } }
   root.classList.remove("is-empty");   // panel: an empty chair is a cell, never a strip
 
   const total=Object.values(HEARTS||{}).reduce((a,b)=>a+(+b||0),0);
@@ -1940,6 +1953,8 @@ function startHostPoll(){
         }
       }catch(e){ window.__SEATING_SHOW=false; }
     }
+    // presence rides the poll itself: a running client is a live client
+    if(!AMHOST) sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id}).then(()=>{},()=>{});
     // non-hosts: if the host has vanished from the video call for ~80s while the
     // room still claims to be live, call it — the show can't outlive its host.
     if(!AMHOST && DAILY && DAILY_JOINED){

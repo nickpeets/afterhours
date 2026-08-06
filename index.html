@@ -1018,7 +1018,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.2255</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.2343</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -2373,7 +2373,7 @@ function startHeartbeat(){
   stopHeartbeat();
   if(AMHOST) return; // host has no membership row to beat
   sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id});
-  HEARTBEAT=setInterval(()=>{ if(CURRENT_ROOM) sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id}); },15000);
+  HEARTBEAT=setInterval(()=>{ if(CURRENT_ROOM) sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id}); },8000);   // 45s sweep window / 8s = 5 beats of margin
 }
 function stopHeartbeat(){ if(HEARTBEAT){clearInterval(HEARTBEAT);HEARTBEAT=null;} }
 
@@ -2398,10 +2398,25 @@ document.addEventListener("visibilitychange",()=>{
     // came back — refresh presence + roster (delivery kept flowing since the
     // membership row survives tab-hide now)
     LEFT_ON_UNLOAD=false;
-    // the membership row SURVIVED the hide — re-joining would reset our role
-    // (bench -> spectator).  Presence is a heartbeat, not a re-entry.
-    sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id});
-    loadRoomState();
+    // beat first: if we were only briefly away this is all that is needed and
+    // our role is preserved (re-joining would reset bench -> spectator)
+    sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id}).then(async()=>{
+      await loadRoomState();
+      // ...but if the 45s sweep already marked us 'gone', a heartbeat cannot
+      // resurrect us: the row is excluded from every roster.  Re-enter.
+      try{
+        const mine=(ROOM_STATE.members||[]).find(m=>m.user_id===ME.id);
+        if(!mine && CURRENT_ROOM){
+          // the swept row still EXISTS marked 'gone', so join_room may no-op on
+          // it.  Clear it first — this works whatever the server's upsert does.
+          try{ await sb.rpc("leave_room",{room_id:CURRENT_ROOM.id}); }catch(e){}
+          await sb.rpc("join_room",{room_id:CURRENT_ROOM.id});
+          await sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id});
+          await loadRoomState();
+          toast("Welcome back \u2014 you're in the room \ud83c\udf78");
+        }
+      }catch(e){}
+    },()=>{});
   } else if(document.visibilityState==="hidden" && CURRENT_ROOM && !AMHOST){
     // keep presence alive while backgrounded (intervals get throttled)
     sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id});

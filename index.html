@@ -716,6 +716,17 @@
 #room.is-host .lc-draft{ display:none !important; }
 @media (prefers-reduced-motion:reduce){ #room .lc-draft--over{ animation:none; } }
 
+/* the section is ending — the pill pulses so the room feels the beat */
+@keyframes lc-ending{
+  0%,100%{ background:rgba(255,45,143,.18); border-color:rgba(255,45,143,.55); color:#fff; }
+  50%    { background:rgba(255,45,143,.42); border-color:#ff2d8f; color:#fff;
+           box-shadow:0 0 20px rgba(255,45,143,.75); }
+}
+#room .lc-phasechip.is-ending{ animation:lc-ending 1s steps(2,end) infinite; }
+@media (prefers-reduced-motion:reduce){
+  #room .lc-phasechip.is-ending{ animation:none; background:rgba(255,45,143,.34); border-color:#ff2d8f; }
+}
+
 /* ---- reduced motion ------------------------------------------------------ */
 @keyframes mic{ 0%,100%{opacity:1;transform:scaleY(1)} 50%{opacity:.55;transform:scaleY(.5)} }
 @keyframes lc-lane-surge{   /* legacy ships a dead lc-surge that reads an undefined --lane-soft; do not collide with it */
@@ -772,7 +783,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0347</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0435</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1918,10 +1929,34 @@ function startClockTick(){
       if(ph && ph.dataset.seclabel){
         const left=lcSectionLeft();
         ph.textContent = (EG_ON && left!=null) ? (fmtClock(left)+" · "+ph.dataset.seclabel) : ph.dataset.seclabel;
+        ph.classList.toggle("is-ending", EG_ON && left!=null && left<=10);
       }
     }catch(e){}
     // engine preshow: seats are safe until the show starts — clocks read ⏸
     const preshowHold = EG_ON && egRoomPhase(CURRENT_ROOM)!==null;   // ANY engine phase: the engine owns pacing
+    // choosing clock expired with no question asked -> the house picks one
+    try{
+      if(AMHOST && EG_ON && CURRENT_ROOM && egRoomPhase(CURRENT_ROOM)==="spotlight"
+         && !CURRENT_ROOM.spotlight_target && !window.__AUTOQ){
+        const left=(typeof lcSectionLeft==="function") ? lcSectionLeft() : null;
+        if(left!=null && left<=0){
+          window.__AUTOQ=true;
+          (async()=>{
+            try{
+              if(!EG_DECKS){ const {data}=await sb.from("questions").select("id,text").limit(60); EG_DECKS=EG_DECKS||null; window.__QPOOL=data||[]; }
+              const pool=window.__QPOOL||[];
+              if(pool.length){
+                EG_PICKQ=pool[Math.floor(Math.random()*pool.length)].id;
+                EG_PICKTARGET=null;                 // egFireSpotlight picks the unasked chair
+                toast("Time's up — the house picks 🎲");
+                await egFireSpotlight();
+              }
+            }catch(e){}
+            setTimeout(()=>{ window.__AUTOQ=false; }, 4000);
+          })();
+        }
+      }
+    }catch(e){}
     ROOM_STATE.members.filter(m=>m.role==="chair").forEach(c=>{
       const s=clockRemaining(c);
       const el=$("rt_chairs")?.querySelector(`.cclock[data-uid="${c.user_id}"]`);
@@ -2146,6 +2181,12 @@ let EG_DRAFT=null, EG_TALLYPOLL=null, EG_MYHEARTS=0;
 // section lengths from the pacing spec (Nick, 8/5) — used when the server
 // sends no phase_deadline, so the pill always carries a countdown
 const LC_SECTION_SECS={showstart:6,spotlight:30,openfloor:45,mingle:45,deliberation:60,deciding:60};
+// choosing and answering are the SAME server phase — the difference is whether
+// a target is set.  Her choosing beat is ~10s; his answer is the full 30.
+function lcSectionTotal(ph){
+  if(ph==="spotlight") return (CURRENT_ROOM && CURRENT_ROOM.spotlight_target) ? 30 : 10;
+  return LC_SECTION_SECS[ph];
+}
 function lcSectionLeft(){
   if(!CURRENT_ROOM) return null;
   const ph=egRoomPhase(CURRENT_ROOM);
@@ -2154,7 +2195,7 @@ function lcSectionLeft(){
     const dl=Date.parse(CURRENT_ROOM.phase_deadline);
     if(dl) return Math.max(0,Math.round((dl-serverNow())/1000));
   }
-  const total=LC_SECTION_SECS[ph]; if(!total) return null;
+  const total=lcSectionTotal(ph); if(!total) return null;
   window.__PH_SEEN=window.__PH_SEEN||{};
   const key=ph+":"+(CURRENT_ROOM.round||0)+":"+(CURRENT_ROOM.spotlight_target||"");
   if(!window.__PH_SEEN[key]){ window.__PH_SEEN={}; window.__PH_SEEN[key]=Date.now(); }
@@ -2325,10 +2366,19 @@ function egMingle(phase, r){
 
 /* ---------- S5 decision ---------- */
 function egWireDecision(){
-  $("eg_dkeep").onclick=()=>{ EG_DECIDE_MODE="keep"; toast("Tap the one you're keeping."); $("eg_decide").style.display="none"; };
-  $("eg_dpass").onclick=()=>{ EG_DECIDE_MODE="pass"; toast("Tap the one you're passing."); $("eg_decide").style.display="none"; };
+  $("eg_dkeep").onclick=()=>{ EG_DECIDE_MODE="keep"; toast("Tap the one you're keeping — that's the win."); $("eg_decide").style.display="none"; };
+  $("eg_dpass").onclick=()=>{ EG_DECIDE_MODE="pass"; toast("Tap the one you're passing — the bench fills his chair."); $("eg_decide").style.display="none"; };
   $("eg_dclear").onclick=async()=>{
-    if(!confirm("Pass on all three?  They won't be back.")) return;
+    const waiting=ROOM_STATE.members.filter(m=>m.role==="line").length;
+    if(waiting<3){
+      const msg = waiting===0
+        ? "Nobody's waiting — clearing the deck ends the night alone.  Do it?"
+        : "Only "+waiting+" waiting — not enough to refill the stage.  This ends the night alone.  Do it?";
+      if(!confirm(msg)) return;
+      try{ await sb.rpc("end_show",{room_id:CURRENT_ROOM.id,winner_id:null}); }catch(e){}
+      return;
+    }
+    if(!confirm("Pass on all three?  They won't be back — the bench refills the stage.")) return;
     const {error}=await sb.rpc("decide_clear",{room_id:CURRENT_ROOM.id});
     if(error) toast(error.message); else egRefreshRoom();
   };
@@ -2339,8 +2389,14 @@ async function egDecideTap(uid){
   const fn = EG_DECIDE_MODE==="keep" ? "decide_keep" : "decide_pass";
   EG_DECIDE_MODE=null;
   const {error}=await sb.rpc(fn,{room_id:CURRENT_ROOM.id,target:uid});
-  if(error){ toast(error.message); $("eg_decide").style.display="flex"; }
-  else { egRefreshRoom(); loadRoomState(); }
+  if(error){ toast(error.message); $("eg_decide").style.display="flex"; return true; }
+  if(fn==="decide_keep"){
+    // KEEP ONE is the ending: he's the winner, the night goes backstage
+    const nm=(ROOM_STATE.profs[uid]?.display_name)||"him";
+    toast("You kept "+nm+" 💘");
+    try{ await sb.rpc("end_show",{room_id:CURRENT_ROOM.id,winner_id:uid}); }catch(e){}
+  }
+  egRefreshRoom(); loadRoomState();
   return true;
 }
 

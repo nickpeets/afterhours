@@ -735,7 +735,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0028</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0059</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1821,7 +1821,7 @@ function startClockTick(){
   CLOCK_TICK=setInterval(()=>{
     if(!CURRENT_ROOM) return;   // left the room; a stale tick must not fire RPCs
     // engine preshow: seats are safe until the show starts — clocks read ⏸
-    const preshowHold = EG_ON && egRoomPhase(CURRENT_ROOM)==="preshow";
+    const preshowHold = EG_ON && egRoomPhase(CURRENT_ROOM)!==null;   // ANY engine phase: the engine owns pacing
     ROOM_STATE.members.filter(m=>m.role==="chair").forEach(c=>{
       const s=clockRemaining(c);
       const el=$("rt_chairs")?.querySelector(`.cclock[data-uid="${c.user_id}"]`);
@@ -1867,14 +1867,15 @@ function bestEffortLeave(){
 // only on REAL page teardown — NOT on tab-hide. deleting the membership row on
 // visibility loss cut off all realtime delivery (RLS needs the row) and broke
 // chat/gifts for any viewer whose tab was ever backgrounded.
-window.addEventListener("pagehide",bestEffortLeave);
+window.addEventListener("pagehide",(e)=>{ if(!e.persisted) bestEffortLeave(); });   // bfcache hide = app switch, not a close
 window.addEventListener("beforeunload",bestEffortLeave);
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible" && CURRENT_ROOM && !AMHOST){
     // came back — refresh presence + roster (delivery kept flowing since the
     // membership row survives tab-hide now)
     LEFT_ON_UNLOAD=false;
-    sb.rpc("join_room",{room_id:CURRENT_ROOM.id});
+    // the membership row SURVIVED the hide — re-joining would reset our role
+    // (bench -> spectator).  Presence is a heartbeat, not a re-entry.
     sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id});
     loadRoomState();
   } else if(document.visibilityState==="hidden" && CURRENT_ROOM && !AMHOST){
@@ -2050,7 +2051,8 @@ function egApply(){
   // overlays default-off
   ["eg_showstart","eg_question","eg_decide","eg_drumroll","eg_draft","eg_drawer"].forEach(id=>$(id).style.display="none");
   $("eg_phase").style.display = "none";   // #rt_phase in .lc-top owns this now
-  $("eg_skip").style.display = (AMHOST && ["showstart","spotlight","openfloor","deliberation"].includes(phase)) ? "block" : "none";
+  const egSeated = ROOM_STATE.members.some(m=>m.role==="chair"||m.role==="kept");
+  $("eg_skip").style.display = (AMHOST && egSeated && ["showstart","spotlight","openfloor","deliberation"].includes(phase)) ? "block" : "none";
   const awaiting = phase==="spotlight" && !r.phase_deadline;   // backend: awaiting = null deadline
   $("eg_ask").style.display = "none";   // ASK lives in #inputbar now
 

@@ -727,6 +727,19 @@
   #room .lc-phasechip.is-ending{ animation:none; background:rgba(255,45,143,.34); border-color:#ff2d8f; }
 }
 
+/* her choosing beat is running out — the ASK affordances themselves flash */
+@keyframes lc-askflash{
+  0%,100%{ box-shadow:0 0 0 rgba(255,45,143,0); border-color:rgba(255,45,143,.55); }
+  50%    { box-shadow:0 0 26px rgba(255,45,143,.9); border-color:#fff;
+           background:rgba(255,45,143,.34); }
+}
+#room.ask-urgent .hostctl,
+#room.ask-urgent.is-host #rt_joinline{ animation:lc-askflash .8s steps(2,end) infinite; }
+@media (prefers-reduced-motion:reduce){
+  #room.ask-urgent .hostctl,
+  #room.ask-urgent.is-host #rt_joinline{ animation:none; border-color:#fff; }
+}
+
 /* ---- reduced motion ------------------------------------------------------ */
 @keyframes mic{ 0%,100%{opacity:1;transform:scaleY(1)} 50%{opacity:.55;transform:scaleY(.5)} }
 @keyframes lc-lane-surge{   /* legacy ships a dead lc-surge that reads an undefined --lane-soft; do not collide with it */
@@ -739,6 +752,193 @@
 }
 
 } /* @layer room */
+
+/* ============================================================================
+   TRANSITIONS — the beats between states (design handoff, Aug 6)
+   Presentation only: they never gate state.  If one is skipped or interrupted,
+   the underlying state is already correct.
+   ========================================================================= */
+
+/* ---- the four reusable presets ------------------------------------------ */
+@keyframes lc-bloom{
+  from{ opacity:0; transform:scale(.86); filter:blur(6px); }
+  55% { opacity:1; }
+  to  { opacity:1; transform:scale(1);   filter:blur(0);  }
+}
+@keyframes lc-lastcall{
+  0%  { transform:translateY(0);    opacity:1;  box-shadow:0 0 0 0 rgba(255,194,77,0); }
+  22% { transform:translateY(-4px); opacity:1;  box-shadow:0 0 34px 0 rgba(255,194,77,.55); }
+  100%{ transform:translateY(34px); opacity:.38;box-shadow:0 0 0 0 rgba(255,194,77,0); }
+}
+@keyframes lc-tick{
+  0%,49%  { opacity:1;  transform:scale(1); }
+  50%,100%{ opacity:.3; transform:scale(.98); }
+}
+@keyframes lc-rise{
+  from{ transform:translateY(100%); opacity:0; }
+  to  { transform:translateY(0);    opacity:1; }
+}
+
+/* ---- the beat layer: one overlay at a time, above the room, below modals -- */
+#room .lc-beat{
+  position:absolute; inset:0; z-index:8; pointer-events:none;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:0 28px; text-align:center;
+}
+#room .lc-beat--hold{ z-index:9; pointer-events:auto; }
+/* a full-screen beat owns the screen: everything else dims to 8% */
+#room.beat-hold > *:not(.lc-beat){ opacity:.08; transition:opacity 400ms ease; }
+#room.beat-hold .lc-rail{ display:none; }
+
+/* A — CURTAIN UP : pink wash falls, neon rule sweeps, chip breathes */
+.lc-beat--curtain{ justify-content:flex-start; }
+.lc-beat--curtain .lc-beat__wash{
+  position:absolute; left:0; right:0; top:0; height:220px;
+  background:linear-gradient(180deg, rgba(255,45,143,.55), transparent);
+  animation:lc-bloom 620ms cubic-bezier(.16,1,.3,1) both;
+}
+.lc-beat--curtain .lc-beat__rule{
+  position:absolute; left:0; right:0; top:196px; height:2px; background:#ff2d8f;
+  box-shadow:0 0 24px 6px rgba(255,45,143,.7);
+  animation:lc-sweep 1.4s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes lc-sweep{ from{ transform:translateY(-180px); opacity:0; } 30%{opacity:1;} to{ transform:translateY(0); opacity:1; } }
+.lc-beat__chip{
+  position:relative; margin-top:330px;
+  padding:12px 22px; border-radius:999px;
+  background:rgba(8,11,32,.86); border:1px solid rgba(255,45,143,.6);
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:18px; color:#f2f0ff;
+  animation:lc-bloom 620ms cubic-bezier(.16,1,.3,1) both, lc-breathe 2.6s ease-in-out infinite 620ms;
+}
+@keyframes lc-breathe{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.04); } }
+
+/* B — ROUND CARD */
+.lc-beat--round{ background:rgba(8,11,32,.7); backdrop-filter:blur(1.5px); }
+.lc-beat__card{
+  width:calc(100% - 64px); padding:34px 28px; border-radius:20px;
+  background:linear-gradient(180deg,#111634,#0b0f26);
+  border:1px solid rgba(45,227,208,.5);
+  box-shadow:0 24px 60px rgba(0,0,0,.6), 0 0 40px rgba(45,227,208,.18);
+  display:flex; flex-direction:column; align-items:center; gap:16px;
+  animation:lc-bloom 620ms cubic-bezier(.16,1,.3,1) both;
+}
+.lc-beat__kick{ font-family:'Azeret Mono',monospace; font-weight:700; font-size:11px; letter-spacing:.16em; color:#2de3d0; }
+.lc-beat__big { font-family:'Baloo 2',sans-serif; font-weight:800; font-size:58px; line-height:.9; color:#f2f0ff; }
+.lc-beat__dots{ display:flex; gap:10px; }
+.lc-beat__dots i{ width:12px; height:12px; border-radius:50%; border:2px solid rgba(45,227,208,.45); }
+.lc-beat__dots i.on{ background:#2de3d0; border-color:#2de3d0; }
+.lc-beat__sub{ font-family:'Azeret Mono',monospace; font-weight:700; font-size:11px; letter-spacing:.14em; color:rgba(242,240,255,.55); }
+
+/* D — TIME'S UP : stepped, never eased */
+.lc-beat--times .lc-beat__flare{
+  position:absolute; left:0; right:0; top:0; height:4px; background:#2de3d0;
+  box-shadow:0 0 30px 8px rgba(45,227,208,.7);
+}
+.lc-beat__ring{
+  width:150px; height:150px; border-radius:50%;
+  border:4px solid rgba(45,227,208,.25); background:rgba(8,11,32,.7);
+  box-shadow:0 0 50px rgba(45,227,208,.35), inset 0 0 50px rgba(45,227,208,.2);
+  display:grid; place-items:center;
+  font-family:'Azeret Mono',monospace; font-weight:700; font-size:42px; letter-spacing:.06em; color:#2de3d0;
+  animation:lc-ringpulse 280ms ease-in-out 2;
+}
+@keyframes lc-ringpulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.12); } }
+.lc-beat__stamp{
+  margin-top:14px; padding:6px 14px; border-radius:999px; background:#2de3d0;
+  font-family:'Azeret Mono',monospace; font-weight:700; font-size:11px; letter-spacing:.16em; color:#080b20;
+}
+
+/* E — THE HOUSE PICKS : a card dealt in from the right.  Playful, never punitive. */
+.lc-beat--house{ justify-content:flex-start; }
+.lc-beat--house .lc-beat__deal{
+  margin-top:352px; width:calc(100% - 48px); padding:24px 22px; border-radius:18px;
+  background:linear-gradient(180deg,#241a52,#111634);
+  border:1px solid rgba(45,227,208,.55);
+  box-shadow:0 22px 50px rgba(0,0,0,.65);
+  text-align:left; animation:lc-deal 1.2s cubic-bezier(.34,1.5,.5,1) both;
+}
+@keyframes lc-deal{
+  from{ transform:translateX(260px) rotate(-14deg); opacity:0; }
+  to  { transform:translateX(0) rotate(-2deg);      opacity:1; }
+}
+.lc-beat__houserow{ display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.lc-beat__househ{ font-family:'Azeret Mono',monospace; font-weight:700; font-size:11px; letter-spacing:.16em; color:#2de3d0; }
+.lc-beat__q{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:26px; line-height:1.15; color:#f2f0ff; }
+
+/* G — KEPT : the biggest moment.  Full screen, slow, gorgeous. */
+.lc-beat--kept{
+  background:radial-gradient(520px 520px at 50% 42%, rgba(255,45,143,.55), rgba(36,26,82,.9) 55%, #080b20 88%);
+  animation:lc-bloom 900ms cubic-bezier(.22,.9,.2,1) both;
+}
+.lc-beat__ringbig{
+  position:absolute; top:190px; width:300px; height:300px; border-radius:50%;
+  border:1px solid rgba(255,214,233,.35); box-shadow:0 0 90px rgba(255,45,143,.45);
+  animation:lc-breathe 4s ease-in-out infinite;
+}
+.lc-beat__kept{
+  position:relative; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:92px; color:#f2f0ff;
+  text-shadow:0 0 44px rgba(255,45,143,.8);
+  animation:lc-keptin 700ms cubic-bezier(.22,.9,.2,1) both 1.1s;
+}
+@keyframes lc-keptin{ from{ transform:scale(1.15); opacity:0; } to{ transform:scale(1); opacity:1; } }
+.lc-beat__body{ position:relative; font-family:Archivo,sans-serif; font-weight:600; font-size:15px; color:rgba(255,214,233,.9); max-width:270px; margin-top:10px; }
+.lc-beat__cta{
+  position:relative; margin-top:22px; padding:14px 26px; border-radius:999px; background:#ffd6e9;
+  border:none; cursor:pointer; pointer-events:auto;
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:17px; color:#241a52;
+}
+
+/* H / I — LAST CALL : the warm wipe down.  Lights up, not out. */
+#room .chair.is-lastcall{ animation:lc-lastcall 900ms cubic-bezier(.45,0,.75,.5) both; }
+#room .chair.is-lastcall::after{
+  content:"LAST CALL"; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  z-index:4; padding:5px 12px; border-radius:6px; background:#ffc24d;
+  font-family:'Azeret Mono',monospace; font-weight:700; font-size:10px; letter-spacing:.16em; color:#080b20;
+}
+.lc-beat--cleared .lc-beat__houselights{
+  position:absolute; left:0; right:0; top:0; height:40%;
+  background:linear-gradient(180deg, rgba(242,240,255,.10), transparent);
+}
+.lc-beat--cleared .lc-beat__brass{
+  position:absolute; left:0; right:0; top:352px; height:2px;
+  background:linear-gradient(90deg,transparent,#ffd6e9,transparent);
+  box-shadow:0 0 22px rgba(255,214,233,.6);
+}
+.lc-beat__head{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:40px; color:#f2f0ff; text-shadow:0 2px 20px rgba(0,0,0,.8); }
+
+/* J — WALKED ALONE : house lights, not a loss */
+.lc-beat--alone{ background:linear-gradient(180deg,#0b0f26,#080b20 60%); }
+.lc-beat--alone .lc-beat__tube{
+  position:absolute; left:0; right:0; top:210px; height:1px;
+  background:linear-gradient(90deg,transparent,#ff2d8f,transparent);
+  box-shadow:0 0 26px rgba(255,45,143,.7);
+  animation:lc-ignite 500ms ease-out both;
+}
+@keyframes lc-ignite{ from{ transform:scaleX(0); opacity:0; } to{ transform:scaleX(1); opacity:1; } }
+.lc-beat--alone .lc-beat__head{ font-size:46px; animation:lc-riseup 600ms ease-out both .8s; }
+@keyframes lc-riseup{ from{ transform:translateY(16px); opacity:0; } to{ transform:none; opacity:1; } }
+
+/* K — BENCH PROMOTION : the amber trail */
+#room .lc-lane.is-promoting-out .lc-lane__cell{
+  border:1px dashed rgba(255,194,77,.6) !important; background:#0b0f26 !important;
+}
+#room .chair.is-taking{
+  background:linear-gradient(180deg,rgba(255,194,77,.22),#141a3a);
+  border-color:rgba(255,194,77,.85) !important;
+  box-shadow:0 0 30px rgba(255,194,77,.35) !important;
+  animation:lc-land 900ms cubic-bezier(.34,1.4,.5,1) both;
+}
+@keyframes lc-land{ from{ transform:scale(1.35); } to{ transform:scale(1); } }
+
+/* ---- reduced motion: every beat still reads as a state change ------------ */
+@media (prefers-reduced-motion:reduce){
+  #room .lc-beat *,
+  #room .chair.is-lastcall,
+  #room .chair.is-taking{ animation:none !important; }
+  .lc-beat--curtain .lc-beat__rule{ transform:none; opacity:1; }
+  #room .chair.is-lastcall{ opacity:.4; }
+  .lc-beat__kept{ opacity:1; transform:none; }
+}
 
 </style>
 </head>
@@ -783,7 +983,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0455</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0538</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1339,6 +1539,86 @@ $("signout").onclick=async()=>{
   await sb.auth.signOut(); location.reload();
 };
 
+/* ============ TRANSITION BEATS ============ */
+let LC_BEATQ=[], LC_BEATING=false;
+function lcBeat(kind, data){
+  LC_BEATQ.push({kind, data:data||{}});
+  if(!LC_BEATING) lcBeatNext();
+}
+function lcBeatNext(){
+  const b=LC_BEATQ.shift();
+  if(!b){ LC_BEATING=false; return; }
+  LC_BEATING=true;
+  const room=$("room"); if(!room){ LC_BEATING=false; return; }
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const el=document.createElement("div");
+  el.className="lc-beat lc-beat--"+b.kind+(b.data.hold?" lc-beat--hold":"");
+  el.innerHTML=b.data.html||"";
+  room.appendChild(el);
+  const ms = reduce ? Math.min(b.data.ms||1200, 1200) : (b.data.ms||1200);
+  const done=()=>{ try{el.remove();}catch(e){} lcBeatNext(); };
+  if(b.data.hold){
+    el.dataset.hold="1"; room.classList.add("beat-hold");
+    const finish=()=>{ room.classList.remove("beat-hold"); done(); };
+    el.querySelector(".lc-beat__cta")?.addEventListener("click",finish);
+  }
+  else setTimeout(done, ms);
+}
+const lcEsc = (t)=>escapeHtml(String(t==null?"":t));
+
+/* A — curtain up */
+function beatCurtainUp(){ lcBeat("curtain",{ms:1400,
+  html:'<div class="lc-beat__wash"></div><div class="lc-beat__rule"></div>'+
+       '<div class="lc-beat__chip">TAKE YOUR SEATS</div>'}); }
+/* B — round card */
+function beatRound(n, who){
+  const dots=[1,2,3].map(i=>'<i class="'+(i<=n?'on':'')+'"></i>').join("");
+  lcBeat("round",{ms:1600, html:'<div class="lc-beat__card">'+
+    '<div class="lc-beat__kick">LAST CALL</div>'+
+    '<div class="lc-beat__big">ROUND '+n+'</div>'+
+    '<div class="lc-beat__dots">'+dots+'</div>'+
+    '<div class="lc-beat__sub">'+(who?lcEsc(who).toUpperCase()+" IS UP":"&nbsp;")+'</div></div>'});
+}
+/* D — time's up */
+function beatTimesUp(){ lcBeat("times",{ms:800,
+  html:'<div class="lc-beat__flare"></div><div class="lc-beat__ring">0:00</div>'+
+       '<div class="lc-beat__stamp">TIME\u2019S UP</div>'}); }
+/* E — the house picks */
+function beatHousePicks(q, who){ lcBeat("house",{ms:2000,
+  html:'<div class="lc-beat__deal"><div class="lc-beat__houserow">'+
+       '<span class="lc-beat__househ">THE HOUSE PICKS</span></div>'+
+       '<div class="lc-beat__q">'+lcEsc(q||"")+'</div>'+
+       (who?'<div class="lc-beat__sub" style="margin-top:12px">DEALT TO '+lcEsc(who).toUpperCase()+'</div>':'')+
+       '</div>'}); }
+/* G — kept (full screen, waits for her tap) */
+function beatKept(name){ lcBeat("kept",{hold:true,
+  html:'<div class="lc-beat__ringbig"></div>'+
+       '<div class="lc-beat__kick" style="position:relative">SHE KEPT ONE</div>'+
+       '<div class="lc-beat__kept">KEPT</div>'+
+       '<div class="lc-beat__body">The bar\u2019s still open. Take it somewhere quieter.</div>'+
+       '<button class="lc-beat__cta">ENTER THE WINNER\u2019S ROOM</button>'}); }
+/* I — clear the deck */
+function beatCleared(){ lcBeat("cleared",{ms:1500,
+  html:'<div class="lc-beat__houselights"></div><div class="lc-beat__brass"></div>'+
+       '<div class="lc-beat__head">CLEAR THE DECK</div>'}); }
+/* J — walked alone (full screen) */
+function beatAlone(){ lcBeat("alone",{hold:true,
+  html:'<div class="lc-beat__tube"></div>'+
+       '<div class="lc-beat__head">Walked out<br>alone.</div>'+
+       '<div class="lc-beat__body" style="color:rgba(242,240,255,.6)">She kept the night to herself. Everyone here is still on the list.</div>'+
+       '<button class="lc-beat__cta" style="background:transparent;border:1px solid rgba(45,227,208,.55);color:#2de3d0">SEE YOU AT THE NEXT ONE</button>'}); }
+/* H — passed : the chair itself does the wipe (no overlay) */
+function beatPassed(uid){
+  const el=$("rt_chairs")?.querySelector('[data-heartuid="'+uid+'"]')||
+           [...($("rt_chairs")?.querySelectorAll(".chair")||[])].find(c=>c.querySelector(".chair__name-t")?.dataset.uid===uid);
+  if(el){ el.classList.add("is-lastcall"); setTimeout(()=>el.classList.remove("is-lastcall"),1200); }
+}
+/* K — bench promotion : the receiving chair lands amber */
+function beatPromotion(seatIdx){
+  const el=$("rt_seat"+seatIdx);
+  if(el){ el.classList.add("is-taking"); setTimeout(()=>el.classList.remove("is-taking"),1200); }
+}
+
 /* ============ APP ENTRY ============ */
 let ME=null, MYPROFILE=null;
 let COINS=120;
@@ -1770,6 +2050,18 @@ function renderRoom(){
   if(kick) kick.textContent = AMHOST ? "THE BENCH · BLIND" : "THE BENCH";
 
   /* ---- phase chip ------------------------------------------------------- */
+  // a new round announces itself once
+  try{
+    const rd=CURRENT_ROOM?.round||0;
+    if(EG_ON && rd>0 && window.__LASTROUND!==rd){
+      const prev=window.__LASTROUND; window.__LASTROUND=rd;
+      if(prev!==undefined && typeof beatRound==="function"){
+        const nextUp=ROOM_STATE.members.filter(m=>m.role==="chair")
+          .sort((a,b)=>(a.seat_index??0)-(b.seat_index??0))[Math.max(0,rd-1)%3];
+        beatRound(rd, nextUp?(ROOM_STATE.profs[nextUp.user_id]||{}).display_name:"");
+      }
+    }
+  }catch(e){}
   const chip=$("rt_phase");
   if(chip){
     const round=CURRENT_ROOM?.round||0;
@@ -1929,10 +2221,33 @@ function startClockTick(){
         const left=lcSectionLeft();
         ph.textContent = (EG_ON && left!=null) ? (fmtClock(left)+" · "+ph.dataset.seclabel) : ph.dataset.seclabel;
         ph.classList.toggle("is-ending", EG_ON && left!=null && left<=10);
+        // her choosing beat running out: the ask affordances themselves flash
+        const choosing = EG_ON && egRoomPhase(CURRENT_ROOM)==="spotlight" && !CURRENT_ROOM.spotlight_target;
+        document.getElementById("room").classList.toggle("ask-urgent", !!(choosing && left!=null && left<=6));
       }
     }catch(e){}
     // engine preshow: seats are safe until the show starts — clocks read ⏸
     const preshowHold = EG_ON && egRoomPhase(CURRENT_ROOM)!==null;   // ANY engine phase: the engine owns pacing
+    // section clock expired -> the host walks the show to the next beat
+    try{
+      if(AMHOST && EG_ON && CURRENT_ROOM){
+        const ph=egRoomPhase(CURRENT_ROOM);
+        const tgt=CURRENT_ROOM.spotlight_target;
+        const left=(typeof lcSectionLeft==="function") ? lcSectionLeft() : null;
+        const key=ph+":"+(CURRENT_ROOM.round||0)+":"+(tgt||"");
+        // the choosing beat is handled below (the house asks); everything else
+        // simply advances when its time is up
+        const advances = (ph==="spotlight" && tgt) || ph==="openfloor" ||
+                         ph==="mingle" || ph==="deliberation";
+        if(advances && left!=null && left<=0 && window.__ADVKEY!==key){
+          window.__ADVKEY=key;
+          if(typeof beatTimesUp==="function" && (ph==="spotlight"||ph==="openfloor")) beatTimesUp();
+          sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id})
+            .then(()=>{ egRefreshRoom(); loadRoomState(); })
+            .catch(()=>{});
+        }
+      }
+    }catch(e){}
     // choosing clock expired with no question asked -> the house picks one
     try{
       if(AMHOST && EG_ON && CURRENT_ROOM && egRoomPhase(CURRENT_ROOM)==="spotlight"
@@ -1947,7 +2262,9 @@ function startClockTick(){
               if(pool.length){
                 EG_PICKQ=pool[Math.floor(Math.random()*pool.length)].id;
                 EG_PICKTARGET=null;                 // egFireSpotlight picks the unasked chair
-                toast("Time's up — the house picks 🎲");
+                { const q=(pool.find(x=>x.id===EG_PICKQ)||{}).text||"";
+                  const tgtName=(ROOM_STATE.profs[EG_PICKTARGET]||{}).display_name||"";
+                  if(typeof beatHousePicks==="function") beatHousePicks(q,tgtName); }
                 await egFireSpotlight();
               }
             }catch(e){}
@@ -2063,7 +2380,7 @@ function startHostPoll(){
         if((ph===null||ph==="preshow") && !anySeated && liners.length>=3 && !window.__SEATING_SHOW){
           window.__SEATING_SHOW=true;
           for(let i=0;i<3;i++){ await sb.rpc("seat_member",{room_id:CURRENT_ROOM.id,user_id:liners[i].user_id,seat_index:i}); }
-          toast("The bench is full — curtain up 🎬");
+          if(typeof beatCurtainUp==="function") beatCurtainUp();
           await loadRoomState();
           window.__SEATING_SHOW=false;
         }
@@ -2098,7 +2415,7 @@ function roomEndedUnderUs(rm){
   if(rm.winner_id){ renderFinale(rm.winner_id); return; }
   // no winner + no ceremony = the host walked (left / signed out / closed the
   // tab).  Say it plainly and go home.
-  toast("The host ended the show 🌙");
+  if(typeof beatAlone==="function") beatAlone(); else toast("The host ended the show 🌙");
   leaveRoom();
 }
 function stopHostPoll(){
@@ -2379,7 +2696,8 @@ function egWireDecision(){
     }
     if(!confirm("Pass on all three?  They won't be back — the bench refills the stage.")) return;
     const {error}=await sb.rpc("decide_clear",{room_id:CURRENT_ROOM.id});
-    if(error) toast(error.message); else egRefreshRoom();
+    if(error) toast(error.message);
+    else { if(typeof beatCleared==="function") beatCleared(); egRefreshRoom(); }
   };
   $("eg_dwalk").onclick=()=>{ $("rt_endshow").click(); };
 }
@@ -2392,9 +2710,10 @@ async function egDecideTap(uid){
   if(fn==="decide_keep"){
     // KEEP ONE is the ending: he's the winner, the night goes backstage
     const nm=(ROOM_STATE.profs[uid]?.display_name)||"him";
-    toast("You kept "+nm+" 💘");
+    if(typeof beatKept==="function") beatKept(nm); else toast("You kept "+nm+" 💘");
     try{ await sb.rpc("end_show",{room_id:CURRENT_ROOM.id,winner_id:uid}); }catch(e){}
   }
+  if(fn==="decide_pass" && typeof beatPassed==="function") beatPassed(uid);
   egRefreshRoom(); loadRoomState();
   return true;
 }

@@ -735,7 +735,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0805.2304</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0001</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1487,6 +1487,7 @@ async function openRoom(r){
 
   await loadRoomState();
   await loadEventHistory();
+  seedHearts();          // shared ledger LAST — overwrites the replay increments
   renderGiftTray();
   subscribeRoom(r.id);
   startHeartbeat();
@@ -2386,6 +2387,17 @@ $("rt_safebtn").onclick=()=>{
 };
 
 
+async function seedHearts(){
+  if(!CURRENT_ROOM) return;
+  try{
+    const {data}=await sb.from("room_events").select("payload")
+      .eq("room_id",CURRENT_ROOM.id).eq("type","heart").limit(5000);
+    const agg={};
+    (data||[]).forEach(e=>{ const t=e.payload&&e.payload.target; if(t) agg[t]=(agg[t]||0)+1; });
+    HEARTS=agg;
+    renderRoom();   // repaint every chip (chairs, bench lanes, her box) from the shared total
+  }catch(e){ console.log("seedHearts:",e.message); }
+}
 async function sendHeart(targetUid,x,y){
   if(targetUid===ME.id){ toast("You can't heart yourself — that's for the crowd to decide."); return; }
   if(x!=null && y!=null) flyAt("❤️",x,y); else flyReact("❤️");
@@ -2930,7 +2942,9 @@ function updateJoinBtn(){
     // KEPT, when LAST CALL must return or the host can never reach the
     // finalist board (the KEEP win path dead-ends).  Engine off: LAST CALL.
     const hasKept = ROOM_STATE.members.some(m=>m.role==="kept");
-    if(EG_ON && !hasKept){ btn.style.display="flex"; btn.textContent="ASK"; if(end) end.style.display="none"; }
+    const seatedCt = ROOM_STATE.members.filter(m=>m.role==="chair").length;
+    if(EG_ON && !hasKept && seatedCt>0){ btn.style.display="flex"; btn.textContent="ASK"; if(end) end.style.display="none"; }
+    else if(EG_ON && !hasKept){ btn.style.display="none"; if(end) end.style.display="none"; }   // empty chairs: nothing to ask yet
     else { btn.style.display="none"; if(end) end.style.display="flex"; }
     return;
   }
@@ -3246,7 +3260,15 @@ function tileFor(uid){
 function placeVideo(uid, sid, track){
   const host=tileFor(uid);
   if(!host){ return; } // not a slot that shows video (line/spectator)
-  // one cell, one feed — drop anything already mounted here
+  // same session already mounted here?  Swap the track in place — removing
+  // and recreating flashes black on every Daily renegotiation.
+  const mine=VIDEO_TILES[sid];
+  if(mine && mine.el && mine.el.parentElement===host){
+    try{ mine.el.srcObject=new MediaStream([track]); const pp=mine.el.play(); if(pp&&pp.catch) pp.catch(()=>{}); }catch(e){}
+    return;
+  }
+  if(mine && mine.el){ try{ mine.el.remove(); }catch(e){} delete VIDEO_TILES[sid]; }   // moved cells: retire the old mount
+  // one cell, one feed — drop only a FOREIGN feed squatting in this cell
   host.querySelectorAll(":scope > video").forEach(v=>{ try{v.remove();}catch(e){} });
   // build a video element
   let v=document.createElement("video");
@@ -3276,8 +3298,7 @@ function reflowVideo(){
     const track = vt.persistentTrack || vt.track;
     const live = p.local ? (vt.state==="playable"||vt.state==="sendable"||!!track) : (vt.state==="playable"&&!!track);
     const sid=p.session_id;
-    // clear any existing tile for this participant, then re-place if live and has a slot
-    if(VIDEO_TILES[sid]){ try{VIDEO_TILES[sid].el.remove();}catch(e){} delete VIDEO_TILES[sid]; }
+    // placeVideo swaps in place when the cell is unchanged — do NOT pre-remove
     if(live && track){ placeVideo(uid, sid, track); }
   });
 }

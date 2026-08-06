@@ -783,7 +783,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0435</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0455</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1439,13 +1439,12 @@ async function loadRooms(){
         return (seeker.seeking==="women"&&person.gender==="woman")||(seeker.seeking==="men"&&person.gender==="man");
       };
       const ageOf=(p)=>p?.birthdate?Math.floor((Date.now()-Date.parse(p.birthdate))/31557600000):null;
-      rooms=rooms.filter(r=>{
-        if(r.host_id===ME.id) return true;                     // always see your own
+      // MARK, don't hide — anyone may watch any room
+      rooms.forEach(r=>{
         const hp=HOSTP[r.host_id];
-        if(!wants(me,hp)||!wants(hp,me)) return false;         // mutual interest
         const ha=ageOf(hp);
-        if(ha && me.seek_min && (ha<me.seek_min||ha>(me.seek_max||99))) return false;
-        return true;
+        const ageOk=!(ha && me.seek_min && (ha<me.seek_min||ha>(me.seek_max||99)));
+        r.__match = (r.host_id===ME.id) || (wants(me,hp) && wants(hp,me) && ageOk);
       });
     }
   }catch(e){ /* prefs columns not migrated: show everything */ }
@@ -1462,7 +1461,7 @@ async function loadRooms(){
   rooms.forEach(r=>{
     const card=document.createElement("div"); card.className="roomcard";
     const mine=r.host_id===ME.id;
-    card.innerHTML=`${mine?'<div class="yours">YOUR ROOM</div>':''}
+    card.innerHTML=`${mine?'<div class="yours">YOUR ROOM</div>':(r.__match?'<div class="yours" style="background:rgba(45,227,208,.22);color:#aef7ee">MATCH</div>':'')}
       <div class="live"><span class="livedot"></span>LIVE</div>
       <h2>${escapeHtml(r.contestant_name||"Untitled Room")}</h2>
       <div class="tag">${escapeHtml(r.tagline||"")}</div>
@@ -3155,6 +3154,22 @@ $("rt_joinline").onclick=async()=>{
     return;
   }
   if(I_WAS_PASSED){ toast("She passed — you're watching this one."); updateJoinBtn(); return; }
+  // bench gate: mutual interest, or stay in the crowd
+  try{
+    const hp=(typeof HOST_PROFILE!=="undefined") ? HOST_PROFILE : null;
+    const me=MYPROFILE;
+    const fits=(seeker,person)=>{
+      if(!seeker||!person) return true;
+      if(!seeker.seeking||seeker.seeking==="everyone") return true;
+      if(!person.gender) return true;
+      return (seeker.seeking==="women"&&person.gender==="woman")||
+             (seeker.seeking==="men"&&person.gender==="man");
+    };
+    if(hp && me && !(fits(hp,me) && fits(me,hp))){
+      toast("Not her type tonight — but the best seat in the house is free. 🍸");
+      return;
+    }
+  }catch(e){ /* prefs not migrated: the bench stays open */ }
   const {error}=await sb.rpc("join_line",{room_id:CURRENT_ROOM.id});
   if(error){
     if((error.message||"").includes("passed")){ I_WAS_PASSED=true; updateJoinBtn(); toast("She passed — you're watching this one."); }

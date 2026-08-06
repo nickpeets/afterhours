@@ -735,7 +735,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0001</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0028</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -743,6 +743,8 @@
       <h1>ALMOST<em> IN</em></h1>
       <div class="lsub">Where should we look for your rooms?</div>
       <div class="panel">
+        <div class="prefrow"><span class="preflabel">Your name</span>
+          <input type="text" id="set_name" placeholder="What the room calls you" maxlength="18" autocomplete="nickname"></div>
         <div class="prefrow"><span class="preflabel">Your birthday</span>
           <input type="date" id="set_bday" max="2008-08-03" style="color-scheme:dark"></div>
         <div class="prefrow"><span class="preflabel">I am</span>
@@ -1262,6 +1264,7 @@ $("li_forgot").onclick=async()=>{
   const r=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
   errEl.textContent = r.error ? r.error.message : "Reset link sent — check your email.";
 };
+try{ const sl=$("sessionslot"); if(sl) sl.textContent="window: "+(AH_SESSION_SLOT||"default"); }catch(e){}
 if(PENDING_PW_SETUP) showSetPw();
 
 $("loginPanel").onsubmit=async(e)=>{
@@ -1311,7 +1314,9 @@ $("set_go").onclick=async()=>{
     const age=(Date.now()-Date.parse(bday))/31557600000;
     if(age<18){ err.textContent="Last Call is 21+ energy and 18+ strictly — see you in a few years."; return; }
   }
-  const payload={id:ME.id,zip_code:zip,radius_miles:radius,expand_ok:expand};
+  const dn=($("set_name")?.value||"").trim().slice(0,18);
+  if(!dn){ err.textContent="Pick a name — the room needs something to call you."; return; }
+  const payload={id:ME.id,zip_code:zip,radius_miles:radius,expand_ok:expand,display_name:dn};
   if(bday) payload.birthdate=bday;
   if(gsel) payload.gender=gsel;
   if(ssel) payload.seeking=ssel;
@@ -1336,7 +1341,13 @@ async function enterApp(){
   const {data:prof}=await sb.from("profiles").select("*").eq("id",user.id).single();
   MYPROFILE=prof;
   // first run (or legacy account): collect zip + search radius before the lobby
-  if(!MYPROFILE?.zip_code){ showSetup(); return; }
+  if(!MYPROFILE?.zip_code || !MYPROFILE?.display_name){
+    // prefill the name from the profile or the email's local part
+    const guess=(MYPROFILE?.display_name) ||
+      ((user.email||"").split("@")[0]||"").replace(/[^a-zA-Z0-9._-]/g,"").slice(0,18);
+    const nf=$("set_name"); if(nf && !nf.value) nf.value=guess;
+    showSetup(); return;
+  }
   // crash recovery: if I own any live rooms from a previous session, end them.
   // your show doesn't outlive your presence.
   try{

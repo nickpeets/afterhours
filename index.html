@@ -735,7 +735,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0059</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0806.0222</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1418,7 +1418,14 @@ async function loadRooms(){
       <div class="live"><span class="livedot"></span>LIVE</div>
       <h2>${escapeHtml(r.contestant_name||"Untitled Room")}</h2>
       <div class="tag">${escapeHtml(r.tagline||"")}</div>
-      <div class="meta">👁 ${counts[r.id]||0} in the room</div>
+      <div class="meta">👁 ${counts[r.id]||0} in the room · <span style="color:var(--gold);font-family:Archivo,sans-serif;font-weight:800;font-size:11px;letter-spacing:.08em">${(function(ph,rd){
+        if(!ph||ph==="preshow") return "WARMING UP";
+        if(ph==="showstart") return "SHOW START";
+        if(ph==="spotlight") return "SPOTLIGHT";
+        if(ph==="deliberation") return "DELIBERATING";
+        if(ph==="deciding") return "HER CALL";
+        return rd?("ROUND "+rd):"OPEN FLOOR";
+      })(r.phase,r.round)}</span></div>
       <div class="roommeta" id="meta_${r.id}"></div>`;
     card.onclick=()=>openRoom(r);
     list.appendChild(card);
@@ -1540,7 +1547,10 @@ function renderRoom(){
                       .sort((a,b)=>(a.seat_index||0)-(b.seat_index||0));
   const line=members.filter(m=>m.role==="line");
   const specs=members.filter(m=>m.role==="spectator");
-  const nameOf=(uid)=>(profs[uid]?.display_name)||"someone";
+  const nameOf=(uid)=>(profs[uid]?.display_name)
+    || (typeof PROF_CACHE!=="undefined" && PROF_CACHE[uid]?.display_name)
+    || (typeof HOST_PROFILE!=="undefined" && HOST_PROFILE && HOST_PROFILE.id===uid && HOST_PROFILE.display_name)
+    || "someone";   // profile fetch races no longer blank a known name
   const setText=(el,t)=>{ if(el && el.textContent!==t) el.textContent=t; };
 
   $("rt_count").textContent="👁 "+members.length;
@@ -1550,7 +1560,11 @@ function renderRoom(){
   chairs.forEach(c=>{ chairBySeat[c.seat_index==null?0:c.seat_index]=c; });
 
   const phase = (typeof egRoomPhase==="function" && CURRENT_ROOM) ? egRoomPhase(CURRENT_ROOM) : null;
-  const spotTarget = CURRENT_ROOM?.spotlight_target || null;
+  // spotlight geometry needs a SEATED target — a vacated target must not
+  // leave a double-height ghost chair behind (stuck-phase screenshot, 8/5)
+  const spotTargetRaw = CURRENT_ROOM?.spotlight_target || null;
+  const spotTarget = (spotTargetRaw && ROOM_STATE.members.some(m=>m.user_id===spotTargetRaw && (m.role==="chair"||m.role==="kept")))
+    ? spotTargetRaw : null;
   const promo = CURRENT_ROOM?.promoting || null;   // {seat, name, endsAt} when a chair is rising
 
   for(let i=0;i<3;i++){
@@ -1645,7 +1659,11 @@ function renderRoom(){
   const benched=line.slice(0,3);
   const items=$("lineitems");
   // she picks blind: silhouettes + live counts, never faces
-  if(items) items.classList.toggle("is-blind", AMHOST);
+  // The bench faces are the CROWD's secret.  She picks blind — and the men in
+  // the chairs are competitors, not audience: they don't get to scout who's
+  // next either.  Only spectators see the bench's faces.  (Owner rule, 8/5.)
+  const iAmSeated = ROOM_STATE.members.some(m=>m.user_id===ME.id && (m.role==="chair"||m.role==="kept"));
+  if(items) items.classList.toggle("is-blind", AMHOST || iAmSeated);
 
   const tallies=benched.map(m=>HEARTS[m.user_id]||0);
   const leadN=Math.max(0,...tallies);
@@ -1781,7 +1799,10 @@ function renderRoom(){
   const PHASE_CLS={showstart:"is-showstart",spotlight:"is-spotlight",openfloor:"is-mingle",
                    mingle:"is-mingle",deliberation:"is-mingle",deciding:"is-deciding",draft:"is-drafting"};
   Object.values(PHASE_CLS).forEach(c=>root.classList.remove(c));
-  if(phase && PHASE_CLS[phase]) root.classList.add(PHASE_CLS[phase]);
+  // spotlight class ONLY with a seated target — otherwise degrade to mingle
+  // so a vacated target never leaves the double-height ghost layout behind
+  const effPhase = (phase==="spotlight" && !spotTarget) ? "openfloor" : phase;
+  if(effPhase && PHASE_CLS[effPhase]) root.classList.add(PHASE_CLS[effPhase]);
   root.classList.remove("is-empty");   // panel: an empty chair is a cell, never a strip
 
   const total=Object.values(HEARTS||{}).reduce((a,b)=>a+(+b||0),0);
@@ -1905,17 +1926,19 @@ function startHostPoll(){
       // don't inflate the roster. safe to call repeatedly; no-op if none stale.
       try{ await sb.rpc("sweep_stale_members",{room_id:CURRENT_ROOM.id}); }catch(e){}
       await loadRoomState();
-      autoSeatFromLine();  // fill any open chair with the next person in line
-    }
-    // line members: if a preshow chair is open, claim it (self-seat; ids are real to yourself)
-    if(!AMHOST && CURRENT_ROOM){
-      const meRow=ROOM_STATE.members.find(m=>m.user_id===ME.id);
-      const seatedCt=ROOM_STATE.members.filter(m=>m.role==="chair"||m.role==="kept").length;
-      const ph=egRoomPhase(CURRENT_ROOM);
-      if(meRow && meRow.role==="line" && seatedCt<3 && (ph===null||ph==="preshow")){
-        try{ const {data}=await sb.rpc("claim_open_chair",{room_id:CURRENT_ROOM.id});
-             if(data===true||data==="seated"){ toast("You took a chair 🎬"); loadRoomState(); } }catch(e){}
-      }
+      // cold start: full bench + empty chairs + pre-show -> curtain up, all three at once
+      try{
+        const ph=egRoomPhase(CURRENT_ROOM);
+        const anySeated=ROOM_STATE.members.some(m=>m.role==="chair"||m.role==="kept");
+        const liners=ROOM_STATE.members.filter(m=>m.role==="line").slice(0,3);
+        if((ph===null||ph==="preshow") && !anySeated && liners.length>=3 && !window.__SEATING_SHOW){
+          window.__SEATING_SHOW=true;
+          for(let i=0;i<3;i++){ await sb.rpc("seat_member",{room_id:CURRENT_ROOM.id,user_id:liners[i].user_id,seat_index:i}); }
+          toast("The bench is full — curtain up 🎬");
+          await loadRoomState();
+          window.__SEATING_SHOW=false;
+        }
+      }catch(e){ window.__SEATING_SHOW=false; }
     }
     // non-hosts: if the host has vanished from the video call for ~80s while the
     // room still claims to be live, call it — the show can't outlive its host.
@@ -2411,12 +2434,17 @@ async function seedHearts(){
     renderRoom();   // repaint every chip (chairs, bench lanes, her box) from the shared total
   }catch(e){ console.log("seedHearts:",e.message); }
 }
+function paintHearts(uid){
+  const n=String(HEARTS[uid]||0);
+  document.querySelectorAll('#room [data-hearts="'+uid+'"] .chair__hearts-n').forEach(el=>el.textContent=n);
+  const lane=document.querySelector('#lineitems .lc-lane[data-benchuid="'+uid+'"] .lc-lane__n');
+  if(lane) lane.textContent=n;
+}
 async function sendHeart(targetUid,x,y){
   if(targetUid===ME.id){ toast("You can't heart yourself — that's for the crowd to decide."); return; }
   if(x!=null && y!=null) flyAt("❤️",x,y); else flyReact("❤️");
   HEARTS[targetUid]=(HEARTS[targetUid]||0)+1;
-  const el=$("rt_chairs")?.querySelector(`[data-hearts="${targetUid}"] .chair__hearts-n`);
-  if(el) el.textContent=String(HEARTS[targetUid]||0);
+  paintHearts(targetUid);
   const {error:he}=await sb.from("room_events").insert({room_id:CURRENT_ROOM.id,user_id:ME.id,type:"heart",payload:{target:targetUid}});
   if(he) console.log("heart insert:",he.message);
 }
@@ -2493,8 +2521,7 @@ function handleEvent(ev){
     case "heart":
       if(p.target && actor!==ME.id){ // count others' hearts (ours already counted optimistically)
         HEARTS[p.target]=(HEARTS[p.target]||0)+1;
-        const el=$("rt_chairs")?.querySelector(`[data-hearts="${p.target}"] .chair__hearts-n`);
-        if(el) el.textContent=String(HEARTS[p.target]||0);
+        paintHearts(p.target);
         // and make it FELT: a heart floats off the target's chair for everyone
         const tile=$("rt_chairs")?.querySelector(`[data-heartuid="${p.target}"]`);
         if(tile){ const r=tile.getBoundingClientRect(); flyAt("❤️", r.left+r.width/2+(Math.random()*30-15), r.top+14); }
@@ -2941,10 +2968,8 @@ $("rt_joinline").onclick=async()=>{
     else toast("Couldn't join line: "+error.message);
     return;
   }
-  // engine rooms: try to self-seat immediately (preshow chairs fill from the line)
-  let seated=false;
-  try{ const {data}=await sb.rpc("claim_open_chair",{room_id:CURRENT_ROOM.id}); seated=(data===true||data==="seated"); }catch(e){}
-  toast(seated?"You took a chair 🎬":"You're in the line.");
+  // the bench IS the destination — she picks from it.  No self-seating.
+  toast("You're on the bench — earn her eye. ♥");
   loadRoomState();
 };
 function updateJoinBtn(){

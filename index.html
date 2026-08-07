@@ -3911,6 +3911,16 @@ async function leaveRoom(){
 let DAILY=null;            // Daily call object
 let DAILY_JOINED=false;
 let VIDEO_TILES={};        // session_id -> {uid, el} attached video elements
+
+/* ---- attach-budget diagnostics (counters only, no logic) ----
+   per-participant tallies of (a) srcObject assignments, (b) <video>
+   creations, (c) re-parents of an existing <video>, plus how many times the
+   disagreement sweep ran.  A participant whose stream never changed must
+   show 1 assignment, 1 creation, 0 re-parents.  Gate 13 asserts against
+   these through __lc; they also feed the fix/video-attach-idempotent PR's
+   before/after diagnosis. */
+let VIDEO_STATS={assigns:{},creates:{},reparents:{},sweeps:0};
+function vstat(kind,uid){ VIDEO_STATS[kind][uid]=(VIDEO_STATS[kind][uid]||0)+1; }
 const DAILY_FN=SUPA_URL+"/functions/v1/daily-room";
 
 /* ---- on-screen video debug panel: auto-appears on failure; full narration with ?debug=1 ---- */
@@ -4189,6 +4199,7 @@ function placeVideo(uid, sid, track){
       // SAME track: leave it completely alone.  Re-assigning srcObject restarts
       // playback and flashes black — that is the blip.
       if(cur && track && cur.id===track.id) return;
+      vstat("assigns",uid);
       mine.el.srcObject=new MediaStream([track]);
       const pp=mine.el.play(); if(pp&&pp.catch) pp.catch(()=>{});
     }catch(e){}
@@ -4199,13 +4210,15 @@ function placeVideo(uid, sid, track){
   host.querySelectorAll(":scope > video").forEach(v=>{ try{v.remove();}catch(e){} });
   // build a video element
   let v=document.createElement("video");
+  vstat("creates",uid);
   v.autoplay=true; v.playsInline=true; v.setAttribute("playsinline","");
   v.muted=(uid===ME.id); // mute self to avoid echo
   v.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;border-radius:inherit;background:#000";
-  try{ v.srcObject=new MediaStream([track]); }catch(e){ console.log("srcObject failed",e); return; }
+  try{ vstat("assigns",uid); v.srcObject=new MediaStream([track]); }catch(e){ console.log("srcObject failed",e); return; }
   host.style.position="relative";
   // hide the cartoon-face background under the video
   const bg=host.querySelector(".vid"); if(bg) bg.style.opacity="0";
+  if(v.parentElement && v.parentElement!==host) vstat("reparents",uid);   // diagnostics: a mounted element moving parents
   host.appendChild(v);
   v.dataset.uid=uid;            // the feed carries its own owner
   VIDEO_TILES[sid]={uid, el:v};
@@ -4221,6 +4234,7 @@ function reflowVideo(){
   // real teardown: a feed marked orphaned by a roster blip is only removed if
   // the CALL agrees the participant is gone
   try{
+    VIDEO_STATS.sweeps++;
     const liveUids=new Set(Object.values(parts).map(p=>partUid(p)).filter(Boolean));
     // EVERY feed, not just orphan-marked ones: a handover leaves the seat
     // occupied, so the old owner's video is never marked and was never swept
@@ -4298,6 +4312,7 @@ window.__lc = {
   /* video layer */
   videoJoin, videoLeave, placeVideo, reflowVideo, tileFor, onTrack,
   onTrackStopped, onPartLeft, syncLocalPublish, amISeated,
+  get VIDEO_STATS(){ return VIDEO_STATS; },
   /* live state (getters — always current, never snapshots) */
   get ME(){ return ME; },
   get MYPROFILE(){ return MYPROFILE; },

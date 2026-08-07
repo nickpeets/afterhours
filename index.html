@@ -1062,7 +1062,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.1150</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.1210</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1489,7 +1489,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0807.1150"); }catch(e){}
+try{ console.log("[lastcall] build b0807.1210"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -1984,6 +1984,15 @@ async function openRoom(r){
   }
 
   await loadRoomState();
+  // rejoin/session-restore: a reload that lands back in the room still
+  // holding the 'line' role must pass through the ONE bench door like every
+  // other path.  His face is already on file, so the door is silent — no
+  // re-prompt, no flash — but the write is re-affirmed by the same
+  // capture-gated entry point that admitted him the first time.
+  if(!AMHOST){
+    const meRow=ROOM_STATE.members.find(m=>m.user_id===ME.id);
+    if(meRow && meRow.role==="line"){ try{ await takeBenchSeat(); }catch(e){} }
+  }
   await loadEventHistory();
   seedHearts();          // shared ledger LAST — overwrites the replay increments
   lcMountDraft();        // the open-chair call-out lives over the bench
@@ -3760,6 +3769,24 @@ function subscribeRoom(roomId){
     .subscribe();
 }
 
+/* ============================================================================
+   takeBenchSeat — ONE DOOR ONTO THE BENCH.
+   Every path that puts a man on the bench goes through here, and nowhere
+   else: the ♥ TAKE A BENCH SEAT button, the empty-chair tap (which funnels
+   into that button), and rejoin/session-restore after a reload.  The capture
+   is AWAITED before the role write — the crowd's view of the bench IS the
+   photo.  A man whose face is already on file is restored silently (no
+   re-prompt); a denied camera or failed capture still seats him, with the
+   silhouette (graceful degrade).  The join_line RPC below is the only
+   bench-role write site in the file — gate 12 asserts that structurally.
+   ========================================================================= */
+async function takeBenchSeat(){
+  if(!CURRENT_ROOM || AMHOST) return {error:null};
+  const onFile=!!(MYPROFILE && MYPROFILE.face_json && MYPROFILE.face_json.photo);
+  if(!onFile){ try{ await benchHeadshot(); }catch(e){} }
+  return await sb.rpc("join_line",{room_id:CURRENT_ROOM.id});
+}
+
 $("rt_joinline").onclick=async()=>{
   if(AMHOST){ if(typeof egOpenDrawer==="function") egOpenDrawer(null); return; }
   {
@@ -3800,9 +3827,7 @@ $("rt_joinline").onclick=async()=>{
       return;
     }
   }catch(e){ /* prefs not migrated: the bench stays open */ }
-  // the crowd's view of the bench IS this photo — take it before sitting down
-  try{ await benchHeadshot(); }catch(e){}
-  const {error}=await sb.rpc("join_line",{room_id:CURRENT_ROOM.id});
+  const {error}=await takeBenchSeat();
   if(error){
     if((error.message||"").includes("passed")){ I_WAS_PASSED=true; updateJoinBtn(); toast("She passed — you're watching this one."); }
     else toast("Couldn't join line: "+error.message);
@@ -4258,8 +4283,8 @@ window.__lc = {
      from it, and gates assert against the same function. */
   loadRooms, loadRoomState, renderRoom, updateJoinBtn, keptFinalists,
   roomCounts,
-  /* bench entry */
-  benchHeadshot,
+  /* bench entry — takeBenchSeat is the ONE door onto the bench */
+  benchHeadshot, takeBenchSeat,
   /* seating / host actions */
   hostSeat, hostKeep, hostPass, autoSeatFromLine,
   /* phase engine */

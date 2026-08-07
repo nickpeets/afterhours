@@ -23,6 +23,15 @@ preinstalled symlink in this container, which currently resolves to
 → playwright-core's own registry path.  If none exists it fails with
 instructions rather than downloading anything.
 
+Known resolved paths per environment (don't rediscover):
+
+- Previous container: `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`
+  (Chromium 141.0.7390.37, via the `/opt/pw-browsers/chromium` symlink)
+- Codespace didactic-guide: `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`
+  (Chromium 141.0.7390.37, same symlink; `npx playwright-core install chromium`
+  is blocked in this environment — cdn.playwright.dev returns 403 "host not
+  permitted" — so the preinstalled binary is the only route)
+
 ## How it works
 
 ```

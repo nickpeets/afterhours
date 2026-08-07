@@ -1062,7 +1062,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.0415</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.0942</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1489,7 +1489,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0805.1632"); }catch(e){}
+try{ console.log("[lastcall] build b0807.0942"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -4202,6 +4202,48 @@ document.addEventListener("touchend",e=>{
   const {data:{session}}=await sb.auth.getSession();
   if(session){ enterApp(); }
 })();
+
+/* ============ DIAGNOSTIC EXPORT — /tools battery v2 ============
+   REAL function references, not copies.  Every verification gate calls the
+   app through this object; a gate that re-implements app logic is a failed
+   gate.  If a gate needs a function that isn't here, EXPORT it — do not
+   reimplement it.  State fields are live getters into the module scope.
+   No app logic may live in this block. */
+window.__lc = {
+  /* roster / rendering — NOTE: headcount derivation is currently INLINE in
+     loadRooms/renderRoom (no single function exists to export).  When the
+     unified derivation lands it must be exported here as roomCounts. */
+  loadRooms, loadRoomState, renderRoom, updateJoinBtn, keptFinalists,
+  /* bench entry */
+  benchHeadshot,
+  /* seating / host actions */
+  hostSeat, hostKeep, hostPass, autoSeatFromLine,
+  /* phase engine */
+  egApply, egRefreshRoom, egRoomPhase, egTickStart,
+  /* room lifecycle */
+  enterApp, openRoom, leaveRoom, subscribeRoom, handleEvent,
+  startHeartbeat, stopHeartbeat, startHostPoll, stopHostPoll,
+  startClockTick, stopClockTick, serverNow,
+  /* finale */
+  showLastCall, confirmWinner, endShow, renderFinale, enterPhotoWait,
+  /* video layer */
+  videoJoin, videoLeave, placeVideo, reflowVideo, tileFor, onTrack,
+  onTrackStopped, onPartLeft, syncLocalPublish, amISeated,
+  /* live state (getters — always current, never snapshots) */
+  get ME(){ return ME; },
+  get MYPROFILE(){ return MYPROFILE; },
+  get AMHOST(){ return AMHOST; },
+  get CURRENT_ROOM(){ return CURRENT_ROOM; },
+  get ROOM_STATE(){ return ROOM_STATE; },
+  get VIDEO_TILES(){ return VIDEO_TILES; },
+  get AUDIO_ELS(){ return AUDIO_ELS; },
+  get DAILY(){ return DAILY; },
+  get DAILY_JOINED(){ return DAILY_JOINED; },
+  get HEARTS(){ return HEARTS; },
+  get EG_ON(){ return EG_ON; },
+  get EG_PHASE(){ return EG_PHASE; },
+  get I_WAS_PASSED(){ return I_WAS_PASSED; }
+};
 </script>
 </body>
 </html>

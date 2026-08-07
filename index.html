@@ -1062,7 +1062,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.0942</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.1150</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1489,7 +1489,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0807.0942"); }catch(e){}
+try{ console.log("[lastcall] build b0807.1150"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -1874,14 +1874,16 @@ async function loadRooms(){
     return;
   }
   // member counts
-  const ids=rooms.map(r=>r.id);
   // RLS hides room_members from non-members, so a direct read returns 0 for
   // every room you are not already in.  active_members() is SECURITY DEFINER.
+  // Same RPC, same member shape, same derivation as the room itself:
+  // roomCounts() is the only counter (lobby must not count from a different
+  // query shape than the room).
   const counts={};
-  await Promise.all(ids.map(async id=>{
-    try{ const {data}=await sb.rpc("active_members",{room_id:id});
-         counts[id]=(data||[]).filter(m=>m.role!=="gone").length; }
-    catch(e){ counts[id]=0; }
+  await Promise.all(rooms.map(async r=>{
+    try{ const {data}=await sb.rpc("active_members",{room_id:r.id});
+         counts[r.id]=roomCounts(data||[], r).total; }
+    catch(e){ counts[r.id]=0; }
   }));
   list.innerHTML="";
   rooms.forEach(r=>{
@@ -2032,6 +2034,44 @@ async function loadRoomState(){
 }
 
 /* ============================================================================
+   roomCounts — HEADCOUNT TRUTH.
+   The one and only headcount derivation.  Every number the app shows about
+   who is in a room — lobby card, room header, line watchbar, bench slice —
+   reads from here; no call site derives its own count.  Input is the member
+   shape the room renders from (active_members: fresh <60s OR role='kept',
+   never 'gone').  The locks live HERE, once, never at call sites:
+     · the host has no membership row by design — "people in the room"
+       includes her (+1 on total)
+     · benched members (role 'line') count toward total AND line — the old
+       watchbar arithmetic subtracted the three benched men from their own
+       line count, which is the "0 in line while people are benched" bug
+     · staleness cannot inflate a count even from a raw table read: the
+       active_members freshness rule is re-applied defensively
+   ========================================================================= */
+function roomCounts(members, room){
+  const nowMs=(typeof serverNow==="function")?serverNow():Date.now();
+  const isFresh=(m)=>{
+    if(m.role==="kept") return true;              // a kept man is on stage; staleness doesn't unseat him
+    if(!m.last_seen) return true;                 // no beat recorded yet: a brand-new row is present
+    const t=Date.parse(m.last_seen);
+    return !t || (nowMs-t)<60000;
+  };
+  const rows=(members||[]).filter(m=>m
+    && m.role!=="gone"
+    && (!room || !room.host_id || m.user_id!==room.host_id)
+    && isFresh(m));
+  const line=rows.filter(m=>m.role==="line");
+  return {
+    crowd:  rows.filter(m=>m.role==="spectator").length,
+    line:   line.length,
+    bench:  Math.min(3,line.length),
+    chairs: rows.filter(m=>m.role==="chair").length,
+    kept:   rows.filter(m=>m.role==="kept").length,
+    total:  rows.length+1
+  };
+}
+
+/* ============================================================================
    renderRoom — PUPPETEER.
    The room's markup is static (see the #room block).  This function may only
    (a) write text into slots and (b) toggle the state classes from the README
@@ -2061,7 +2101,9 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     || "someone";   // profile fetch races no longer blank a known name
   const setText=(el,t)=>{ if(el && el.textContent!==t) el.textContent=t; };
 
-  $("rt_count").textContent="👁 "+members.length;
+  // every headcount this render shows comes from the one derivation
+  const RC=roomCounts(members, CURRENT_ROOM);
+  $("rt_count").textContent="👁 "+RC.total;
 
   /* ---- PLAYING SURFACE — three fixed seats ------------------------------ */
   const chairBySeat={};
@@ -2222,17 +2264,18 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     }
   }
 
-  // bench header — the note reads as progress; the meta counts everyone
-  // BEHIND the front three, so a short line reads "0 IN LINE", not blank.
-  const freeBench=Math.max(0,3-benched.length);
+  // bench header — the note reads as progress.  Both numbers come from
+  // roomCounts(): the old inline arithmetic here counted only the men BEHIND
+  // the front three, so a fully-benched room read "0 IN LINE" — benched
+  // members count toward the line, in the one derivation.
+  const freeBench=Math.max(0,3-RC.bench);
   const word=["","one","two","three"][freeBench]||String(freeBench);
   let note;
   if(promo)           note="tap another to override";
   else if(freeBench)  note=word+" bench seat"+(freeBench===1?"":"s")+" free too";
   else                note=AMHOST?"you see hearts, not faces":"earning hearts until a chair opens";
   setText($("rt_hosthint"), note);
-  const extra=Math.max(0,line.length-3);
-  setText($("rt_watchbar"), promo?"NEXT DROPS IN":(extra?("+"+extra+" IN LINE"):"0 IN LINE"));
+  setText($("rt_watchbar"), promo?"NEXT DROPS IN":(RC.line?("+"+RC.line+" IN LINE"):"0 IN LINE"));
   const kick=$("rt_linekicker");
   if(kick) kick.textContent = AMHOST ? "THE BENCH · BLIND" : "THE BENCH";
 
@@ -4210,10 +4253,11 @@ document.addEventListener("touchend",e=>{
    reimplement it.  State fields are live getters into the module scope.
    No app logic may live in this block. */
 window.__lc = {
-  /* roster / rendering — NOTE: headcount derivation is currently INLINE in
-     loadRooms/renderRoom (no single function exists to export).  When the
-     unified derivation lands it must be exported here as roomCounts. */
+  /* roster / rendering — roomCounts is THE headcount derivation: every count
+     the app shows (lobby card, room header, watchbar, bench slice) reads
+     from it, and gates assert against the same function. */
   loadRooms, loadRoomState, renderRoom, updateJoinBtn, keptFinalists,
+  roomCounts,
   /* bench entry */
   benchHeadshot,
   /* seating / host actions */

@@ -1062,7 +1062,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.1714</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.1719</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1489,7 +1489,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0807.1714"); }catch(e){}
+try{ console.log("[lastcall] build b0807.1719"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -4034,8 +4034,18 @@ async function leaveRoom(){
 }
 
 /* ============ DAILY VIDEO LAYER ============ */
-let DAILY=null;            // Daily call object
+let DAILY=null;            // Daily call object — the ONE instance
 let DAILY_JOINED=false;
+/* singleton discipline: daily-js allows ONE live call object per page —
+   a second createCallObject throws "Duplicate DailyIframe instances are
+   not allowed".  The old guard (if(DAILY) return) sat AFTER an awaited
+   token fetch, so two join calls in the same beat both passed it while
+   DAILY was still null, and the loser threw.  These two promises make the
+   lifecycle explicit: an in-flight join IS the join (callers share its
+   promise), and no create may begin until an in-flight leave has finished
+   destroying the previous instance. */
+let DAILY_JOIN_P=null;     // in-flight videoJoin promise (null when idle)
+let DAILY_LEAVE_P=null;    // in-flight videoLeave promise (null when idle)
 let VIDEO_TILES={};        // session_id -> {uid, el} attached video elements
 
 /* ---- attach-budget diagnostics (counters only, no logic) ----
@@ -4185,8 +4195,22 @@ function videoWatchdog(){
     }
   }, 6000);
 }
-async function videoJoin(){
-  if(!window.Daily && !window.DailyIframe){ vdbg("daily-js library not loaded (CDN blocked?)", true); toast("Video library didn't load."); return; }
+function videoJoin(){
+  // NOT async on purpose: an async wrapper mints a fresh promise per caller,
+  // and the whole point is that every concurrent caller holds the SAME
+  // in-flight promise (idempotence you can check with ===).
+  if(!window.Daily && !window.DailyIframe){ vdbg("daily-js library not loaded (CDN blocked?)", true); toast("Video library didn't load."); return Promise.resolve(); }
+  // idempotent: a joined instance short-circuits; an in-flight join IS the
+  // join — so exactly one token fetch and one createCallObject can ever be
+  // in motion.
+  if(DAILY && DAILY_JOINED) return Promise.resolve();
+  if(DAILY_JOIN_P) return DAILY_JOIN_P;
+  DAILY_JOIN_P=(async()=>{ try{ await _videoJoinOnce(); } finally { DAILY_JOIN_P=null; } })();
+  return DAILY_JOIN_P;
+}
+async function _videoJoinOnce(){
+  // leave finishes before any create: destroy-then-create, never overlap
+  if(DAILY_LEAVE_P){ try{ await DAILY_LEAVE_P; }catch(e){} }
   if(DAILY) return;
   try{
     vdbg("requesting video token…");
@@ -4241,13 +4265,23 @@ async function videoJoin(){
 }
 
 async function videoLeave(){
-  try{ if(DAILY){ await DAILY.leave(); await DAILY.destroy(); } }catch(e){}
-  DAILY=null; DAILY_JOINED=false;
-  Object.values(VIDEO_TILES).forEach(t=>{ try{t.el.remove();}catch(e){} });
-  VIDEO_TILES={};
-  Object.keys(AUDIO_ELS).forEach(stopAudio);
-  VIDEO_MAP_SIG=null;
-  if(SWEEP_RECHECK){ clearTimeout(SWEEP_RECHECK); SWEEP_RECHECK=null; }
+  // leave owns the teardown: wait out any in-flight join (so we destroy the
+  // instance it made, not a phantom), then leave+destroy BEFORE nulling —
+  // and publish the whole thing as DAILY_LEAVE_P so the next videoJoin
+  // cannot create until the old instance is truly gone.
+  const p=(async()=>{
+    if(DAILY_JOIN_P){ try{ await DAILY_JOIN_P; }catch(e){} }
+    try{ if(DAILY){ await DAILY.leave(); await DAILY.destroy(); } }catch(e){}
+    DAILY=null; DAILY_JOINED=false;
+    Object.values(VIDEO_TILES).forEach(t=>{ try{t.el.remove();}catch(e){} });
+    VIDEO_TILES={};
+    Object.keys(AUDIO_ELS).forEach(stopAudio);
+    VIDEO_MAP_SIG=null;
+    if(SWEEP_RECHECK){ clearTimeout(SWEEP_RECHECK); SWEEP_RECHECK=null; }
+  })();
+  DAILY_LEAVE_P=p;
+  p.finally(()=>{ if(DAILY_LEAVE_P===p) DAILY_LEAVE_P=null; });
+  return p;
 }
 
 // decide whether MY camera should be on: host always; suitor only when seated in a chair

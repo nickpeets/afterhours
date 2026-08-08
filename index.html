@@ -1062,7 +1062,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.1222</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.1705</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1489,7 +1489,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0807.1222"); }catch(e){}
+try{ console.log("[lastcall] build b0807.1705"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2081,6 +2081,49 @@ function roomCounts(members, room){
 }
 
 /* ============================================================================
+   ASK TRUTH.
+   Ask state is keyed by (member_id, round) — never by chair or DOM node.
+   A chair is furniture: whoever sits in it brings his own ask state, and a
+   new occupant inherits nothing.  These four functions are the ONLY door:
+     · askTargets()      — who can be asked RIGHT NOW: current seated members
+                           (role chair|kept — the same member shape roomCounts
+                           reads), seat order.  The round popup and the
+                           rotation fallback both derive from this; there is
+                           no separate roster anywhere.
+     · askEligible(uid)  — may the host ask AT ALL (choosing window: spotlight
+                           with no target yet) and, if a target is named, is
+                           he currently seated.  Every ask path checks here.
+     · askMark(uid)      — the ONLY write to the asked maps: (uid, round) and
+                           the show-scope rotation memory.
+     · askedThisRound(uid) — the ONLY read the ASKED visual may use.
+   ========================================================================= */
+function askTargets(){
+  return (ROOM_STATE.members||[]).filter(m=>m && (m.role==="chair"||m.role==="kept"))
+    .sort((a,b)=>(a.seat_index??0)-(b.seat_index??0));
+}
+function askEligible(uid){
+  if(!EG_ON || !CURRENT_ROOM) return false;
+  const ph=(typeof egRoomPhase==="function") ? egRoomPhase(CURRENT_ROOM) : null;
+  // the choosing window is the ONLY segment where an ask may be placed
+  if(!(ph==="spotlight" && !CURRENT_ROOM.spotlight_target)) return false;
+  if(uid && !askTargets().some(m=>m.user_id===uid)) return false;
+  return true;
+}
+function askMark(uid){
+  if(!uid) return;
+  const rd=CURRENT_ROOM?.round||0;
+  window.__ASKED_THIS_ROUND=window.__ASKED_THIS_ROUND||{};
+  (window.__ASKED_THIS_ROUND[rd]=window.__ASKED_THIS_ROUND[rd]||{})[uid]=true;
+  window.__ASKED_THIS_SHOW=window.__ASKED_THIS_SHOW||{};
+  window.__ASKED_THIS_SHOW[uid]=true;                 // rotation memory (fair shot)
+}
+function askedThisRound(uid){
+  if(!uid) return false;
+  const rd=CURRENT_ROOM?.round||0;
+  return !!((window.__ASKED_THIS_ROUND||{})[rd]||{})[uid];
+}
+
+/* ============================================================================
    renderRoom — PUPPETEER.
    The room's markup is static (see the #room block).  This function may only
    (a) write text into slots and (b) toggle the state classes from the README
@@ -2151,6 +2194,10 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
       // toggle is the only thing standing between that and the screen.
       delete el.dataset.heartuid;
       el.classList.remove("heart-tap");
+      // the ASKED overlay belongs to the departed OCCUPANT, not the chair —
+      // wipe it with the rest of his identity so the next man starts clean
+      el.classList.remove("is-asked");
+      setText(el.querySelector(".chair__foot"),"");
       const hearts=el.querySelector(".chair__hearts");
       if(hearts) hearts.dataset.hearts="";
       setText(el.querySelector(".chair__name-t"),"");
@@ -2296,10 +2343,15 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
       const prev=window.__LASTROUND; window.__LASTROUND=rd;
 
       if(prev!==undefined && typeof beatRound==="function"){
-        const seated=ROOM_STATE.members.filter(m=>m.role==="chair")
-          .sort((a,b)=>(a.seat_index??0)-(b.seat_index??0));
-        const nextUp=seated.length?seated[(Math.max(1,rd)-1)%seated.length]:null;
-        beatRound(rd, nextUp?(ROOM_STATE.profs[nextUp.user_id]||{}).display_name:"");
+        // the popup names ONLY current seated members — a round change means
+        // someone just left the stage, so refresh the roster before naming
+        // anyone (a stale snapshot is how a passed man's name got on the card)
+        Promise.resolve(typeof loadRoomState==="function"?loadRoomState():null).then(()=>{
+          const seated=askTargets().filter(m=>m.role==="chair");
+          const nextUp=seated.find(c=>!askedThisRound(c.user_id)) ||
+                       (seated.length?seated[(Math.max(1,rd)-1)%seated.length]:null);
+          beatRound(rd, nextUp?(ROOM_STATE.profs[nextUp.user_id]||{}).display_name:"");
+        }).catch(()=>{});
       }
     }
   }catch(e){}
@@ -2396,11 +2448,16 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   // Who has already had a question this show?  Everyone can see it, so the
   // rotation is legible rather than mysterious.  (Owner rule, Aug 7: everyone
   // who makes it to the show gets a fair shot.)
-  const askedMap = (typeof window!=="undefined" && window.__ASKED_THIS_SHOW) || {};
+  // ASKED is a fact about (occupant, round), never about the chair: the
+  // visual derives from askedThisRound() for the CURRENT seated occupant,
+  // and only inside the round segment (spotlight/openfloor) — deliberation
+  // and beyond wipe it, and a new occupant inherits nothing.
+  const askSegment = phase==="spotlight" || phase==="openfloor";
   [0,1,2].forEach(i=>{
     const el=$("rt_seat"+i); if(!el) return;
     const uid=el.dataset.heartuid||null;
-    const asked=!!(uid && askedMap[uid]);
+    const seatedNow=!!(uid && askTargets().some(m=>m.user_id===uid));
+    const asked=askSegment && seatedNow && askedThisRound(uid);
     el.classList.toggle("is-asked", asked);
     const foot=el.querySelector(".chair__foot");
     if(foot) setText(foot, asked ? "ASKED" : "");
@@ -2902,6 +2959,12 @@ async function egLoadDecks(){
   return EG_DECKS;
 }
 async function egOpenDrawer(presetTarget){
+  // ONE door: no drawer outside the choosing window, no drawer at a man who
+  // isn't seated right now (askEligible owns both rules)
+  if(!askEligible(presetTarget||null)){
+    toast(EG_ON ? "Not now — the spotlight opens the asking." : "Start the show first.");
+    return;
+  }
   EG_PICKTARGET=presetTarget||null; EG_PICKQ=null;
   const decks=await egLoadDecks();
   if(!decks.length){ toast("No question decks yet."); return; }
@@ -2931,10 +2994,18 @@ async function egPickQuestion(qid){
   egFireSpotlight();
 }
 async function egFireSpotlight(){
+  // eligibility is re-checked at FIRE time: the drawer may have been open
+  // across a phase change or the target may have left his chair meanwhile.
+  // A phase error from the server is a REFUSAL — never "fixed" by skipping
+  // the room forward (the old retry made the client bulldoze its own gate).
+  if(!askEligible(EG_PICKTARGET||null)){
+    toast(EG_PICKTARGET ? "He's not in a chair any more." : "Not now — the spotlight opens the asking.");
+    egCloseDrawer(); EG_PICKQ=null; EG_PICKTARGET=null;
+    return;
+  }
   // she must have a subject: default to the chair that has answered least
   if(!EG_PICKTARGET){
-    const chairs=ROOM_STATE.members.filter(m=>m.role==="chair"||m.role==="kept")
-      .sort((a,b)=>(a.seat_index??0)-(b.seat_index??0));
+    const chairs=askTargets();   // CURRENT seated members — the one roster
     if(!chairs.length){ toast("Nobody's in a chair yet."); return; }
     // ROUND N ASKS CHAIR N.  Order by seat so the rotation is the seating
     // order the room can see.  The asked-map only breaks ties WITHIN a round
@@ -2946,16 +3017,9 @@ async function egFireSpotlight(){
     // have had one, fall back to the round so the show can still move
     EG_PICKTARGET=(chairs.find(c=>!asked[c.user_id]) || chairs[(rd-1)%chairs.length]).user_id;
   }
-  let {error}=await sb.rpc("ask_question",{room_id:CURRENT_ROOM.id,question_id:EG_PICKQ,target:EG_PICKTARGET});
-  if(error && /spotlight|phase/i.test(error.message||"")){
-    // the room is still on the splash — walk it into the choosing state and retry
-    try{ await sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}); }catch(e){}
-    ({error}=await sb.rpc("ask_question",{room_id:CURRENT_ROOM.id,question_id:EG_PICKQ,target:EG_PICKTARGET}));
-  }
+  const {error}=await sb.rpc("ask_question",{room_id:CURRENT_ROOM.id,question_id:EG_PICKQ,target:EG_PICKTARGET});
   if(error){ toast("Couldn't ask: "+error.message); return; }
-  window.__ASKED_THIS_ROUND=window.__ASKED_THIS_ROUND||{};
-  window.__ASKED_THIS_SHOW=window.__ASKED_THIS_SHOW||{};
-  window.__ASKED_THIS_SHOW[EG_PICKTARGET]=true;      // his turn is spent
+  askMark(EG_PICKTARGET);                             // (member, round) — the one write
   renderRoom();                                       // show the ASKED marker at once
   egCloseDrawer(); EG_PICKQ=null; EG_PICKTARGET=null;
   egRefreshRoom();
@@ -4358,6 +4422,9 @@ window.__lc = {
      from it, and gates assert against the same function. */
   loadRooms, loadRoomState, renderRoom, updateJoinBtn, keptFinalists,
   roomCounts,
+  /* ask truth — state keyed (member, round); askEligible is the ONE gate,
+     askTargets the ONE roster, askMark the ONE write */
+  askTargets, askEligible, askMark, askedThisRound, egOpenDrawer, egFireSpotlight,
   /* bench entry — takeBenchSeat is the ONE door onto the bench */
   benchHeadshot, takeBenchSeat,
   /* seating / host actions */

@@ -35,9 +35,15 @@ may strand the show below a viable cast without an explicit, named ending
   exists to prevent).  Re-derived on GENUINE roster changes (role or
   membership) — never on freshness flapping; the decide card's option set
   is otherwise stable within a phase.
-- **Ask state is (member, round)-scoped** — a chair is furniture; occupants
-  bring their own ask state (gate 14).  Source of truth: **room_events** —
-  clients replay on entry; no window-local authority (RULING Q4, 8/8).
+- **Ask coverage is per-CYCLE fairness** (RULING, 8/9 wave 4): every
+  seated man is asked once before anyone is asked twice; the rotation is
+  the host's GUIDE, never a hard gate — she can override.  The ASKED pill
+  means "asked this cycle" and clears only when a new cycle begins
+  (everyone seated has been asked) — NOT on prod's per-ask round
+  increment.  The round popup and every "who's up" affordance derive from
+  the same coverage set.  A chair is furniture; a new occupant's slate is
+  clean (gate 14).  Source of truth: **room_events** — clients replay on
+  entry; no window-local authority (RULING Q4, 8/8).
 - **One Daily instance per page**, created once, destroyed before any new
   create (gate 16).  Attach budget: ≤1 srcObject assignment per genuine
   stream change, 0 re-parents, no orphaned tiles (gates 8, 13).

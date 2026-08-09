@@ -1089,7 +1089,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1229</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1323</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1518,7 +1518,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0809.1229"); }catch(e){}
+try{ console.log("[lastcall] build b0809.1323"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2570,6 +2570,17 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   // with a beat line and the show advances at once.
   if(AMHOST && PASS_PICK && typeof passPickBenchGone==="function"
      && roomCounts(members, CURRENT_ROOM).bench<1){ passPickBenchGone(); }
+  // wave 5: a RECRUIT window whose chair filled by any route (a claim, a
+  // draft) has served its purpose — the card comes down and the show moves,
+  // instead of "A CHAIR IS OPEN" burning into the next round.
+  if(AMHOST && PASS_PICK && PASS_PICK.recruit){
+    const RC=roomCounts(members, CURRENT_ROOM);
+    if((RC.chairs+RC.kept)>=3){
+      recruitResolve(); passPickClear();
+      (async()=>{ try{ await sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}); }catch(e){}
+                  egRefreshRoom(); })();
+    }
+  }
   // safety net: dimming without a beat is a dead room
   try{ if(!document.querySelector("#room .lc-beat")) $("room").classList.remove("beat-hold"); }catch(e){}
   const badge=$("rt_hostbadge"); if(badge) badge.style.display="";   // everyone sees whose room it is
@@ -2608,7 +2619,29 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   root.classList.remove("is-empty");   // panel: an empty chair is a cell, never a strip
 
   const total=Object.values(HEARTS||{}).reduce((a,b)=>a+(+b||0),0);
+  cardReconcile();   // cards live and die by room truth — never by a missed event
   updateJoinBtn();
+}
+
+/* CARD LIFECYCLE (wave 5): every card renders IFF its owning state is
+   active in CURRENT room truth.  The show-on-event/clear-on-another-event
+   pattern is dead: a missed clear self-heals on the next truth pass (this
+   runs in renderRoom, which rides every roster/sync commit). */
+function cardReconcile(){
+  try{
+    const ph=EG_ON ? egRoomPhase(CURRENT_ROOM) : null;
+    const spotLive = ph==="spotlight" && !!CURRENT_ROOM?.spotlight_target &&
+      ROOM_STATE.members.some(m=>m.user_id===CURRENT_ROOM.spotlight_target &&
+                                 (m.role==="chair"||m.role==="kept"));
+    if(!spotLive){ const q=$("eg_question"); if(q && q.style.display!=="none") q.style.display="none"; }
+    const draftLive = ph==="draft" || !!(PASS_PICK && PASS_PICK.recruit);
+    if(!draftLive){ const d=$("eg_draft"); if(d && d.style.display!=="none") d.style.display="none"; }
+    if(ph!=="showstart"){ const sst=$("eg_showstart"); if(sst && sst.style.display!=="none") sst.style.display="none"; }
+    if(ph!=="deciding"){
+      const dc=$("eg_decide"); if(dc && dc.style.display!=="none") dc.style.display="none";
+      const dr=$("eg_drumroll"); if(dr && dr.style.display!=="none") dr.style.display="none";
+    }
+  }catch(e){}
 }
 
 
@@ -3242,6 +3275,10 @@ function egSpotlightFromEvent(p){
   const tgt=p && (p.target_user||p.target);
   if(!CURRENT_ROOM || !tgt) return;
   const dl=p.deadline||p.phase_deadline||null;
+  // wave 5: the truth poll replays MISSED events — an already-expired
+  // spotlight is history, not a live card (the ask fold still happened in
+  // handleEvent; only the painting is skipped)
+  if(dl){ const tms=Date.parse(dl); if(tms && tms < Date.now()-2500) return; }
   const qt=(p.question_text!=null)?p.question_text:((p.text!=null)?p.text:((p.question!=null)?p.question:null));
   if(CURRENT_ROOM){ CURRENT_ROOM.spotlight_target=tgt;
     if(dl) CURRENT_ROOM.phase_deadline=dl; }
@@ -4295,6 +4332,13 @@ $("rt_joinline").onclick=async()=>{
     else toast("Couldn't join line: "+error.message);
     return;
   }
+  // ACTOR'S TRUTH (wave 5): the accepted write flips this window's VERB
+  // optimistically — but only the verb.  Role data is never mutated
+  // client-side (gate 03's rule): the flag below is a UI hint that
+  // updateJoinBtn consumes until the roster sync confirms, and it expires
+  // on its own if the truth never does.
+  window.__OPTIMISTIC_BENCH=Date.now();
+  updateJoinBtn();
   // the bench IS the destination — she picks from it.  No self-seating.
   toast("You're on the bench — earn her eye. ♥");
   loadRoomState();
@@ -4323,7 +4367,15 @@ function updateJoinBtn(){
   if(me && (me.role==="chair"||me.role==="kept")){
     btn.style.display="flex"; btn.textContent="\u21a9 LEAVE THE CHAIR";
   }
-  else if(me && me.role==="line"){ btn.style.display="flex"; btn.textContent="↩ LEAVE THE BENCH"; }
+  else if(me && me.role==="line"){
+    window.__OPTIMISTIC_BENCH=null;   // the truth confirmed the hint
+    btn.style.display="flex"; btn.textContent="↩ LEAVE THE BENCH";
+  }
+  else if(window.__OPTIMISTIC_BENCH && Date.now()-window.__OPTIMISTIC_BENCH<10_000){
+    // my own accepted join_line hasn't landed in the roster yet — show the
+    // benched verb NOW; the sync confirms (clears above) or the hint expires
+    btn.style.display="flex"; btn.textContent="↩ LEAVE THE BENCH";
+  }
   else { btn.style.display="flex"; btn.textContent="♥ TAKE A BENCH SEAT"; }
 }
 

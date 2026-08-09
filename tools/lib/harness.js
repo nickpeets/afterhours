@@ -79,11 +79,12 @@ class Harness {
     return new Harness(browser, executablePath);
   }
 
-  async newClient(name) {
+  async newClient(name, opts = {}) {
     const context = await this.browser.newContext({
       viewport: { width: 390, height: 844 },   // iPhone-ish: the product's home form factor
       permissions: ["camera", "microphone"],
       reducedMotion: "reduce",
+      ...opts,   // e.g. { isMobile:true, hasTouch:true } for real mobile emulation (gate 24)
     });
     await context.route("**/*", (route) => this._route(route, name));
     const page = await context.newPage();

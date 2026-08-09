@@ -1065,7 +1065,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0808.2239</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0808.2242</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1492,7 +1492,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0808.2239"); }catch(e){}
+try{ console.log("[lastcall] build b0808.2242"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -1724,6 +1724,16 @@ function beatHousePicks(q, who){ lcBeat("house",{ms:2000,
        '<div class="lc-beat__q">'+lcEsc(q||"")+'</div>'+
        (who?'<div class="lc-beat__sub" style="margin-top:12px">DEALT TO '+lcEsc(who).toUpperCase()+'</div>':'')+
        '</div>'}); }
+/* F2 — the crowd decides (RULING Q5): her clock ran out, the hearts pick */
+function beatCrowdCall(name){ lcBeat("crowdcall",{ms:2200,
+  html:'<div class="lc-beat__card">'+
+    '<div class="lc-beat__kick">TIME\u2019S UP</div>'+
+    '<div class="lc-beat__big">THE CROWD DECIDES</div>'+
+    '<div class="lc-beat__sub">'+(name?lcEsc(name).toUpperCase()+" IS KEPT":"&nbsp;")+'</div></div>'});
+}
+/* F3 — bench emptied mid-pick (RULING Q7): say it, move on */
+function beatBenchDry(){ lcBeat("benchdry",{ms:1400,
+  html:'<div class="lc-beat__chip">THE BENCH IS EMPTY \u2014 MOVING ON</div>'}); }
 /* G — kept (full screen, waits for her tap) */
 function beatKept(name, uid){ lcBeat("kept",{hold:true, onDone:()=>{ try{ if(uid && typeof enterBackstage==="function") enterBackstage(uid, name); }catch(e){} },
   html:'<div class="lc-beat__ringbig"></div>'+
@@ -2112,6 +2122,18 @@ function roomCounts(members, room){
    role renders the same ASKED truth and a reloading host reconstructs
    the rotation instead of silently restarting it.
    ========================================================================= */
+
+/* RULING Q3: PASS is offered iff the show continues after it — the
+   post-pass stage still seats ≥2 (chairs+kept), OR the bench can refill
+   the chair.  ONE function; the render path and the click-time belt both
+   call it, and it re-evaluates on EVERY roster render, never once at
+   phase entry.  (Supersedes the bench-only rule of finding 6: three
+   seated with an empty bench DOES offer PASS — two still make TV.) */
+function passViable(members, room){
+  const RC=roomCounts(members, room);
+  return ((RC.chairs+RC.kept)-1)>=2 || RC.bench>=1;
+}
+
 function askTargets(){
   return (ROOM_STATE.members||[]).filter(m=>m && (m.role==="chair"||m.role==="kept"))
     .sort((a,b)=>(a.seat_index??0)-(b.seat_index??0));
@@ -2480,6 +2502,18 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     const foot=el.querySelector(".chair__foot");
     if(foot) setText(foot, asked ? "ASKED" : "");
   });
+  /* ---- decide truth (RULINGS Q3 + Q7) ---------------------------------- */
+  // The decide card re-derives on EVERY roster render — never a stale
+  // phase-entry snapshot (audit F3): departures and arrivals flip PASS
+  // live, through the ONE predicate.
+  if(AMHOST && EG_ON && phase==="deciding" && !PASS_PICK){
+    const dp=$("eg_dpass");
+    if(dp) dp.style.display = passViable(members, CURRENT_ROOM) ? "" : "none";
+  }
+  // RULING Q7: an open pick window over an emptied bench closes early
+  // with a beat line and the show advances at once.
+  if(AMHOST && PASS_PICK && typeof passPickBenchGone==="function"
+     && roomCounts(members, CURRENT_ROOM).bench<1){ passPickBenchGone(); }
   // safety net: dimming without a beat is a dead room
   try{ if(!document.querySelector("#room .lc-beat")) $("room").classList.remove("beat-hold"); }catch(e){}
   const badge=$("rt_hostbadge"); if(badge) badge.style.display="";   // everyone sees whose room it is
@@ -2907,7 +2941,7 @@ function egApply(){
     // new room: stale engine state from a previous show must never leak in
     EG_ROOM_ID=r.id; EG_PHASE=null; EG_DEADLINE=-1;
     EG_DRAFT=null; EG_VIEW=null; EG_PICKQ=null; EG_PICKTARGET=null; EG_DECIDE_MODE=null;
-    PASS_PICK=null;
+    PASS_PICK=null; window.__CROWD_CALLED=false;
     egStopTallyPoll(); clearInterval(EG_TICK);
     const root=$("room");
     ["is-showstart","is-spotlight","is-mingle","is-deciding","is-drafting","is-asking","eg-on"].forEach(c=>root.classList.remove(c));
@@ -2920,7 +2954,7 @@ function egApply(){
   if(!EG_ON){ return; }                       // classic mode: engine dormant
   if(phase===EG_PHASE && EG_DEADLINE===(r.phase_deadline?Date.parse(r.phase_deadline):0)) { egRoleBits(); return; }
   EG_PHASE=phase; EG_DEADLINE=r.phase_deadline?Date.parse(r.phase_deadline):0;
-  if(phase!=="deciding") PASS_PICK=null;   // the window cannot outlive its phase
+  if(phase!=="deciding"){ PASS_PICK=null; window.__CROWD_CALLED=false; }   // neither window nor crowd-call outlives the phase
 
   // root state classes
   ["is-showstart","is-spotlight","is-mingle","is-deciding","is-drafting","is-asking"].forEach(c=>root.classList.remove(c));
@@ -2943,9 +2977,10 @@ function egApply(){
       if(PASS_PICK){ /* she's picking his replacement — the decide card stays down */ }
       else{
         EG_DECIDE_MODE=null;
-        // an empty bench makes PASS bad TV: passing would leave two contestants.
-        // Bench truth is roomCounts().bench — never a side count.
-        $("eg_dpass").style.display = roomCounts(ROOM_STATE.members, CURRENT_ROOM).bench>0 ? "" : "none";
+        // RULING Q3: PASS iff the show continues after it — passViable()
+        // is the one predicate; renderRoom re-derives it on every roster
+        // change after this initial paint.
+        $("eg_dpass").style.display = passViable(ROOM_STATE.members, CURRENT_ROOM) ? "" : "none";
         $("eg_decide").style.display="flex";
       }
     } else { $("eg_drumroll").style.display="flex"; }
@@ -2979,11 +3014,38 @@ function egTickStart(){
       aq.textContent = Math.floor(secs/60)+":"+String(secs%60).padStart(2,"0");
       aq.classList.toggle("is-urgent", secs<=10);
     }
-    // the bench-pick window expiring is ordinary flow: drop the marker and
-    // let the resolver below advance off the (extended, shared) deadline
-    if(PASS_PICK && Date.now()>PASS_PICK.until) passPickClear();
-    // resolver: anyone past deadline nudges the server (throttled 2s)
-    if(EG_DEADLINE && Date.now()>EG_DEADLINE+400 && Date.now()-EG_ADV_LOCK>2000){
+    // the bench-pick window expiring: the HOST advances the show herself —
+    // deciding is excluded from the generic resolver below (RULING Q5)
+    if(PASS_PICK && Date.now()>PASS_PICK.until){
+      passPickClear();
+      sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}).then(()=>{ egRefreshRoom(); loadRoomState(); }).catch(()=>{});
+    }
+    // RULING Q5: HER CALL never silently expires.  Clock-out = the crowd
+    // decides — the heart leader among seated chairs is KEPT, announced
+    // loud, on the ordinary KEEP path.  A tie (or an empty stage — no
+    // leader exists) holds the clock until she taps; true host absence
+    // stays the janitor's business.
+    if(AMHOST && EG_PHASE==="deciding" && !PASS_PICK && EG_DEADLINE &&
+       Date.now()>EG_DEADLINE+400 && !window.__CROWD_CALLED){
+      const chairs=ROOM_STATE.members.filter(m=>m.role==="chair");
+      const scored=chairs.map(c=>({c,h:HEARTS[c.user_id]||0})).sort((a,b)=>b.h-a.h);
+      const top=scored[0];
+      const tie=scored.length>1 && scored[1].h===top.h;
+      if(top && !tie){
+        window.__CROWD_CALLED=true;
+        (async()=>{
+          try{
+            const nm=(ROOM_STATE.profs[top.c.user_id]||{}).display_name||"him";
+            if(typeof beatCrowdCall==="function") beatCrowdCall(nm);
+            EG_DECIDE_MODE="keep";
+            await egDecideTap(top.c.user_id);
+          }catch(e){}
+        })();
+      }
+    }
+    // resolver: anyone past deadline nudges the server (throttled 2s) —
+    // every phase EXCEPT deciding, which never silently expires (Q5)
+    if(EG_PHASE!=="deciding" && EG_DEADLINE && Date.now()>EG_DEADLINE+400 && Date.now()-EG_ADV_LOCK>2000){
       EG_ADV_LOCK=Date.now();
       const fn = EG_PHASE==="draft" ? "resolve_draft" : "advance_phase";
       sb.rpc(fn,{room_id:CURRENT_ROOM.id}).then(()=>egRefreshRoom()).catch(()=>{});
@@ -3099,8 +3161,8 @@ function egMingle(phase, r){
 function egWireDecision(){
   $("eg_dkeep").onclick=()=>{ EG_DECIDE_MODE="keep"; toast("Tap the one you're keeping — that's the win."); $("eg_decide").style.display="none"; };
   $("eg_dpass").onclick=()=>{
-    // belt to egApply's braces: an empty bench never offers PASS
-    if(roomCounts(ROOM_STATE.members, CURRENT_ROOM).bench<1){ toast("Nobody's on the bench — passing now leaves dead chairs."); return; }
+    // belt to the render's braces: the SAME Q3 predicate at click time
+    if(!passViable(ROOM_STATE.members, CURRENT_ROOM)){ toast("Passing now would end the show — keep, clear, or walk."); return; }
     EG_DECIDE_MODE="pass"; toast("Tap the one you're passing — the bench fills his chair."); $("eg_decide").style.display="none"; };
   $("eg_dclear").onclick=async()=>{
     const waiting=ROOM_STATE.members.filter(m=>m.role==="line").length;
@@ -3141,6 +3203,19 @@ async function passPickOpen(){
   return true;
 }
 function passPickClear(){ PASS_PICK=null; }
+/* RULING Q7: the pick window closes EARLY when the bench empties — a beat
+   line says so, and the show advances immediately instead of letting a
+   "PICK FROM THE BENCH" label sit over nobody. */
+let PASS_PICK_CLOSING=false;
+async function passPickBenchGone(){
+  if(PASS_PICK_CLOSING || !PASS_PICK) return;
+  PASS_PICK_CLOSING=true;
+  passPickClear();
+  try{ if(typeof beatBenchDry==="function") beatBenchDry(); }catch(e){}
+  try{ await sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}); }catch(e){}
+  egRefreshRoom(); loadRoomState();
+  PASS_PICK_CLOSING=false;
+}
 
 async function egDecideTap(uid){
   if(!EG_DECIDE_MODE) return false;
@@ -4033,7 +4108,7 @@ async function leaveRoom(){
   // engine bookkeeping belongs to THIS room only
   window.__ADVKEY=null; window.__LASTROUND=undefined; window.__EMPTY_TICKS=0;
   window.__ASKED_THIS_ROUND={}; window.__ASKED_THIS_SHOW={}; window.__PH_SEEN={};
-  window.__SEATING_SHOW=false; window.__STARTING=null;
+  window.__SEATING_SHOW=false; window.__STARTING=null; window.__CROWD_CALLED=false;
   window.__AUTOQ=false; window.__SPLASH_ADV=false;
   LC_BEATQ=[]; LC_BEATING=false;
   try{ document.querySelectorAll("#room .lc-beat").forEach(el=>el.remove());
@@ -4555,8 +4630,9 @@ window.__lc = {
   benchHeadshot, takeBenchSeat,
   /* seating / host actions */
   hostSeat, hostKeep, hostPass, autoSeatFromLine,
-  /* round flow — the post-pass bench-pick window (host-side marker) */
-  passPickOpen, passPickClear,
+  /* round flow — the post-pass bench-pick window (host-side marker) +
+     the ONE Q3 viability predicate */
+  passPickOpen, passPickClear, passViable,
   get PASS_PICK(){ return PASS_PICK; },
   /* phase engine */
   egApply, egRefreshRoom, egRoomPhase, egTickStart,

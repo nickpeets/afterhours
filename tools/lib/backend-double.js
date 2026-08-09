@@ -237,7 +237,16 @@ class BackendDouble {
       }
       case "ask_question": {
         const r = this.rooms.get(a.room_id);
-        if (r) { r.spotlight_target = a.target || null; this.emit("rooms", "UPDATE", { ...r }); }
+        if (r) {
+          r.spotlight_target = a.target || null;
+          this.emit("rooms", "UPDATE", { ...r });
+          // RULING Q4: the ask is a LEDGER fact — ask_question records a
+          // 'spotlight' room_event (prod's RPC must do the same; see the
+          // fix/ask-ledger PR notes).  Clients replay these on entry and
+          // fold them live; the window-local maps are only a cache.
+          if (a.target) this.pushEvent(a.room_id, uid, "spotlight",
+            { target_user: a.target, round: r.round || 0, question_id: a.question_id ?? null });
+        }
         return null;
       }
       case "decide_keep": {

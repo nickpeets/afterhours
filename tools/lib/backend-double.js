@@ -36,6 +36,7 @@ class BackendDouble {
     this.sessions = new Map();   // clientId -> uid
     this.listeners = [];         // fn(evt) — harness fans out to pages
     this.rpcLog = [];            // every rpc call, for gate assertions
+    this.swaps = {};             // room_id -> { uid: contact_text } (backstage swap offers)
     this.clockSkew = 0;          // ms added to "now" (staleness tests)
   }
 
@@ -292,8 +293,32 @@ class BackendDouble {
       case "get_draft_view": return { open: false };
       case "get_draft_tallies": return [];
       case "draft_heart": return null;
-      case "get_swap_status": return { status: "none" };
-      case "offer_swap": case "rescind_swap": return null;
+      case "get_swap_status": {
+        // the backstage pair is host_id + winner_id; "other" is the partner.
+        const r = this.rooms.get(a.room_id) || {};
+        const other = (uid === r.host_id) ? r.winner_id : r.host_id;
+        const store = this.swaps[a.room_id] || {};
+        const mine = store[uid] != null;
+        const theirs = other != null && store[other] != null;
+        return { they_offered: theirs, i_offered: mine,
+                 other_contact: (mine && theirs) ? store[other] : null };   // secrecy: only when BOTH offered
+      }
+      case "offer_swap": {
+        (this.swaps[a.room_id] = this.swaps[a.room_id] || {})[uid] = a.contact_text || "";
+        // the OFFER is a ledger fact: both clients fold it and re-check the
+        // reveal condition at once — no waiting on a poll (wave 5)
+        this.pushEvent(a.room_id, uid, "swap", { by: uid });
+        const r = this.rooms.get(a.room_id) || {};
+        const other = (uid === r.host_id) ? r.winner_id : r.host_id;
+        const store = this.swaps[a.room_id];
+        const theirs = other != null && store[other] != null;
+        return { other_contact: theirs ? store[other] : null };
+      }
+      case "rescind_swap": {
+        if (this.swaps[a.room_id]) delete this.swaps[a.room_id][uid];
+        this.pushEvent(a.room_id, uid, "swap", { by: uid, rescind: true });
+        return null;
+      }
       case "accept_terms": case "request_invite": case "report_user": case "delete_my_account": return null;
       case "resolve_draft": return null;
       default: throw new Error("double: unimplemented RPC " + name);

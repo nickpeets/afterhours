@@ -28,9 +28,13 @@ may strand the show below a viable cast without an explicit, named ending
   is the one door; rejoin with a face on file is silent (gate 12).
 - **Host tap always wins** — a host tap on a bench lane seats that man
   immediately, in any phase, at any bench count (gates 12, 15).
-- **PASS is offered iff the show continues after it** — post-pass seated
-  ≥ 2 OR bench ≥ 1 to refill — re-evaluated on EVERY roster change, never
-  once at phase entry (RULING Q3, 8/8).
+- **PASS is offered iff the bench can refill the chair** — `bench ≥ 1`,
+  full stop (RULING Q3 v2, 8/9 — the old "post-pass seated ≥ 2" arm is
+  DELETED: the live run proved it produces an open chair with nobody in
+  line and a dead recruitment card, exactly the boring room the rule
+  exists to prevent).  Re-derived on GENUINE roster changes (role or
+  membership) — never on freshness flapping; the decide card's option set
+  is otherwise stable within a phase.
 - **Ask state is (member, round)-scoped** — a chair is furniture; occupants
   bring their own ask state (gate 14).  Source of truth: **room_events** —
   clients replay on entry; no window-local authority (RULING Q4, 8/8).
@@ -112,6 +116,15 @@ reload / chair reload / network drop).
 
 The only window where an ask may be placed (gate 14).
 
+> **PROD FACT (8/9, from the live `ask_question` source):** the prod RPC
+> returns jsonb, **increments `rooms.round` per ask** (rounds count asks:
+> the first ask opens round 1), sets a **30s `phase_deadline`** for the
+> answer, pauses the chair clocks via `engine_pause_clocks`, **noops when
+> a spotlight is already running**, and emits the `spotlight` room_event
+> via `engine_emit` — the ask ledger was live server-side before PR #12;
+> the client fold completed it.  The battery double models the same
+> semantics (aligned in fix/segment-collapse).
+
 - HOST: TAP TO ASK on any un-asked seated chair (CSS `.is-choosing`); ASK
   composer button; drawer (deck → question → target); `eg_skip`.  Fire
   requires `askEligible`: choosing window AND target currently seated.
@@ -133,10 +146,13 @@ The only window where an ask may be placed (gate 14).
 - Disabled: asking (target already set — `askEligible` false); TAP TO ASK
   hidden on the target's cell.
 - Expiry: `beatTimesUp` → advance to open floor.
-- Disruptions: **TARGET leaves mid-answer** = passing himself: he's out,
-  the segment collapses immediately, the pick window opens (RULING Q2).
-  *Code as of this ruling still plays the ghost segment — wave-2 branch
-  fix/segment-collapse implements the ruling.*  RIVAL leaves: strip shrinks.
+- Disruptions: **TARGET leaves mid-answer** = passing himself: he's out
+  (pass-final, like any pass), the segment collapses immediately — target
+  cleared, question card down, wipe beat — and the pick window opens per
+  the Q7-compliant flow, falling back to an ordinary advance when the
+  bench is empty (RULING Q2, implemented in fix/segment-collapse,
+  gate 20).  A NON-target chair leaving vacates the seat and the segment
+  continues; PASS viability re-derives live (RULING Q3).  RIVAL leaves: strip shrinks.
   ASKED state: his mark stays keyed to (him, round) — irrelevant once he's
   not seated; a new occupant of his chair inherits nothing (gate 14).
 
@@ -161,8 +177,8 @@ The only window where an ask may be placed (gate 14).
 ### HER CALL (`deciding`, 60s)
 
 - HOST decide card: **KEEP ONE** (always — it's the win), **PASS ONE**
-  (only if the pass leaves a continuable show — bench truth from
-  `roomCounts().bench`; viability rule Q3), **CLEAR THE DECK** (confirm;
+  (only if the bench can refill: `bench ≥ 1` — RULING Q3 v2, derived from
+  `roomCounts()` on genuine roster changes), **CLEAR THE DECK** (confirm;
   <3 waiting = explicit end-alone warning), **…end the night alone**.
 - CHAIR/CROWD: drumroll ("SHE'S DECIDING"); hearts/chat.
 - Disabled: `eg_skip` (her call is not skippable — the resolver advances at
@@ -270,11 +286,12 @@ phase, and clocks restore from server state.
 out (pass-final), the segment collapses immediately, and the bench-pick
 window opens.  LEAVE is never blocked, in any phase, for any role.
 
-**Q3 — PASS viability.**  PASS is offered iff the show continues after
-it: post-pass seated ≥ 2 OR bench ≥ 1 to refill.  Re-evaluated on EVERY
-roster change, not once at phase entry.  (This supersedes the bench-only
-rule from finding 6 / gate 15's original scenario C: three seated with an
-empty bench DOES offer PASS — the post-pass stage of two continues.)
+**Q3 v2 (8/9, overrides the 8/8 ruling).**  PASS is offered iff
+`bench ≥ 1`.  Full stop.  The "post-pass seated ≥ 2" arm is DELETED — the
+live run proved it opens a chair with nobody in line and parks the show
+on a dead recruitment card.  The predicate re-derives on GENUINE roster
+changes (role/membership), never on freshness flapping — the decide
+card's option set is stable within a phase otherwise.
 
 **Q4 — Ask state's source of truth is room_events.**  Clients replay the
 ledger on entry and fold live events; the window-local maps are a cache of
@@ -290,3 +307,16 @@ there too; the janitor still bounds true absence.)
 
 **Q7 — The pick window closes early when the bench empties**, with a beat
 line, and the show advances immediately.
+
+**OPEN-CHAIR RECRUITMENT (8/9, from the live run).**  An open chair with
+an EMPTY bench is still reachable (a chair leaves — RULING Q2).  The show
+is never parked on "A CHAIR IS OPEN 0:00": the recruitment card runs a
+REAL countdown (`LC_PASS_PICK_SECS`); anyone taking the seat or the bench
+resolves it; on expiry the show moves on SHORT-HANDED with the remaining
+chairs and a beat line says so.
+
+**QUESTION PROPAGATION (8/9).**  Every role renders the spotlight
+question from the SAME realtime `spotlight` room_event — the payload
+carries the question text and the answer deadline (prod `engine_emit`
+already ships them) — never from a per-client fetch race.  Cross-role
+skew budget: one render tick.

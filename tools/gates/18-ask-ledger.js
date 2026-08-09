@@ -52,7 +52,9 @@ module.exports = {
       const host = await boot("host", hostU);
       const chairC = await boot("chair", "u_s2");
       const crowdC = await boot("crowd", "u_w");
-      const room = D.addRoom({ id: "r_ledger", host_id: hostU, name: "Ledger Night", phase: "spotlight", round: 1 });
+      // PROD PARITY: rounds count asks — a show pre-first-ask sits at round
+      // 0, and the FIRST ask opens round 1 (ask_question increments).
+      const room = D.addRoom({ id: "r_ledger", host_id: hostU, name: "Ledger Night", phase: "spotlight", round: 0 });
       D.rooms.get(room).phase_deadline = D.iso(D.now() + 60_000);
       D.addMember(room, "u_s1", "chair", { seat_index: 0 });
       D.addMember(room, "u_s2", "chair", { seat_index: 1 });

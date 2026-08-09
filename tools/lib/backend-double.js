@@ -236,18 +236,29 @@ class BackendDouble {
         return null;
       }
       case "ask_question": {
+        // PROD PARITY (fact learned 8/9, folded into SPEC.md): the live RPC
+        // returns jsonb, NOOPS when a spotlight is already running,
+        // increments rooms.round per ask (rounds count asks), sets a 30s
+        // answer deadline, pauses chair clocks (engine_pause_clocks — the
+        // client renders ⏸ under any engine phase, so no double-side state
+        // is needed), and emits the 'spotlight' ledger event.
         const r = this.rooms.get(a.room_id);
-        if (r) {
-          r.spotlight_target = a.target || null;
-          this.emit("rooms", "UPDATE", { ...r });
-          // RULING Q4: the ask is a LEDGER fact — ask_question records a
-          // 'spotlight' room_event (prod's RPC must do the same; see the
-          // fix/ask-ledger PR notes).  Clients replay these on entry and
-          // fold them live; the window-local maps are only a cache.
-          if (a.target) this.pushEvent(a.room_id, uid, "spotlight",
-            { target_user: a.target, round: r.round || 0, question_id: a.question_id ?? null });
-        }
-        return null;
+        if (!r) throw new Error("no room");
+        if (r.spotlight_target) return { noop: true };   // a spotlight is already running
+        if (!a.target) return { noop: true };
+        r.round = (r.round || 0) + 1;
+        r.spotlight_target = a.target;
+        r.spotlight_question_id = a.question_id ?? null;
+        r.phase_deadline = this.iso(this.now() + 30_000);
+        this.emit("rooms", "UPDATE", { ...r });
+        // prod engine_emit parity (8/9): the spotlight event carries the
+        // question text and the answer deadline, so EVERY role paints the
+        // card from the one event — no per-client fetch race.
+        const q = (this.questions || []).find((x) => String(x.id) === String(a.question_id));
+        this.pushEvent(a.room_id, uid, "spotlight",
+          { target_user: a.target, round: r.round, question_id: a.question_id ?? null,
+            question_text: q ? q.text : null, deadline: r.phase_deadline });
+        return { ok: true, round: r.round };
       }
       case "decide_keep": {
         // her decision verbs (egDecideTap) — same shape as keep_member /

@@ -10,8 +10,9 @@
  * for 20 seconds.
  *
  * Proven here, through real __lc references and the real UI:
- *   - the Q3 predicate, unit-driven through __lc.passViable across the
- *     seated/bench matrix (including the kept-counts-as-seated cell).
+ *   - the Q3 v2 predicate (8/9: PASS iff bench ≥ 1, full stop — the
+ *     seated-≥2 arm is DELETED), unit-driven through __lc.passViable
+ *     across the seated/bench matrix.
  *   - live: ONE seated + empty bench → PASS absent; a bench arrival
  *     mid-phase flips PASS on without a phase change.
  *   - HER CALL expiry with distinct hearts → the heart leader is KEPT on
@@ -63,7 +64,10 @@ module.exports = {
           "2c1k,0b": P(2, 1, 0),
         };
       });
-      const expect = { "3c,0b": true, "2c,1b": true, "2c,0b": false, "1c,1b": true, "1c,0b": false, "1c1k,0b": false, "2c1k,0b": true };
+      // Q3 v2 (8/9): bench decides, nothing else — every 0-bench cell is
+      // PASS-absent now (the old seated-≥2 arm parked shows on dead
+      // recruitment cards in the live run)
+      const expect = { "3c,0b": false, "2c,1b": true, "2c,0b": false, "1c,1b": true, "1c,0b": false, "1c1k,0b": false, "2c1k,0b": false };
       for (const k of Object.keys(expect)) {
         t.ok(matrix[k] === expect[k], `Q3 matrix [${k}] → ${expect[k]} (got ${matrix[k]})`);
       }

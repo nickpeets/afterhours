@@ -46,12 +46,10 @@ module.exports = {
       await host.goto();
       await host.page.waitForSelector("#lobby", { state: "visible", timeout: 15000 });
 
-      const mkDecidingRoom = (id, benched) => {
+      const mkDecidingRoom = (id, benched, seated = ["u_s1", "u_s2", "u_s3"]) => {
         const room = D.addRoom({ id, host_id: hostU, name: "Decide Night", phase: "deciding", round: 1 });
         D.rooms.get(room).phase_deadline = D.iso(D.now() + 60_000);
-        D.addMember(room, "u_s1", "chair", { seat_index: 0 });
-        D.addMember(room, "u_s2", "chair", { seat_index: 1 });
-        D.addMember(room, "u_s3", "chair", { seat_index: 2 });
+        seated.forEach((u, i) => D.addMember(room, u, "chair", { seat_index: i }));
         benched.forEach((u) => D.addMember(room, u, "line"));
         return room;
       };
@@ -120,10 +118,16 @@ module.exports = {
       t.ok(true, "no host action → the window expires and the show auto-advances to the next round");
       t.ok(await host.page.evaluate(() => !window.__lc.PASS_PICK), "the expired window's marker is gone");
 
-      /* ============ scenario C: bench 0 at deciding ============ */
+      /* ============ scenario C: PASS absent when the show can't continue ============
+         POLICY UPDATE (SPEC RULING Q3, 8/8): PASS is offered iff the show
+         continues after it — post-pass seated ≥2 OR bench ≥1.  The original
+         scenario here (three seated, bench 0 → PASS absent) encoded the
+         superseded bench-only rule; under Q3 that case now OFFERS pass (two
+         still make TV).  The boundary moves to ONE seated + empty bench;
+         gate 19 drives the full predicate matrix. */
       await host.page.evaluate(() => window.__lc.leaveRoom());
       await host.page.waitForSelector("#lobby", { state: "visible", timeout: 10000 });
-      const roomC = mkDecidingRoom("r_flowC", []);
+      const roomC = mkDecidingRoom("r_flowC", [], ["u_s1"]);
       await enter(roomC);
       await waitFor(() => host.page.evaluate(() => document.getElementById("eg_decide").style.display !== "none"), 8000,
         "decide card up (scenario C)");
@@ -131,8 +135,8 @@ module.exports = {
         pass: document.getElementById("eg_dpass").style.display,
         keep: getComputedStyle(document.getElementById("eg_dkeep")).display,
       }));
-      t.ok(cState.pass === "none", "bench 0: PASS is absent (sourced from roomCounts().bench)");
-      t.ok(cState.keep !== "none", "bench 0: KEEP remains on offer");
+      t.ok(cState.pass === "none", "one seated + empty bench: PASS is absent (Q3 — the show could not continue)");
+      t.ok(cState.keep !== "none", "one seated + empty bench: KEEP remains on offer");
 
       const errs = host.errors.filter((e) => !/favicon/.test(e));
       t.ok(errs.length === 0, "zero console errors — " + errs.slice(0, 2).join(" | "));

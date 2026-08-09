@@ -424,8 +424,12 @@
    overlay, no dim, no veil, and no name-shift side effects.  The pill IS
    the entire signal. */
 #room .chair.is-asked .chair__foot{
-  display:block; position:absolute; left:6px; bottom:6px; right:auto; top:auto; z-index:3;
-  width:auto; padding:2px 8px; border-radius:10px; text-align:left;
+  /* lower-RIGHT corner (wave 3 rider d): the name pill owns the lower-left;
+     hearts own the top-left.  pointer-events:none keeps the invisible
+     tap-to-heart target beneath it fully live. */
+  display:block; position:absolute; right:6px; bottom:6px; left:auto; top:auto; z-index:3;
+  pointer-events:none;
+  width:auto; padding:2px 8px; border-radius:10px; text-align:right;
   background:rgba(6,8,24,.72); border:1px solid rgba(185,168,255,.45);
   font-family:'Azeret Mono',monospace; font-weight:700; font-size:7.5px;
   letter-spacing:.12em; color:#d6cdff; text-shadow:var(--over);
@@ -745,7 +749,8 @@
    5-6 lines and the rail fits its gutter.  844px devices are untouched. */
 @media (max-height:799px){
   #room.lc-room{ --cell-h:136px; --bench-h:88px; }
-  #room.is-spotlight .chair.is-target .chair__feed{ height:241px; }
+  #room.is-spotlight .chair.is-host .chair__feed,
+  #room.is-spotlight .chair.is-target .chair__feed{ height:241px; }   /* EQUAL frames (rider e) */
   #room .lc-rail{ gap:8px; bottom:72px; }
 }
 
@@ -819,7 +824,8 @@
   #room .chair__empty-t{ font-size:12px; }
   #room .chair__empty-s{ display:none; }
   #room .lc-rail{ bottom:64px; gap:6px; }
-  #room.is-spotlight .chair.is-target .chair__feed{ height:150px; }
+  #room.is-spotlight .chair.is-host .chair__feed,
+  #room.is-spotlight .chair.is-target .chair__feed{ height:150px; }   /* EQUAL frames (rider e) */
 }
 
 /* ---- the bench headshot ---------------------------------------------------
@@ -1083,7 +1089,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.0030</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1024</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1512,7 +1518,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0809.0030"); }catch(e){}
+try{ console.log("[lastcall] build b0809.1024"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2403,27 +2409,11 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   if(kick) kick.textContent = AMHOST ? "THE BENCH · BLIND" : "THE BENCH";
 
   /* ---- phase chip ------------------------------------------------------- */
-  // a new round announces itself once
-  try{
-    const rd=CURRENT_ROOM?.round||0;
-    if(EG_ON && rd>0 && window.__LASTROUND!==rd){
-      const prev=window.__LASTROUND; window.__LASTROUND=rd;
-
-      if(prev!==undefined && typeof beatRound==="function"){
-        // the popup names ONLY current seated members — a round change means
-        // someone just left the stage, so refresh the roster before naming
-        // anyone (a stale snapshot is how a passed man's name got on the card)
-        Promise.resolve(typeof loadRoomState==="function"?loadRoomState():null).then(()=>{
-          // RULING Q6: kept men stay in the rotation — kept = safe, not
-          // done — so the popup draws from askTargets() unfiltered
-          const seated=askTargets();
-          const nextUp=seated.find(c=>!askedThisRound(c.user_id)) ||
-                       (seated.length?seated[(Math.max(1,rd)-1)%seated.length]:null);
-          beatRound(rd, nextUp?(ROOM_STATE.profs[nextUp.user_id]||{}).display_name:"");
-        }).catch(()=>{});
-      }
-    }
-  }catch(e){}
+  // (wave 3) the ROUND popup no longer fires from render timing — it fires
+  // at ONE moment, on the spotlight event landing, in handleEvent, for
+  // every role.  Render-driven firing was the "semi-random" popup: each
+  // client announced the round whenever its own polling happened to
+  // notice the number change.
   const chip=$("rt_phase");
   if(chip){
     const round=CURRENT_ROOM?.round||0;
@@ -2740,10 +2730,13 @@ function bestEffortLeave(){
 window.addEventListener("pagehide",(e)=>{ if(!e.persisted) bestEffortLeave(); });   // bfcache hide = app switch, not a close
 window.addEventListener("beforeunload",bestEffortLeave);
 document.addEventListener("visibilitychange",()=>{
-  if(document.visibilityState==="visible" && CURRENT_ROOM && !AMHOST){
-    // came back — refresh presence + roster (delivery kept flowing since the
-    // membership row survives tab-hide now)
+  if(document.visibilityState==="visible" && CURRENT_ROOM){
+    // came back — EVERY role re-syncs the room truth at once (the host was
+    // excluded here before wave 3: a backgrounded host's phone could return
+    // to a stale show and never learn what happened)
     LEFT_ON_UNLOAD=false;
+    syncRoomTruth();
+    if(AMHOST) return;
     // beat first: if we were only briefly away this is all that is needed and
     // our role is preserved (re-joining would reset bench -> spectator)
     sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id}).then(async()=>{
@@ -2835,23 +2828,38 @@ function startHostPoll(){
         return;
       }
     }
-    // everyone: detect the room being ended out from under them (poll fallback
-    // for the realtime rooms listener)
-    const {data:rm}=await sb.from("rooms").select("id,status,winner_id").eq("id",CURRENT_ROOM.id).single();
-    if(rm && rm.status==="ended") roomEndedUnderUs(rm);
+    // everyone: reconcile the FULL room truth (phase, spotlight, deadline,
+    // status) and replay any events the socket dropped — the live run
+    // proved status-only polling strands lurking clients mid-show
+    await syncRoomTruth();
   },4000);
 }
-function roomEndedUnderUs(rm){
+/* THE one end-of-show door (wave 3).  Both channels — the finale
+   room_event and the rooms-status fallback — land here, once, for every
+   role; only the HOW differs per role.  The live-run bugs it kills:
+   - the HOST parked forever because her own LAST CALL board is the same
+     #finale element the old guard checked ("finale already showing");
+   - the WINNER skipped the snap ceremony on the fallback path (only the
+     never-emitted finale event routed to startWinnerSnap). */
+let FINALE_BOARD=false;   // #finale is currently the host's LAST CALL board, not the closing screen
+function showEnded(rm, explicit){
   if(!CURRENT_ROOM) return;
+  if(window.__ENDED_HANDLED===CURRENT_ROOM.id) return;
   if(AWAITING_PHOTO || $("snap").classList.contains("show") ||
-     $("finale").classList.contains("show") || $("backstage").classList.contains("show")) return;
-  if(rm.winner_id && rm.winner_id!==ME.id){ enterPhotoWait(rm.winner_id); return; }
-  if(rm.winner_id){ renderFinale(rm.winner_id); return; }
-  // no winner + no ceremony = the host walked (left / signed out / closed the
-  // tab).  Say it plainly and go home.
+     $("backstage").classList.contains("show")) return;
+  if($("finale").classList.contains("show") && !FINALE_BOARD) return;  // closing screen already up
+  window.__ENDED_HANDLED=CURRENT_ROOM.id;
+  FINALE_BOARD=false;
+  const w=(rm && rm.winner_id!=null) ? rm.winner_id : null;
+  if(w===ME.id){ startWinnerSnap(w); return; }   // the winner gets the ceremony on EVERY channel
+  if(w){ enterPhotoWait(w); return; }
+  // no winner: an explicit walk gets the WALKED ALONE board; a vanished
+  // host gets the plain goodbye
+  if(explicit){ renderFinale(null); return; }
   if(typeof beatAlone==="function") beatAlone(); else toast("The host ended the show 🌙");
   leaveRoom();
 }
+function roomEndedUnderUs(rm){ showEnded(rm, false); }
 function stopHostPoll(){
   stopHostBeat(); if(HOST_POLL){clearInterval(HOST_POLL);HOST_POLL=null;} }
 
@@ -3196,12 +3204,15 @@ function egCloseDrawer(keepAsking){ $("eg_drawer").style.display="none"; if(!kee
    role paints the card from THIS event, same tick, no per-client fetch
    race.  egSpotlight below remains the rooms-row fallback. */
 function egSpotlightFromEvent(p){
-  if(!CURRENT_ROOM || !p || !p.target_user) return;
-  if(CURRENT_ROOM){ CURRENT_ROOM.spotlight_target=p.target_user;
-    if(p.deadline) CURRENT_ROOM.phase_deadline=p.deadline; }
-  if(p.deadline){ const t=Date.parse(p.deadline); if(t) EG_DEADLINE=t; }
-  const nm=ROOM_STATE.profs[p.target_user]?.display_name||"them";
-  if(p.question_text!=null) $("eg_qtext").textContent=p.question_text;
+  const tgt=p && (p.target_user||p.target);
+  if(!CURRENT_ROOM || !tgt) return;
+  const dl=p.deadline||p.phase_deadline||null;
+  const qt=(p.question_text!=null)?p.question_text:((p.text!=null)?p.text:((p.question!=null)?p.question:null));
+  if(CURRENT_ROOM){ CURRENT_ROOM.spotlight_target=tgt;
+    if(dl) CURRENT_ROOM.phase_deadline=dl; }
+  if(dl){ const t=Date.parse(dl); if(t) EG_DEADLINE=t; }
+  const nm=ROOM_STATE.profs[tgt]?.display_name||"them";
+  if(qt!=null) $("eg_qtext").textContent=qt;
   $("eg_qfor").innerHTML=`— for ${escapeHtml(nm)} <span class="lc-answerclock" id="eg_answerclock">0:30</span>`;
   $("eg_question").style.display="block";
   egRoleBits();
@@ -3654,8 +3665,45 @@ function addChatLine(uid,text){ floatMsg(`<span class="cu">${escapeHtml(nameFor(
 
 /* handle a realtime event row — render synchronously to preserve order;
    profile fetches happen in the background for future events */
+/* ============ EVENT TRUTH (wave 3) ============
+   ONE delivery principle: every phase/beat transition renders from the
+   same room_events / rooms-realtime stream on every role.  Realtime is
+   the fast path; syncRoomTruth() is the TRUTH — a role-agnostic poll that
+   reconciles the full room row and replays any missed events through the
+   SAME handleEvent the socket uses.  A dead websocket (backgrounded iOS
+   tab — the live-run crowd/bench) can now cost at most one poll interval,
+   never the show. */
+let EV_CURSOR=null;          // created_at of the newest processed event
+const EV_SEEN=new Set();     // recent event ids: realtime + poll deliver ONCE
+function evMark(ev){
+  if(!ev) return;
+  if(ev.id){ EV_SEEN.add(ev.id);
+    if(EV_SEEN.size>800){ const it=EV_SEEN.values(); for(let i=0;i<200;i++) EV_SEEN.delete(it.next().value); } }
+  if(ev.created_at && (!EV_CURSOR || ev.created_at>EV_CURSOR)) EV_CURSOR=ev.created_at;
+}
+async function syncRoomTruth(){
+  if(!CURRENT_ROOM) return;
+  try{
+    const {data:rm}=await sb.from("rooms").select("*").eq("id",CURRENT_ROOM.id).single();
+    if(rm){
+      if(rm.status==="ended"){ roomEndedUnderUs(rm); return; }
+      CURRENT_ROOM={...CURRENT_ROOM,...rm};
+      egApply(); renderRoom();
+    }
+    if(EV_CURSOR){
+      const {data:evs}=await sb.from("room_events").select("*")
+        .eq("room_id",CURRENT_ROOM.id).gt("created_at",EV_CURSOR)
+        .order("created_at",{ascending:true}).limit(60);
+      (evs||[]).forEach(ev=>handleEvent(ev));   // the SAME door as realtime
+    }
+    if(!AMHOST) await loadRoomState();          // roster truth rides along (host's poll already loads)
+  }catch(e){}
+}
+
 function handleEvent(ev){
   if(!ev) return;
+  if(ev.id && EV_SEEN.has(ev.id)) return;   // both channels deliver; process once
+  evMark(ev);
   const p=ev.payload||{};
   const actor=ev.user_id;
   // warm the cache for next time (don't await — keeps event order intact)
@@ -3687,14 +3735,22 @@ function handleEvent(ev){
       break;
     case "phase": case "spotlight": case "draft_open": case "draft_seat": case "struck_out":
       if(ev.type==="draft_open" && p && p.candidates) EG_DRAFT=p;
-      // RULING Q4: a live ask lands in every client's cache the moment the
-      // ledger row arrives — ASKED renders on EVERY role's screen.  And
-      // the QUESTION CARD renders from this same event for every role
-      // (8/9: the crowd must never trail the chairs on a fetch race).
-      if(ev.type==="spotlight" && p.target_user){
-        askMark(p.target_user, p.round);
-        if(typeof egSpotlightFromEvent==="function") egSpotlightFromEvent(p);
-        renderRoom();
+      // RULING Q4 + wave 3: a live ask lands in every client's cache the
+      // moment the ledger row arrives — ASKED, the ROUND POPUP, and the
+      // QUESTION CARD all render from THIS event, for EVERY role, in this
+      // order.  Payload keys are tolerant of the prod emitter's naming.
+      if(ev.type==="spotlight"){
+        const tgt=p.target_user||p.target||null;
+        if(tgt){
+          const rd=(p.round!=null)?p.round:null;
+          if(rd!=null && rd!==window.__LASTROUND && typeof beatRound==="function"){
+            window.__LASTROUND=rd;   // the popup fires at ONE moment: the ask landing
+            beatRound(rd, (ROOM_STATE.profs[tgt]||{}).display_name||"");
+          }
+          askMark(tgt, rd);
+          if(typeof egSpotlightFromEvent==="function") egSpotlightFromEvent(p);
+          renderRoom();
+        }
       }
       egRefreshRoom(); loadRoomState();
       break;
@@ -3718,9 +3774,7 @@ function handleEvent(ev){
       break;
     case "finale": {
       const w=(p.winner_id!==undefined && p.winner_id!==null) ? p.winner_id : null;
-      if(!w){ renderFinale(null); break; }             // walked alone — no ceremony
-      if(w===ME.id){ startWinnerSnap(w); }             // I'm the winner — smile time
-      else { enterPhotoWait(w); }                      // hold the room live for the flash
+      showEnded({winner_id:w}, /*explicit walk/keep*/true);
       break; }
     case "winner_photo":
       WINNER_PHOTO=p.photo||null;
@@ -3748,9 +3802,19 @@ async function loadEventHistory(){
     // RULING Q4: the ask ledger replays on entry — every client (and a
     // reloading host) reconstructs the (member, round) asked maps from
     // the same server facts.  The window maps are a cache, not authority.
-    if(ev.type==="spotlight" && ev.payload?.target_user){
-      askMark(ev.payload.target_user, ev.payload.round);
+    const sp=ev.payload||{};
+    if(ev.type==="spotlight" && (sp.target_user||sp.target)){
+      askMark(sp.target_user||sp.target, sp.round);
+      if(sp.round!=null) window.__LASTROUND=sp.round;   // history is silent: no popup on entry
     }
+    evMark(ev);   // the poll's cursor starts where history ends
+  }
+  // an eventless room still needs a live cursor, or the truth poll could
+  // never replay anything for this client — start it at entry (server
+  // clock, 1s of overlap margin; the id-dedup absorbs the overlap)
+  if(!EV_CURSOR){
+    const nowMs=(typeof serverNow==="function")?serverNow():Date.now();
+    EV_CURSOR=new Date(nowMs-1000).toISOString();
   }
   // chat/reactions start fresh — nothing replayed. new events stream in live from here.
   renderRoom();
@@ -3783,6 +3847,7 @@ function showLastCall(){
       board.appendChild(d);
     });
   }
+  FINALE_BOARD=true;   // this is the BOARD — an ending may repaint over it
   $("finale").classList.add("show");
   $("fin_walk")?.addEventListener("click",()=>endShow(null));
   $("fin_cancel")?.addEventListener("click",()=>$("finale").classList.remove("show"));
@@ -3806,6 +3871,7 @@ async function endShow(winnerUid){
 function renderFinale(winnerUid){
   // never paint the closing screen over an open Winner's Room
   try{ if($("backstage").classList.contains("show")) return; }catch(e){}
+  FINALE_BOARD=false;
   const inner=$("finale_inner");
   if(winnerUid){
     const p=ROOM_STATE.profs[winnerUid]||PROF_CACHE[winnerUid];
@@ -4239,6 +4305,7 @@ async function leaveRoom(){
   window.__ADVKEY=null; window.__LASTROUND=undefined; window.__EMPTY_TICKS=0;
   window.__ASKED_THIS_ROUND={}; window.__ASKED_THIS_SHOW={}; window.__PH_SEEN={};
   window.__SEATING_SHOW=false; window.__STARTING=null; window.__CROWD_CALLED=false; window.__COLLAPSING=null;
+  window.__ENDED_HANDLED=null; FINALE_BOARD=false; EV_CURSOR=null;
   window.__AUTOQ=false; window.__SPLASH_ADV=false;
   LC_BEATQ=[]; LC_BEATING=false;
   try{ document.querySelectorAll("#room .lc-beat").forEach(el=>el.remove());
@@ -4835,8 +4902,9 @@ window.__lc = {
   get PASS_PICK(){ return PASS_PICK; },
   /* phase engine */
   egApply, egRefreshRoom, egRoomPhase, egTickStart,
-  /* room lifecycle */
-  enterApp, openRoom, leaveRoom, subscribeRoom, handleEvent,
+  /* room lifecycle — syncRoomTruth is the role-agnostic truth poll,
+     showEnded the ONE end-of-show door (wave 3) */
+  enterApp, openRoom, leaveRoom, subscribeRoom, handleEvent, syncRoomTruth, showEnded,
   startHeartbeat, stopHeartbeat, startHostPoll, stopHostPoll,
   startClockTick, stopClockTick, serverNow,
   /* finale */

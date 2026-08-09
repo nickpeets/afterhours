@@ -37,6 +37,7 @@
       delete() { spec.action = "delete"; return b; },
       eq(col, val) { spec.filters.push({ type: "eq", col, val }); return b; },
       neq(col, val) { spec.filters.push({ type: "neq", col, val }); return b; },
+      gt(col, val) { spec.filters.push({ type: "gt", col, val }); return b; },
       in(col, val) { spec.filters.push({ type: "in", col, val }); return b; },
       order(col, o) { spec.order = { col, ascending: !!(o && o.ascending) }; return b; },
       limit(n) { spec.limit = n; return b; },

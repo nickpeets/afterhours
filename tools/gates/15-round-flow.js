@@ -118,13 +118,11 @@ module.exports = {
       t.ok(true, "no host action → the window expires and the show auto-advances to the next round");
       t.ok(await host.page.evaluate(() => !window.__lc.PASS_PICK), "the expired window's marker is gone");
 
-      /* ============ scenario C: PASS absent when the show can't continue ============
-         POLICY UPDATE (SPEC RULING Q3, 8/8): PASS is offered iff the show
-         continues after it — post-pass seated ≥2 OR bench ≥1.  The original
-         scenario here (three seated, bench 0 → PASS absent) encoded the
-         superseded bench-only rule; under Q3 that case now OFFERS pass (two
-         still make TV).  The boundary moves to ONE seated + empty bench;
-         gate 19 drives the full predicate matrix. */
+      /* ============ scenario C: PASS absent when the bench can't refill ============
+         POLICY (SPEC RULING Q3 v2, 8/9): PASS is offered iff bench ≥ 1 —
+         full stop.  (The 8/8 seated-≥2 arm was deleted after the live run
+         parked a show on a dead recruitment card.)  Any 0-bench room hides
+         PASS; gate 19 drives the full predicate matrix. */
       await host.page.evaluate(() => window.__lc.leaveRoom());
       await host.page.waitForSelector("#lobby", { state: "visible", timeout: 10000 });
       const roomC = mkDecidingRoom("r_flowC", [], ["u_s1"]);

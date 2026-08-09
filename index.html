@@ -1065,7 +1065,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0808.2242</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.2356</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1323,7 +1323,9 @@
       </div>
       <!-- WINNER'S ROOM (backstage) -->
       <!-- ===== EPISODE ENGINE overlays (dormant until backend phase exists) ===== -->
-      <div class="lc-showstart" id="eg_showstart" style="display:none">
+      <!-- the splash is informational: it must never intercept the composer
+           (RULING Q2 — leave is never blocked, in any phase) -->
+      <div class="lc-showstart" id="eg_showstart" style="display:none;pointer-events:none">
         <div class="lc-showstart__mark">LAST CALL</div>
         <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.3em;color:#7ff2e6">🎬 SHOW STARTING</div>
         <div class="lc-showstart__cast" id="eg_cast"></div>
@@ -1492,7 +1494,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0808.2242"); }catch(e){}
+try{ console.log("[lastcall] build b0809.2356"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -1731,6 +1733,9 @@ function beatCrowdCall(name){ lcBeat("crowdcall",{ms:2200,
     '<div class="lc-beat__big">THE CROWD DECIDES</div>'+
     '<div class="lc-beat__sub">'+(name?lcEsc(name).toUpperCase()+" IS KEPT":"&nbsp;")+'</div></div>'});
 }
+/* F4 — recruitment expired (8/9): the show moves on short-handed */
+function beatShortHanded(){ lcBeat("shorthand",{ms:1600,
+  html:'<div class="lc-beat__chip">NOBODY STEPPED UP \u2014 MOVING ON SHORT-HANDED</div>'}); }
 /* F3 — bench emptied mid-pick (RULING Q7): say it, move on */
 function beatBenchDry(){ lcBeat("benchdry",{ms:1400,
   html:'<div class="lc-beat__chip">THE BENCH IS EMPTY \u2014 MOVING ON</div>'}); }
@@ -2123,15 +2128,14 @@ function roomCounts(members, room){
    the rotation instead of silently restarting it.
    ========================================================================= */
 
-/* RULING Q3: PASS is offered iff the show continues after it — the
-   post-pass stage still seats ≥2 (chairs+kept), OR the bench can refill
-   the chair.  ONE function; the render path and the click-time belt both
-   call it, and it re-evaluates on EVERY roster render, never once at
-   phase entry.  (Supersedes the bench-only rule of finding 6: three
-   seated with an empty bench DOES offer PASS — two still make TV.) */
+/* RULING Q3 v2 (8/9): PASS is offered iff the bench can refill the
+   chair — bench ≥ 1, FULL STOP.  The old "post-pass seated ≥ 2" arm is
+   deleted: the live run proved it opens a chair with nobody in line and
+   parks the show on a dead recruitment card.  ONE function; render and
+   the click-time belt both call it; it re-derives on GENUINE roster
+   changes (see the decide-sig in renderRoom), never on freshness flap. */
 function passViable(members, room){
-  const RC=roomCounts(members, room);
-  return ((RC.chairs+RC.kept)-1)>=2 || RC.bench>=1;
+  return roomCounts(members, room).bench>=1;
 }
 
 function askTargets(){
@@ -2205,6 +2209,14 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   const spotTarget = (spotTargetRaw && ROOM_STATE.members.some(m=>m.user_id===spotTargetRaw && (m.role==="chair"||m.role==="kept")))
     ? spotTargetRaw : null;
   const promo = CURRENT_ROOM?.promoting || null;   // {seat, name, endsAt} when a chair is rising
+  // RULING Q2: a vacated spotlight NEVER plays on.  When the raw target is
+  // set but he is no longer seated, the HOST collapses the segment at once
+  // — no ghost card, no dead 30s clock (audit F4).
+  if(AMHOST && EG_ON && phase==="spotlight" && spotTargetRaw && !spotTarget
+     && typeof segmentCollapse==="function" && window.__COLLAPSING!==spotTargetRaw){
+    window.__COLLAPSING=spotTargetRaw;
+    segmentCollapse(spotTargetRaw);
+  }
 
   for(let i=0;i<3;i++){
     const el=$("rt_seat"+i); if(!el) continue;
@@ -2407,10 +2419,10 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     let secLeft = (EG_ON && typeof lcSectionLeft==="function") ? lcSectionLeft() : null;
     if(phase==="preshow") label="WARMING UP";
     else if(phase==="showstart") label="SHOW START";
-    else if(phase==="spotlight") label="SPOTLIGHT";
+    else if(phase==="spotlight") label=(spotTargetRaw && !spotTarget)?label:"SPOTLIGHT";   // a ghost target never earns the SPOTLIGHT label (F9)
     else if(phase==="deliberation") label="DELIBERATING";
     else if(phase==="deciding") label="HER CALL";
-    if(AMHOST && PASS_PICK && phase==="deciding") label="PICK FROM THE BENCH";
+    if(AMHOST && PASS_PICK && (phase==="deciding"||phase==="spotlight")) label="PICK FROM THE BENCH";
     if(promo) label="PROMOTING";
     // the pill owns the SECTION TIMER too (owner rule 8/5): the tick composes
     // "M:SS · LABEL" from this dataset; chairs carry no clock at all
@@ -2502,14 +2514,20 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     const foot=el.querySelector(".chair__foot");
     if(foot) setText(foot, asked ? "ASKED" : "");
   });
-  /* ---- decide truth (RULINGS Q3 + Q7) ---------------------------------- */
-  // The decide card re-derives on EVERY roster render — never a stale
-  // phase-entry snapshot (audit F3): departures and arrivals flip PASS
-  // live, through the ONE predicate.
+  /* ---- decide truth (RULINGS Q3 v2 + Q7) -------------------------------- */
+  // The decide card re-derives on GENUINE roster changes (role/membership
+  // signature) — never a stale phase-entry snapshot (audit F3), and never
+  // freshness flapping (live run 8/9: PASS blinked unavailable→available
+  // mid-phase as heartbeats crossed the staleness boundary).  The option
+  // set is stable within a phase otherwise.
   if(AMHOST && EG_ON && phase==="deciding" && !PASS_PICK){
-    const dp=$("eg_dpass");
-    if(dp) dp.style.display = passViable(members, CURRENT_ROOM) ? "" : "none";
-  }
+    const sig=(members||[]).map(m=>m.user_id+":"+m.role).sort().join("|");
+    if(sig!==window.__DECIDE_SIG){
+      window.__DECIDE_SIG=sig;
+      const dp=$("eg_dpass");
+      if(dp) dp.style.display = passViable(members, CURRENT_ROOM) ? "" : "none";
+    }
+  } else { window.__DECIDE_SIG=null; }
   // RULING Q7: an open pick window over an emptied bench closes early
   // with a beat line and the show advances at once.
   if(AMHOST && PASS_PICK && typeof passPickBenchGone==="function"
@@ -2843,6 +2861,7 @@ async function hostSeat(uid){
   if(error){ toast("Seat failed: "+error.message); return; }
   if(PASS_PICK){
     // her tap won: replacement seated, window closes, the show moves at once
+    recruitResolve();
     passPickClear();
     try{ await sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}); }catch(e){}
     egRefreshRoom();
@@ -2941,7 +2960,7 @@ function egApply(){
     // new room: stale engine state from a previous show must never leak in
     EG_ROOM_ID=r.id; EG_PHASE=null; EG_DEADLINE=-1;
     EG_DRAFT=null; EG_VIEW=null; EG_PICKQ=null; EG_PICKTARGET=null; EG_DECIDE_MODE=null;
-    PASS_PICK=null; window.__CROWD_CALLED=false;
+    PASS_PICK=null; window.__CROWD_CALLED=false; window.__COLLAPSING=null;
     egStopTallyPoll(); clearInterval(EG_TICK);
     const root=$("room");
     ["is-showstart","is-spotlight","is-mingle","is-deciding","is-drafting","is-asking","eg-on"].forEach(c=>root.classList.remove(c));
@@ -2954,7 +2973,10 @@ function egApply(){
   if(!EG_ON){ return; }                       // classic mode: engine dormant
   if(phase===EG_PHASE && EG_DEADLINE===(r.phase_deadline?Date.parse(r.phase_deadline):0)) { egRoleBits(); return; }
   EG_PHASE=phase; EG_DEADLINE=r.phase_deadline?Date.parse(r.phase_deadline):0;
-  if(phase!=="deciding"){ PASS_PICK=null; window.__CROWD_CALLED=false; }   // neither window nor crowd-call outlives the phase
+  // the pick window lives in deciding (a pass) OR spotlight (a collapse,
+  // RULING Q2); every exit path clears it explicitly — this is the belt
+  if(phase!=="deciding" && phase!=="spotlight") PASS_PICK=null;
+  if(phase!=="deciding") window.__CROWD_CALLED=false;
 
   // root state classes
   ["is-showstart","is-spotlight","is-mingle","is-deciding","is-drafting","is-asking"].forEach(c=>root.classList.remove(c));
@@ -3014,11 +3036,20 @@ function egTickStart(){
       aq.textContent = Math.floor(secs/60)+":"+String(secs%60).padStart(2,"0");
       aq.classList.toggle("is-urgent", secs<=10);
     }
-    // the bench-pick window expiring: the HOST advances the show herself —
-    // deciding is excluded from the generic resolver below (RULING Q5)
+    // the pick/recruit window expiring: the HOST advances the show herself —
+    // deciding is excluded from the generic resolver below (RULING Q5).
+    // A recruit window expiring = the show moves on SHORT-HANDED (8/9).
     if(PASS_PICK && Date.now()>PASS_PICK.until){
+      const wasRecruit=!!PASS_PICK.recruit;
       passPickClear();
+      if(wasRecruit){ recruitResolve(); if(typeof beatShortHanded==="function") beatShortHanded(); }
       sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}).then(()=>{ egRefreshRoom(); loadRoomState(); }).catch(()=>{});
+    }
+    // the recruit card's clock is REAL: tick it from the shared deadline
+    if(PASS_PICK && PASS_PICK.recruit){
+      const dc=$("eg_draft_clock");
+      if(dc){ const lft=Math.max(0,Math.ceil((PASS_PICK.until-Date.now())/1000));
+              dc.textContent="0:"+String(lft).padStart(2,"0"); dc.classList.toggle("is-urgent",lft<=5); }
     }
     // RULING Q5: HER CALL never silently expires.  Clock-out = the crowd
     // decides — the heart leader among seated chairs is KEPT, announced
@@ -3131,13 +3162,32 @@ async function egFireSpotlight(){
   }
   const {error}=await sb.rpc("ask_question",{room_id:CURRENT_ROOM.id,question_id:EG_PICKQ,target:EG_PICKTARGET});
   if(error){ toast("Couldn't ask: "+error.message); return; }
-  askMark(EG_PICKTARGET);                             // (member, round) — the one write
-  renderRoom();                                       // show the ASKED marker at once
+  // No direct mark here: prod increments rooms.round AT the ask, so only
+  // the server knows the round this ask belongs to.  The 'spotlight'
+  // ledger event it emits is the ONE mark source — handleEvent folds it
+  // (askMark) and renders within the same beat, and cache === ledger
+  // byte-for-byte across every client and every reload.
+  renderRoom();
   egCloseDrawer(); EG_PICKQ=null; EG_PICKTARGET=null;
   egRefreshRoom();
 }
 function egCloseDrawer(keepAsking){ $("eg_drawer").style.display="none"; if(!keepAsking) $("room").classList.remove("is-asking"); }
 
+/* QUESTION PROPAGATION (SPEC 8/9): the spotlight room_event carries the
+   question text and answer deadline (prod engine_emit ships both) — every
+   role paints the card from THIS event, same tick, no per-client fetch
+   race.  egSpotlight below remains the rooms-row fallback. */
+function egSpotlightFromEvent(p){
+  if(!CURRENT_ROOM || !p || !p.target_user) return;
+  if(CURRENT_ROOM){ CURRENT_ROOM.spotlight_target=p.target_user;
+    if(p.deadline) CURRENT_ROOM.phase_deadline=p.deadline; }
+  if(p.deadline){ const t=Date.parse(p.deadline); if(t) EG_DEADLINE=t; }
+  const nm=ROOM_STATE.profs[p.target_user]?.display_name||"them";
+  if(p.question_text!=null) $("eg_qtext").textContent=p.question_text;
+  $("eg_qfor").innerHTML=`— for ${escapeHtml(nm)} <span class="lc-answerclock" id="eg_answerclock">0:30</span>`;
+  $("eg_question").style.display="block";
+  egRoleBits();
+}
 async function egSpotlight(r){
   if(!r.spotlight_target){ return; }
   // fetch the question text
@@ -3203,12 +3253,54 @@ async function passPickOpen(){
   return true;
 }
 function passPickClear(){ PASS_PICK=null; }
+/* RULING Q2: a chair leaving during his own answer = passing himself.
+   The HOST's client owns the collapse: question card down, wipe beat on
+   his chair, server target cleared (the host owns her room row — same
+   precedent as the pick window's deadline extension), and the replacement
+   flow starts in the same breath: the pick window when the bench can
+   refill, an ordinary advance when it can't. */
+async function segmentCollapse(uid){
+  try{ $("eg_question").style.display="none"; }catch(e){}
+  if(typeof beatPassed==="function") beatPassed(uid);
+  try{ await sb.from("rooms").update({spotlight_target:null})
+        .eq("id",CURRENT_ROOM.id).eq("host_id",ME.id); }catch(e){}
+  if(CURRENT_ROOM) CURRENT_ROOM.spotlight_target=null;
+  await loadRoomState();
+  const opened=await passPickOpen();
+  if(!opened) await recruitOpen();   // empty bench: recruit, never park (8/9)
+  egRefreshRoom(); loadRoomState();
+}
+/* OPEN-CHAIR RECRUITMENT (SPEC 8/9): an open chair with an empty bench is
+   NEVER "A CHAIR IS OPEN 0:00".  The recruitment card runs a REAL
+   countdown on the shared deadline; anyone taking the seat or the bench
+   resolves it; expiry moves the show on SHORT-HANDED with a beat line. */
+async function recruitOpen(){
+  if(!AMHOST || !CURRENT_ROOM) return false;
+  const until=Date.now()+LC_PASS_PICK_SECS*1000;
+  PASS_PICK={until, recruit:true};
+  try{ await sb.from("rooms").update({phase_deadline:new Date(until).toISOString()})
+        .eq("id",CURRENT_ROOM.id).eq("host_id",ME.id); }catch(e){}
+  await egRefreshRoom();
+  try{
+    $("eg_draft_head").textContent="A CHAIR IS OPEN";
+    $("eg_draft_sub").textContent="nobody's in line — next to join takes the seat";
+    $("eg_draft_opts").innerHTML="";
+    $("eg_draft_seatno").textContent="";
+    $("eg_draft").style.display="flex";
+  }catch(e){}
+  renderRoom();
+  return true;
+}
+function recruitResolve(){
+  try{ $("eg_draft").style.display="none"; }catch(e){}
+}
 /* RULING Q7: the pick window closes EARLY when the bench empties — a beat
    line says so, and the show advances immediately instead of letting a
    "PICK FROM THE BENCH" label sit over nobody. */
 let PASS_PICK_CLOSING=false;
 async function passPickBenchGone(){
   if(PASS_PICK_CLOSING || !PASS_PICK) return;
+  if(PASS_PICK.recruit) return;   // a recruit window WANTS an empty bench
   PASS_PICK_CLOSING=true;
   passPickClear();
   try{ if(typeof beatBenchDry==="function") beatBenchDry(); }catch(e){}
@@ -3578,8 +3670,14 @@ function handleEvent(ev){
     case "phase": case "spotlight": case "draft_open": case "draft_seat": case "struck_out":
       if(ev.type==="draft_open" && p && p.candidates) EG_DRAFT=p;
       // RULING Q4: a live ask lands in every client's cache the moment the
-      // ledger row arrives — ASKED renders on EVERY role's screen
-      if(ev.type==="spotlight" && p.target_user){ askMark(p.target_user, p.round); renderRoom(); }
+      // ledger row arrives — ASKED renders on EVERY role's screen.  And
+      // the QUESTION CARD renders from this same event for every role
+      // (8/9: the crowd must never trail the chairs on a fetch race).
+      if(ev.type==="spotlight" && p.target_user){
+        askMark(p.target_user, p.round);
+        if(typeof egSpotlightFromEvent==="function") egSpotlightFromEvent(p);
+        renderRoom();
+      }
       egRefreshRoom(); loadRoomState();
       break;
     case "pass":
@@ -4023,11 +4121,25 @@ $("rt_joinline").onclick=async()=>{
   {
     const meRow=ROOM_STATE.members.find(m=>m.user_id===ME.id);
     if(meRow && (meRow.role==="chair"||meRow.role==="kept")){
-      if(!confirm("Leave the chair?  She'll fill it from the bench.")) return;
+      // RULING Q2: leaving is NEVER blocked — but walking out of your own
+      // answer is passing yourself, and a pass is final for the show.
+      const wasTarget = EG_ON && CURRENT_ROOM?.spotlight_target===ME.id
+                        && egRoomPhase(CURRENT_ROOM)==="spotlight";
+      const q = wasTarget
+        ? "Leave mid-answer?  That counts as a pass \u2014 you're out for the night."
+        : "Leave the chair?  She'll fill it from the bench.";
+      if(!confirm(q)) return;
       try{
         await sb.rpc("leave_room",{room_id:CURRENT_ROOM.id});
         await sb.rpc("join_room",{room_id:CURRENT_ROOM.id});   // back as crowd
-        toast("You stepped down \u2014 enjoy the show \ud83c\udf78");
+        if(wasTarget){
+          I_WAS_PASSED=true;
+          try{ await sb.from("room_events").insert({room_id:CURRENT_ROOM.id,user_id:ME.id,
+                 type:"pass",payload:{target_user:ME.id}}); }catch(e){}
+          updateJoinBtn();
+          toast("You stepped out of the spotlight \u2014 that's a pass. \ud83e\udd42");
+        }
+        else toast("You stepped down \u2014 enjoy the show \ud83c\udf78");
       }catch(e){ toast("Couldn't leave the chair."); }
       await loadRoomState();
       return;
@@ -4108,7 +4220,7 @@ async function leaveRoom(){
   // engine bookkeeping belongs to THIS room only
   window.__ADVKEY=null; window.__LASTROUND=undefined; window.__EMPTY_TICKS=0;
   window.__ASKED_THIS_ROUND={}; window.__ASKED_THIS_SHOW={}; window.__PH_SEEN={};
-  window.__SEATING_SHOW=false; window.__STARTING=null; window.__CROWD_CALLED=false;
+  window.__SEATING_SHOW=false; window.__STARTING=null; window.__CROWD_CALLED=false; window.__COLLAPSING=null;
   window.__AUTOQ=false; window.__SPLASH_ADV=false;
   LC_BEATQ=[]; LC_BEATING=false;
   try{ document.querySelectorAll("#room .lc-beat").forEach(el=>el.remove());

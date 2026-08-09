@@ -5,8 +5,8 @@ Authoritative statement of what the show IS.  Sources: the pacing spec
 `index.html`, and the invariants established across fix/count-truth,
 fix/bench-entry-and-host-seat, fix/video-attach-idempotent, fix/ask-truth,
 fix/round-flow, and fix/daily-singleton.  Where the correct behavior is
-genuinely undecided this file says **OPEN QUESTION** and lists the options —
-it does not invent policy.  The audit (`AUDIT-2026-08-08.md`) scores the code
+genuinely undecided this file said OPEN QUESTION; all seven were ruled on
+8/8 — see RULINGS at the end.  The audit (`AUDIT-2026-08-08.md`) scores the code
 against this document.
 
 ## The prime invariant
@@ -28,11 +28,12 @@ may strand the show below a viable cast without an explicit, named ending
   is the one door; rejoin with a face on file is silent (gate 12).
 - **Host tap always wins** — a host tap on a bench lane seats that man
   immediately, in any phase, at any bench count (gates 12, 15).
-- **PASS is never offered when the pass would leave the show unable to
-  continue** (gate 15 covers bench 0; see OPEN QUESTION Q3 for the general
-  viability rule).
+- **PASS is offered iff the show continues after it** — post-pass seated
+  ≥ 2 OR bench ≥ 1 to refill — re-evaluated on EVERY roster change, never
+  once at phase entry (RULING Q3, 8/8).
 - **Ask state is (member, round)-scoped** — a chair is furniture; occupants
-  bring their own ask state (gate 14).  *Source of truth: see Q4.*
+  bring their own ask state (gate 14).  Source of truth: **room_events** —
+  clients replay on entry; no window-local authority (RULING Q4, 8/8).
 - **One Daily instance per page**, created once, destroyed before any new
   create (gate 16).  Attach budget: ≤1 srcObject assignment per genuine
   stream change, 0 re-parents, no orphaned tiles (gates 8, 13).
@@ -114,7 +115,7 @@ The only window where an ask may be placed (gate 14).
 - HOST: TAP TO ASK on any un-asked seated chair (CSS `.is-choosing`); ASK
   composer button; drawer (deck → question → target); `eg_skip`.  Fire
   requires `askEligible`: choosing window AND target currently seated.
-- CHAIR/CROWD: hearts, chat, gifts.  CHAIR: ↩ LEAVE THE CHAIR (see Q2).
+- CHAIR/CROWD: hearts, chat, gifts.  CHAIR: ↩ LEAVE THE CHAIR (never blocked — RULING Q2).
 - Disabled: TAP TO ASK on an already-asked chair (`:not(.is-asked)`),
   decide card, PASS.
 - Expiry: choosing clock out → **the house picks**: random question, first
@@ -132,17 +133,18 @@ The only window where an ask may be placed (gate 14).
 - Disabled: asking (target already set — `askEligible` false); TAP TO ASK
   hidden on the target's cell.
 - Expiry: `beatTimesUp` → advance to open floor.
-- Disruptions: **TARGET leaves mid-answer** — see Q2.  Current mechanics:
-  the room's layout degrades (client-side seated-target guard), the server
-  target sticks until the section expires.  RIVAL leaves: strip shrinks.
+- Disruptions: **TARGET leaves mid-answer** = passing himself: he's out,
+  the segment collapses immediately, the pick window opens (RULING Q2).
+  *Code as of this ruling still plays the ghost segment — wave-2 branch
+  fix/segment-collapse implements the ruling.*  RIVAL leaves: strip shrinks.
   ASKED state: his mark stays keyed to (him, round) — irrelevant once he's
   not seated; a new occupant of his chair inherits nothing (gate 14).
 
 ### OPEN FLOOR (45s)
 
 - Everyone mingles: hearts, chat, gifts.  ASKED badges on chairs that have
-  answered this round remain visible **to the whole room** (see Q4 —
-  currently only the host's client can render them).
+  answered this round remain visible **to the whole room**, derived from
+  the room_events ledger on every client (RULING Q4).
 - HOST: `eg_skip`.
 - Expiry: → next round's spotlight (rounds 1–2) or deliberation (round 3).
 - Disruptions: chair leaves → seat wiped next render; his ASKED mark dies
@@ -176,11 +178,17 @@ The only window where an ask may be placed (gate 14).
   - No tap → window expires → ordinary resolver advances; the chair rides
     empty into the next round and the draft/claim path may fill it.
   - The decide card stays down while the window is open.
-- Expiry (no decision at all): resolver advances → round+1 spotlight.
-  **OPEN QUESTION Q5** — is silently skipping her call acceptable?
-- Disruptions: chair leaves mid-deciding → **the card must re-derive PASS
-  viability immediately** (audit B — it doesn't).  Bench empties → same.
-  All chairs leave → nothing to decide; see Q5.
+- Expiry (no decision at all): **HER CALL never silently expires**
+  (RULING Q5).  Clock-out = the crowd decides: the heart leader among the
+  seated chairs is KEPT, announced with a loud beat, and the show ends on
+  the ordinary KEEP path.  A heart tie (or an empty stage — no leader
+  exists) holds the clock until she taps; true host absence remains the
+  janitor's business.
+- Disruptions: chair leaves mid-deciding → the card re-derives PASS
+  viability immediately (RULING Q3).  Bench empties mid-pick-window → the
+  window closes early with a beat line and the show advances at once
+  (RULING Q7).  All chairs leave → no heart leader exists → the clock
+  holds (RULING Q5).
 
 ### DRAFT STORM (`draft`)
 
@@ -212,11 +220,11 @@ The only window where an ask may be placed (gate 14).
   NEXT UP halo re-derives; any PASS affordance must re-check viability;
   an open bench-pick window with an emptied bench simply expires into the
   ordinary advance.
-- **The host reloads**: the show must survive a reload.  The zombie rule
-  already defines true absence (no `host_seen_at` beat for 120s ends the
-  room; watchers exit after 80s of no host presence).  A reload is
-  presence, not absence.  **Current code violates this — audit F1.**  See
-  Q1 for the intended resume flow.
+- **The host reloads**: a reload NEVER ends the show (RULING Q1).
+  Presence is defined by the existing absence rules alone — watchers exit
+  after 80s without the host; the 120s zombie janitor ends truly
+  abandoned rooms.  A booting host who finds his own live room rejoins
+  it: host UI, phase, and clocks restore from server state.
 - **A chair reloads**: membership row persists; re-entry re-affirms
   silently (bench: silent `takeBenchSeat`, gate 12); role and seat
   unchanged if within the freshness window; camera republishes via the
@@ -251,62 +259,34 @@ not a step the common path relies on (audit E).
 
 ---
 
-## OPEN QUESTIONS
+## RULINGS (final policy — 8/8, replacing the audit's open questions)
 
-**Q1 — Host reload/resume.**  The show must survive a host reload, but by
-what mechanic?  Options: (a) crash-recovery janitor only ends owned rooms
-whose `host_seen_at` is older than the 120s zombie threshold (reuse the
-existing rule; reload inside the window resumes silently); (b) a "resume
-your show?" prompt on boot with a countdown, ending the room only on
-decline/timeout; (c) never auto-end — rely solely on the watcher-side 80s
-exit and 120s janitor.  *(a) is the smallest change consistent with the
-existing absence rules, but the owner has not chosen.*
+**Q1 — Host reload.**  A reload NEVER ends the show.  Presence is defined
+by the existing 80s (watcher exit) / 120s (zombie janitor) absence rules
+only.  A booting host who finds his own live room rejoins it; host UI,
+phase, and clocks restore from server state.
 
-**Q2 — May a chair leave during his own answer?**  Options: (a) allowed
-any time; leaving as TARGET collapses the segment immediately (target
-cleared, `beatTimesUp`-style beat, straight to open floor); (b) LEAVE
-disabled for the TARGET during his answer only (the one moment the show is
-literally about him); (c) allowed but treated as a pass (he's done for the
-show).  Current code is (a) minus the collapse — the segment plays against
-a ghost.  No option has been chosen; the live report "leave appears
-blocked in spotlight" matches NO code path (audit A) — if blocking is
-wanted it must be built deliberately, per (b).
+**Q2 — A chair leaving during his own answer = passing himself.**  He's
+out (pass-final), the segment collapses immediately, and the bench-pick
+window opens.  LEAVE is never blocked, in any phase, for any role.
 
-**Q3 — The general PASS-viability rule.**  Established: PASS hidden at
-bench 0.  Undecided: the full predicate.  Options: (a) `bench ≥ 1` only
-(refill exists; stage may still shrink if seats emptied earlier); (b)
-`bench ≥ 1 AND seated ≥ 3` (a pass never fires unless the stage is full —
-under-3 stages must refill via draft first); (c) `bench + seated − 1 ≥ 2`
-(post-pass cast can still make TV).  Whatever is chosen must be
-re-evaluated on EVERY roster change, not at card-open time (audit B).
+**Q3 — PASS viability.**  PASS is offered iff the show continues after
+it: post-pass seated ≥ 2 OR bench ≥ 1 to refill.  Re-evaluated on EVERY
+roster change, not once at phase entry.  (This supersedes the bench-only
+rule from finding 6 / gate 15's original scenario C: three seated with an
+empty bench DOES offer PASS — the post-pass stage of two continues.)
 
-**Q4 — Source of truth for ask state.**  Ask state must be (member,
-round)-scoped AND visible to every role AND survive a host reload.  The
-current window-local maps satisfy only the first (audit C).  Options: (a)
-derive from `room_events` — `ask_question` writes a `spotlight` event row
-(payload: target, round); every client folds events into the maps on entry
-(`loadEventHistory`) and live (`handleEvent`); (b) a `rooms.asked_json`
-column the host writes; (c) a dedicated table.  (a) uses plumbing that
-already exists on every client and needs double parity (the double's
-`ask_question` writes no event today).
+**Q4 — Ask state's source of truth is room_events.**  Clients replay the
+ledger on entry and fold live events; the window-local maps are a cache of
+the ledger, never the authority.
 
-**Q5 — HER CALL expiry and the empty stage.**  If she never decides, the
-resolver silently advances to round+1 — her call evaporates.  If all
-chairs leave during deciding, the card offers verbs with no objects.
-Options: (a) expiry auto-KEEPs the crowd's heart leader (the crowd
-decides); (b) expiry = CLEAR THE DECK semantics (explicit refill-or-end);
-(c) expiry loops deciding with an "everyone's waiting" nudge until she
-acts (no clock-out).  Empty stage: degrade to draft/refill if anyone
-waits, else end-alone — but this needs an owner call.
+**Q5 — HER CALL never silently expires.**  Clock-out = the crowd decides:
+the heart leader among seated chairs is KEPT, announced with a loud beat,
+ending the show on the ordinary KEEP path.  A heart tie holds the clock
+until she taps.  (No leader exists on an empty stage — the clock holds
+there too; the janitor still bounds true absence.)
 
-**Q6 — May a KEPT man be asked in later rounds?**  `askTargets()` includes
-`kept` (he's on stage); the show-scope rotation map excludes him only
-after his own question.  Options: (a) kept men are done answering — targets
-are `chair` only; (b) kept men stay in rotation.  Gate 14 currently
-encodes neither explicitly.
+**Q6 — Kept men stay in the ask rotation.**  Kept = safe, not done.
 
-**Q7 — Bench-pick window with an emptied bench.**  If the last bench
-member leaves during the 20s window, the label still says "PICK FROM THE
-BENCH" over nobody until expiry.  Options: (a) close the window and
-advance the moment `roomCounts().bench` hits 0; (b) let it expire (current;
-harmless but 20s of dead label).
+**Q7 — The pick window closes early when the bench empties**, with a beat
+line, and the show advances immediately.

@@ -1065,7 +1065,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.2356</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.0008</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1494,7 +1494,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0809.2356"); }catch(e){}
+try{ console.log("[lastcall] build b0809.0008"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -4278,8 +4278,14 @@ const DAILY_FN=SUPA_URL+"/functions/v1/daily-room";
 
 /* ---- on-screen video debug panel: auto-appears on failure; full narration with ?debug=1 ---- */
 const VDEBUG_ON = new URLSearchParams(location.search).has("debug");
+/* QUIET DIAGNOSTICS (SPEC, audit F5): users NEVER see internals.  The
+   raw log lives in the console always, and in the on-screen panel ONLY
+   under the deliberate ?debug switch — an ✕-severity line no longer
+   force-shows anything.  User-visible video states go through
+   lcCamStatus() below, in show language, nothing rawer. */
 function vdbg(msg, isErr){
   console.log("[video]", msg);
+  if(!VDEBUG_ON) return;               // no panel node, no raw text in the DOM
   let p=document.getElementById("vdebug");
   if(!p){
     p=document.createElement("div");
@@ -4296,8 +4302,22 @@ function vdbg(msg, isErr){
   line.textContent=(isErr?"✕ ":"· ")+msg;
   if(isErr) line.style.color="#ff8ac2";
   p.appendChild(line);
-  if(isErr || VDEBUG_ON) p.style.display="block";
+  p.style.display="block";
   p.scrollTop=p.scrollHeight;
+}
+/* the ONE user-facing camera status: a small chip in the show's own
+   vocabulary.  text=null clears it.  Everything else about the camera
+   pipeline is console/?debug material. */
+function lcCamStatus(text){
+  let el=document.getElementById("camstatus");
+  if(!text){ if(el) el.remove(); return; }
+  if(!el){
+    el=document.createElement("div");
+    el.id="camstatus";
+    el.style.cssText="position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:60;padding:6px 14px;border-radius:14px;background:rgba(8,11,32,.78);border:1px solid rgba(185,168,255,.45);font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.14em;color:#eef0ff";
+    document.body.appendChild(el);
+  }
+  el.textContent=text;
 }
 
 // map a Daily participant's user_name (we set it to the app uid) to their app user_id
@@ -4331,6 +4351,7 @@ async function recoverCamera(){
     await DAILY.setInputDevicesAsync({ videoDeviceId: cams[0].deviceId });
     if(AMHOST || amISeated()) await DAILY.setLocalVideo(true);
     vdbg("camera fallback engaged ✓");
+    lcCamStatus(null);                       // found it — the chip goes away
     NATIVE_BLUR_TRIED=false; setTimeout(()=>tryNativeBlur(),400);
   }catch(err){ vdbg("camera fallback failed: "+(err?.message||err), true); }
   finally{ CAM_RECOVERING=false; }
@@ -4395,16 +4416,18 @@ function videoWatchdog(){
   WATCHDOG_T=setTimeout(async ()=>{
     WATCHDOG_T=null;
     const mine=Object.values(VIDEO_TILES).some(t=>t.uid===ME.id);
-    if(mine){ CAM_TRIES=0; return; }
+    if(mine){ CAM_TRIES=0; lcCamStatus(null); return; }
     if(DAILY && DAILY_JOINED && (AMHOST || amISeated())){
       vdbg("local video track: "+localVideoTrackInfo(), true);
       CAM_TRIES++;
       vdbg("video never attached after 6s — disabling blur and retrying camera", true);
+      lcCamStatus("finding your camera…");   // the SHOW's words, nothing rawer
       BLUR_KILLED=true;   // once a stall is seen, blur stays off for the session
       try{ await DAILY.updateInputSettings({ video:{ processor:{ type:"none" } } }); }catch(e){}
       if(CAM_TRIES>=CAM_MAX_TRIES){
         CAM_GAVE_UP=true;
         vdbg("camera recovery gave up after 3 tries — see track state above", true);
+        lcCamStatus(null);                   // the toast says it in show language
         toast("Video couldn't start — try refreshing or a different browser.");
         return;
       }
@@ -4754,6 +4777,9 @@ window.__lc = {
   startClockTick, stopClockTick, serverNow,
   /* finale */
   showLastCall, confirmWinner, endShow, renderFinale, enterPhotoWait,
+  /* diagnostics — the quiet surface (F5): vdbg is console/?debug-only,
+     lcCamStatus is the ONE show-language chip */
+  vdbg, lcCamStatus,
   /* video layer */
   videoJoin, videoLeave, placeVideo, reflowVideo, tileFor, onTrack,
   onTrackStopped, onPartLeft, syncLocalPublish, amISeated,

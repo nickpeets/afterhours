@@ -217,6 +217,7 @@ class BackendDouble {
         const order = ["preshow", "showstart", "spotlight", "openfloor", "deliberation", "deciding"];
         const i = order.indexOf(r.phase);
         if (r.phase === "deciding") { r.round = (r.round || 0) + 1; return this.setPhase(a.room_id, "spotlight", 60); }
+        if (r.phase === "draft") { return this.setPhase(a.room_id, "spotlight", 60); }   // a skipped draft returns to the floor
         const next = i < 0 ? "showstart" : order[Math.min(i + 1, order.length - 1)];
         return this.setPhase(a.room_id, next, 60);
       }

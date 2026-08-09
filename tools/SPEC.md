@@ -321,6 +321,20 @@ REAL countdown (`LC_PASS_PICK_SECS`); anyone taking the seat or the bench
 resolves it; on expiry the show moves on SHORT-HANDED with the remaining
 chairs and a beat line says so.
 
+**PICK-WINDOW AUTHORITY (8/9, wave 5).**  While a pick/recruit window is
+open, its timer is the ONLY advancing authority: no resolver, section
+clock, draft auto-resolve, or server phase flip may advance the show or
+close the window — only her tap, the window's own expiry, the bench
+emptying, the chair refilling, or leaving the room.  The header clock
+tracks the ACTIVE window, labeled.
+
+**"SHE'S HEARD ENOUGH" (8/9, wave 5).**  Host only.  Visible during the
+ANSWER (spotlight with a live target), OPEN FLOOR, and DELIBERATION —
+never during choosing, showstart, her call, a pick window, or the draft.
+One press = she's done listening: the show goes STRAIGHT to her call
+(deciding, fresh 60s clock, spotlight cleared).  Debounced — the control
+disarms on press until the phase changes; one fire per segment.
+
 **QUESTION PROPAGATION (8/9).**  Every role renders the spotlight
 question from the SAME realtime `spotlight` room_event — the payload
 carries the question text and the answer deadline (prod `engine_emit`

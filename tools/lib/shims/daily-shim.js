@@ -29,8 +29,11 @@
   }
 
   class FakeCall {
-    constructor() {
+    constructor(opts) {
       this._handlers = {};
+      this._autoSub = !(opts && opts.subscribeToTracksAutomatically === false);
+      this._subs = {};           // session_id -> {video,audio} (manual mode ledger)
+      this._recv = {};           // session_id -> receive settings (layer requests)
       this._parts = {};          // session_id -> participant
       this._localSid = sid();
       this._joined = false;
@@ -43,6 +46,8 @@
         addRemote: (uid, opts) => this.addRemote(uid, opts),
         removeRemote: (uid) => this.removeRemote(uid),
         stopRemoteTrack: (uid) => this.stopRemoteTrack(uid),
+        subs: () => JSON.parse(JSON.stringify(this._subs)),
+        recv: () => JSON.parse(JSON.stringify(this._recv)),
       };
     }
     on(ev, cb) { (this._handlers[ev] = this._handlers[ev] || []).push(cb); return this; }
@@ -113,14 +118,44 @@
       const existing = this._byUid()[uid];
       if (existing) return existing;
       const track = video ? canvasTrack(uid) : null;
+      const subbed = this._autoSub;   // manual mode: no pixels until the app subscribes
       const p = {
         local: false, user_name: uid, session_id: sid(),
-        tracks: { video: { state: video ? "playable" : "off", track, persistentTrack: track }, audio: { state: "off", track: null } },
+        _pendingTrack: track,
+        tracks: { video: { state: (video && subbed) ? "playable" : "off",
+                           track: subbed ? track : null, persistentTrack: subbed ? track : null },
+                  audio: { state: "off", track: null } },
       };
       this._parts[p.session_id] = p;
       this._emit("participant-joined", { participant: p });
-      if (track) this._emit("track-started", { participant: p, track });
+      if (track && subbed) this._emit("track-started", { participant: p, track });
       return p;
+    }
+    /* real daily-js manual-subscription surface: tracks flow only once the
+       app subscribes; the ledger is exposed for gates via __dailyControl. */
+    updateParticipant(sessionId, opts) {
+      const p = this._parts[sessionId];
+      const st = opts && opts.setSubscribedTracks;
+      if (!st) return;
+      this._subs[sessionId] = { video: !!st.video, audio: !!st.audio };
+      if (!p) return;
+      const track = p._pendingTrack;
+      const had = !!p.tracks.video.track;
+      if (st.video && track && !had) {
+        p.tracks.video = { state: "playable", track, persistentTrack: track };
+        this._emit("track-started", { participant: p, track });
+      } else if (!st.video && had) {
+        const tr = p.tracks.video.track;
+        p.tracks.video = { state: "off", track: null, persistentTrack: null };
+        this._emit("track-stopped", { participant: p, track: tr });
+        this._emit("participant-updated", { participant: p });
+      }
+    }
+    updateReceiveSettings(settings) {
+      for (const [sid, v] of Object.entries(settings || {})) {
+        this._recv[sid] = { ...(this._recv[sid] || {}), ...v };
+      }
+      return this._recv;
     }
     stopRemoteTrack(uid) {
       const p = this._byUid()[uid];
@@ -149,10 +184,10 @@
   let LIVE = null;
   let CREATED = 0;
   window.DailyIframe = {
-    createCallObject: (_opts) => {
+    createCallObject: (opts) => {
       if (LIVE && !LIVE._destroyed) throw new Error("Duplicate DailyIframe instances are not allowed");
       CREATED++;
-      LIVE = new FakeCall();
+      LIVE = new FakeCall(opts);
       return LIVE;
     },
     supportedBrowser: () => ({ supported: true }),

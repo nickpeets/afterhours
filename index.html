@@ -1089,7 +1089,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1054</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1112</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1518,7 +1518,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0809.1054"); }catch(e){}
+try{ console.log("[lastcall] build b0809.1112"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -4590,7 +4590,11 @@ async function _videoJoinOnce(){
     vdbg("token OK → joining Daily room…");
 
     DAILY=window.DailyIframe.createCallObject({
-      subscribeToTracksAutomatically:true,
+      // SUBSCRIPTION ECONOMICS (wave 3): the app subscribes explicitly —
+      // pay only for pixels a tile actually shows.  Bench are silhouettes
+      // BY DESIGN (zero video subs); crowd publishes nothing; self never
+      // round-trips.  syncVideoSubscriptions() owns the ledger.
+      subscribeToTracksAutomatically:false,
       dailyConfig:{}
       // NOTE: no video processor here.  Blur is applied AFTER video is confirmed
       // working (applyBlur), so a failing blur pipeline can never take the camera
@@ -4650,6 +4654,7 @@ async function videoLeave(){
     // must not carry across.  (BLUR_KILLED resets too: a fresh call object
     // is a fresh chance, and the watchdog re-kills on any new stall.)
     CAM_TRIES=0; CAM_GAVE_UP=false; BLUR_KILLED=false; CAM_APP_OFF=false;
+    SUB_SIG=null;
     WATCHDOG_FIRES=0;
     if(WATCHDOG_T){ clearTimeout(WATCHDOG_T); WATCHDOG_T=null; }
     if(typeof lcCamStatus==="function") lcCamStatus(null);
@@ -4848,8 +4853,56 @@ function sweepVideo(){
   }catch(e){}
 }
 // re-place all known video tracks when roster/seating changes
+/* ---- SUBSCRIPTION ECONOMICS (wave 3) ------------------------------------
+   want[uid] = simulcast layer for every participant whose video a tile on
+   MY screen actually paints; everyone else's video is unsubscribed.
+   Layers by painted size: 2 = the 1-on-1 spotlight frames (large),
+   1 = quad cells (~175px), 0 = the collapsed rival strip (tiny). */
+function desiredSubscriptions(){
+  const want={};
+  if(!CURRENT_ROOM) return want;
+  const ph=(typeof egRoomPhase==="function")?egRoomPhase(CURRENT_ROOM):null;
+  const spot=CURRENT_ROOM.spotlight_target||null;
+  const spotSeated=spot && ROOM_STATE.members.some(m=>m.user_id===spot && (m.role==="chair"||m.role==="kept"));
+  const spotlit=!!(ph==="spotlight" && spotSeated);
+  if(CURRENT_ROOM.host_id && CURRENT_ROOM.host_id!==ME.id)
+    want[CURRENT_ROOM.host_id]=spotlit?2:1;                   // the hero frame
+  for(const m of (ROOM_STATE.members||[])){
+    if(!m || !(m.role==="chair"||m.role==="kept")) continue;  // bench/crowd: NEVER
+    if(m.user_id===ME.id) continue;                           // self: no round-trip
+    want[m.user_id]= spotlit ? (m.user_id===spot?2:0) : 1;    // strip rivals are tiny
+  }
+  return want;
+}
+let SUB_SIG=null;
+function syncVideoSubscriptions(){
+  if(!DAILY || !DAILY_JOINED) return;
+  if(typeof DAILY.updateParticipant!=="function") return;      // older lib: automatic mode
+  const want=desiredSubscriptions();
+  const parts=DAILY.participants?.()||{};
+  const recv={};
+  const plan=[];
+  for(const p of Object.values(parts)){
+    if(!p || p.local) continue;
+    const uid=partUid(p); const sid=p.session_id;
+    if(!uid || !sid) continue;
+    const layer=(uid in want)?want[uid]:null;
+    plan.push([sid, layer]);
+    if(layer!=null) recv[sid]={ video:{ layer } };
+  }
+  const sig=plan.map(([sid,l])=>sid+":"+l).sort().join("|");
+  if(sig===SUB_SIG) return;                                    // unchanged ledger: no API churn
+  SUB_SIG=sig;
+  for(const [sid,layer] of plan){
+    try{ DAILY.updateParticipant(sid,{ setSubscribedTracks:{ video: layer!=null, audio: true } }); }catch(e){}
+  }
+  try{ if(typeof DAILY.updateReceiveSettings==="function" && Object.keys(recv).length)
+        DAILY.updateReceiveSettings(recv); }catch(e){}
+}
+
 function reflowVideo(){
   if(!DAILY) return;
+  syncVideoSubscriptions();   // the ledger re-derives whenever the map might have moved
   const parts=DAILY.participants();
   // the sweep fires on roster CHANGE only: unchanged participant→tile map
   // means no teardown work, whatever called reflow
@@ -4927,6 +4980,7 @@ window.__lc = {
                             appOff:CAM_APP_OFF, watchdogFires:WATCHDOG_FIRES, pending:!!WATCHDOG_T }; },
   /* video layer */
   videoJoin, videoLeave, placeVideo, reflowVideo, tileFor, onTrack,
+  desiredSubscriptions, syncVideoSubscriptions,
   onTrackStopped, onPartLeft, syncLocalPublish, amISeated,
   get VIDEO_STATS(){ return VIDEO_STATS; },
   /* live state (getters — always current, never snapshots) */

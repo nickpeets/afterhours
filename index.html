@@ -1062,7 +1062,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.1719</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0808.2230</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1489,7 +1489,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0807.1719"); }catch(e){}
+try{ console.log("[lastcall] build b0808.2230"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -1807,11 +1807,15 @@ async function enterApp(){
     const nf=$("set_name"); if(nf && !nf.value) nf.value=guess;
     showSetup(); return;
   }
-  // crash recovery: if I own any live rooms from a previous session, end them.
-  // your show doesn't outlive your presence.
+  // crash recovery, RULING Q1 (SPEC): a reload NEVER ends the show.
+  // Presence is the janitor's business alone (watchers exit after 80s
+  // without her; the 120s zombie rule ends truly abandoned rooms).  A
+  // booting host who finds her own live room walks straight back into it —
+  // host UI, phase, and clocks restore from server state via openRoom.
+  let RESUME_ROOM=null;
   try{
-    const {data:mine}=await sb.from("rooms").select("id").eq("host_id",user.id).eq("status","live");
-    for(const r of (mine||[])){ await sb.rpc("end_show",{room_id:r.id,winner_id:null}); }
+    const {data:mine}=await sb.from("rooms").select("*").eq("host_id",user.id).eq("status","live");
+    RESUME_ROOM=(mine||[])[0]||null;
   }catch(e){}
   $("auth").classList.add("hide");
   $("setup").style.display="none";            // never leave a gate screen stacked
@@ -1833,6 +1837,8 @@ async function enterApp(){
     const lb=$("lobby");
     if(lb && getComputedStyle(lb).display!=="none" && !CURRENT_ROOM) loadRooms();
   },15000);
+  // …and the resumed show takes the stage over the lobby (RULING Q1)
+  if(RESUME_ROOM){ try{ await openRoom(RESUME_ROOM); }catch(e){} }
 }
 
 /* ============ LOBBY ============ */
@@ -2639,8 +2645,12 @@ function bestEffortLeave(){
   if(LEFT_ON_UNLOAD || !CURRENT_ROOM) return;
   LEFT_ON_UNLOAD=true;
   try{
-    if(AMHOST){ sb.rpc("end_show",{room_id:CURRENT_ROOM.id,winner_id:null}); } // the host IS the show
-    else { sb.rpc("leave_room",{room_id:CURRENT_ROOM.id}); }
+    // RULING Q1: a page teardown NEVER ends the show — a reload IS a
+    // teardown, and the host is usually coming right back.  Her true
+    // absence is the janitor's business (watchers exit after 80s without
+    // her beat; the 120s zombie rule ends abandoned rooms).  Ending the
+    // show stays an EXPLICIT act: LAST CALL, walk, or clear.
+    if(!AMHOST){ sb.rpc("leave_room",{room_id:CURRENT_ROOM.id}); }
   }catch(e){}
 }
 // only on REAL page teardown — NOT on tab-hide. deleting the membership row on

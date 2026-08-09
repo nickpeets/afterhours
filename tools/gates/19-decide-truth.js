@@ -140,6 +140,10 @@ module.exports = {
       D.rooms.get(roomC).phase_deadline = D.iso(D.now() + 2_000);
       D.emit("rooms", "UPDATE", { ...D.rooms.get(roomC) });
       await host.page.waitForTimeout(6_000);   // well past the deadline
+      t.note("TIE-DIAG hearts=" + JSON.stringify(await host.page.evaluate(() => window.__lc.HEARTS)) +
+             " members=" + JSON.stringify(await host.page.evaluate(() =>
+               window.__lc.ROOM_STATE.members.map((m) => m.user_id + ":" + m.role))) +
+             " keeps=" + JSON.stringify(D.rpcLog.filter((r) => r.name === "decide_keep" && r.args.room_id === "r_dt3")));
       const c = D.rooms.get(roomC);
       t.ok(c.status === "live" && c.phase === "deciding" && (c.round || 0) === 3,
         `heart tie: no auto-advance, the clock holds for her tap (status=${c.status}, phase=${c.phase}, round=${c.round})`);

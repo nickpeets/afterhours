@@ -1089,7 +1089,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1024</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1054</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1518,7 +1518,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0809.1024"); }catch(e){}
+try{ console.log("[lastcall] build b0809.1054"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -3088,7 +3088,15 @@ function egTickStart(){
       const scored=chairs.map(c=>({c,h:HEARTS[c.user_id]||0})).sort((a,b)=>b.h-a.h);
       const top=scored[0];
       const tie=scored.length>1 && scored[1].h===top.h;
+      // the crowd's call ends the SHOW — it is measured twice before it is
+      // made.  A roster or hearts snapshot caught mid-refresh could
+      // momentarily hide a chair and fake a leader; the same leader must
+      // hold across two consecutive ticks (≥600ms) to fire.
       if(top && !tie){
+        const pick=window.__CROWD_PICK;
+        if(!pick || pick.uid!==top.c.user_id){ window.__CROWD_PICK={uid:top.c.user_id, at:Date.now()}; }
+        else if(Date.now()-pick.at<600){ /* hold — measured once, not twice */ }
+        else {
         window.__CROWD_CALLED=true;
         (async()=>{
           try{
@@ -3098,7 +3106,8 @@ function egTickStart(){
             await egDecideTap(top.c.user_id);
           }catch(e){}
         })();
-      }
+        }
+      } else { window.__CROWD_PICK=null; }   // tie or empty stage: the record resets
     }
     // resolver: anyone past deadline nudges the server (throttled 2s) —
     // every phase EXCEPT deciding, which never silently expires (Q5)

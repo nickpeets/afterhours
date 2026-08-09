@@ -1089,7 +1089,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1112</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1211</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1518,7 +1518,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0809.1112"); }catch(e){}
+try{ console.log("[lastcall] build b0809.1211"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2053,11 +2053,21 @@ async function openRoom(r){
 }
 
 // pull fresh, ghost-filtered members via active_members RPC
+/* ROSTER TRUTH (wave 4): the seat map is a FACT with one source.  Every
+   client — every role — re-fetches active_members on the same truth
+   cadence (syncRoomTruth), and commits are MONOTONIC: an older in-flight
+   response can never clobber a newer one.  (The live-run freeze: desktop
+   windows kept a passed man seated for minutes — realtime-only roster
+   delivery plus unordered fetch commits meant a stale snapshot could sit,
+   and keep re-sitting, on top of the truth.) */
+let ROSTER_FETCH_SEQ=0;
 async function loadRoomState(){
   if(!CURRENT_ROOM) return;
+  const mySeq=++ROSTER_FETCH_SEQ;
   const {data:members,error}=await sb.rpc("active_members",{room_id:CURRENT_ROOM.id});
   if(!CURRENT_ROOM) return;   // left the room while the RPC was in flight
   if(error){console.log("active_members:",error.message);return;}
+  if(mySeq!==ROSTER_FETCH_SEQ) return;   // superseded: a newer fetch owns the commit
   const present=(members||[]).filter(m=>m.user_id!==CURRENT_ROOM.host_id && m.role!=="gone");
   const uids=[...new Set(present.map(m=>m.user_id))];
   window.__PROFS_EVER = window.__PROFS_EVER || {};
@@ -2083,6 +2093,7 @@ async function loadRoomState(){
       setTimeout(()=>{ window.__PROFS_RETRY=false; loadRoomState(); }, 900);
     }
   }
+  if(mySeq!==ROSTER_FETCH_SEQ) return;   // superseded during the profile fetches
   ROOM_STATE={members:present,profs};
   renderRoom();
   // video follows game state: publish my cam if seated, and move feeds into chair tiles
@@ -3705,7 +3716,7 @@ async function syncRoomTruth(){
         .order("created_at",{ascending:true}).limit(60);
       (evs||[]).forEach(ev=>handleEvent(ev));   // the SAME door as realtime
     }
-    if(!AMHOST) await loadRoomState();          // roster truth rides along (host's poll already loads)
+    await loadRoomState();   // the ROSTER rides the truth train for EVERY role (wave 4)
   }catch(e){}
 }
 

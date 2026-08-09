@@ -482,7 +482,10 @@
 .is-spotlight .chair.is-target .cclock{
   padding:4px 11px; font-size:21px; border:1.5px solid var(--neon-teal);
 }
-.is-spotlight .chair.is-target .chair__foot{ display:block; }
+/* (F8, audit 8/8) the target's foot slot is NOT force-shown during his
+   answer any more — .chair__foot belongs to the ASKED badge exclusively
+   (the is-asked rule below owns its display), so the badge renders with
+   ONE consistent style and an empty slot never flashes. */
 #room.is-spotlight .chair.is-target .hostctl,
 #room.is-spotlight .chair.is-target .lc-hearttap{ display:none; }
 /* rivals collapse into one muted strip below the split */
@@ -1062,7 +1065,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0808.2230</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0808.2239</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1489,7 +1492,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0808.2230"); }catch(e){}
+try{ console.log("[lastcall] build b0808.2239"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2099,9 +2102,15 @@ function roomCounts(members, room){
      · askEligible(uid)  — may the host ask AT ALL (choosing window: spotlight
                            with no target yet) and, if a target is named, is
                            he currently seated.  Every ask path checks here.
-     · askMark(uid)      — the ONLY write to the asked maps: (uid, round) and
+     · askMark(uid, rd)  — the ONLY write to the asked maps: (uid, round) and
                            the show-scope rotation memory.
      · askedThisRound(uid) — the ONLY read the ASKED visual may use.
+   SOURCE OF TRUTH (RULING Q4): the room_events ledger.  ask_question
+   records a 'spotlight' event server-side; every client folds the ledger
+   into these maps on entry (loadEventHistory) and live (handleEvent).
+   The maps are a CACHE of the ledger — never the authority — so every
+   role renders the same ASKED truth and a reloading host reconstructs
+   the rotation instead of silently restarting it.
    ========================================================================= */
 function askTargets(){
   return (ROOM_STATE.members||[]).filter(m=>m && (m.role==="chair"||m.role==="kept"))
@@ -2115,9 +2124,9 @@ function askEligible(uid){
   if(uid && !askTargets().some(m=>m.user_id===uid)) return false;
   return true;
 }
-function askMark(uid){
+function askMark(uid, rdArg){
   if(!uid) return;
-  const rd=CURRENT_ROOM?.round||0;
+  const rd=(rdArg!=null) ? rdArg : (CURRENT_ROOM?.round||0);
   window.__ASKED_THIS_ROUND=window.__ASKED_THIS_ROUND||{};
   (window.__ASKED_THIS_ROUND[rd]=window.__ASKED_THIS_ROUND[rd]||{})[uid]=true;
   window.__ASKED_THIS_SHOW=window.__ASKED_THIS_SHOW||{};
@@ -2353,7 +2362,9 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
         // someone just left the stage, so refresh the roster before naming
         // anyone (a stale snapshot is how a passed man's name got on the card)
         Promise.resolve(typeof loadRoomState==="function"?loadRoomState():null).then(()=>{
-          const seated=askTargets().filter(m=>m.role==="chair");
+          // RULING Q6: kept men stay in the rotation — kept = safe, not
+          // done — so the popup draws from askTargets() unfiltered
+          const seated=askTargets();
           const nextUp=seated.find(c=>!askedThisRound(c.user_id)) ||
                        (seated.length?seated[(Math.max(1,rd)-1)%seated.length]:null);
           beatRound(rd, nextUp?(ROOM_STATE.profs[nextUp.user_id]||{}).display_name:"");
@@ -3491,6 +3502,9 @@ function handleEvent(ev){
       break;
     case "phase": case "spotlight": case "draft_open": case "draft_seat": case "struck_out":
       if(ev.type==="draft_open" && p && p.candidates) EG_DRAFT=p;
+      // RULING Q4: a live ask lands in every client's cache the moment the
+      // ledger row arrives — ASKED renders on EVERY role's screen
+      if(ev.type==="spotlight" && p.target_user){ askMark(p.target_user, p.round); renderRoom(); }
       egRefreshRoom(); loadRoomState();
       break;
     case "pass":
@@ -3540,6 +3554,12 @@ async function loadEventHistory(){
   const ll=$("rt_livelayer"); if(ll) ll.innerHTML="";
   for(const ev of (events||[])){
     if(ev.type==="heart" && ev.payload?.target){ HEARTS[ev.payload.target]=(HEARTS[ev.payload.target]||0)+1; }
+    // RULING Q4: the ask ledger replays on entry — every client (and a
+    // reloading host) reconstructs the (member, round) asked maps from
+    // the same server facts.  The window maps are a cache, not authority.
+    if(ev.type==="spotlight" && ev.payload?.target_user){
+      askMark(ev.payload.target_user, ev.payload.round);
+    }
   }
   // chat/reactions start fresh — nothing replayed. new events stream in live from here.
   renderRoom();

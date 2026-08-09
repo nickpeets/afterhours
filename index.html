@@ -252,7 +252,11 @@
   width:48px; height:44px; display:none; align-items:center; justify-content:center;
   padding:0; background:none; border:0; cursor:pointer;
 }
-.lc-hearttap__glyph{
+/* POLISH (8/9, item 4b): the floating heart ICON is gone — the heart
+   COUNTER pill already says "heartable", and the 44px tap target below
+   keeps working invisibly.  (is-lit feedback rides the counter pill.) */
+.lc-hearttap__glyph{ display:none; }
+.lc-hearttap__glyph--retired{
   display:block; transform:scaleY(.82); font-size:30px; line-height:1;
   color:transparent; -webkit-text-stroke:1.5px rgba(255,214,233,.85);
   text-shadow:0 1px 4px rgba(0,0,0,.9);
@@ -414,15 +418,18 @@
    on older iOS and the sheet can overflow past the cancel button */
 .modal .mbox{ max-height:min(84vh, 620px); max-height:min(84dvh, 620px); overflow-y:auto; }
 
-/* who has already had his question — visible to the whole room */
+/* who has already had his question — visible to the whole room.
+   POLISH (8/9, item 4a): ASKED is a DISCRETE PILL in the same badge
+   vocabulary as HOST / NEXT UP / KEPT — a small corner chip, no full-tile
+   overlay, no dim, no veil, and no name-shift side effects.  The pill IS
+   the entire signal. */
 #room .chair.is-asked .chair__foot{
-  display:block; position:absolute; left:8px; bottom:8px; z-index:3;
-  padding:3px 8px; border-radius:6px;
+  display:block; position:absolute; left:6px; bottom:6px; right:auto; top:auto; z-index:3;
+  width:auto; padding:2px 8px; border-radius:10px; text-align:left;
   background:rgba(6,8,24,.72); border:1px solid rgba(185,168,255,.45);
-  font-family:'Azeret Mono',monospace; font-weight:700; font-size:9px;
-  letter-spacing:.16em; color:rgba(185,168,255,.9); text-shadow:var(--over);
+  font-family:'Azeret Mono',monospace; font-weight:700; font-size:7.5px;
+  letter-spacing:.12em; color:#d6cdff; text-shadow:var(--over);
 }
-#room .chair.is-asked .chair__name{ left:auto; right:9px; }
 
 /* muted "nobody here" text — still emitted by the report sheet */
 #room .emptyrole{ font-size:11px; color:rgba(214,205,255,.6); }
@@ -472,8 +479,19 @@
 .is-spotlight .chair.is-strip{ grid-column:1 / -1; grid-row:2; }
 .is-spotlight .chair.is-host  .chair__feed,
 .is-spotlight .chair.is-target .chair__feed{ height:305px; }
+/* POLISH (8/9, item 4c): in the 1-on-1 the frame is ALWAYS full-bleed —
+   the placeholder well stretches to the frame instead of floating as a
+   small 104×128 bubble (which read as "tiny video" whenever a track was
+   slow to land), and mounted video is cover/centered by RULE, not just by
+   inline style. */
 .is-spotlight .chair.is-host  .vid,
-.is-spotlight .chair.is-target .vid{ width:104px; height:128px; }
+.is-spotlight .chair.is-target .vid{
+  left:0; top:0; transform:none; width:100%; height:100%; border-radius:0;
+}
+#room .chair__feed video, #room #rt_hero video{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; object-position:center;
+}
 .chair.is-target{
   background:rgba(255,45,143,.14);
   border:2px solid var(--neon-pink);
@@ -1065,7 +1083,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.0018</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.0030</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1494,7 +1512,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0809.0018"); }catch(e){}
+try{ console.log("[lastcall] build b0809.0030"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----

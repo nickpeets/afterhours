@@ -1065,7 +1065,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.0008</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.0018</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1494,7 +1494,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0809.0008"); }catch(e){}
+try{ console.log("[lastcall] build b0809.0018"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -4335,7 +4335,8 @@ function localVideoTrackInfo(){
     if(!t) return "no local video track object";
     let out="state="+(t.state||"?");
     if(t.blockedReason!==undefined) out+=" blockedReason="+t.blockedReason;
-    if(t.off && t.off.byUser!==undefined) out+=" off.byUser="+t.off.byUser;
+    if(t.off && t.off.byUser!==undefined)
+      out+=" off."+((t.off.byUser && CAM_APP_OFF) ? "byApp=true (app-published off; NOT the user)" : ("byUser="+t.off.byUser));
     return out;
   }catch(e){ return "track state unavailable ("+(e?.message||e)+")"; }
 }
@@ -4411,6 +4412,29 @@ async function applyBlur(){
     try{ await DAILY.updateInputSettings({ video:{ processor:{ type:"none" } } }); }catch(e2){}
   }
 }
+/* the app's OWN publish switch: byUser attribution stays truthful — every
+   programmatic off is recorded here, so diagnostics can say "off (by the
+   app)" instead of blaming a user who touched nothing (audit F6). */
+let CAM_APP_OFF=false;
+async function videoSetPublish(on){
+  CAM_APP_OFF=!on;
+  try{ await DAILY.setLocalVideo(!!on); }catch(e){}
+}
+/* the preflight's verify: the publish decision must be OBSERVED true —
+   local track playable — before the join path moves on.  One deliberate
+   re-issue midway; the watchdog stays as the hardware-only last resort. */
+async function videoPublishVerify(){
+  for(let i=0;i<10;i++){
+    try{
+      const t=DAILY?.participants?.()?.local?.tracks?.video;
+      if(t && t.state==="playable") return true;
+    }catch(e){}
+    if(i===4){ try{ await DAILY.setLocalVideo(true); }catch(e){} }
+    await new Promise(r=>setTimeout(r,300));
+  }
+  return false;
+}
+let WATCHDOG_FIRES=0;   // how many times the stall branch actually ran — 0 on a clean join
 function videoWatchdog(){
   if(CAM_GAVE_UP || WATCHDOG_T) return;   // gave up, or a check is already pending
   WATCHDOG_T=setTimeout(async ()=>{
@@ -4418,6 +4442,7 @@ function videoWatchdog(){
     const mine=Object.values(VIDEO_TILES).some(t=>t.uid===ME.id);
     if(mine){ CAM_TRIES=0; lcCamStatus(null); return; }
     if(DAILY && DAILY_JOINED && (AMHOST || amISeated())){
+      WATCHDOG_FIRES++;
       vdbg("local video track: "+localVideoTrackInfo(), true);
       CAM_TRIES++;
       vdbg("video never attached after 6s — disabling blur and retrying camera", true);
@@ -4495,9 +4520,22 @@ async function _videoJoinOnce(){
     watchDevices();
 
     // contestant publishes immediately; suitors stay cam-off until seated
-    if(AMHOST){ vdbg("host: turning on cam+mic…"); await DAILY.setLocalVideo(true); await DAILY.setLocalAudio(true); vdbg("cam+mic on ✓"); setTimeout(()=>tryNativeBlur(),400); applyBlur(); videoWatchdog(); }
-    else { await DAILY.setLocalVideo(false); }
-    syncLocalPublish();  // in case we're already seated on entry
+    // CAMERA PREFLIGHT (audit F6): ONE publish decision, made from roster
+    // truth already loaded by openRoom, and VERIFIED before the join is
+    // declared complete.  The old flow published OFF for every non-host
+    // and then raced a roster-dependent sync back ON — when ON lost, the
+    // 6s watchdog was the only net, and the app's own setLocalVideo(false)
+    // read as off.byUser on a user who touched nothing.
+    {
+      const shouldPublish = AMHOST || amISeated();
+      await videoSetPublish(shouldPublish);
+      if(AMHOST){ await DAILY.setLocalAudio(true); }
+      if(shouldPublish){
+        const okTrack=await videoPublishVerify();
+        vdbg(okTrack ? "publish verified ✓ (preflight)" : "publish verify FAILED — watchdog is the net", !okTrack);
+        setTimeout(()=>tryNativeBlur(),400); applyBlur(); videoWatchdog();
+      }
+    }
   }catch(e){
     vdbg("videoJoin exception: "+(e?.message||e), true);
     toast("Camera couldn't start: "+(e?.message||"unknown error"));
@@ -4513,6 +4551,14 @@ async function videoLeave(){
     if(DAILY_JOIN_P){ try{ await DAILY_JOIN_P; }catch(e){} }
     try{ if(DAILY){ await DAILY.leave(); await DAILY.destroy(); } }catch(e){}
     DAILY=null; DAILY_JOINED=false;
+    // F11: the recovery state machine dies WITH the instance — a gave-up
+    // camera in room 1 must never poison room 2, and a pending watchdog
+    // must not carry across.  (BLUR_KILLED resets too: a fresh call object
+    // is a fresh chance, and the watchdog re-kills on any new stall.)
+    CAM_TRIES=0; CAM_GAVE_UP=false; BLUR_KILLED=false; CAM_APP_OFF=false;
+    WATCHDOG_FIRES=0;
+    if(WATCHDOG_T){ clearTimeout(WATCHDOG_T); WATCHDOG_T=null; }
+    if(typeof lcCamStatus==="function") lcCamStatus(null);
     Object.values(VIDEO_TILES).forEach(t=>{ try{t.el.remove();}catch(e){} });
     VIDEO_TILES={};
     Object.keys(AUDIO_ELS).forEach(stopAudio);
@@ -4533,9 +4579,9 @@ async function syncLocalPublish(){
   if(!DAILY || !DAILY_JOINED) return;
   const shouldPublish = AMHOST || amISeated();
   try{
-    await DAILY.setLocalVideo(shouldPublish);
+    await videoSetPublish(shouldPublish);        // truthful byUser bookkeeping
     if(!AMHOST) await DAILY.setLocalAudio(shouldPublish);
-    if(shouldPublish){ setTimeout(()=>tryNativeBlur(),400); applyBlur(); videoWatchdog(); }
+    if(shouldPublish){ videoPublishVerify(); setTimeout(()=>tryNativeBlur(),400); applyBlur(); videoWatchdog(); }
   }catch(e){}
 }
 
@@ -4778,8 +4824,12 @@ window.__lc = {
   /* finale */
   showLastCall, confirmWinner, endShow, renderFinale, enterPhotoWait,
   /* diagnostics — the quiet surface (F5): vdbg is console/?debug-only,
-     lcCamStatus is the ONE show-language chip */
+     lcCamStatus is the ONE show-language chip.  CAM_STATE observes the
+     recovery machine (F6/F11): a clean join shows fires=0 and a leave
+     zeroes everything. */
   vdbg, lcCamStatus,
+  get CAM_STATE(){ return { tries:CAM_TRIES, gaveUp:CAM_GAVE_UP, blurKilled:BLUR_KILLED,
+                            appOff:CAM_APP_OFF, watchdogFires:WATCHDOG_FIRES, pending:!!WATCHDOG_T }; },
   /* video layer */
   videoJoin, videoLeave, placeVideo, reflowVideo, tileFor, onTrack,
   onTrackStopped, onPartLeft, syncLocalPublish, amISeated,

@@ -54,7 +54,11 @@
       return {
         local: true, user_name: this._userName, session_id: this._localSid,
         tracks: {
-          video: { state: this._localVideoOn && t ? "playable" : "off", track: this._localVideoOn ? t : null, persistentTrack: this._localVideoOn ? t : null },
+          // daily parity: a programmatic setLocalVideo(false) reads as
+          // off.byUser — exactly the attribution audit F6 flagged, so the
+          // app's truth-keeping (CAM_APP_OFF) can be gate-checked
+          video: { state: this._localVideoOn && t ? "playable" : "off", track: this._localVideoOn ? t : null, persistentTrack: this._localVideoOn ? t : null,
+                   off: this._localVideoOn ? undefined : { byUser: true } },
           audio: { state: "off", track: null },
         },
       };

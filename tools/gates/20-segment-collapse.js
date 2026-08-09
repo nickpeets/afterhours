@@ -107,11 +107,19 @@ module.exports = {
 
       /* --- a RIVAL leaving does NOT interrupt the segment --- */
       // the collapse's pick-window seat advanced the show (spotlight → open
-      // floor); walk the fixture back to a choosing window for scene 2
-      D.rooms.get(room).spotlight_target = null;
-      D.setPhase(room, "spotlight", 60);
-      await host.page.evaluate(() => window.__lc.egRefreshRoom());
-      await waitFor(() => host.page.evaluate(() => window.__lc.askEligible(null) === true), 10_000, "next choosing window");
+      // floor); let that in-flight advance SETTLE, then walk the fixture
+      // back to a choosing window — self-healing against a late skip
+      // callback landing after our setPhase (full-battery load race).
+      await waitFor(() => D.rooms.get(room).phase === "openfloor", 8000, "scene-1 advance settles");
+      await host.page.waitForTimeout(800);
+      await waitFor(async () => {
+        if (D.rooms.get(room).phase !== "spotlight" || D.rooms.get(room).spotlight_target) {
+          D.rooms.get(room).spotlight_target = null;
+          D.setPhase(room, "spotlight", 60);
+        }
+        await host.page.evaluate(() => window.__lc.egRefreshRoom());
+        return host.page.evaluate(() => window.__lc.askEligible(null) === true);
+      }, 15_000, "next choosing window");
       await host.page.evaluate(() => window.__lc.egFireSpotlight());
       await waitFor(() => !!D.rooms.get(room).spotlight_target, 8000, "second ask lands");
       const tgt = D.rooms.get(room).spotlight_target;

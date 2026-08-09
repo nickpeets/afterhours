@@ -82,19 +82,19 @@ module.exports = {
       t.ok(vids.chairs === 3, "three chair tiles carry live video (" + vids.chairs + ")");
       t.ok(vids.hero === 1, "host's own feed sits in the hero (" + vids.hero + ")");
 
-      /* --- walk the phases with the host's real SKIP control --- */
-      for (const expect of ["openfloor", "deliberation", "deciding"]) {
-        await host.page.waitForSelector("#eg_skip", { state: "visible", timeout: 10000 }).catch(() => {});
-        const visible = await host.page.evaluate(() => {
-          const el = document.getElementById("eg_skip");
-          return el && getComputedStyle(el).display !== "none";
-        });
-        if (visible) await host.page.click("#eg_skip");
-        else await host.page.evaluate(() => window.__lc.CURRENT_ROOM && window.__lc)
-          .then(() => D.rpc("host", "skip_phase", { room_id: roomId }));
-        await waitFor(() => D.rooms.get(roomId).phase === expect, 10000, "phase " + expect);
-        t.ok(true, "phase advances to " + expect + (visible ? " via the host's SKIP control" : " (server-driven)"));
-      }
+      /* --- the middle segments run server-side; then the host's real SKIP —
+             POLICY (SPEC wave 5): "she's heard enough" = STRAIGHT to her
+             call, one press, one fire (the old one-step walk is retired) --- */
+      D.rpc("host", "skip_phase", { room_id: roomId });   // answer → open floor (server pacing)
+      await waitFor(() => D.rooms.get(roomId).phase === "openfloor", 10000, "phase openfloor");
+      t.ok(true, "phase advances to openfloor (server pacing)");
+      await waitFor(() => host.page.evaluate(() => {
+        const el = document.getElementById("eg_skip");
+        return el && getComputedStyle(el).display !== "none";
+      }), 10000, "the skip control shows on the open floor");
+      await host.page.click("#eg_skip");
+      await waitFor(() => D.rooms.get(roomId).phase === "deciding", 10000, "her call");
+      t.ok(true, "SHE'S HEARD ENOUGH lands straight in her call (wave-5 spec)");
 
       /* --- decision: keep one, pass one — real host actions --- */
       await host.page.evaluate((uid) => window.__lc.hostKeep(uid), suitors[0]);

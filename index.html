@@ -1089,7 +1089,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1323</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1335</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1518,7 +1518,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0809.1323"); }catch(e){}
+try{ console.log("[lastcall] build b0809.1335"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2459,7 +2459,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     else if(phase==="spotlight") label=(spotTargetRaw && !spotTarget)?label:"SPOTLIGHT";   // a ghost target never earns the SPOTLIGHT label (F9)
     else if(phase==="deliberation") label="DELIBERATING";
     else if(phase==="deciding") label="HER CALL";
-    if(AMHOST && PASS_PICK && (phase==="deciding"||phase==="spotlight")) label="PICK FROM THE BENCH";
+    if(AMHOST && PASS_PICK) label=PASS_PICK.recruit ? "RECRUITING \u2014 SEAT OPEN" : "PICK FROM THE BENCH";
     if(promo) label="PROMOTING";
     // the pill owns the SECTION TIMER too (owner rule 8/5): the tick composes
     // "M:SS · LABEL" from this dataset; chairs carry no clock at all
@@ -2615,7 +2615,8 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   // between phase refreshes, and a skip with nobody seated is a lie
   { const sk=document.getElementById("eg_skip");
     if(sk){ const anySeated=ROOM_STATE.members.some(m=>m.role==="chair"||m.role==="kept");
-      if(!(AMHOST && anySeated && ["showstart","spotlight","openfloor","deliberation"].includes(phase||""))) sk.style.display="none"; } }
+      const answering = phase==="spotlight" && !!CURRENT_ROOM?.spotlight_target;
+      if(!(AMHOST && anySeated && !PASS_PICK && (answering || ["openfloor","deliberation"].includes(phase||"")))) sk.style.display="none"; } }
   root.classList.remove("is-empty");   // panel: an empty chair is a cell, never a strip
 
   const total=Object.values(HEARTS||{}).reduce((a,b)=>a+(+b||0),0);
@@ -2680,7 +2681,9 @@ function startClockTick(){
     try{
       const ph=$("rt_phase");
       if(ph && ph.dataset.seclabel){
-        const left=lcSectionLeft();
+        // wave 5: the header counts the ACTIVE window — an open pick window
+        // shows ITS countdown, never a dead deliberation clock
+        const left=PASS_PICK ? Math.max(0,Math.ceil((PASS_PICK.until-Date.now())/1000)) : lcSectionLeft();
         ph.textContent = (EG_ON && left!=null) ? (fmtClock(left)+" · "+ph.dataset.seclabel) : ph.dataset.seclabel;
         ph.classList.toggle("is-ending", EG_ON && left!=null && left<=10);
         // her choosing beat running out: the ask affordances themselves flash
@@ -2699,8 +2702,8 @@ function startClockTick(){
         const key=ph+":"+(CURRENT_ROOM.round||0)+":"+(tgt||"");
         // the choosing beat is handled below (the house asks); everything else
         // simply advances when its time is up
-        const advances = (ph==="spotlight" && tgt) || ph==="openfloor" ||
-                         ph==="mingle" || ph==="deliberation";
+        const advances = !PASS_PICK && ((ph==="spotlight" && tgt) || ph==="openfloor" ||
+                         ph==="mingle" || ph==="deliberation");   // the pick window outranks section clocks (wave 5)
         if(advances && left!=null && left<=0 && window.__ADVKEY!==key){
           window.__ADVKEY=key;
           if(typeof beatTimesUp==="function" && (ph==="spotlight"||ph==="openfloor")) beatTimesUp();
@@ -3062,9 +3065,12 @@ function egApply(){
   if(!EG_ON){ return; }                       // classic mode: engine dormant
   if(phase===EG_PHASE && EG_DEADLINE===(r.phase_deadline?Date.parse(r.phase_deadline):0)) { egRoleBits(); return; }
   EG_PHASE=phase; EG_DEADLINE=r.phase_deadline?Date.parse(r.phase_deadline):0;
-  // the pick window lives in deciding (a pass) OR spotlight (a collapse,
-  // RULING Q2); every exit path clears it explicitly — this is the belt
-  if(phase!=="deciding" && phase!=="spotlight") PASS_PICK=null;
+  // wave 5 (decide-pacing): while the pick window is open it is the ONLY
+  // advancing authority — a server-side phase flip (prod's decide_pass
+  // opens the draft storm with its own short clock) must NOT kill it and
+  // let a resolver auto-choose her replacement.  The window closes only
+  // through its own exits: her tap, its expiry, the bench emptying, the
+  // chair refilling, or leaving the room.
   if(phase!=="deciding") window.__CROWD_CALLED=false;
 
   // root state classes
@@ -3076,7 +3082,8 @@ function egApply(){
   ["eg_showstart","eg_question","eg_decide","eg_drumroll","eg_draft","eg_drawer"].forEach(id=>$(id).style.display="none");
   $("eg_phase").style.display = "none";   // #rt_phase in .lc-top owns this now
   const egSeated = ROOM_STATE.members.some(m=>m.role==="chair"||m.role==="kept");
-  $("eg_skip").style.display = (AMHOST && egSeated && ["showstart","spotlight","openfloor","deliberation"].includes(phase)) ? "block" : "none";
+  // (the skip affordance is owned by egRoleBits — it must follow the live
+  // target on BOTH apply paths, including the short-circuit)
   const awaiting = phase==="spotlight" && !r.phase_deadline;   // backend: awaiting = null deadline
   $("eg_ask").style.display = "none";   // ASK lives in #inputbar now
 
@@ -3102,6 +3109,18 @@ function egApply(){
   egRoleBits();
 }
 function egRoleBits(){
+  // "she's heard enough" follows the LIVE target/phase on every apply path —
+  // the event fast-path sets the deadline before the rooms row lands, which
+  // short-circuits egApply, so the skip's visibility must live HERE (the
+  // one path both branches share).  Spec (wave 5): host only; the ANSWER,
+  // open floor, deliberation; never choosing/her call/a pick window.
+  try{
+    const rr=CURRENT_ROOM; const ph=egRoomPhase(rr);
+    const anySeated=ROOM_STATE.members.some(m=>m.role==="chair"||m.role==="kept");
+    const sk=$("eg_skip");
+    if(sk) sk.style.display = (AMHOST && anySeated && !PASS_PICK &&
+      ((ph==="spotlight" && !!rr?.spotlight_target) || ph==="openfloor" || ph==="deliberation")) ? "block" : "none";
+  }catch(e){}
   // spotlight target marking on chair tiles
   const t=CURRENT_ROOM?.spotlight_target;
   $("rt_chairs").querySelectorAll(".chair").forEach(el=>{
@@ -3173,8 +3192,11 @@ function egTickStart(){
       } else { window.__CROWD_PICK=null; }   // tie or empty stage: the record resets
     }
     // resolver: anyone past deadline nudges the server (throttled 2s) —
-    // every phase EXCEPT deciding, which never silently expires (Q5)
-    if(EG_PHASE!=="deciding" && EG_DEADLINE && Date.now()>EG_DEADLINE+400 && Date.now()-EG_ADV_LOCK>2000){
+    // every phase EXCEPT deciding (Q5: never silently expires) and NEVER
+    // while a pick window is open (wave 5: the pick timer is the only
+    // advancing authority — this also silences resolve_draft nudges when
+    // prod flips the phase to draft under the window)
+    if(!PASS_PICK && EG_PHASE!=="deciding" && EG_DEADLINE && Date.now()>EG_DEADLINE+400 && Date.now()-EG_ADV_LOCK>2000){
       EG_ADV_LOCK=Date.now();
       const fn = EG_PHASE==="draft" ? "resolve_draft" : "advance_phase";
       sb.rpc(fn,{room_id:CURRENT_ROOM.id}).then(()=>egRefreshRoom()).catch(()=>{});
@@ -3561,7 +3583,25 @@ $("st_delete").onclick=async()=>{
 };
 
 /* ---------- wiring into the existing app ---------- */
-$("eg_skip").onclick=async()=>{ const {error}=await sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}); if(error) toast(error.message); else egRefreshRoom(); };
+/* "she's heard enough" (SPEC, wave 5): HOST only; visible during the
+   ANSWER (spotlight with a live target), OPEN FLOOR, and DELIBERATION —
+   never choosing, showstart, her call, a pick window, or the draft.  One
+   press = she's done listening: STRAIGHT to her call.  Debounced: the
+   control disarms on press until the phase actually changes. */
+$("eg_skip").onclick=async()=>{
+  const sk=$("eg_skip");
+  if(sk.dataset.armed==="0") return;
+  sk.dataset.armed="0";
+  try{
+    await sb.from("rooms").update({
+      phase:"deciding",
+      phase_deadline:new Date(Date.now()+((LC_SECTION_SECS.deciding||60)*1000)).toISOString(),
+      spotlight_target:null
+    }).eq("id",CURRENT_ROOM.id).eq("host_id",ME.id);
+    egRefreshRoom();
+  }catch(e){ toast("Couldn't move the show along."); }
+  setTimeout(()=>{ sk.dataset.armed="1"; }, 1500);
+};
 $("eg_ask").onclick=()=>egOpenDrawer(null);
 $("eg_drawerclose").onclick=()=>egCloseDrawer();
 $("eg_targetclear").onclick=()=>{ EG_PICKTARGET=null; egRenderTargetChip(); };

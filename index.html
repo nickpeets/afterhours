@@ -1089,7 +1089,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1211</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1218</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1518,7 +1518,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0809.1211"); }catch(e){}
+try{ console.log("[lastcall] build b0809.1218"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2191,13 +2191,31 @@ function askMark(uid, rdArg){
   window.__ASKED_THIS_ROUND=window.__ASKED_THIS_ROUND||{};
   (window.__ASKED_THIS_ROUND[rd]=window.__ASKED_THIS_ROUND[rd]||{})[uid]=true;
   window.__ASKED_THIS_SHOW=window.__ASKED_THIS_SHOW||{};
-  window.__ASKED_THIS_SHOW[uid]=true;                 // rotation memory (fair shot)
+  window.__ASKED_THIS_SHOW[uid]=true;                 // show memory (all-time)
+  // CYCLE COVERAGE (RULING 8/9 wave 4): prod increments rooms.round on
+  // EVERY ask, so a (member, server-round) key can never say "asked this
+  // rotation" — the pill vanished the moment the next man was asked (the
+  // live Dock bug).  The cycle set is the fairness ledger: it accumulates
+  // until every seated man has been asked, then clears — cycle 2 begins.
+  window.__ASK_CYCLE=window.__ASK_CYCLE||{};
+  window.__ASK_CYCLE[uid]=true;
+  askCycleReconcile();
 }
-function askedThisRound(uid){
+/* a cycle completes when every CURRENTLY seated man is covered — also
+   re-checked on roster changes (a never-asked man leaving can complete
+   the cycle for everyone left) */
+function askCycleReconcile(){
+  const cyc=window.__ASK_CYCLE||{};
+  const seated=askTargets();
+  if(seated.length && seated.every(m=>cyc[m.user_id])){
+    window.__ASK_CYCLE={};                            // everyone had his turn: fresh slate
+  }
+}
+function askedThisRound(uid){   // name kept for the gates; semantics = "asked THIS CYCLE"
   if(!uid) return false;
-  const rd=CURRENT_ROOM?.round||0;
-  return !!((window.__ASKED_THIS_ROUND||{})[rd]||{})[uid];
+  return !!((window.__ASK_CYCLE||{})[uid]);
 }
+const askedThisCycle=askedThisRound;
 
 /* ============================================================================
    renderRoom — PUPPETEER.
@@ -2523,6 +2541,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   // visual derives from askedThisRound() for the CURRENT seated occupant,
   // and only inside the round segment (spotlight/openfloor) — deliberation
   // and beyond wipe it, and a new occupant inherits nothing.
+  if(typeof askCycleReconcile==="function") askCycleReconcile();   // a departure can complete a cycle
   const askSegment = phase==="spotlight" || phase==="openfloor";
   [0,1,2].forEach(i=>{
     const el=$("rt_seat"+i); if(!el) return;
@@ -3196,15 +3215,11 @@ async function egFireSpotlight(){
   if(!EG_PICKTARGET){
     const chairs=askTargets();   // CURRENT seated members — the one roster
     if(!chairs.length){ toast("Nobody's in a chair yet."); return; }
-    // ROUND N ASKS CHAIR N.  Order by seat so the rotation is the seating
-    // order the room can see.  The asked-map only breaks ties WITHIN a round
-    // (she may fire twice); it must never override the rotation, which is the
-    // bug that had chair one answering every round.
-    const rd=Math.max(1, CURRENT_ROOM?.round||1);
-    const asked=window.__ASKED_THIS_SHOW||{};
-    // the first man who has not had his question, in seat order; if all three
-    // have had one, fall back to the round so the show can still move
-    EG_PICKTARGET=(chairs.find(c=>!asked[c.user_id]) || chairs[(rd-1)%chairs.length]).user_id;
+    // RULING (8/9 wave 4): the rotation is the CYCLE — the first seated
+    // man not yet asked this cycle, in seat order.  (The cycle set clears
+    // itself when everyone has been covered, so the fallback only guards
+    // a transient.)  The host's manual tap can always override this.
+    EG_PICKTARGET=(chairs.find(c=>!askedThisCycle(c.user_id)) || chairs[0]).user_id;
   }
   const {error}=await sb.rpc("ask_question",{room_id:CURRENT_ROOM.id,question_id:EG_PICKQ,target:EG_PICKTARGET});
   if(error){ toast("Couldn't ask: "+error.message); return; }
@@ -4323,7 +4338,7 @@ async function leaveRoom(){
   document.getElementById("reportmodal")?.remove();   // room UI must not outlive the room
   // engine bookkeeping belongs to THIS room only
   window.__ADVKEY=null; window.__LASTROUND=undefined; window.__EMPTY_TICKS=0;
-  window.__ASKED_THIS_ROUND={}; window.__ASKED_THIS_SHOW={}; window.__PH_SEEN={};
+  window.__ASKED_THIS_ROUND={}; window.__ASKED_THIS_SHOW={}; window.__ASK_CYCLE={}; window.__PH_SEEN={};
   window.__SEATING_SHOW=false; window.__STARTING=null; window.__CROWD_CALLED=false; window.__COLLAPSING=null;
   window.__ENDED_HANDLED=null; FINALE_BOARD=false; EV_CURSOR=null;
   window.__AUTOQ=false; window.__SPLASH_ADV=false;
@@ -4964,7 +4979,7 @@ window.__lc = {
   roomCounts,
   /* ask truth — state keyed (member, round); askEligible is the ONE gate,
      askTargets the ONE roster, askMark the ONE write */
-  askTargets, askEligible, askMark, askedThisRound, egOpenDrawer, egFireSpotlight,
+  askTargets, askEligible, askMark, askedThisRound, askedThisCycle, egOpenDrawer, egFireSpotlight,
   /* bench entry — takeBenchSeat is the ONE door onto the bench */
   benchHeadshot, takeBenchSeat,
   /* seating / host actions */

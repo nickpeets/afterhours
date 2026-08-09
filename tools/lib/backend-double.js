@@ -240,6 +240,24 @@ class BackendDouble {
         if (r) { r.spotlight_target = a.target || null; this.emit("rooms", "UPDATE", { ...r }); }
         return null;
       }
+      case "decide_keep": {
+        // her decision verbs (egDecideTap) — same shape as keep_member /
+        // pass_member but keyed by `target`, mirroring prod's decide_* RPCs
+        const row = this.memberRow(a.room_id, a.target);
+        if (!row) throw new Error("no such member");
+        row.role = "kept";
+        this.pushEvent(a.room_id, uid, "keep", { target_user: a.target });
+        this.emit("room_members", "UPDATE", { ...row });
+        return null;
+      }
+      case "decide_pass": {
+        const row = this.memberRow(a.room_id, a.target);
+        if (!row) throw new Error("no such member");
+        row.role = "spectator"; row.seat_index = null;
+        this.pushEvent(a.room_id, uid, "pass", { target_user: a.target });
+        this.emit("room_members", "UPDATE", { ...row });
+        return null;
+      }
       case "decide_clear": {
         for (const m of this.members) {
           if (m.room_id === a.room_id && m.role === "chair") { m.role = "spectator"; m.seat_index = null; this.emit("room_members", "UPDATE", { ...m }); }

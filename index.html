@@ -1062,7 +1062,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.1705</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.1714</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1489,7 +1489,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0807.1705"); }catch(e){}
+try{ console.log("[lastcall] build b0807.1714"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2371,6 +2371,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     else if(phase==="spotlight") label="SPOTLIGHT";
     else if(phase==="deliberation") label="DELIBERATING";
     else if(phase==="deciding") label="HER CALL";
+    if(AMHOST && PASS_PICK && phase==="deciding") label="PICK FROM THE BENCH";
     if(promo) label="PROMOTING";
     // the pill owns the SECTION TIMER too (owner rule 8/5): the tick composes
     // "M:SS · LABEL" from this dataset; chairs carry no clock at all
@@ -2785,6 +2786,12 @@ async function hostSeat(uid){
   if(seat<0){ toast("All chairs full — keep or pass someone first."); return; }
   const {error}=await sb.rpc("seat_member",{room_id:CURRENT_ROOM.id,user_id:uid,seat_index:seat});
   if(error){ toast("Seat failed: "+error.message); return; }
+  if(PASS_PICK){
+    // her tap won: replacement seated, window closes, the show moves at once
+    passPickClear();
+    try{ await sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}); }catch(e){}
+    egRefreshRoom();
+  }
   loadRoomState();
 }
 async function hostKeep(uid){
@@ -2839,6 +2846,12 @@ let EG_DRAFT=null, EG_TALLYPOLL=null, EG_MYHEARTS=0;
 // section lengths from the pacing spec (Nick, 8/5) — used when the server
 // sends no phase_deadline, so the pill always carries a countdown
 const LC_SECTION_SECS={showstart:6,spotlight:30,openfloor:45,mingle:45,deliberation:60,deciding:60};
+/* post-pass host-pick window: its OWN clock, never the dregs of the deciding
+   section.  20s sits on the pacing spec's scale (beats are 0.8–2s, the short
+   section is 6s, long ones 60s): generous enough to read the bench, short
+   enough that dead air can't set in. */
+const LC_PASS_PICK_SECS=20;
+let PASS_PICK=null;   // {until:ms} — host-side marker that the bench-pick window is open
 // choosing and answering are the SAME server phase — the difference is whether
 // a target is set.  Her choosing beat is ~10s; his answer is the full 30.
 function lcSectionTotal(ph){
@@ -2873,6 +2886,7 @@ function egApply(){
     // new room: stale engine state from a previous show must never leak in
     EG_ROOM_ID=r.id; EG_PHASE=null; EG_DEADLINE=-1;
     EG_DRAFT=null; EG_VIEW=null; EG_PICKQ=null; EG_PICKTARGET=null; EG_DECIDE_MODE=null;
+    PASS_PICK=null;
     egStopTallyPoll(); clearInterval(EG_TICK);
     const root=$("room");
     ["is-showstart","is-spotlight","is-mingle","is-deciding","is-drafting","is-asking","eg-on"].forEach(c=>root.classList.remove(c));
@@ -2885,6 +2899,7 @@ function egApply(){
   if(!EG_ON){ return; }                       // classic mode: engine dormant
   if(phase===EG_PHASE && EG_DEADLINE===(r.phase_deadline?Date.parse(r.phase_deadline):0)) { egRoleBits(); return; }
   EG_PHASE=phase; EG_DEADLINE=r.phase_deadline?Date.parse(r.phase_deadline):0;
+  if(phase!=="deciding") PASS_PICK=null;   // the window cannot outlive its phase
 
   // root state classes
   ["is-showstart","is-spotlight","is-mingle","is-deciding","is-drafting","is-asking"].forEach(c=>root.classList.remove(c));
@@ -2902,7 +2917,18 @@ function egApply(){
   if(phase==="showstart"){ egShowStart(); }
   if(phase==="spotlight" && !awaiting){ egSpotlight(r); }
   if(phase==="openfloor"||phase==="deliberation"){ egMingle(phase, r); }
-  if(phase==="deciding"){ if(AMHOST){ EG_DECIDE_MODE=null; $("eg_decide").style.display="flex"; } else { $("eg_drumroll").style.display="flex"; } }
+  if(phase==="deciding"){
+    if(AMHOST){
+      if(PASS_PICK){ /* she's picking his replacement — the decide card stays down */ }
+      else{
+        EG_DECIDE_MODE=null;
+        // an empty bench makes PASS bad TV: passing would leave two contestants.
+        // Bench truth is roomCounts().bench — never a side count.
+        $("eg_dpass").style.display = roomCounts(ROOM_STATE.members, CURRENT_ROOM).bench>0 ? "" : "none";
+        $("eg_decide").style.display="flex";
+      }
+    } else { $("eg_drumroll").style.display="flex"; }
+  }
   if(phase==="draft"){ egDraftOpenFromState(); }
   if(phase!=="draft"){ egStopTallyPoll(); }
   egTickStart();
@@ -2932,6 +2958,9 @@ function egTickStart(){
       aq.textContent = Math.floor(secs/60)+":"+String(secs%60).padStart(2,"0");
       aq.classList.toggle("is-urgent", secs<=10);
     }
+    // the bench-pick window expiring is ordinary flow: drop the marker and
+    // let the resolver below advance off the (extended, shared) deadline
+    if(PASS_PICK && Date.now()>PASS_PICK.until) passPickClear();
     // resolver: anyone past deadline nudges the server (throttled 2s)
     if(EG_DEADLINE && Date.now()>EG_DEADLINE+400 && Date.now()-EG_ADV_LOCK>2000){
       EG_ADV_LOCK=Date.now();
@@ -3048,7 +3077,10 @@ function egMingle(phase, r){
 /* ---------- S5 decision ---------- */
 function egWireDecision(){
   $("eg_dkeep").onclick=()=>{ EG_DECIDE_MODE="keep"; toast("Tap the one you're keeping — that's the win."); $("eg_decide").style.display="none"; };
-  $("eg_dpass").onclick=()=>{ EG_DECIDE_MODE="pass"; toast("Tap the one you're passing — the bench fills his chair."); $("eg_decide").style.display="none"; };
+  $("eg_dpass").onclick=()=>{
+    // belt to egApply's braces: an empty bench never offers PASS
+    if(roomCounts(ROOM_STATE.members, CURRENT_ROOM).bench<1){ toast("Nobody's on the bench — passing now leaves dead chairs."); return; }
+    EG_DECIDE_MODE="pass"; toast("Tap the one you're passing — the bench fills his chair."); $("eg_decide").style.display="none"; };
   $("eg_dclear").onclick=async()=>{
     const waiting=ROOM_STATE.members.filter(m=>m.role==="line").length;
     if(waiting<3){
@@ -3066,6 +3098,29 @@ function egWireDecision(){
   };
   $("eg_dwalk").onclick=()=>{ $("rt_endshow").click(); };
 }
+/* ---------- post-pass bench pick: the segue owns its own clock ----------
+   The moment a pass lands, the replacement flow starts — no waiting on the
+   deciding section's leftovers.  The window is a SHARED phase-deadline
+   extension (host owns her room row, precedent: the janitor and reset
+   writes), so every client's resolver holds; PASS_PICK is only the host's
+   local marker for the label and the decide-card suppression.  Her tap on a
+   bench lane always wins immediately (hostSeat — the PR #5 mechanic); if
+   she does nothing, the extended deadline expires and the ordinary resolver
+   advances the show.  Bench truth comes from roomCounts(), nowhere else. */
+async function passPickOpen(){
+  if(!AMHOST || !EG_ON || !CURRENT_ROOM) return false;
+  if(roomCounts(ROOM_STATE.members, CURRENT_ROOM).bench<1) return false;
+  const until=Date.now()+LC_PASS_PICK_SECS*1000;
+  PASS_PICK={until};
+  try{ await sb.from("rooms").update({phase_deadline:new Date(until).toISOString()})
+        .eq("id",CURRENT_ROOM.id).eq("host_id",ME.id); }catch(e){}
+  await egRefreshRoom();     // pick up the extended deadline (EG_DEADLINE + pill)
+  renderRoom();
+  toast("Chair's open — tap the bench to seat his replacement.");
+  return true;
+}
+function passPickClear(){ PASS_PICK=null; }
+
 async function egDecideTap(uid){
   if(!EG_DECIDE_MODE) return false;
   const fn = EG_DECIDE_MODE==="keep" ? "decide_keep" : "decide_pass";
@@ -3077,9 +3132,16 @@ async function egDecideTap(uid){
     const nm=(ROOM_STATE.profs[uid]?.display_name)||"him";
     if(typeof beatKept==="function") beatKept(nm, uid); else toast("You kept "+nm+" 💘");
     try{ await sb.rpc("end_show",{room_id:CURRENT_ROOM.id,winner_id:uid}); }catch(e){}
+    egRefreshRoom(); loadRoomState();
+    return true;
   }
-  if(fn==="decide_pass" && typeof beatPassed==="function") beatPassed(uid);
-  egRefreshRoom(); loadRoomState();
+  // PASS: the segue starts NOW.  Wipe beat on the chair, fresh roster, and
+  // the bench-pick window opens in the same breath — zero dead air.
+  if(typeof beatPassed==="function") beatPassed(uid);
+  await loadRoomState();
+  const opened=await passPickOpen();
+  if(!opened) egRefreshRoom();   // bench was empty after all — ordinary flow
+  loadRoomState();
   return true;
 }
 
@@ -4429,6 +4491,9 @@ window.__lc = {
   benchHeadshot, takeBenchSeat,
   /* seating / host actions */
   hostSeat, hostKeep, hostPass, autoSeatFromLine,
+  /* round flow — the post-pass bench-pick window (host-side marker) */
+  passPickOpen, passPickClear,
+  get PASS_PICK(){ return PASS_PICK; },
   /* phase engine */
   egApply, egRefreshRoom, egRoomPhase, egTickStart,
   /* room lifecycle */

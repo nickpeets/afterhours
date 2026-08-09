@@ -73,9 +73,14 @@
     async setUserName(n) { this._userName = n; }
     async setLocalVideo(on) {
       this._localVideoOn = !!on;
-      if (on && !this._localStream) {
-        this._localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      // one persistent local track, like real daily-js: cache the
+      // getUserMedia PROMISE so concurrent setLocalVideo(true) calls can
+      // never mint two different local streams (the fake used to, which
+      // fabricated an attach-budget violation the real library can't cause)
+      if (on && !this._localStreamP) {
+        this._localStreamP = navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       }
+      if (on) this._localStream = await this._localStreamP;
       const lp = this._local();
       this._emit("participant-updated", { participant: lp });
       if (on && lp.tracks.video.track) this._emit("track-started", { participant: lp, track: lp.tracks.video.track });
@@ -131,9 +136,23 @@
     }
   }
 
+  /* Real daily-js allows ONE live call object per page: a second
+   * createCallObject while another undestroyed instance exists throws
+   * "Duplicate DailyIframe instances are not allowed".  The shim enforces
+   * the same rule (finding 7 hit it in prod; a permissive fake would let
+   * the app regress silently) and counts creations so gates can assert
+   * singleton discipline. */
+  let LIVE = null;
+  let CREATED = 0;
   window.DailyIframe = {
-    createCallObject: (_opts) => new FakeCall(),
+    createCallObject: (_opts) => {
+      if (LIVE && !LIVE._destroyed) throw new Error("Duplicate DailyIframe instances are not allowed");
+      CREATED++;
+      LIVE = new FakeCall();
+      return LIVE;
+    },
     supportedBrowser: () => ({ supported: true }),
   };
   window.Daily = window.DailyIframe;
+  window.__dailyInstances = () => ({ created: CREATED, liveNow: !!(LIVE && !LIVE._destroyed) });
 })();

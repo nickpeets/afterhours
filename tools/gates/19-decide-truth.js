@@ -102,9 +102,15 @@ module.exports = {
       D.addMember(roomB, "u_s2", "chair", { seat_index: 1 });
       for (let k = 0; k < 3; k++) D.pushEvent(roomB, "u_w", "heart", { target: "u_s1" });
       D.pushEvent(roomB, "u_w", "heart", { target: "u_s2" });
-      D.rooms.get(roomB).phase_deadline = D.iso(D.now() + 2_500);
+      D.rooms.get(roomB).phase_deadline = D.iso(D.now() + 60_000);   // placeholder: armed AFTER entry
       await host.page.evaluate((r) => window.__lc.openRoom(r), { ...D.rooms.get(roomB) });
       await host.page.waitForSelector("#room.show", { timeout: 10000 });
+      // the clock starts only once the host is fully seated in the room —
+      // under full-battery load, entry (history replay incl. hearts) can
+      // outlast a pre-armed 2.5s deadline and fake a non-tie
+      await waitFor(() => host.page.evaluate(() => (window.__lc.HEARTS["u_s1"] || 0) === 3), 8000, "hearts seeded (B)");
+      D.rooms.get(roomB).phase_deadline = D.iso(D.now() + 2_500);
+      D.emit("rooms", "UPDATE", { ...D.rooms.get(roomB) });
       await waitFor(() => D.rooms.get(roomB).status === "ended", 15_000, "clock-out ends the show through the KEEP path");
       // the beats queue behind the decision: crowd-call (2.2s) then the held
       // KEPT beat — poll until one of them is on stage
@@ -126,9 +132,13 @@ module.exports = {
       D.addMember(roomC, "u_s2", "chair", { seat_index: 1 });
       D.pushEvent(roomC, "u_w", "heart", { target: "u_s1" });
       D.pushEvent(roomC, "u_w", "heart", { target: "u_s2" });
-      D.rooms.get(roomC).phase_deadline = D.iso(D.now() + 2_000);
+      D.rooms.get(roomC).phase_deadline = D.iso(D.now() + 60_000);   // placeholder: armed AFTER entry
       await host.page.evaluate((r) => window.__lc.openRoom(r), { ...D.rooms.get(roomC) });
       await host.page.waitForSelector("#room.show", { timeout: 10000 });
+      await waitFor(() => host.page.evaluate(() =>
+        (window.__lc.HEARTS["u_s1"] || 0) === 1 && (window.__lc.HEARTS["u_s2"] || 0) === 1), 8000, "tie hearts seeded (C)");
+      D.rooms.get(roomC).phase_deadline = D.iso(D.now() + 2_000);
+      D.emit("rooms", "UPDATE", { ...D.rooms.get(roomC) });
       await host.page.waitForTimeout(6_000);   // well past the deadline
       const c = D.rooms.get(roomC);
       t.ok(c.status === "live" && c.phase === "deciding" && (c.round || 0) === 3,

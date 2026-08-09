@@ -225,6 +225,10 @@ class BackendDouble {
         if (!r) throw new Error("no room");
         r.status = "ended"; r.winner_id = a.winner_id || null;
         this.emit("rooms", "UPDATE", { ...r });
+        // wave 3: the ending is a LEDGER fact too — the finale event is the
+        // fast explicit channel (prod: engine_emit in end_show; PR notes),
+        // the rooms row remains the polled fallback.
+        this.pushEvent(a.room_id, uid, "finale", { winner_id: a.winner_id || null });
         return null;
       }
       case "seat_pick": {
@@ -326,6 +330,7 @@ class BackendDouble {
       if (f.type === "eq") return String(row[f.col]) === String(f.val);
       if (f.type === "in") return (f.val || []).map(String).includes(String(row[f.col]));
       if (f.type === "neq") return String(row[f.col]) !== String(f.val);
+      if (f.type === "gt") return String(row[f.col]) > String(f.val);
       throw new Error("double: unknown filter " + f.type);
     });
 

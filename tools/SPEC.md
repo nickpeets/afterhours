@@ -367,6 +367,18 @@ room renders CALL truth, not roster truth:
   silent black frame.  Retry re-runs the ONE join path (`bsAttemptJoin`)
   that first entry uses.
 
+**QUESTION PROPAGATION v2 (8/10, wave 8).**  "History" is SUPERSEDED-ness,
+never age: the spotlight card paints on every role — including the target
+— unless the room has genuinely moved past that ask (a newer round, or a
+phase beyond spotlight with no newer round in the payload).  The poll
+path paints from the cached spotlight payload even when the rooms row
+carries a null deadline; per-client fetches remain a last resort.  Server
+timestamps parse through `parseServerTs` (a zone-naive string is UTC,
+never local).  The harness models prod here: lossy per-client realtime
+(`muteRealtime`), prod's engine_emit key names and timestamptz-with-space
+format (`spotlightShape="prod"` — gates 20/23/37), configurable answer
+window.
+
 **MEMBERSHIP TRUTH (8/10, wave 8, from the conductor run).**  One row
 filter, two truth channels, idempotent writes:
 

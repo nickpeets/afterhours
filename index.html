@@ -1119,7 +1119,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0810.2144</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0810.2222</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1561,7 +1561,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0810.2144"); }catch(e){}
+try{ console.log("[lastcall] build b0810.2222"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -3222,7 +3222,7 @@ function egApply(){
   if(r.id!==EG_ROOM_ID){
     // new room: stale engine state from a previous show must never leak in
     EG_ROOM_ID=r.id; EG_PHASE=null; EG_DEADLINE=-1;
-    EG_DRAFT=null; EG_VIEW=null; EG_PICKQ=null; EG_PICKTARGET=null; EG_DECIDE_MODE=null;
+    EG_DRAFT=null; EG_VIEW=null; EG_PICKQ=null; EG_PICKTARGET=null; EG_DECIDE_MODE=null; EG_SPOT_EVT=null;
     PASS_PICK=null; window.__CROWD_CALLED=false; window.__COLLAPSING=null;
     egStopTallyPoll(); clearInterval(EG_TICK);
     const root=$("room");
@@ -3259,7 +3259,18 @@ function egApply(){
   $("eg_ask").style.display = "none";   // ASK lives in #inputbar now
 
   if(phase==="showstart"){ egShowStart(); }
-  if(phase==="spotlight" && !awaiting){ egSpotlight(r); }
+  if(phase==="spotlight"){
+    // POLL-PATH PARITY (wave 8): a client that missed the event's fast
+    // path still paints the card — from the cached event payload when it
+    // matches, else the rooms-row fetch.  A null rooms deadline (prod
+    // runs them) no longer suppresses a live spotlight's card; only a
+    // truly target-less spotlight waits quietly.
+    if(r.spotlight_target && EG_SPOT_EVT && EG_SPOT_EVT.target===r.spotlight_target){
+      egPaintQuestion(EG_SPOT_EVT.target, EG_SPOT_EVT.text);
+    } else if(r.spotlight_target){
+      egSpotlight(r);
+    } else if(!awaiting){ egSpotlight(r); }
+  }
   if(phase==="openfloor"||phase==="deliberation"){ egMingle(phase, r); }
   if(phase==="deciding"){
     if(AMHOST){
@@ -3460,22 +3471,54 @@ async function egFireSpotlight(){
 }
 function egCloseDrawer(keepAsking){ $("eg_drawer").style.display="none"; if(!keepAsking) $("room").classList.remove("is-asking"); }
 
-/* QUESTION PROPAGATION (SPEC 8/9): the spotlight room_event carries the
-   question text and answer deadline (prod engine_emit ships both) — every
-   role paints the card from THIS event, same tick, no per-client fetch
-   race.  egSpotlight below remains the rooms-row fallback. */
+/* parseServerTs (wave 8): prod timestamps arrive in more shapes than the
+   double ever sent — timestamptz with a space, and occasionally NAIVE
+   (no zone).  Date.parse reads a naive string as LOCAL time, which on a
+   UTC-7 client throws a fold seven hours into the past and makes a live
+   card look like history.  Naive parses as UTC here. */
+function parseServerTs(s){
+  if(!s) return 0;
+  if(typeof s==="number") return s;
+  const str=String(s).trim();
+  const zoned=/([zZ]|[+\-]\d{2}:?\d{2})$/.test(str);
+  let t=Date.parse(zoned?str:(str.replace(" ","T")+"Z"));
+  if(!t) t=Date.parse(str)||0;
+  return t||0;
+}
+
+/* QUESTION PROPAGATION (SPEC 8/9, re-pinned wave 8): the spotlight
+   room_event carries the question text and answer deadline (prod
+   engine_emit ships both) — every role paints the card from THIS event.
+   The conductor run (b0809.1727) found the card painting on the HOST
+   only: the old fold skipped any event older than deadline+2.5s by the
+   CLIENT clock, so a poll-latency fold of a short prod answer window —
+   or any clock skew — silently ate the paint for whole roles.  "History"
+   is SUPERSEDED-ness, never age: the card paints unless the room has
+   moved past this spotlight (a newer round, a different target, or a
+   phase beyond it). */
+let EG_SPOT_EVT=null;   // the last spotlight payload — the poll path's paint source too
 function egSpotlightFromEvent(p){
   const tgt=p && (p.target_user||p.target);
   if(!CURRENT_ROOM || !tgt) return;
-  const dl=p.deadline||p.phase_deadline||null;
-  // wave 5: the truth poll replays MISSED events — an already-expired
-  // spotlight is history, not a live card (the ask fold still happened in
-  // handleEvent; only the painting is skipped)
-  if(dl){ const tms=Date.parse(dl); if(tms && tms < Date.now()-2500) return; }
+  const dl=p.deadline||p.phase_deadline||p.answer_deadline||null;
+  const rd=(p.round!=null)?p.round:null;
   const qt=(p.question_text!=null)?p.question_text:((p.text!=null)?p.text:((p.question!=null)?p.question:null));
+  // superseded — not aged: a replay of an OLD round's ask never repaints…
+  if(rd!=null && CURRENT_ROOM && (CURRENT_ROOM.round||0)>rd) return;
+  // …and a room whose truth has moved PAST spotlight doesn't resurrect the
+  // card — unless the event is from a round ahead of our (stale) room row,
+  // in which case the row is what's behind and the card is live news.
+  const ph=egRoomPhase(CURRENT_ROOM);
+  if(ph && ph!=="spotlight" && !(rd!=null && rd>(CURRENT_ROOM.round||0))) return;
+  EG_SPOT_EVT={target:tgt, text:qt, deadline:dl, round:rd};
   if(CURRENT_ROOM){ CURRENT_ROOM.spotlight_target=tgt;
     if(dl) CURRENT_ROOM.phase_deadline=dl; }
-  if(dl){ const t=Date.parse(dl); if(t) EG_DEADLINE=t; }
+  if(dl){ const t=parseServerTs(dl); if(t) EG_DEADLINE=t; }
+  egPaintQuestion(tgt, qt);
+}
+/* the ONE card painter — event fast-path and rooms-row poll path both land
+   here, for every role including the target */
+function egPaintQuestion(tgt, qt){
   const nm=ROOM_STATE.profs[tgt]?.display_name||"them";
   if(qt!=null) $("eg_qtext").textContent=qt;
   $("eg_qfor").innerHTML=`— for ${escapeHtml(nm)} <span class="lc-answerclock" id="eg_answerclock">0:30</span>`;
@@ -5369,7 +5412,7 @@ window.__lc = {
      the app shows (lobby card, room header, watchbar, bench slice) reads
      from it, and gates assert against the same function. */
   loadRooms, loadRoomState, renderRoom, updateJoinBtn, keptFinalists,
-  roomCounts, activeRows, benchReconcile, rosterPatchFromEvent,
+  roomCounts, activeRows, benchReconcile, rosterPatchFromEvent, parseServerTs,
   /* ask truth — state keyed (member, round); askEligible is the ONE gate,
      askTargets the ONE roster, askMark the ONE write */
   askTargets, askEligible, askMark, askedThisRound, askedThisCycle, egOpenDrawer, egFireSpotlight,

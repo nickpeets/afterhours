@@ -43,6 +43,7 @@ module.exports = {
     const h = await Harness.launch();
     try {
       const D = h.double;
+      D.spotlightShape = "prod";   // wave-8 fidelity: prod's engine_emit key names + timestamptz-with-space
       const hostU = D.addUser({ id: "u_host", name: "Hostess", email: "host@fix.test" });
       ["u_s1", "u_s2", "u_s3", "u_b1", "u_w"].forEach((id) => D.addUser({ id, name: id }));
       const boot = async (name, uid) => {

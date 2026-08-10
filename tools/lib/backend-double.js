@@ -249,7 +249,10 @@ class BackendDouble {
         if (r.phase === "deciding") { r.round = (r.round || 0) + 1; return this.setPhase(a.room_id, "spotlight", 60); }
         if (r.phase === "draft") { return this.setPhase(a.room_id, "spotlight", 60); }   // a skipped draft returns to the floor
         const next = i < 0 ? "showstart" : order[Math.min(i + 1, order.length - 1)];
-        return this.setPhase(a.room_id, next, 60);
+        // wave 8 fidelity: prod enters HER CALL with a NULL phase_deadline —
+        // the conductor's live room proved it (deadline:null, clock parked
+        // at a lying 0:00).  The double now does what prod does.
+        return this.setPhase(a.room_id, next, next === "deciding" ? null : 60);
       }
       case "end_show": {
         const r = this.rooms.get(a.room_id);

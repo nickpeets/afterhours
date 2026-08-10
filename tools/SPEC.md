@@ -379,6 +379,17 @@ never local).  The harness models prod here: lossy per-client realtime
 format (`spotlightShape="prod"` — gates 20/23/37), configurable answer
 window.
 
+**HER CALL v2 (8/10, wave 8).**  Prod enters her call with a NULL
+phase_deadline.  The client renders a real countdown only while a real
+window runs; a dried or absent window is a LABELED holding state ("HER
+CALL · HER MOVE") — never a parked 0:00.  When the server sends no
+deadline the HOST arms her own her-call window (LC_SECTION_SECS.deciding)
+and Q5's crowd-call fires off that arm; a heart tie still holds.  The
+decide card's option set derives once at genuine phase entry and
+re-derives ONLY on the decide-sig (role/membership); a re-render or
+re-apply is not a roster change and may neither flip an option nor wipe
+an armed tap-mode.
+
 **MEMBERSHIP TRUTH (8/10, wave 8, from the conductor run).**  One row
 filter, two truth channels, idempotent writes:
 

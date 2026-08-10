@@ -135,8 +135,37 @@ class BackendDouble {
     throw new Error("double: unknown op " + op);
   }
 
+  /* ---------- fault injection (wave 8 fidelity) ----------
+     The live run's headline diseases were PER-CLIENT truth failures the
+     double could never produce: the host's active_members reads going bad
+     while every other client read fine, and a join_line the server accepted
+     but never kept.  Gates drive both with setFault:
+       D.setFault("active_members", "host", { error: "boom" })   // that client's reads fail
+       D.setFault("join_line", "w", { drop: true })              // accepted, row untouched
+       D.setFault("join_line", "w", null)                        // clear */
+  setFault(name, clientId, mode) {
+    this.faults = this.faults || {};
+    const k = name + "|" + (clientId || "*");
+    if (mode) this.faults[k] = mode; else delete this.faults[k];
+  }
+
   /* ---------- RPCs ---------- */
   rpc(clientId, name, a) {
+    const f = this.faults && (this.faults[name + "|" + clientId] || this.faults[name + "|*"]);
+    if (f) {
+      if (f.error) throw new Error(f.error);
+      if (f.drop) return (f.result !== undefined ? f.result : null);   // accepted-but-dropped
+      if (f.freeze) {
+        // prod's exact face: the read keeps SUCCEEDING but returns a frozen
+        // snapshot — the live host's window watched line×3 while the server
+        // said chair×3.  First call captures; every later call replays it.
+        if (f._snap === undefined) f._snap = JSON.parse(JSON.stringify(this._rpc(clientId, name, a)));
+        return JSON.parse(JSON.stringify(f._snap));
+      }
+    }
+    return this._rpc(clientId, name, a);
+  }
+  _rpc(clientId, name, a) {
     const uid = this.sessions.get(clientId);
     switch (name) {
       case "server_now": return this.iso();

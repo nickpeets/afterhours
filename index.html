@@ -1119,7 +1119,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1727</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0810.2144</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1561,7 +1561,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0809.1727"); }catch(e){}
+try{ console.log("[lastcall] build b0810.2144"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2114,12 +2114,25 @@ async function openRoom(r){
    delivery plus unordered fetch commits meant a stale snapshot could sit,
    and keep re-sitting, on top of the truth.) */
 let ROSTER_FETCH_SEQ=0;
+/* wave 8 (fix/membership-truth): a failed roster read may not be a silent
+   shrug — the live host's reads went bad and her window ran a private,
+   stale show for 30+ seconds (line×3 vs the server's chair×3) while her
+   auto-seat re-fired on the same men.  Failures are counted and SAID in
+   show language; the ledger (rosterPatchFromEvent) keeps the roster
+   converging even while reads are down. */
+let ROSTER_FAILS=0;
 async function loadRoomState(){
   if(!CURRENT_ROOM) return;
   const mySeq=++ROSTER_FETCH_SEQ;
   const {data:members,error}=await sb.rpc("active_members",{room_id:CURRENT_ROOM.id});
   if(!CURRENT_ROOM) return;   // left the room while the RPC was in flight
-  if(error){console.log("active_members:",error.message);return;}
+  if(error){
+    console.log("active_members:",error.message);
+    ROSTER_FAILS++;
+    if(ROSTER_FAILS===3) toast("The room's running ahead of this window — reconnecting… 🍸");
+    return;
+  }
+  ROSTER_FAILS=0;
   if(mySeq!==ROSTER_FETCH_SEQ) return;   // superseded: a newer fetch owns the commit
   const present=(members||[]).filter(m=>m.user_id!==CURRENT_ROOM.host_id && m.role!=="gone");
   const uids=[...new Set(present.map(m=>m.user_id))];
@@ -2147,11 +2160,79 @@ async function loadRoomState(){
     }
   }
   if(mySeq!==ROSTER_FETCH_SEQ) return;   // superseded during the profile fetches
-  ROOM_STATE={members:present,profs};
+  ROOM_STATE={members:rosterOverlay(present),profs};
+  benchReconcile();   // the CONFIRMED row settles the optimistic verb (wave 8)
   renderRoom();
   // video follows game state: publish my cam if seated, and move feeds into chair tiles
   syncLocalPublish();
   reflowVideo();
+}
+
+/* ACTOR'S TRUTH, closed loop (wave 8): the optimistic bench verb is settled
+   by the CONFIRMED roster within one sync.  The live run's tab b flipped to
+   LEAVE THE BENCH three times while the server never kept the row — the
+   verb just quietly expired.  Now: row confirms → flag clears silently;
+   row absent past one sync → the verb reverts and it is SAID. */
+function benchReconcile(){
+  if(!window.__OPTIMISTIC_BENCH) return;
+  const me=(ROOM_STATE.members||[]).find(m=>m.user_id===ME.id);
+  if(me && (me.role==="line"||me.role==="chair"||me.role==="kept")){
+    window.__OPTIMISTIC_BENCH=null; updateJoinBtn(); return;   // confirmed
+  }
+  if(Date.now()-window.__OPTIMISTIC_BENCH>4500){
+    window.__OPTIMISTIC_BENCH=null;
+    updateJoinBtn();
+    toast("That seat didn't take — try again 🍸");
+  }
+}
+
+/* THE LEDGER PATCHES THE ROSTER (wave 8, RULING Q4 extended): seat / keep /
+   pass / timeout events are role facts.  A client whose active_members
+   reads are failing or stale still converges — each folded event patches
+   the local row (an event is proof of life, so last_seen rides along).
+   loadRoomState's next successful commit remains the full truth. */
+let ROSTER_PATCHES={};   // uid -> {role, seat, at} — folded ledger facts newer than any read yet
+function rosterPatchFromEvent(uid, role, seat){
+  if(!uid || !ROOM_STATE || !ROOM_STATE.members) return;
+  if(CURRENT_ROOM && uid===CURRENT_ROOM.host_id) return;
+  const atMs=(typeof serverNow==="function")?serverNow():Date.now();
+  ROSTER_PATCHES[uid]={role, seat:(seat!=null)?seat:null, at:atMs};
+  let row=ROOM_STATE.members.find(m=>m.user_id===uid);
+  if(!row){ row={user_id:uid, role:"spectator", last_seen:null}; ROOM_STATE.members.push(row); }
+  row.role=role;
+  row.seat_index=(seat!=null)?seat:(role==="chair"||role==="kept"?row.seat_index:null);
+  row.last_seen=new Date(atMs).toISOString();
+  // Q2 guard: when the patch UNSEATS the current spotlight target, painting
+  // synchronously would fire the vacated-target collapse before the rooms
+  // row has cleared him (an ordinary pass looked like a mid-answer walkout
+  // and opened a spurious recruit window).  The follow-up roster load
+  // paints within the same beat with the room row settled.
+  const spotHit = AMHOST && CURRENT_ROOM && CURRENT_ROOM.spotlight_target===uid
+                  && role!=="chair" && role!=="kept";
+  if(!spotHit) renderRoom();
+}
+/* the OVERLAY (wave 8): a roster read that reflects a state OLDER than a
+   folded ledger event must lose for that row — the live host's stale-but-
+   succeeding reads clobbered the truth back to line×3 every poll for 30+
+   seconds.  A patch retires the moment a read arrives that is newer than
+   the event (the read caught up), or after two minutes regardless. */
+function rosterOverlay(rows){
+  const nowMs=(typeof serverNow==="function")?serverNow():Date.now();
+  for(const uid of Object.keys(ROSTER_PATCHES)){
+    const pt=ROSTER_PATCHES[uid];
+    if(nowMs-pt.at>120000){ delete ROSTER_PATCHES[uid]; continue; }
+    const row=rows.find(m=>m.user_id===uid);
+    if(!row){
+      rows.push({user_id:uid, role:pt.role, seat_index:pt.seat, last_seen:new Date(pt.at).toISOString()});
+      continue;
+    }
+    const seen=row.last_seen?Date.parse(row.last_seen):0;
+    if(seen && seen>=pt.at){ delete ROSTER_PATCHES[uid]; continue; }   // the read caught up — it wins
+    row.role=pt.role;
+    if(pt.seat!=null) row.seat_index=pt.seat;
+    if(!seen || seen<pt.at) row.last_seen=new Date(pt.at).toISOString();
+  }
+  return rows;
 }
 
 /* ============================================================================
@@ -2169,7 +2250,13 @@ async function loadRoomState(){
      · staleness cannot inflate a count even from a raw table read: the
        active_members freshness rule is re-applied defensively
    ========================================================================= */
-function roomCounts(members, room){
+/* activeRows — the ONE row filter (wave 8, fix/membership-truth).  The
+   count and the strip disagreed in the live run because the bench strip
+   rendered RAW rows while roomCounts applied freshness: a stale line row
+   (the ghost "someone") sat on every bench all night beside a "0 IN LINE"
+   label.  Every surface — counts, chair grid, bench lanes, spectator
+   math — now reads the SAME filtered rows from here. */
+function activeRows(members, room){
   const nowMs=(typeof serverNow==="function")?serverNow():Date.now();
   const isFresh=(m)=>{
     if(m.role==="kept") return true;              // a kept man is on stage; staleness doesn't unseat him
@@ -2177,10 +2264,13 @@ function roomCounts(members, room){
     const t=Date.parse(m.last_seen);
     return !t || (nowMs-t)<60000;
   };
-  const rows=(members||[]).filter(m=>m
+  return (members||[]).filter(m=>m
     && m.role!=="gone"
     && (!room || !room.host_id || m.user_id!==room.host_id)
     && isFresh(m));
+}
+function roomCounts(members, room){
+  const rows=activeRows(members, room);
   const line=rows.filter(m=>m.role==="line");
   return {
     crowd:  rows.filter(m=>m.role==="spectator").length,
@@ -2279,16 +2369,20 @@ const askedThisCycle=askedThisRound;
    ========================================================================= */
 function renderRoom(){
   const {members,profs}=ROOM_STATE;
-  const chairs=members.filter(m=>m.role==="chair"||m.role==="kept")
+  // ONE row filter for everything this render draws (wave 8): the same
+  // activeRows that feeds roomCounts — the strip may never show a man the
+  // count excludes.
+  const rows=activeRows(members, CURRENT_ROOM);
+  const chairs=rows.filter(m=>m.role==="chair"||m.role==="kept")
                       .sort((a,b)=>(a.seat_index||0)-(b.seat_index||0));
   // active_members returns rows in ARBITRARY order, so the bench reshuffled on
   // every poll and the NEXT UP halo bounced between lanes.  Order by a STABLE
   // key — the membership row — so a man keeps his lane for the whole night.
   // (Sorting by hearts would make the faces themselves swap places every time
   // a heart landed, which is the same bouncing by another route.)
-  const line=members.filter(m=>m.role==="line").sort((a,b)=>
+  const line=rows.filter(m=>m.role==="line").sort((a,b)=>
     String(a.id||a.user_id).localeCompare(String(b.id||b.user_id)));
-  const specs=members.filter(m=>m.role==="spectator");
+  const specs=rows.filter(m=>m.role==="spectator");
   // a viral suitor should read as 12.3K, not stretch his chip to the cell edge
 const fmtHearts=(n)=>{ n=Number(n)||0;
   if(n<1000) return String(n);
@@ -2919,13 +3013,25 @@ function startHostPoll(){
       try{ await sb.rpc("sweep_stale_members",{room_id:CURRENT_ROOM.id}); }catch(e){}
       await loadRoomState();
       // cold start: full bench + empty chairs + pre-show -> curtain up, all three at once
+      // IDEMPOTENT (wave 8): derived from server truth and deduped by member.
+      // The live host's stale roster re-fired this every poll — seat_member on
+      // the same three men, 9-10 duplicate feed lines.  A man is seated at
+      // most ONCE per show by this loop (__SEATED_UIDS), and only when his
+      // CURRENT row still says line.
       try{
         const ph=egRoomPhase(CURRENT_ROOM);
-        const anySeated=ROOM_STATE.members.some(m=>m.role==="chair"||m.role==="kept");
-        const liners=ROOM_STATE.members.filter(m=>m.role==="line").slice(0,3);
+        const rowsNow=activeRows(ROOM_STATE.members, CURRENT_ROOM);
+        const anySeated=rowsNow.some(m=>m.role==="chair"||m.role==="kept");
+        window.__SEATED_UIDS=window.__SEATED_UIDS||{};
+        const liners=rowsNow.filter(m=>m.role==="line" && !window.__SEATED_UIDS[m.user_id]).slice(0,3);
         if((ph===null||ph==="preshow") && !anySeated && liners.length>=3 && !window.__SEATING_SHOW){
           window.__SEATING_SHOW=true;
-          for(let i=0;i<3;i++){ await sb.rpc("seat_member",{room_id:CURRENT_ROOM.id,user_id:liners[i].user_id,seat_index:i}); }
+          for(let i=0;i<3;i++){
+            const row=ROOM_STATE.members.find(m=>m.user_id===liners[i].user_id);
+            if(!row || row.role!=="line") continue;          // the row moved on — never re-seat it
+            window.__SEATED_UIDS[liners[i].user_id]=true;
+            await sb.rpc("seat_member",{room_id:CURRENT_ROOM.id,user_id:liners[i].user_id,seat_index:i});
+          }
           if(typeof beatCurtainUp==="function") beatCurtainUp();
           await loadRoomState();
           window.__SEATING_SHOW=false;
@@ -2993,11 +3099,17 @@ let AUTOSEATING=false;
 async function autoSeatFromLine(){
   if(!AMHOST || AUTOSEATING) return;
   if(EG_ON) return;  // engine rooms: the line is masked to the host — joiners self-seat via claim_open_chair
-  const seated=ROOM_STATE.members.filter(m=>m.role==="chair"||m.role==="kept");
-  const line=ROOM_STATE.members.filter(m=>m.role==="line");
+  // wave 8: derive from the SAME filtered rows as every other surface, and
+  // never auto-seat the same man twice — the loop must be idempotent even
+  // over a stale local roster.
+  const rows=activeRows(ROOM_STATE.members, CURRENT_ROOM);
+  const seated=rows.filter(m=>m.role==="chair"||m.role==="kept");
+  window.__SEATED_UIDS=window.__SEATED_UIDS||{};
+  const line=rows.filter(m=>m.role==="line" && !window.__SEATED_UIDS[m.user_id]);
   if(seated.length>=3 || !line.length) return;
   AUTOSEATING=true;
   const next=line[0];
+  window.__SEATED_UIDS[next.user_id]=true;
   await hostSeat(next.user_id);
   AUTOSEATING=false;
 }
@@ -3898,10 +4010,21 @@ function handleEvent(ev){
       addFeedLine(`<span class="who">${escapeHtml(nameFor(actor))}</span> sent ${p.emoji||"a gift"} <span style="opacity:.7">✦${p.cost||""}</span>`,"gold");
       if(actor!==ME.id) flyReact(p.emoji||"🎁",true);
       break;
-    case "seat":
-      addFeedLine(`<span class="who">${escapeHtml(nameFor(p.target_user))}</span> took a chair 🎬`,"cool");
-      break;
+    case "seat": {
+      // wave 8: the live host's stale roster re-fired seat_member on the same
+      // men every poll — 9-10 duplicate "took a chair" lines.  A seat event
+      // that changes nothing (same man, same seat, no unseat between) folds
+      // silently; a genuine seating writes exactly one line.
+      window.__SEAT_FOLDED=window.__SEAT_FOLDED||{};
+      const su=p.target_user, ss=(p.seat!=null)?p.seat:null;
+      const prev=su?window.__SEAT_FOLDED[su]:undefined;
+      const dup=prev!==undefined && prev===ss;
+      if(su) window.__SEAT_FOLDED[su]=ss;
+      rosterPatchFromEvent(su,"chair",ss);
+      if(!dup) addFeedLine(`<span class="who">${escapeHtml(nameFor(p.target_user))}</span> took a chair 🎬`,"cool");
+      break; }
     case "keep":
+      rosterPatchFromEvent(p.target_user,"kept",null);
       addFeedLine(`<span class="who">${escapeHtml(nameFor(p.target_user))}</span> was KEPT ✦✦✦`,"gold");
       break;
     case "phase": case "spotlight": case "draft_open": case "draft_seat": case "struck_out":
@@ -3926,6 +4049,9 @@ function handleEvent(ev){
       egRefreshRoom(); loadRoomState();
       break;
     case "pass":
+      if(window.__SEAT_FOLDED) delete window.__SEAT_FOLDED[p.target_user];   // his next seating is news again
+      if(window.__SEATED_UIDS) delete window.__SEATED_UIDS[p.target_user];   // …and auto-seat may consider him again
+      rosterPatchFromEvent(p.target_user,"spectator",null);
       if(p.target_user===ME.id){
         I_WAS_PASSED=true;
         addFeedLine(`she passed — you're watching this one 🥂`,"neon");
@@ -3937,6 +4063,9 @@ function handleEvent(ev){
       loadRoomState();
       break;
     case "timeout":
+      if(window.__SEAT_FOLDED) delete window.__SEAT_FOLDED[p.target_user];
+      if(window.__SEATED_UIDS) delete window.__SEATED_UIDS[p.target_user];
+      rosterPatchFromEvent(p.target_user,"spectator",null);
       addFeedLine(`<span class="who">${escapeHtml(nameFor(p.target_user))}</span>'s time ran out ⏱ — back to watching`,"cool");
       loadRoomState();
       break;
@@ -4465,7 +4594,12 @@ async function takeBenchSeat(){
   if(!CURRENT_ROOM || AMHOST) return {error:null};
   const onFile=!!(MYPROFILE && MYPROFILE.face_json && MYPROFILE.face_json.photo);
   if(!onFile){ try{ await benchHeadshot(); }catch(e){} }
-  return await sb.rpc("join_line",{room_id:CURRENT_ROOM.id});
+  const res=await sb.rpc("join_line",{room_id:CURRENT_ROOM.id});
+  // wave 8: the accepted row must read FRESH immediately — the live tab b's
+  // line row was born against a stale beat and every freshness filter
+  // dropped it (the "evaporating bench seat").  A heartbeat rides the join.
+  if(!res.error){ try{ sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id}); }catch(e){} }
+  return res;
 }
 
 $("rt_joinline").onclick=async()=>{
@@ -4588,6 +4722,7 @@ async function leaveRoom(){
   window.__ADVKEY=null; window.__LASTROUND=undefined; window.__EMPTY_TICKS=0;
   window.__ASKED_THIS_ROUND={}; window.__ASKED_THIS_SHOW={}; window.__ASK_CYCLE={}; window.__PH_SEEN={};
   window.__SEATING_SHOW=false; window.__STARTING=null; window.__CROWD_CALLED=false; window.__COLLAPSING=null;
+  window.__SEAT_FOLDED={}; window.__SEATED_UIDS={}; ROSTER_FAILS=0; ROSTER_PATCHES={};
   window.__ENDED_HANDLED=null; FINALE_BOARD=false; EV_CURSOR=null;
   window.__AUTOQ=false; window.__SPLASH_ADV=false;
   LC_BEATQ=[]; LC_BEATING=false;
@@ -5234,7 +5369,7 @@ window.__lc = {
      the app shows (lobby card, room header, watchbar, bench slice) reads
      from it, and gates assert against the same function. */
   loadRooms, loadRoomState, renderRoom, updateJoinBtn, keptFinalists,
-  roomCounts,
+  roomCounts, activeRows, benchReconcile, rosterPatchFromEvent,
   /* ask truth — state keyed (member, round); askEligible is the ONE gate,
      askTargets the ONE roster, askMark the ONE write */
   askTargets, askEligible, askMark, askedThisRound, askedThisCycle, egOpenDrawer, egFireSpotlight,

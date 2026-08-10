@@ -366,3 +366,28 @@ room renders CALL truth, not roster truth:
   language, with a visible retry.**  No toast-and-eject to the lobby, no
   silent black frame.  Retry re-runs the ONE join path (`bsAttemptJoin`)
   that first entry uses.
+
+**MEMBERSHIP TRUTH (8/10, wave 8, from the conductor run).**  One row
+filter, two truth channels, idempotent writes:
+
+- **`activeRows` is the ONE row filter.**  Counts, the chair grid, the
+  bench strip, and every derived predicate read the same fresh-filtered
+  rows.  The strip may never show a man the count excludes (the ghost
+  "someone" beside "0 IN LINE").
+- **The ledger patches the roster.**  seat/keep/pass/timeout events are
+  role facts; every client folds them into its rows (an event is proof of
+  life).  A roster read that reflects a state OLDER than a folded event
+  loses for that row (`rosterOverlay`); the patch retires when a newer
+  read arrives.  A client whose reads fail or go stale still converges ≤
+  one fold — the host's window may never run a private show.
+- **Roster read failures are SAID** after three consecutive misses, in
+  show language.  Never a silent stale window.
+- **Seating is idempotent.**  The cold-start/auto-seat loop seats a member
+  at most once (re-checked against his current row); a seat event that
+  changes nothing (same man, same seat, no unseat between) folds without
+  a feed line.  Nine duplicate "took a chair" lines was the live run.
+- **The optimistic bench verb closes its loop.**  The CONFIRMED row
+  settles it within one sync: confirmed → silent; absent → the verb
+  reverts and it is said ("That seat didn't take — try again").  A
+  join_line rides with an immediate heartbeat so the new row is born
+  fresh.

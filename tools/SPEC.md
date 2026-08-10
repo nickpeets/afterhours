@@ -390,6 +390,20 @@ re-derives ONLY on the decide-sig (role/membership); a re-render or
 re-apply is not a roster change and may neither flip an option nor wipe
 an armed tap-mode.
 
+**EDGES (8/10, wave 8, one ruling each).**  An empty chair says what a
+tap does ("OPEN CHAIR · join the bench") — never a mislabeled action.
+The host-left watchdog asks the rooms row before ejecting anyone: an
+ENDED show routes every role to the finale card.  The winner snap ships
+a live, non-black frame or nothing (the card falls back to the avatar).
+The client writes hearts only from a tap — no seeder exists client-side.
+Backstage runs ONE shared deadline: the host writes `backstage_clock`
+the moment both are in the call; both sides render it.  The watcher
+count derives from the one membership truth on every client.  videoJoin
+settles an in-flight leave before trusting 'already joined', and the
+truth cadence re-joins a callless room.  A decline stays secret, but
+ABSENCE isn't: leaving the backstage flow (`backstage_left`) closes the
+other side's offer window with the goodnight beat.
+
 **MEMBERSHIP TRUTH (8/10, wave 8, from the conductor run).**  One row
 filter, two truth channels, idempotent writes:
 

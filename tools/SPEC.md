@@ -340,3 +340,29 @@ question from the SAME realtime `spotlight` room_event — the payload
 carries the question text and the answer deadline (prod `engine_emit`
 already ships them) — never from a per-client fetch race.  Cross-role
 skew budget: one render tick.
+
+**BACKSTAGE PRESENCE (8/10, wave 6, from the live run).**  The winner's
+room renders CALL truth, not roster truth:
+
+- **A tile means a JOINED participant.**  The backstage tile list is
+  derived from the Daily call's participants — never from the room row.
+  Until the counterpart has actually joined the call, their side is an
+  explicit labeled waiting state in show language ("waiting for Jack's
+  Room…"), visually distinct from a live frame — never an empty black
+  tile implying presence.  A side that leaves the call reverts to its
+  waiting state; its stale video does not linger.
+- **The private-time clock starts only when BOTH sides are in the call.**
+  Nobody burns the 3:00 waiting alone.  Entry, first join, and rejoin do
+  not start it; the presence sync starts it the moment host AND winner
+  are both among the call's participants.
+- **Entry is identical on desktop and mobile, for host and winner.**
+  There is ONE post-show door per screen: when the closing card paints,
+  any held beat leaves the stage (a held CTA buried under another surface
+  is dead pixels the user can still see).  The photo wait may not strand
+  anyone — the 4s truth poll folds an overdue wait even if the timer was
+  throttled.  The double-tap zoom-block may never eat a tap: only a true
+  same-spot double-tap on a passive surface is prevented.
+- **A failed backstage join is SAID, on the backstage surface, in show
+  language, with a visible retry.**  No toast-and-eject to the lobby, no
+  silent black frame.  Retry re-runs the ONE join path (`bsAttemptJoin`)
+  that first entry uses.

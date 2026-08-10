@@ -1066,6 +1066,16 @@
   .lc-beat__kept{ opacity:1; transform:none; }
 }
 
+/* BACKSTAGE ENTRY (wave 6): presence is call-truth.  A waiting side is a
+   labeled lounge seat, not a black frame; a stuck door is said in show
+   language with a retry, on this surface. */
+.bs-tile--waiting{background:rgba(13,17,41,.6);border:2px dashed rgba(238,240,255,.28)}
+.bs-tile--waiting .bs-nm{display:none}
+.bs-error{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:10px;background:rgba(8,11,32,.85);border:1.5px solid var(--neon,#ff2d8f);border-radius:16px;padding:14px 16px;text-align:center}
+.bs-error__msg{font-size:13.5px;color:var(--paper,#eef0ff);line-height:1.5}
+.bs-error__row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.bs-retry{padding:12px 22px;border:none;border-radius:999px;background:var(--keep,#ff2d8f);color:#fff;font-family:"Baloo 2",sans-serif;font-weight:800;font-size:14px;letter-spacing:.03em;cursor:pointer;box-shadow:inset 0 2px 0 rgba(255,255,255,.5),0 3px 0 var(--keep-bevel,#8c0847)}
+.bs-error__leave{padding:11px 18px;border:1px solid rgba(238,240,255,.3);border-radius:999px;background:transparent;color:var(--dim,rgba(238,240,255,.5));font-size:13px;cursor:pointer}
 </style>
 </head>
 <body data-skin="neon">
@@ -1109,7 +1119,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1348</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0809.1727</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1426,8 +1436,20 @@
         <div class="bs-head">BACKSTAGE <span class="bs-live">● PRIVATE</span></div>
         <div class="bs-clock" id="bs_clock">3:00</div>
         <div class="bs-tiles">
-          <div class="bs-tile" id="bs_tile_host"><div class="bs-nm" id="bs_nm_host"></div></div>
-          <div class="bs-tile" id="bs_tile_winner"><div class="bs-nm" id="bs_nm_winner"></div><div class="bs-wait" id="bs_wait">waiting for them…</div></div>
+          <!-- a tile means a JOINED participant.  until that side is in the
+               Daily call, the tile is a labeled waiting state — never an
+               empty black frame implying presence (wave 6). -->
+          <div class="bs-tile bs-tile--waiting" id="bs_tile_host"><div class="bs-nm" id="bs_nm_host"></div><div class="bs-wait" id="bs_wait_host">waiting…</div></div>
+          <div class="bs-tile bs-tile--waiting" id="bs_tile_winner"><div class="bs-nm" id="bs_nm_winner"></div><div class="bs-wait" id="bs_wait_winner">waiting…</div></div>
+        </div>
+        <!-- a stuck door is SAID, on this surface, with a way to try again —
+             never a toast that strands anyone in the lobby (wave 6) -->
+        <div class="bs-error" id="bs_error" style="display:none">
+          <div class="bs-error__msg" id="bs_error_msg">The door stuck — the night's not over.</div>
+          <div class="bs-error__row">
+            <button class="bs-retry" id="bs_retry">Try the door again 🥂</button>
+            <button class="bs-error__leave" id="bs_error_leave">Leave it for tonight</button>
+          </div>
         </div>
         <div class="bs-actions">
           <button class="bs-cut" id="bs_cut" style="display:none">✂ Cut the Feed</button>
@@ -1539,7 +1561,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0809.1348"); }catch(e){}
+try{ console.log("[lastcall] build b0809.1727"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -1744,6 +1766,16 @@ function lcBeatNext(){
     if(cta){ cta.addEventListener("click",finish); setTimeout(()=>{ try{cta.focus();}catch(e){} },80); }
   }
   else setTimeout(done, ms);
+}
+/* ONE surface owns the screen (wave 6): when a closing card or the winner's
+   room takes the stage, every beat — held or queued — leaves it.  A held
+   beat buried under another overlay is a dead CTA the user can still see. */
+function lcBeatClearAll(){
+  LC_BEATQ=[]; LC_BEATING=false;
+  try{
+    document.querySelectorAll("#room .lc-beat").forEach(el=>el.remove());
+    $("room").classList.remove("beat-hold");
+  }catch(e){}
 }
 const lcEsc = (t)=>escapeHtml(String(t==null?"":t));
 
@@ -2932,7 +2964,13 @@ let FINALE_BOARD=false;   // #finale is currently the host's LAST CALL board, no
 function showEnded(rm, explicit){
   if(!CURRENT_ROOM) return;
   if(window.__ENDED_HANDLED===CURRENT_ROOM.id) return;
-  if(AWAITING_PHOTO || $("snap").classList.contains("show") ||
+  if(AWAITING_PHOTO){
+    // the poll is the photo wait's second truth channel: if the timeout is
+    // overdue (throttled timer), fold to the card NOW instead of parking
+    if(Date.now()>PHOTO_WAIT_UNTIL+1000) photoWaitExpired();
+    return;
+  }
+  if($("snap").classList.contains("show") ||
      $("backstage").classList.contains("show")) return;
   if($("finale").classList.contains("show") && !FINALE_BOARD) return;  // closing screen already up
   window.__ENDED_HANDLED=CURRENT_ROOM.id;
@@ -4011,6 +4049,10 @@ async function endShow(winnerUid){
 function renderFinale(winnerUid){
   // never paint the closing screen over an open Winner's Room
   try{ if($("backstage").classList.contains("show")) return; }catch(e){}
+  // …and never paint it UNDER a held beat: the live run parked the host on
+  // an ENTER THE WINNER'S ROOM CTA that a second surface had made dead
+  // pixels.  The card is the one post-show door now (wave 6).
+  lcBeatClearAll();
   FINALE_BOARD=false;
   const inner=$("finale_inner");
   if(winnerUid){
@@ -4057,14 +4099,25 @@ function renderFinale(winnerUid){
 
 /* ============ WINNER SNAPSHOT — the freeze-frame ending ============ */
 let AWAITING_PHOTO=false, PHOTO_TIMER=null, WINNER_PHOTO=null;
+let PHOTO_WAIT_UNTIL=0, PHOTO_WAIT_WINNER=null;
 
 // everyone but the winner: hold the room looking live until the photo lands (or timeout)
 function enterPhotoWait(winnerUid){
   AWAITING_PHOTO=true; WINNER_PHOTO=null;
+  PHOTO_WAIT_WINNER=winnerUid;
+  const ms=(CURRENT_ROOM && CURRENT_ROOM.host_id===ME.id) ? 5000 : 14000;
+  PHOTO_WAIT_UNTIL=Date.now()+ms;
   clearTimeout(PHOTO_TIMER);
-  PHOTO_TIMER=setTimeout(()=>{ // camera fail / winner bailed → normal reveal
-    if(AWAITING_PHOTO){ AWAITING_PHOTO=false; renderFinale(winnerUid); }
-  }, (CURRENT_ROOM && CURRENT_ROOM.host_id===ME.id) ? 5000 : 14000);
+  PHOTO_TIMER=setTimeout(photoWaitExpired, ms);   // camera fail / winner bailed → normal reveal
+}
+/* the photo wait may NOT strand anyone: the timer is the fast path, but the
+   4s truth poll (showEnded, every role) folds an overdue wait too — a
+   throttled mobile timer can no longer park the host mid-transition
+   (wave 6: the HOST's post-call path had a single-setTimeout truth). */
+function photoWaitExpired(){
+  if(!AWAITING_PHOTO) return;
+  AWAITING_PHOTO=false;
+  renderFinale(PHOTO_WAIT_WINNER);
 }
 
 // the winner: smile overlay → 3-2-1 → capture from own live video → broadcast
@@ -4114,7 +4167,7 @@ async function startWinnerSnap(winnerUid){
 }
 
 /* ============ WINNER'S ROOM (backstage) ============ */
-let BS_DAILY=null, BS_ROOM=null;
+let BS_DAILY=null, BS_ROOM=null, BS_WINNER_UID=null;
 let BS_TICK=null, BS_DEADLINE=0, BSD_TICK=null, BSD_DEADLINE=0, BSD_POLL=null, BSD_PHASE=null, BSD_OFFERED=false;
 const BS_SECONDS=180, BSD_SECONDS=60;
 
@@ -4236,35 +4289,106 @@ async function enterBackstage(winnerUid, winnerName){
   AWAITING_PHOTO=false;
   clearTimeout(PHOTO_TIMER); PHOTO_TIMER=null;
   try{ $("finale").classList.remove("show"); $("snap").classList.remove("show"); }catch(e){}
+  lcBeatClearAll();   // one surface owns the screen from here (wave 6)
   BS_ROOM=CURRENT_ROOM;
+  if(!BS_ROOM) return;
+  BS_WINNER_UID=winnerUid||null;
   const iAmHost=BS_ROOM.host_id===ME.id;
   $("bs_nm_host").textContent=BS_ROOM.contestant_name||"Host";
   $("bs_nm_winner").textContent=winnerName||"Winner";
   $("bs_cut").style.display=iAmHost?"block":"none";
   $("bs_leave").style.display=iAmHost?"none":"block";
-  $("bs_wait").style.display="flex";
   $("backstage").classList.add("show");
-  await videoLeave();
+  bsSyncPresence();   // both tiles open as labeled waiting states — nobody is "here" yet
+  await bsAttemptJoin();
+}
+
+/* the ONE join attempt — identical for host and winner, desktop and mobile,
+   first try and retry (wave 6).  A failure lands in bsJoinFailed, on this
+   surface, visibly retryable. */
+async function bsAttemptJoin(){
+  if(!BS_ROOM || !$("backstage").classList.contains("show")) return;
+  $("bs_error").style.display="none";
   try{
+    await videoLeave();
     const {data:{session}}=await sb.auth.getSession();
     const res=await fetch(DAILY_FN,{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+(session?.access_token||"")},
       body:JSON.stringify({room_id:BS_ROOM.id, mode:"winner", user_name:ME.id, is_owner:(ME.id===(BS_ROOM.host_id||null))})
     });
-    const data=await res.json();
-    if(!res.ok||!data.url){ toast("Backstage unavailable: "+(data.error||"")); exitBackstage(); return; }
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||!data.url){ await bsJoinFailed(data.error||("HTTP "+res.status)); return; }
     BS_DAILY=window.DailyIframe.createCallObject({
       subscribeToTracksAutomatically:true
       // no video processor: Daily's blur stalls tracks in Chrome (same bug as main room)
     });
+    // presence is CALL-truth: every roster change in the Daily call re-derives
+    // the tiles, the waiting states, and the private-time clock (wave 6)
     BS_DAILY.on("track-started",bsTrack)
-            .on("participant-left",()=>{ $("bs_wait").style.display="flex"; });
+            .on("joined-meeting",bsSyncPresence)
+            .on("participant-joined",bsSyncPresence)
+            .on("participant-updated",bsSyncPresence)
+            .on("participant-left",bsSyncPresence);
     await BS_DAILY.join({url:data.url, token:data.token});
     try{ await BS_DAILY.setUserName(ME.id); }catch(e){}
+    bsSyncPresence();
     await BS_DAILY.setLocalVideo(true); await BS_DAILY.setLocalAudio(true);
     NATIVE_BLUR_TRIED=false; setTimeout(()=>tryNativeBlur(BS_DAILY),400);
-  }catch(e){ console.log("backstage join failed:",e); toast("Backstage failed"); exitBackstage(); }
+    bsSyncPresence();
+  }catch(e){ await bsJoinFailed(e && e.message || String(e)); }
+}
+
+/* a stuck door is SAID in show language and retryable — never a silent
+   black frame, never an exit that strands anyone in the lobby (wave 6) */
+async function bsJoinFailed(detail){
+  console.log("[backstage] join failed:", detail);   // raw detail: console only
+  try{ if(BS_DAILY){ await BS_DAILY.leave(); await BS_DAILY.destroy(); } }catch(e){}
+  BS_DAILY=null;
+  if(!$("backstage").classList.contains("show")) return;
+  bsSyncPresence();   // no phantom tiles behind the error
+  $("bs_error_msg").textContent="The winner's room door stuck — the night's not over.";
+  $("bs_error").style.display="flex";
+}
+$("bs_retry").onclick=()=>{ bsAttemptJoin(); };
+$("bs_error_leave").onclick=()=>{ exitBackstage(); };
+
+/* call-participants truth: who is actually IN the backstage call right now */
+function bsJoinedMap(){
+  const joined={};
+  if(!BS_DAILY) return joined;
+  try{
+    Object.values(BS_DAILY.participants()||{}).forEach(p=>{
+      const uid=p && (p.user_name || (p.local && ME ? ME.id : null));
+      if(uid) joined[uid]=true;
+    });
+  }catch(e){}
+  return joined;
+}
+
+/* the tile list is derived from CALL PARTICIPANTS, not the roster: a tile
+   means a joined participant; an absent side is a labeled waiting state.
+   The private-time clock starts only when BOTH sides are in the call —
+   nobody burns their 3:00 waiting alone (wave 6). */
+function bsSyncPresence(){
+  if(!BS_ROOM) return;
+  const joined=bsJoinedMap();
+  const seats=[
+    { uid:BS_ROOM.host_id, tile:$("bs_tile_host"), wait:$("bs_wait_host"),
+      name:($("bs_nm_host").textContent||"the host") },
+    { uid:BS_WINNER_UID, tile:$("bs_tile_winner"), wait:$("bs_wait_winner"),
+      name:($("bs_nm_winner").textContent||"the winner") },
+  ];
+  seats.forEach(s=>{
+    const here=!!(s.uid && joined[s.uid]);
+    s.tile.classList.toggle("bs-tile--waiting",!here);
+    s.wait.style.display=here?"none":"flex";
+    if(!here){
+      s.wait.textContent="waiting for "+s.name+"…";
+      s.tile.querySelectorAll("video").forEach(v=>v.remove());
+    }
+  });
+  if(BS_ROOM.host_id && BS_WINNER_UID && joined[BS_ROOM.host_id] && joined[BS_WINNER_UID]) bsStartClock();
 }
 
 function bsTrack(ev){
@@ -4274,6 +4398,7 @@ function bsTrack(ev){
     return;
   }
   if(ev.track.kind!=="video") return;
+  bsSyncPresence();   // a starting track proves a joined participant — clear the waiting state first
   const tile = uid===BS_ROOM.host_id ? $("bs_tile_host") : $("bs_tile_winner");
   tile.querySelectorAll("video").forEach(v=>v.remove());
   const v=document.createElement("video");
@@ -4283,7 +4408,6 @@ function bsTrack(ev){
   v.srcObject=new MediaStream([ev.track]);
   tile.appendChild(v);
   const p=v.play(); if(p&&p.catch) p.catch(()=>{});
-  if(!ev.participant.local){ $("bs_wait").style.display="none"; bsStartClock(); }
 }
 
 $("bs_cut").onclick=async()=>{
@@ -4295,7 +4419,8 @@ $("bs_leave").onclick=()=>exitBackstage();
 async function exitBackstage(){
   bsTeardownDecision();
   try{ if(BS_DAILY){ await BS_DAILY.leave(); await BS_DAILY.destroy(); } }catch(e){}
-  BS_DAILY=null; BS_ROOM=null;
+  BS_DAILY=null; BS_ROOM=null; BS_WINNER_UID=null;
+  $("bs_error").style.display="none";
   Object.keys(AUDIO_ELS).filter(k=>k.startsWith("bs-")).forEach(stopAudio);
   $("backstage").classList.remove("show");
   if(ROOM_CHANNEL){ sb.removeChannel(ROOM_CHANNEL); ROOM_CHANNEL=null; }
@@ -5077,11 +5202,21 @@ function reflowVideo(){
 // hard-block pinch/double-tap zoom on mobile (viewport meta alone isn't enough on iOS)
 document.addEventListener("gesturestart",e=>e.preventDefault());
 document.addEventListener("gesturechange",e=>e.preventDefault());
-let _lastTouch=0;
+let _lastTouch=0,_lastTouchX=-1,_lastTouchY=-1;
 document.addEventListener("touchend",e=>{
   const now=Date.now();
-  if(now-_lastTouch<=300) e.preventDefault();
-  _lastTouch=now;
+  const t=e.changedTouches&&e.changedTouches[0];
+  const x=t?t.clientX:-1, y=t?t.clientY:-1;
+  // the zoom-block may never eat a TAP (wave 6: it swallowed the second of
+  // two quick taps on the host's decide flow — clicks on chairs and CTAs
+  // simply vanished on touch devices).  Only a true double-tap-to-zoom
+  // gesture — two touches in the SAME SPOT on a passive surface — is
+  // prevented; controls and distinct targets always click.
+  const interactive=e.target && e.target.closest &&
+    e.target.closest("button,a,input,select,textarea,[role=button]");
+  const samePlace=_lastTouchX>=0 && Math.hypot(x-_lastTouchX,y-_lastTouchY)<=30;
+  if(!interactive && samePlace && now-_lastTouch<=300) e.preventDefault();
+  _lastTouch=now; _lastTouchX=x; _lastTouchY=y;
 },{passive:false});
 (async()=>{
   const {data:{session}}=await sb.auth.getSession();
@@ -5120,12 +5255,17 @@ window.__lc = {
   startClockTick, stopClockTick, serverNow,
   /* finale */
   showLastCall, confirmWinner, endShow, renderFinale, enterPhotoWait,
-  /* backstage (wave 5) — the decision/swap layer, drivable by gate 31 */
-  enterBackstage, bsEnterDecision, bsCheckSwap,
+  /* backstage (wave 5/6) — decision/swap layer + call-truth presence,
+     drivable by gates 31 and 32 */
+  enterBackstage, bsEnterDecision, bsCheckSwap, bsSyncPresence, bsAttemptJoin,
   get BS_STATE(){ return { room:BS_ROOM?BS_ROOM.id:null, phase:BSD_PHASE, offered:BSD_OFFERED,
                            title:(document.getElementById("bsd_title")||{}).textContent||"",
                            revealed:BSD_PHASE==="revealed",
-                           revealWhat:(document.getElementById("bsd_rev_what")||{}).textContent||"" }; },
+                           revealWhat:(document.getElementById("bsd_rev_what")||{}).textContent||"",
+                           clockOn:document.getElementById("bs_clock").classList.contains("on"),
+                           hostWaiting:document.getElementById("bs_tile_host").classList.contains("bs-tile--waiting"),
+                           winnerWaiting:document.getElementById("bs_tile_winner").classList.contains("bs-tile--waiting"),
+                           errorShown:document.getElementById("bs_error").style.display!=="none" }; },
   /* diagnostics — the quiet surface (F5): vdbg is console/?debug-only,
      lcCamStatus is the ONE show-language chip.  CAM_STATE observes the
      recovery machine (F6/F11): a clean join shows fires=0 and a leave

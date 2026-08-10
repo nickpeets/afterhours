@@ -1119,7 +1119,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0810.2247</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0810.2323</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1561,7 +1561,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0810.2247"); }catch(e){}
+try{ console.log("[lastcall] build b0810.2323"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -1889,8 +1889,25 @@ $("set_go").onclick=async()=>{
 
 async function enterApp(){
   if(PENDING_PW_SETUP){ showSetPw(); return; }
-  const {data:{user}}=await sb.auth.getUser();
-  if(!user){return;}
+  /* the same three worlds, one layer down: getSession said yes and getUser
+     could not confirm it.  `if(!user){return;}` returned into nothing — a
+     bare sign-in screen with no line in the console.  Never a blank
+     screen: classify, log, and say it. */
+  let user=null,uerr=null;
+  try{
+    const r=await sb.auth.getUser();
+    user=r&&r.data?r.data.user:null;
+    uerr=r?r.error:null;
+  }catch(e){ uerr={message:String(e&&e.message||e),transport:true}; }
+  if(uerr&&!user){
+    vdbg("enterApp: getUser failed ("+(uerr.transport?"unreachable":"refused")+"): "+(uerr.message||uerr),true);
+    return (LAST_RESTORE=authNoticeForFailure(uerr));
+  }
+  if(!user){
+    vdbg("enterApp: no user behind the session — the sign-in screen is the answer");
+    return (LAST_RESTORE="signed-out");
+  }
+  authNotice(null);
   ME=user;
   const {data:prof}=await sb.from("profiles").select("*").eq("id",user.id).single();
   MYPROFILE=prof;
@@ -5489,10 +5506,106 @@ document.addEventListener("touchend",e=>{
   if(!interactive && samePlace && now-_lastTouch<=300) e.preventDefault();
   _lastTouch=now; _lastTouchX=x; _lastTouchY=y;
 },{passive:false});
-(async()=>{
-  const {data:{session}}=await sb.auth.getSession();
-  if(session){ enterApp(); }
-})();
+/* ONE door back into the app on boot, and it must never lie.
+
+   It used to be:  const {data:{session}}=await sb.auth.getSession();
+                   if(session){ enterApp(); }
+   No else.  error never destructured.  A transport failure rejecting into
+   an async IIFE nobody awaited.  Three different worlds arrived at the
+   same silent sign-in screen — a visitor who really is signed out, a
+   refresh token the server refused, and a network that never answered —
+   and nothing was written to the console either, so nobody could tell
+   them apart: not the person holding the phone, not us reading the logs
+   afterwards.  This is also the SAME path a host's reload runs mid-show,
+   which is why "my phone threw me out of my own show" and "you are
+   signed out" were the same pixels.
+
+   Every outcome is now named, and the name is the return value:
+     "session"     restored — we go in.
+     "signed-out"  no session, no error.  The sign-in screen IS the right
+                   answer here, so it is shown with NO notice on it.
+     "expired"     the server answered and refused.  Signing in again is
+                   the path; retrying a dead refresh token only stalls.
+     "unreachable" nothing answered.  This is NOT a sign-out — the session
+                   may be perfectly good.  One bounded retry, then say so
+                   and leave a way back that isn't retyping a password.
+   Raw detail goes to vdbg (console always, screen only under ?debug); the
+   screen gets show language only.  Gates assert on the verdict rather than
+   scraping pixels. */
+const RESTORE_RETRY_MS=1200;
+let LAST_RESTORE=null;
+
+/* the ONE user-facing line on the sign-in screen.  text=null clears it. */
+function authNotice(text,onRetry){
+  let el=document.getElementById("authnotice");
+  if(!text){ if(el) el.remove(); return; }
+  if(!el){
+    el=document.createElement("div");
+    el.id="authnotice";
+    el.style.cssText="width:100%;max-width:360px;margin-top:2px;padding:10px 14px;border-radius:12px;background:rgba(255,45,143,.12);border:1px solid rgba(255,45,143,.45);color:var(--paper);font-size:12px;line-height:1.5;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center";
+    const host=document.getElementById("auth")||document.body;
+    host.appendChild(el);
+  }
+  el.textContent="";
+  const line=document.createElement("div");
+  line.textContent=text;                       // show language only — never a raw error (gate 21)
+  el.appendChild(line);
+  if(onRetry){
+    const b=document.createElement("button");
+    b.id="authretry"; b.type="button"; b.textContent="Try again";
+    b.style.cssText="background:none;border:1px solid var(--neon);color:var(--paper);border-radius:999px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer";
+    b.onclick=()=>{ authNotice("checking…"); onRetry(); };
+    el.appendChild(b);
+  }
+}
+/* a failure we could not talk our way out of: name it, show it, return the
+   verdict.  Transport failures get the retry affordance; a refusal does not,
+   because the sign-in form right below it already IS the way back. */
+function authNoticeForFailure(err){
+  const transport=!!(err&&err.transport);
+  authNotice(transport
+    ? "Couldn’t reach the bar just now — you may still be signed in.  Check your connection."
+    : "Your session ended.  Sign in to step back inside.",
+    transport?()=>restoreSession({retry:false}):null);
+  return transport?"unreachable":"expired";
+}
+
+async function restoreSession({retry=true}={}){
+  let session=null,error=null;
+  try{
+    const r=await sb.auth.getSession();
+    session=r&&r.data?r.data.session:null;
+    error=r?r.error:null;
+  }catch(e){
+    // a THROW is the network talking, not a verdict about who you are
+    error={message:String(e&&e.message||e),transport:true};
+  }
+  if(session){
+    // a token in hand outranks a grumble alongside it — never lock out a
+    // user we can actually authenticate
+    if(error) vdbg("session restore: session present, client also reported: "+(error.message||error));
+    vdbg("session restore: signed in ("+((session.user&&session.user.id)||"?")+")");
+    authNotice(null);
+    LAST_RESTORE="session";
+    await enterApp();
+    return LAST_RESTORE;
+  }
+  if(!error){
+    vdbg("session restore: no session — the sign-in screen is the answer");
+    authNotice(null);
+    return (LAST_RESTORE="signed-out");
+  }
+  vdbg("session restore failed ("+(error.transport?"unreachable":"refused")+"): "+(error.message||error),true);
+  if(error.transport&&retry){
+    // one hiccup is not a sign-out.  Exactly one retry — the {retry:false}
+    // guarantees this cannot recurse a third time.
+    await new Promise(r=>setTimeout(r,RESTORE_RETRY_MS));
+    return restoreSession({retry:false});
+  }
+  return (LAST_RESTORE=authNoticeForFailure(error));
+}
+
+(async()=>{ await restoreSession(); })();
 
 /* ============ DIAGNOSTIC EXPORT — /tools battery v2 ============
    REAL function references, not copies.  Every verification gate calls the
@@ -5544,6 +5657,12 @@ window.__lc = {
      recovery machine (F6/F11): a clean join shows fires=0 and a leave
      zeroes everything. */
   vdbg, lcCamStatus,
+  /* session restore — restoreSession is the ONE boot door and it RETURNS
+     its verdict ("session" | "signed-out" | "expired" | "unreachable");
+     authNotice is the ONE user-facing line on the sign-in screen.  Gates
+     assert on the verdict, never on pixels. */
+  restoreSession, authNotice,
+  get LAST_RESTORE(){ return LAST_RESTORE; },
   get CAM_STATE(){ return { tries:CAM_TRIES, gaveUp:CAM_GAVE_UP, blurKilled:BLUR_KILLED,
                             appOff:CAM_APP_OFF, watchdogFires:WATCHDOG_FIRES, pending:!!WATCHDOG_T }; },
   /* video layer */

@@ -58,12 +58,20 @@ class Harness {
     this.double = new BackendDouble();
     this.clients = [];
     this.unexpectedRequests = [];
+    this.mutedRealtime = new Set();
     this.double.onChange((evt) => {
       for (const c of this.clients) {
+        if (this.mutedRealtime.has(c.name)) continue;   // prod fidelity: this client folds via the truth poll only
         c.page.evaluate((e) => { if (window.__realtimePush) window.__realtimePush(e); }, evt).catch(() => {});
       }
     });
   }
+
+  /* wave 8 fidelity: prod realtime is lossy per-client (the conductor's
+     players saw ASKED pills but no card — their folds rode the poll).
+     A muted client receives NO realtime pushes; syncRoomTruth's replay
+     is its only event channel, exactly the prod worst case. */
+  muteRealtime(name, on = true) { if (on) this.mutedRealtime.add(name); else this.mutedRealtime.delete(name); }
 
   static async launch() {
     const executablePath = resolveChromium();

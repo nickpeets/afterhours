@@ -290,9 +290,25 @@ class BackendDouble {
         // question text and the answer deadline, so EVERY role paints the
         // card from the one event — no per-client fetch race.
         const q = (this.questions || []).find((x) => String(x.id) === String(a.question_id));
-        this.pushEvent(a.room_id, uid, "spotlight",
-          { target_user: a.target, round: r.round, question_id: a.question_id ?? null,
-            question_text: q ? q.text : null, deadline: r.phase_deadline });
+        // wave 8 fidelity: prod's engine_emit ships DIFFERENT key names and a
+        // timestamptz with a space ("YYYY-MM-DD HH:MM:SS+00"), and the answer
+        // window is configurable.  spotlightShape="prod" emits that exact
+        // shape (gate 37); "prod-naive" drops the zone entirely (the parse
+        // hazard).  Default stays the double's classic shape.
+        if (this.spotlightShape === "prod" || this.spotlightShape === "prod-naive") {
+          const win = this.answerWindowMs || 30_000;
+          r.phase_deadline = this.iso(this.now() + win);
+          this.emit("rooms", "UPDATE", { ...r });
+          let dl = r.phase_deadline.replace("T", " ").replace(/\.\d+Z$/, "+00").replace("Z", "+00");
+          if (this.spotlightShape === "prod-naive") dl = dl.replace(/\+00$/, "");
+          this.pushEvent(a.room_id, uid, "spotlight",
+            { target: a.target, round: r.round, question_id: a.question_id ?? null,
+              question: q ? q.text : null, answer_deadline: dl });
+        } else {
+          this.pushEvent(a.room_id, uid, "spotlight",
+            { target_user: a.target, round: r.round, question_id: a.question_id ?? null,
+              question_text: q ? q.text : null, deadline: r.phase_deadline });
+        }
         return { ok: true, round: r.round };
       }
       case "decide_keep": {

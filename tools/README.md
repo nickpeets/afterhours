@@ -1,3 +1,19 @@
+
+## Before the first run: a browser
+
+The battery drives the real `index.html` in headless Chromium.  `run.js`
+resolves that browser ONCE as a preflight, before any gate.  If none is
+found it says so in one place, prints the command that fixes it, runs no
+gates, and exits 3 — a setup gap is an ENVIRONMENT problem and must never
+be reported as failing gates.  Exit codes: 0 clean, 1 gate failures, 2
+runner crash, 3 environment.
+
+    cd tools && npx playwright-core install chromium && npx playwright-core install-deps
+
+or point it at a browser you already have: `export LC_CHROMIUM=/path/to/chrome`
+(an LC_CHROMIUM that points at nothing is an error in itself — a typo must
+not silently fall through to some other browser).
+
 # Last Call — battery v2
 
 The verification harness for the single-file build (`index.html`).  Battery

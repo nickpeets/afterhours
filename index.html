@@ -1119,7 +1119,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0810.2144</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0810.2247</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1224,8 +1224,8 @@
             <button class="hostctl">TAP TO ASK</button>
             <div class="chair__empty" data-takechair="1">
               <div class="chair__empty-plus">+</div>
-              <div class="chair__empty-t">TAKE THE CHAIR</div>
-              <div class="chair__empty-s">she picks from the bench</div>
+              <div class="chair__empty-t">OPEN CHAIR</div>
+              <div class="chair__empty-s">join the bench — she fills it from there</div>
             </div>
             <div class="chair__promo">
               <div class="chair__promo-clock">0:05</div>
@@ -1257,8 +1257,8 @@
             <button class="hostctl">TAP TO ASK</button>
             <div class="chair__empty" data-takechair="1">
               <div class="chair__empty-plus">+</div>
-              <div class="chair__empty-t">TAKE THE CHAIR</div>
-              <div class="chair__empty-s">she picks from the bench</div>
+              <div class="chair__empty-t">OPEN CHAIR</div>
+              <div class="chair__empty-s">join the bench — she fills it from there</div>
             </div>
             <div class="chair__promo">
               <div class="chair__promo-clock">0:05</div>
@@ -1290,8 +1290,8 @@
             <button class="hostctl">TAP TO ASK</button>
             <div class="chair__empty" data-takechair="1">
               <div class="chair__empty-plus">+</div>
-              <div class="chair__empty-t">TAKE THE CHAIR</div>
-              <div class="chair__empty-s">she picks from the bench</div>
+              <div class="chair__empty-t">OPEN CHAIR</div>
+              <div class="chair__empty-s">join the bench — she fills it from there</div>
             </div>
             <div class="chair__promo">
               <div class="chair__promo-clock">0:05</div>
@@ -1561,7 +1561,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0810.2144"); }catch(e){}
+try{ console.log("[lastcall] build b0810.2247"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2166,6 +2166,12 @@ async function loadRoomState(){
   // video follows game state: publish my cam if seated, and move feeds into chair tiles
   syncLocalPublish();
   reflowVideo();
+  // wave 8 (d7) belt: a room with NO call and none in motion re-joins on
+  // the truth cadence — a rejoin that lost its call heals ≤ one sync
+  try{
+    if(CURRENT_ROOM && !DAILY && !DAILY_JOIN_P && !DAILY_LEAVE_P &&
+       $("room").classList.contains("show") && !$("backstage").classList.contains("show")) videoJoin();
+  }catch(e){}
 }
 
 /* ACTOR'S TRUTH, closed loop (wave 8): the optimistic bench verb is settled
@@ -2605,7 +2611,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     else if(phase==="showstart") label="SHOW START";
     else if(phase==="spotlight") label=(spotTargetRaw && !spotTarget)?label:"SPOTLIGHT";   // a ghost target never earns the SPOTLIGHT label (F9)
     else if(phase==="deliberation") label="DELIBERATING";
-    else if(phase==="deciding") label="HER CALL";
+    else if(phase==="deciding") label=(secLeft==null)?"HER CALL · HER MOVE":"HER CALL";
     if(AMHOST && PASS_PICK) label=PASS_PICK.recruit ? "RECRUITING \u2014 SEAT OPEN" : "PICK FROM THE BENCH";
     if(promo) label="PROMOTING";
     // the pill owns the SECTION TIMER too (owner rule 8/5): the tick composes
@@ -3048,6 +3054,13 @@ function startHostPoll(){
       if(hostHere){ HOST_LAST_SEEN=Date.now(); }
       else if(HOST_LAST_SEEN && Date.now()-HOST_LAST_SEEN>80000){
         HOST_LAST_SEEN=0;
+        // wave 8 (d2): an ENDED show is a finale, not a vanished host — the
+        // live spectator got ejected to a bare lobby with no winner card
+        // because this branch never asked the rooms row first.
+        try{
+          const {data:rm}=await sb.from("rooms").select("*").eq("id",CURRENT_ROOM.id).single();
+          if(rm && rm.status==="ended"){ roomEndedUnderUs(rm); return; }
+        }catch(e){}
         toast("The host left — that's the show. 🌙");
         leaveRoom();
         return;
@@ -3189,6 +3202,7 @@ const LC_SECTION_SECS={showstart:6,spotlight:30,openfloor:45,mingle:45,deliberat
    enough that dead air can't set in. */
 const LC_PASS_PICK_SECS=20;
 let PASS_PICK=null;   // {until:ms} — host-side marker that the bench-pick window is open
+let EG_DECIDE_ARM=0;  // her-call clock-out arm when the server sent no deadline (wave 8)
 // choosing and answering are the SAME server phase — the difference is whether
 // a target is set.  Her choosing beat is ~10s; his answer is the full 30.
 function lcSectionTotal(ph){
@@ -3207,7 +3221,11 @@ function lcSectionLeft(){
   window.__PH_SEEN=window.__PH_SEEN||{};
   const key=ph+":"+(CURRENT_ROOM.round||0)+":"+(CURRENT_ROOM.spotlight_target||"");
   if(!window.__PH_SEEN[key]){ window.__PH_SEEN={}; window.__PH_SEEN[key]=Date.now(); }
-  return Math.max(0,total-Math.round((Date.now()-window.__PH_SEEN[key])/1000));
+  const left=total-Math.round((Date.now()-window.__PH_SEEN[key])/1000);
+  // HER CALL holds when its window runs dry (a tie, or her own pace) — a
+  // parked 0:00 is a lie; null here lets the chip say the truth (wave 8)
+  if(ph==="deciding" && left<=0) return null;
+  return Math.max(0,left);
 }
 function egRoomPhase(r){ return (r && typeof r.phase==="string") ? r.phase : null; }
 
@@ -3222,7 +3240,7 @@ function egApply(){
   if(r.id!==EG_ROOM_ID){
     // new room: stale engine state from a previous show must never leak in
     EG_ROOM_ID=r.id; EG_PHASE=null; EG_DEADLINE=-1;
-    EG_DRAFT=null; EG_VIEW=null; EG_PICKQ=null; EG_PICKTARGET=null; EG_DECIDE_MODE=null;
+    EG_DRAFT=null; EG_VIEW=null; EG_PICKQ=null; EG_PICKTARGET=null; EG_DECIDE_MODE=null; EG_SPOT_EVT=null;
     PASS_PICK=null; window.__CROWD_CALLED=false; window.__COLLAPSING=null;
     egStopTallyPoll(); clearInterval(EG_TICK);
     const root=$("room");
@@ -3243,6 +3261,13 @@ function egApply(){
   // through its own exits: her tap, its expiry, the bench emptying, the
   // chair refilling, or leaving the room.
   if(phase!=="deciding") window.__CROWD_CALLED=false;
+  // Q5 ARMING (wave 8): prod enters her call with a NULL deadline — the
+  // clock-out machinery armed only off EG_DEADLINE, so the crowd-call
+  // never fired in the live run despite distinct hearts.  With no server
+  // deadline the host arms her OWN her-call window at entry.
+  if(phase==="deciding" && !r.phase_deadline){
+    if(!EG_DECIDE_ARM) EG_DECIDE_ARM=Date.now()+((LC_SECTION_SECS.deciding||60)*1000);
+  } else { EG_DECIDE_ARM=0; }
 
   // root state classes
   ["is-showstart","is-spotlight","is-mingle","is-deciding","is-drafting","is-asking"].forEach(c=>root.classList.remove(c));
@@ -3259,18 +3284,35 @@ function egApply(){
   $("eg_ask").style.display = "none";   // ASK lives in #inputbar now
 
   if(phase==="showstart"){ egShowStart(); }
-  if(phase==="spotlight" && !awaiting){ egSpotlight(r); }
+  if(phase==="spotlight"){
+    // POLL-PATH PARITY (wave 8): a client that missed the event's fast
+    // path still paints the card — from the cached event payload when it
+    // matches, else the rooms-row fetch.  A null rooms deadline (prod
+    // runs them) no longer suppresses a live spotlight's card; only a
+    // truly target-less spotlight waits quietly.
+    if(r.spotlight_target && EG_SPOT_EVT && EG_SPOT_EVT.target===r.spotlight_target){
+      egPaintQuestion(EG_SPOT_EVT.target, EG_SPOT_EVT.text);
+    } else if(r.spotlight_target){
+      egSpotlight(r);
+    } else if(!awaiting){ egSpotlight(r); }
+  }
   if(phase==="openfloor"||phase==="deliberation"){ egMingle(phase, r); }
   if(phase==="deciding"){
     if(AMHOST){
       if(PASS_PICK){ /* she's picking his replacement — the decide card stays down */ }
       else{
-        EG_DECIDE_MODE=null;
-        // RULING Q3: PASS iff the show continues after it — passViable()
-        // is the one predicate; renderRoom re-derives it on every roster
-        // change after this initial paint.
-        $("eg_dpass").style.display = passViable(ROOM_STATE.members, CURRENT_ROOM) ? "" : "none";
-        $("eg_decide").style.display="flex";
+        // OPTION-SET STABILITY (wave 8, re-pinning wave 2): a re-render is
+        // NOT a roster change.  The option set derives ONCE at genuine
+        // phase entry (decide-sig null) and thereafter only via the
+        // decide-sig in renderRoom; a mid-call re-apply (a deadline blip,
+        // a rooms-row echo) may neither flip PASS nor wipe her ARMED tap
+        // mode — the live run's PASS ONE appeared, then vanished, and her
+        // pass-mode died with it.
+        if(window.__DECIDE_SIG==null){
+          EG_DECIDE_MODE=null;
+          $("eg_dpass").style.display = passViable(ROOM_STATE.members, CURRENT_ROOM) ? "" : "none";
+        }
+        $("eg_decide").style.display = EG_DECIDE_MODE ? "none" : "flex";
       }
     } else { $("eg_drumroll").style.display="flex"; }
   }
@@ -3335,8 +3377,9 @@ function egTickStart(){
     // loud, on the ordinary KEEP path.  A tie (or an empty stage — no
     // leader exists) holds the clock until she taps; true host absence
     // stays the janitor's business.
-    if(AMHOST && EG_PHASE==="deciding" && !PASS_PICK && EG_DEADLINE &&
-       Date.now()>EG_DEADLINE+400 && !window.__CROWD_CALLED){
+    const decideDue = EG_DEADLINE ? (Date.now()>EG_DEADLINE+400)
+                                  : (EG_DECIDE_ARM && Date.now()>EG_DECIDE_ARM+400);
+    if(AMHOST && EG_PHASE==="deciding" && !PASS_PICK && decideDue && !window.__CROWD_CALLED){
       const chairs=ROOM_STATE.members.filter(m=>m.role==="chair");
       const scored=chairs.map(c=>({c,h:HEARTS[c.user_id]||0})).sort((a,b)=>b.h-a.h);
       const top=scored[0];
@@ -3460,22 +3503,54 @@ async function egFireSpotlight(){
 }
 function egCloseDrawer(keepAsking){ $("eg_drawer").style.display="none"; if(!keepAsking) $("room").classList.remove("is-asking"); }
 
-/* QUESTION PROPAGATION (SPEC 8/9): the spotlight room_event carries the
-   question text and answer deadline (prod engine_emit ships both) — every
-   role paints the card from THIS event, same tick, no per-client fetch
-   race.  egSpotlight below remains the rooms-row fallback. */
+/* parseServerTs (wave 8): prod timestamps arrive in more shapes than the
+   double ever sent — timestamptz with a space, and occasionally NAIVE
+   (no zone).  Date.parse reads a naive string as LOCAL time, which on a
+   UTC-7 client throws a fold seven hours into the past and makes a live
+   card look like history.  Naive parses as UTC here. */
+function parseServerTs(s){
+  if(!s) return 0;
+  if(typeof s==="number") return s;
+  const str=String(s).trim();
+  const zoned=/([zZ]|[+\-]\d{2}:?\d{2})$/.test(str);
+  let t=Date.parse(zoned?str:(str.replace(" ","T")+"Z"));
+  if(!t) t=Date.parse(str)||0;
+  return t||0;
+}
+
+/* QUESTION PROPAGATION (SPEC 8/9, re-pinned wave 8): the spotlight
+   room_event carries the question text and answer deadline (prod
+   engine_emit ships both) — every role paints the card from THIS event.
+   The conductor run (b0809.1727) found the card painting on the HOST
+   only: the old fold skipped any event older than deadline+2.5s by the
+   CLIENT clock, so a poll-latency fold of a short prod answer window —
+   or any clock skew — silently ate the paint for whole roles.  "History"
+   is SUPERSEDED-ness, never age: the card paints unless the room has
+   moved past this spotlight (a newer round, a different target, or a
+   phase beyond it). */
+let EG_SPOT_EVT=null;   // the last spotlight payload — the poll path's paint source too
 function egSpotlightFromEvent(p){
   const tgt=p && (p.target_user||p.target);
   if(!CURRENT_ROOM || !tgt) return;
-  const dl=p.deadline||p.phase_deadline||null;
-  // wave 5: the truth poll replays MISSED events — an already-expired
-  // spotlight is history, not a live card (the ask fold still happened in
-  // handleEvent; only the painting is skipped)
-  if(dl){ const tms=Date.parse(dl); if(tms && tms < Date.now()-2500) return; }
+  const dl=p.deadline||p.phase_deadline||p.answer_deadline||null;
+  const rd=(p.round!=null)?p.round:null;
   const qt=(p.question_text!=null)?p.question_text:((p.text!=null)?p.text:((p.question!=null)?p.question:null));
+  // superseded — not aged: a replay of an OLD round's ask never repaints…
+  if(rd!=null && CURRENT_ROOM && (CURRENT_ROOM.round||0)>rd) return;
+  // …and a room whose truth has moved PAST spotlight doesn't resurrect the
+  // card — unless the event is from a round ahead of our (stale) room row,
+  // in which case the row is what's behind and the card is live news.
+  const ph=egRoomPhase(CURRENT_ROOM);
+  if(ph && ph!=="spotlight" && !(rd!=null && rd>(CURRENT_ROOM.round||0))) return;
+  EG_SPOT_EVT={target:tgt, text:qt, deadline:dl, round:rd};
   if(CURRENT_ROOM){ CURRENT_ROOM.spotlight_target=tgt;
     if(dl) CURRENT_ROOM.phase_deadline=dl; }
-  if(dl){ const t=Date.parse(dl); if(t) EG_DEADLINE=t; }
+  if(dl){ const t=parseServerTs(dl); if(t) EG_DEADLINE=t; }
+  egPaintQuestion(tgt, qt);
+}
+/* the ONE card painter — event fast-path and rooms-row poll path both land
+   here, for every role including the target */
+function egPaintQuestion(tgt, qt){
   const nm=ROOM_STATE.profs[tgt]?.display_name||"them";
   if(qt!=null) $("eg_qtext").textContent=qt;
   $("eg_qfor").innerHTML=`— for ${escapeHtml(nm)} <span class="lc-answerclock" id="eg_answerclock">0:30</span>`;
@@ -4085,6 +4160,16 @@ function handleEvent(ev){
       // host cut the feed — cameras end, the decision window opens for both
       if(BS_ROOM && actor!==ME.id){ toast("She cut the feed."); bsEnterDecision("cut"); }
       break;
+    case "backstage_clock":
+      // wave 8 (d5): THE deadline — both sides render the same countdown
+      if(BS_ROOM && p.deadline) bsStartClockAt(parseServerTs(p.deadline), true);
+      break;
+    case "backstage_left":
+      // wave 8 (d8): a decline stays secret, but ABSENCE isn't — when the
+      // other party leaves the backstage flow entirely, the offer window
+      // closes with the goodnight beat instead of running out on nobody.
+      if(BS_ROOM && actor!==ME.id && BSD_PHASE==="deciding") bsGoodnight("They slipped out into the night.");
+      break;
     case "swap":
       // (wave 5) the reveal rides the OFFER EVENT, not the 3s poll: the
       // moment the second offer lands, both sides re-check and reveal
@@ -4273,15 +4358,29 @@ async function startWinnerSnap(winnerUid){
   }
   $("snap_count").textContent="";
   $("snap_flash").classList.add("go");
-  // capture
+  // capture — from a LIVE frame, never a black one (wave 8 d3: every live
+  // winner card shipped a black rectangle; the draw raced the element).
+  // Wait for real dimensions, then reject an all-black frame and retry;
+  // no live frame ⇒ no photo (the card falls back to the avatar).
   let dataUrl=null;
   try{
+    for(let w=0; w<10 && (!v.videoWidth || v.readyState<2); w++){ await new Promise(r=>setTimeout(r,150)); }
     const c=document.createElement("canvas");
     const vw=v.videoWidth||480, vh=v.videoHeight||640;
     const W=360, H=Math.round(W*vh/vw);
     c.width=W; c.height=H;
-    c.getContext("2d").drawImage(v,0,0,W,H);
-    dataUrl=c.toDataURL("image/jpeg",0.65);
+    const g=c.getContext("2d");
+    for(let attempt=0; attempt<4; attempt++){
+      g.drawImage(v,0,0,W,H);
+      let lit=0;
+      try{
+        const px=g.getImageData(0,0,W,H).data;
+        for(let i=0;i<px.length;i+=997*4){ if(px[i]>16||px[i+1]>16||px[i+2]>16){ lit++; if(lit>=3) break; } }
+      }catch(e){ lit=3; }   // unreadable canvas: trust the draw
+      if(lit>=3){ dataUrl=c.toDataURL("image/jpeg",0.65); break; }
+      await new Promise(r=>setTimeout(r,250));
+    }
+    if(!dataUrl) console.log("snap: no live frame — falling back to the avatar (never black)");
   }catch(e){ console.log("snap capture failed:",e); }
   await new Promise(r=>setTimeout(r,600));
   $("snap").classList.remove("show");
@@ -4300,9 +4399,24 @@ let BS_DAILY=null, BS_ROOM=null, BS_WINNER_UID=null;
 let BS_TICK=null, BS_DEADLINE=0, BSD_TICK=null, BSD_DEADLINE=0, BSD_POLL=null, BSD_PHASE=null, BSD_OFFERED=false;
 const BS_SECONDS=180, BSD_SECONDS=60;
 
+let BS_CLOCK_EMITTED=false;
+/* ONE shared deadline (wave 8 d5): the live run's two clients each ran a
+   private 3:00 — 16 seconds apart.  The HOST, the moment she first sees
+   both in the call, writes a backstage_clock event with THE deadline;
+   both sides render that.  A locally-started clock adopts the shared
+   deadline when the event folds. */
+function bsStartClockAt(deadlineMs, authoritative){
+  if(BSD_PHASE) return;                            // already deciding
+  if(BS_TICK){ if(authoritative && deadlineMs) BS_DEADLINE=deadlineMs; return; }
+  BS_DEADLINE=deadlineMs || (Date.now()+BS_SECONDS*1000);
+  _bsRunClock();
+}
 function bsStartClock(){
   if(BS_TICK || BSD_PHASE) return;                 // already running or already deciding
   BS_DEADLINE=Date.now()+BS_SECONDS*1000;
+  _bsRunClock();
+}
+function _bsRunClock(){
   const el=$("bs_clock"); el.classList.add("on");
   BS_TICK=setInterval(()=>{
     const left=Math.max(0,Math.ceil((BS_DEADLINE-Date.now())/1000));
@@ -4517,7 +4631,16 @@ function bsSyncPresence(){
       s.tile.querySelectorAll("video").forEach(v=>v.remove());
     }
   });
-  if(BS_ROOM.host_id && BS_WINNER_UID && joined[BS_ROOM.host_id] && joined[BS_WINNER_UID]) bsStartClock();
+  if(BS_ROOM.host_id && BS_WINNER_UID && joined[BS_ROOM.host_id] && joined[BS_WINNER_UID]){
+    if(ME.id===BS_ROOM.host_id && !BS_CLOCK_EMITTED && !BSD_PHASE){
+      BS_CLOCK_EMITTED=true;
+      const dl=new Date(((typeof serverNow==="function")?serverNow():Date.now())+BS_SECONDS*1000).toISOString();
+      try{ sb.from("room_events").insert({room_id:BS_ROOM.id,user_id:ME.id,type:"backstage_clock",payload:{deadline:dl}}).then(()=>{},()=>{}); }catch(e){}
+      bsStartClockAt(parseServerTs(dl), true);
+    } else {
+      bsStartClock();   // local fallback — adopts the shared deadline when the event folds
+    }
+  }
 }
 
 function bsTrack(ev){
@@ -4546,6 +4669,11 @@ $("bs_cut").onclick=async()=>{
 $("bs_leave").onclick=()=>exitBackstage();
 
 async function exitBackstage(){
+  // absence isn't a secret (wave 8 d8): tell the other side the flow is
+  // over for me — the fold closes their offer window with the goodnight
+  // beat ONLY if they're still deciding (a mutual reveal ignores this).
+  try{ if(BS_ROOM) sb.from("room_events").insert({room_id:BS_ROOM.id,user_id:ME.id,type:"backstage_left",payload:{}}).then(()=>{},()=>{}); }catch(e){}
+  BS_CLOCK_EMITTED=false;
   bsTeardownDecision();
   try{ if(BS_DAILY){ await BS_DAILY.leave(); await BS_DAILY.destroy(); } }catch(e){}
   BS_DAILY=null; BS_ROOM=null; BS_WINNER_UID=null;
@@ -4971,9 +5099,17 @@ function videoJoin(){
   // idempotent: a joined instance short-circuits; an in-flight join IS the
   // join — so exactly one token fetch and one createCallObject can ever be
   // in motion.
-  if(DAILY && DAILY_JOINED) return Promise.resolve();
+  // wave 8 (d7): a REJOIN races the previous room's leave — the fast-path
+  // guard used to read the dying call's state, no-op, and leave the new
+  // room with four dark tiles.  The in-flight leave settles FIRST; only
+  // then is 'already joined' believable.
   if(DAILY_JOIN_P) return DAILY_JOIN_P;
-  DAILY_JOIN_P=(async()=>{ try{ await _videoJoinOnce(); } finally { DAILY_JOIN_P=null; } })();
+  if(!DAILY_LEAVE_P && DAILY && DAILY_JOINED) return Promise.resolve();
+  DAILY_JOIN_P=(async()=>{ try{
+    if(DAILY_LEAVE_P){ try{ await DAILY_LEAVE_P; }catch(e){} }
+    if(DAILY && DAILY_JOINED) return;
+    await _videoJoinOnce();
+  } finally { DAILY_JOIN_P=null; } })();
   return DAILY_JOIN_P;
 }
 async function _videoJoinOnce(){
@@ -5369,7 +5505,8 @@ window.__lc = {
      the app shows (lobby card, room header, watchbar, bench slice) reads
      from it, and gates assert against the same function. */
   loadRooms, loadRoomState, renderRoom, updateJoinBtn, keptFinalists,
-  roomCounts, activeRows, benchReconcile, rosterPatchFromEvent,
+  roomCounts, activeRows, benchReconcile, rosterPatchFromEvent, parseServerTs,
+  get LC_SECTION_SECS(){ return LC_SECTION_SECS; },   // live object — gates tune section lengths, never reimplement them
   /* ask truth — state keyed (member, round); askEligible is the ONE gate,
      askTargets the ONE roster, askMark the ONE write */
   askTargets, askEligible, askMark, askedThisRound, askedThisCycle, egOpenDrawer, egFireSpotlight,
@@ -5392,7 +5529,7 @@ window.__lc = {
   showLastCall, confirmWinner, endShow, renderFinale, enterPhotoWait,
   /* backstage (wave 5/6) — decision/swap layer + call-truth presence,
      drivable by gates 31 and 32 */
-  enterBackstage, bsEnterDecision, bsCheckSwap, bsSyncPresence, bsAttemptJoin,
+  enterBackstage, bsEnterDecision, bsCheckSwap, bsSyncPresence, bsAttemptJoin, startWinnerSnap,
   get BS_STATE(){ return { room:BS_ROOM?BS_ROOM.id:null, phase:BSD_PHASE, offered:BSD_OFFERED,
                            title:(document.getElementById("bsd_title")||{}).textContent||"",
                            revealed:BSD_PHASE==="revealed",
@@ -5400,7 +5537,8 @@ window.__lc = {
                            clockOn:document.getElementById("bs_clock").classList.contains("on"),
                            hostWaiting:document.getElementById("bs_tile_host").classList.contains("bs-tile--waiting"),
                            winnerWaiting:document.getElementById("bs_tile_winner").classList.contains("bs-tile--waiting"),
-                           errorShown:document.getElementById("bs_error").style.display!=="none" }; },
+                           errorShown:document.getElementById("bs_error").style.display!=="none",
+                           deadline:BS_DEADLINE }; },
   /* diagnostics — the quiet surface (F5): vdbg is console/?debug-only,
      lcCamStatus is the ONE show-language chip.  CAM_STATE observes the
      recovery machine (F6/F11): a clean join shows fires=0 and a leave

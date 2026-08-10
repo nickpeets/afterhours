@@ -249,7 +249,10 @@ class BackendDouble {
         if (r.phase === "deciding") { r.round = (r.round || 0) + 1; return this.setPhase(a.room_id, "spotlight", 60); }
         if (r.phase === "draft") { return this.setPhase(a.room_id, "spotlight", 60); }   // a skipped draft returns to the floor
         const next = i < 0 ? "showstart" : order[Math.min(i + 1, order.length - 1)];
-        return this.setPhase(a.room_id, next, 60);
+        // wave 8 fidelity: prod enters HER CALL with a NULL phase_deadline —
+        // the conductor's live room proved it (deadline:null, clock parked
+        // at a lying 0:00).  The double now does what prod does.
+        return this.setPhase(a.room_id, next, next === "deciding" ? null : 60);
       }
       case "end_show": {
         const r = this.rooms.get(a.room_id);
@@ -290,9 +293,25 @@ class BackendDouble {
         // question text and the answer deadline, so EVERY role paints the
         // card from the one event — no per-client fetch race.
         const q = (this.questions || []).find((x) => String(x.id) === String(a.question_id));
-        this.pushEvent(a.room_id, uid, "spotlight",
-          { target_user: a.target, round: r.round, question_id: a.question_id ?? null,
-            question_text: q ? q.text : null, deadline: r.phase_deadline });
+        // wave 8 fidelity: prod's engine_emit ships DIFFERENT key names and a
+        // timestamptz with a space ("YYYY-MM-DD HH:MM:SS+00"), and the answer
+        // window is configurable.  spotlightShape="prod" emits that exact
+        // shape (gate 37); "prod-naive" drops the zone entirely (the parse
+        // hazard).  Default stays the double's classic shape.
+        if (this.spotlightShape === "prod" || this.spotlightShape === "prod-naive") {
+          const win = this.answerWindowMs || 30_000;
+          r.phase_deadline = this.iso(this.now() + win);
+          this.emit("rooms", "UPDATE", { ...r });
+          let dl = r.phase_deadline.replace("T", " ").replace(/\.\d+Z$/, "+00").replace("Z", "+00");
+          if (this.spotlightShape === "prod-naive") dl = dl.replace(/\+00$/, "");
+          this.pushEvent(a.room_id, uid, "spotlight",
+            { target: a.target, round: r.round, question_id: a.question_id ?? null,
+              question: q ? q.text : null, answer_deadline: dl });
+        } else {
+          this.pushEvent(a.room_id, uid, "spotlight",
+            { target_user: a.target, round: r.round, question_id: a.question_id ?? null,
+              question_text: q ? q.text : null, deadline: r.phase_deadline });
+        }
         return { ok: true, round: r.round };
       }
       case "decide_keep": {

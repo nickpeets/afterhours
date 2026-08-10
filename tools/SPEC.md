@@ -367,6 +367,43 @@ room renders CALL truth, not roster truth:
   silent black frame.  Retry re-runs the ONE join path (`bsAttemptJoin`)
   that first entry uses.
 
+**QUESTION PROPAGATION v2 (8/10, wave 8).**  "History" is SUPERSEDED-ness,
+never age: the spotlight card paints on every role — including the target
+— unless the room has genuinely moved past that ask (a newer round, or a
+phase beyond spotlight with no newer round in the payload).  The poll
+path paints from the cached spotlight payload even when the rooms row
+carries a null deadline; per-client fetches remain a last resort.  Server
+timestamps parse through `parseServerTs` (a zone-naive string is UTC,
+never local).  The harness models prod here: lossy per-client realtime
+(`muteRealtime`), prod's engine_emit key names and timestamptz-with-space
+format (`spotlightShape="prod"` — gates 20/23/37), configurable answer
+window.
+
+**HER CALL v2 (8/10, wave 8).**  Prod enters her call with a NULL
+phase_deadline.  The client renders a real countdown only while a real
+window runs; a dried or absent window is a LABELED holding state ("HER
+CALL · HER MOVE") — never a parked 0:00.  When the server sends no
+deadline the HOST arms her own her-call window (LC_SECTION_SECS.deciding)
+and Q5's crowd-call fires off that arm; a heart tie still holds.  The
+decide card's option set derives once at genuine phase entry and
+re-derives ONLY on the decide-sig (role/membership); a re-render or
+re-apply is not a roster change and may neither flip an option nor wipe
+an armed tap-mode.
+
+**EDGES (8/10, wave 8, one ruling each).**  An empty chair says what a
+tap does ("OPEN CHAIR · join the bench") — never a mislabeled action.
+The host-left watchdog asks the rooms row before ejecting anyone: an
+ENDED show routes every role to the finale card.  The winner snap ships
+a live, non-black frame or nothing (the card falls back to the avatar).
+The client writes hearts only from a tap — no seeder exists client-side.
+Backstage runs ONE shared deadline: the host writes `backstage_clock`
+the moment both are in the call; both sides render it.  The watcher
+count derives from the one membership truth on every client.  videoJoin
+settles an in-flight leave before trusting 'already joined', and the
+truth cadence re-joins a callless room.  A decline stays secret, but
+ABSENCE isn't: leaving the backstage flow (`backstage_left`) closes the
+other side's offer window with the goodnight beat.
+
 **MEMBERSHIP TRUTH (8/10, wave 8, from the conductor run).**  One row
 filter, two truth channels, idempotent writes:
 

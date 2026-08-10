@@ -11,6 +11,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
 const { chromium } = require("playwright-core");
 const { BackendDouble } = require("./backend-double");
 
@@ -18,14 +19,65 @@ const REPO = path.resolve(__dirname, "..", "..");
 const ORIGIN = "https://lastcall.test";
 const SHIMS = path.join(__dirname, "shims");
 
+/* BROWSER RESOLUTION (wave 9).  Returns {path} on success or {error, hint}
+ * on failure — it never throws, because a throw from here lands inside a
+ * gate's run() and run.js launders it into "gate crashed", turning ONE
+ * missing binary into 32 individual gate failures that read like a
+ * catastrophic regression.  run.js calls resolveChromium() ONCE as a
+ * preflight, before any gate; a setup gap must never be reported as
+ * broken code.
+ *
+ * The old list only knew this container's /opt/pw-browsers symlink, so a
+ * fresh clone anywhere else (a Codespace, a laptop) failed every browser
+ * gate with no idea what to do about it.  It now probes what playwright
+ * and the system actually install. */
+function chromiumCandidates() {
+  const out = [];
+  const push = (p) => { if (p && !out.includes(p)) out.push(p); };
+  push(process.env.LC_CHROMIUM);                 // explicit override — checked first, honoured strictly
+  push("/opt/pw-browsers/chromium");             // preinstalled symlink (Anthropic container)
+  // playwright's own install roots: PLAYWRIGHT_BROWSERS_PATH, else ~/.cache/ms-playwright
+  const roots = [process.env.PLAYWRIGHT_BROWSERS_PATH,
+                 path.join(os.homedir(), ".cache", "ms-playwright")].filter(Boolean);
+  for (const root of roots) {
+    push(path.join(root, "chromium"));
+    try {
+      for (const d of fs.readdirSync(root)) {
+        if (!/^chromium/.test(d)) continue;
+        push(path.join(root, d, "chrome-linux", "chrome"));
+        push(path.join(root, d, "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium"));
+      }
+    } catch (e) {}
+  }
+  // playwright-core's own answer, only if it points at something real
+  try { const p = chromium.executablePath(); push(p); } catch (e) {}
+  // finally: a system browser
+  ["/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/google-chrome",
+   "/usr/bin/google-chrome-stable",
+   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"].forEach(push);
+  return out;
+}
+const INSTALL_HINT =
+  "Install one from tools/:\n" +
+  "    cd tools && npx playwright-core install chromium && npx playwright-core install-deps\n" +
+  "  or point the battery at a browser you already have:\n" +
+  "    export LC_CHROMIUM=/path/to/chrome";
 function resolveChromium() {
-  const candidates = [
-    process.env.LC_CHROMIUM,                     // explicit override
-    "/opt/pw-browsers/chromium",                 // preinstalled symlink (this container)
-  ].filter(Boolean);
-  for (const c of candidates) if (fs.existsSync(c)) return c;
-  try { const p = chromium.executablePath(); if (fs.existsSync(p)) return p; } catch (e) {}
-  throw new Error("No Chromium found. Set LC_CHROMIUM to a chrome binary.");
+  // an explicit override that points at nothing is an error in ITSELF —
+  // silently falling through to some other browser would hide the typo
+  const override = process.env.LC_CHROMIUM;
+  if (override && !fs.existsSync(override)) {
+    return { error: "LC_CHROMIUM is set to \"" + override + "\" but there is nothing there.",
+             hint: "Fix the path or unset LC_CHROMIUM to let the battery find a browser itself." };
+  }
+  for (const c of chromiumCandidates()) if (fs.existsSync(c)) return { path: c };
+  return { error: "No Chromium found — the battery needs a browser and this machine has none.",
+           hint: INSTALL_HINT };
+}
+function requireChromium() {
+  const r = resolveChromium();
+  if (r.error) throw new Error(r.error);   // preflight has already reported; this is the belt
+  return r.path;
 }
 
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".webmanifest": "application/manifest+json", ".png": "image/png" };
@@ -74,7 +126,7 @@ class Harness {
   muteRealtime(name, on = true) { if (on) this.mutedRealtime.add(name); else this.mutedRealtime.delete(name); }
 
   static async launch() {
-    const executablePath = resolveChromium();
+    const executablePath = requireChromium();
     const browser = await chromium.launch({
       executablePath,
       headless: true,

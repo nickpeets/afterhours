@@ -6,6 +6,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { resolveChromium } = require("./harness");
 
 const TOOLS = path.resolve(__dirname, "..");
 const REPO = path.resolve(TOOLS, "..");
@@ -34,7 +35,29 @@ async function main() {
   const files = fs.readdirSync(GATES_DIR).filter((f) => f.endsWith(".js")).sort();
   const ctx = { repo: REPO, tools: TOOLS, html, stamp, updateGolden };
 
+  /* PREFLIGHT (wave 9) — resolve the browser ONCE, before any gate runs.
+     Every browser gate calls Harness.launch(), and run.js wraps each gate
+     in a try/catch, so a missing binary used to surface as 32 separate
+     "gate crashed" failures under a "N GATE(S) FAILED" banner — a setup
+     gap wearing the costume of a catastrophic regression.  A missing
+     browser is now an ENVIRONMENT problem: said once, in one place, with
+     the command that fixes it, exit 3, and not a single gate run.  (Exit
+     codes: 0 clean, 1 real gate failures, 2 runner crash, 3 environment.) */
+  const browser = resolveChromium();
+  if (browser.error) {
+    console.error("LAST CALL battery — CANNOT RUN (environment, not code)");
+    console.error("=".repeat(64));
+    console.error(browser.error);
+    console.error("");
+    console.error("  " + browser.hint);
+    console.error("=".repeat(64));
+    console.error("No gates were run — this is not a test failure.");
+    process.exit(3);
+  }
+  process.env.LC_CHROMIUM = browser.path;   // every gate's launch reuses the resolved binary
+
   console.log("LAST CALL battery v2 — build stamp " + stamp);
+  console.log("browser " + browser.path);
   console.log("=".repeat(64));
 
   let totalChecks = 0, failedGates = 0, ranGates = 0;

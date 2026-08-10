@@ -1119,7 +1119,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0810.2222</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0810.2234</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1561,7 +1561,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0810.2222"); }catch(e){}
+try{ console.log("[lastcall] build b0810.2234"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2605,7 +2605,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     else if(phase==="showstart") label="SHOW START";
     else if(phase==="spotlight") label=(spotTargetRaw && !spotTarget)?label:"SPOTLIGHT";   // a ghost target never earns the SPOTLIGHT label (F9)
     else if(phase==="deliberation") label="DELIBERATING";
-    else if(phase==="deciding") label="HER CALL";
+    else if(phase==="deciding") label=(secLeft==null)?"HER CALL · HER MOVE":"HER CALL";
     if(AMHOST && PASS_PICK) label=PASS_PICK.recruit ? "RECRUITING \u2014 SEAT OPEN" : "PICK FROM THE BENCH";
     if(promo) label="PROMOTING";
     // the pill owns the SECTION TIMER too (owner rule 8/5): the tick composes
@@ -3189,6 +3189,7 @@ const LC_SECTION_SECS={showstart:6,spotlight:30,openfloor:45,mingle:45,deliberat
    enough that dead air can't set in. */
 const LC_PASS_PICK_SECS=20;
 let PASS_PICK=null;   // {until:ms} — host-side marker that the bench-pick window is open
+let EG_DECIDE_ARM=0;  // her-call clock-out arm when the server sent no deadline (wave 8)
 // choosing and answering are the SAME server phase — the difference is whether
 // a target is set.  Her choosing beat is ~10s; his answer is the full 30.
 function lcSectionTotal(ph){
@@ -3207,7 +3208,11 @@ function lcSectionLeft(){
   window.__PH_SEEN=window.__PH_SEEN||{};
   const key=ph+":"+(CURRENT_ROOM.round||0)+":"+(CURRENT_ROOM.spotlight_target||"");
   if(!window.__PH_SEEN[key]){ window.__PH_SEEN={}; window.__PH_SEEN[key]=Date.now(); }
-  return Math.max(0,total-Math.round((Date.now()-window.__PH_SEEN[key])/1000));
+  const left=total-Math.round((Date.now()-window.__PH_SEEN[key])/1000);
+  // HER CALL holds when its window runs dry (a tie, or her own pace) — a
+  // parked 0:00 is a lie; null here lets the chip say the truth (wave 8)
+  if(ph==="deciding" && left<=0) return null;
+  return Math.max(0,left);
 }
 function egRoomPhase(r){ return (r && typeof r.phase==="string") ? r.phase : null; }
 
@@ -3243,6 +3248,13 @@ function egApply(){
   // through its own exits: her tap, its expiry, the bench emptying, the
   // chair refilling, or leaving the room.
   if(phase!=="deciding") window.__CROWD_CALLED=false;
+  // Q5 ARMING (wave 8): prod enters her call with a NULL deadline — the
+  // clock-out machinery armed only off EG_DEADLINE, so the crowd-call
+  // never fired in the live run despite distinct hearts.  With no server
+  // deadline the host arms her OWN her-call window at entry.
+  if(phase==="deciding" && !r.phase_deadline){
+    if(!EG_DECIDE_ARM) EG_DECIDE_ARM=Date.now()+((LC_SECTION_SECS.deciding||60)*1000);
+  } else { EG_DECIDE_ARM=0; }
 
   // root state classes
   ["is-showstart","is-spotlight","is-mingle","is-deciding","is-drafting","is-asking"].forEach(c=>root.classList.remove(c));
@@ -3276,12 +3288,18 @@ function egApply(){
     if(AMHOST){
       if(PASS_PICK){ /* she's picking his replacement — the decide card stays down */ }
       else{
-        EG_DECIDE_MODE=null;
-        // RULING Q3: PASS iff the show continues after it — passViable()
-        // is the one predicate; renderRoom re-derives it on every roster
-        // change after this initial paint.
-        $("eg_dpass").style.display = passViable(ROOM_STATE.members, CURRENT_ROOM) ? "" : "none";
-        $("eg_decide").style.display="flex";
+        // OPTION-SET STABILITY (wave 8, re-pinning wave 2): a re-render is
+        // NOT a roster change.  The option set derives ONCE at genuine
+        // phase entry (decide-sig null) and thereafter only via the
+        // decide-sig in renderRoom; a mid-call re-apply (a deadline blip,
+        // a rooms-row echo) may neither flip PASS nor wipe her ARMED tap
+        // mode — the live run's PASS ONE appeared, then vanished, and her
+        // pass-mode died with it.
+        if(window.__DECIDE_SIG==null){
+          EG_DECIDE_MODE=null;
+          $("eg_dpass").style.display = passViable(ROOM_STATE.members, CURRENT_ROOM) ? "" : "none";
+        }
+        $("eg_decide").style.display = EG_DECIDE_MODE ? "none" : "flex";
       }
     } else { $("eg_drumroll").style.display="flex"; }
   }
@@ -3346,8 +3364,9 @@ function egTickStart(){
     // loud, on the ordinary KEEP path.  A tie (or an empty stage — no
     // leader exists) holds the clock until she taps; true host absence
     // stays the janitor's business.
-    if(AMHOST && EG_PHASE==="deciding" && !PASS_PICK && EG_DEADLINE &&
-       Date.now()>EG_DEADLINE+400 && !window.__CROWD_CALLED){
+    const decideDue = EG_DEADLINE ? (Date.now()>EG_DEADLINE+400)
+                                  : (EG_DECIDE_ARM && Date.now()>EG_DECIDE_ARM+400);
+    if(AMHOST && EG_PHASE==="deciding" && !PASS_PICK && decideDue && !window.__CROWD_CALLED){
       const chairs=ROOM_STATE.members.filter(m=>m.role==="chair");
       const scored=chairs.map(c=>({c,h:HEARTS[c.user_id]||0})).sort((a,b)=>b.h-a.h);
       const top=scored[0];
@@ -5413,6 +5432,7 @@ window.__lc = {
      from it, and gates assert against the same function. */
   loadRooms, loadRoomState, renderRoom, updateJoinBtn, keptFinalists,
   roomCounts, activeRows, benchReconcile, rosterPatchFromEvent, parseServerTs,
+  get LC_SECTION_SECS(){ return LC_SECTION_SECS; },   // live object — gates tune section lengths, never reimplement them
   /* ask truth — state keyed (member, round); askEligible is the ONE gate,
      askTargets the ONE roster, askMark the ONE write */
   askTargets, askEligible, askMark, askedThisRound, askedThisCycle, egOpenDrawer, egFireSpotlight,

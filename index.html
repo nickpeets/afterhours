@@ -1119,7 +1119,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0810.2234</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0810.2247</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1224,8 +1224,8 @@
             <button class="hostctl">TAP TO ASK</button>
             <div class="chair__empty" data-takechair="1">
               <div class="chair__empty-plus">+</div>
-              <div class="chair__empty-t">TAKE THE CHAIR</div>
-              <div class="chair__empty-s">she picks from the bench</div>
+              <div class="chair__empty-t">OPEN CHAIR</div>
+              <div class="chair__empty-s">join the bench — she fills it from there</div>
             </div>
             <div class="chair__promo">
               <div class="chair__promo-clock">0:05</div>
@@ -1257,8 +1257,8 @@
             <button class="hostctl">TAP TO ASK</button>
             <div class="chair__empty" data-takechair="1">
               <div class="chair__empty-plus">+</div>
-              <div class="chair__empty-t">TAKE THE CHAIR</div>
-              <div class="chair__empty-s">she picks from the bench</div>
+              <div class="chair__empty-t">OPEN CHAIR</div>
+              <div class="chair__empty-s">join the bench — she fills it from there</div>
             </div>
             <div class="chair__promo">
               <div class="chair__promo-clock">0:05</div>
@@ -1290,8 +1290,8 @@
             <button class="hostctl">TAP TO ASK</button>
             <div class="chair__empty" data-takechair="1">
               <div class="chair__empty-plus">+</div>
-              <div class="chair__empty-t">TAKE THE CHAIR</div>
-              <div class="chair__empty-s">she picks from the bench</div>
+              <div class="chair__empty-t">OPEN CHAIR</div>
+              <div class="chair__empty-s">join the bench — she fills it from there</div>
             </div>
             <div class="chair__promo">
               <div class="chair__promo-clock">0:05</div>
@@ -1561,7 +1561,7 @@ try{
     }
   });
 }catch(e){}
-try{ console.log("[lastcall] build b0810.2234"); }catch(e){}
+try{ console.log("[lastcall] build b0810.2247"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2166,6 +2166,12 @@ async function loadRoomState(){
   // video follows game state: publish my cam if seated, and move feeds into chair tiles
   syncLocalPublish();
   reflowVideo();
+  // wave 8 (d7) belt: a room with NO call and none in motion re-joins on
+  // the truth cadence — a rejoin that lost its call heals ≤ one sync
+  try{
+    if(CURRENT_ROOM && !DAILY && !DAILY_JOIN_P && !DAILY_LEAVE_P &&
+       $("room").classList.contains("show") && !$("backstage").classList.contains("show")) videoJoin();
+  }catch(e){}
 }
 
 /* ACTOR'S TRUTH, closed loop (wave 8): the optimistic bench verb is settled
@@ -3048,6 +3054,13 @@ function startHostPoll(){
       if(hostHere){ HOST_LAST_SEEN=Date.now(); }
       else if(HOST_LAST_SEEN && Date.now()-HOST_LAST_SEEN>80000){
         HOST_LAST_SEEN=0;
+        // wave 8 (d2): an ENDED show is a finale, not a vanished host — the
+        // live spectator got ejected to a bare lobby with no winner card
+        // because this branch never asked the rooms row first.
+        try{
+          const {data:rm}=await sb.from("rooms").select("*").eq("id",CURRENT_ROOM.id).single();
+          if(rm && rm.status==="ended"){ roomEndedUnderUs(rm); return; }
+        }catch(e){}
         toast("The host left — that's the show. 🌙");
         leaveRoom();
         return;
@@ -4147,6 +4160,16 @@ function handleEvent(ev){
       // host cut the feed — cameras end, the decision window opens for both
       if(BS_ROOM && actor!==ME.id){ toast("She cut the feed."); bsEnterDecision("cut"); }
       break;
+    case "backstage_clock":
+      // wave 8 (d5): THE deadline — both sides render the same countdown
+      if(BS_ROOM && p.deadline) bsStartClockAt(parseServerTs(p.deadline), true);
+      break;
+    case "backstage_left":
+      // wave 8 (d8): a decline stays secret, but ABSENCE isn't — when the
+      // other party leaves the backstage flow entirely, the offer window
+      // closes with the goodnight beat instead of running out on nobody.
+      if(BS_ROOM && actor!==ME.id && BSD_PHASE==="deciding") bsGoodnight("They slipped out into the night.");
+      break;
     case "swap":
       // (wave 5) the reveal rides the OFFER EVENT, not the 3s poll: the
       // moment the second offer lands, both sides re-check and reveal
@@ -4335,15 +4358,29 @@ async function startWinnerSnap(winnerUid){
   }
   $("snap_count").textContent="";
   $("snap_flash").classList.add("go");
-  // capture
+  // capture — from a LIVE frame, never a black one (wave 8 d3: every live
+  // winner card shipped a black rectangle; the draw raced the element).
+  // Wait for real dimensions, then reject an all-black frame and retry;
+  // no live frame ⇒ no photo (the card falls back to the avatar).
   let dataUrl=null;
   try{
+    for(let w=0; w<10 && (!v.videoWidth || v.readyState<2); w++){ await new Promise(r=>setTimeout(r,150)); }
     const c=document.createElement("canvas");
     const vw=v.videoWidth||480, vh=v.videoHeight||640;
     const W=360, H=Math.round(W*vh/vw);
     c.width=W; c.height=H;
-    c.getContext("2d").drawImage(v,0,0,W,H);
-    dataUrl=c.toDataURL("image/jpeg",0.65);
+    const g=c.getContext("2d");
+    for(let attempt=0; attempt<4; attempt++){
+      g.drawImage(v,0,0,W,H);
+      let lit=0;
+      try{
+        const px=g.getImageData(0,0,W,H).data;
+        for(let i=0;i<px.length;i+=997*4){ if(px[i]>16||px[i+1]>16||px[i+2]>16){ lit++; if(lit>=3) break; } }
+      }catch(e){ lit=3; }   // unreadable canvas: trust the draw
+      if(lit>=3){ dataUrl=c.toDataURL("image/jpeg",0.65); break; }
+      await new Promise(r=>setTimeout(r,250));
+    }
+    if(!dataUrl) console.log("snap: no live frame — falling back to the avatar (never black)");
   }catch(e){ console.log("snap capture failed:",e); }
   await new Promise(r=>setTimeout(r,600));
   $("snap").classList.remove("show");
@@ -4362,9 +4399,24 @@ let BS_DAILY=null, BS_ROOM=null, BS_WINNER_UID=null;
 let BS_TICK=null, BS_DEADLINE=0, BSD_TICK=null, BSD_DEADLINE=0, BSD_POLL=null, BSD_PHASE=null, BSD_OFFERED=false;
 const BS_SECONDS=180, BSD_SECONDS=60;
 
+let BS_CLOCK_EMITTED=false;
+/* ONE shared deadline (wave 8 d5): the live run's two clients each ran a
+   private 3:00 — 16 seconds apart.  The HOST, the moment she first sees
+   both in the call, writes a backstage_clock event with THE deadline;
+   both sides render that.  A locally-started clock adopts the shared
+   deadline when the event folds. */
+function bsStartClockAt(deadlineMs, authoritative){
+  if(BSD_PHASE) return;                            // already deciding
+  if(BS_TICK){ if(authoritative && deadlineMs) BS_DEADLINE=deadlineMs; return; }
+  BS_DEADLINE=deadlineMs || (Date.now()+BS_SECONDS*1000);
+  _bsRunClock();
+}
 function bsStartClock(){
   if(BS_TICK || BSD_PHASE) return;                 // already running or already deciding
   BS_DEADLINE=Date.now()+BS_SECONDS*1000;
+  _bsRunClock();
+}
+function _bsRunClock(){
   const el=$("bs_clock"); el.classList.add("on");
   BS_TICK=setInterval(()=>{
     const left=Math.max(0,Math.ceil((BS_DEADLINE-Date.now())/1000));
@@ -4579,7 +4631,16 @@ function bsSyncPresence(){
       s.tile.querySelectorAll("video").forEach(v=>v.remove());
     }
   });
-  if(BS_ROOM.host_id && BS_WINNER_UID && joined[BS_ROOM.host_id] && joined[BS_WINNER_UID]) bsStartClock();
+  if(BS_ROOM.host_id && BS_WINNER_UID && joined[BS_ROOM.host_id] && joined[BS_WINNER_UID]){
+    if(ME.id===BS_ROOM.host_id && !BS_CLOCK_EMITTED && !BSD_PHASE){
+      BS_CLOCK_EMITTED=true;
+      const dl=new Date(((typeof serverNow==="function")?serverNow():Date.now())+BS_SECONDS*1000).toISOString();
+      try{ sb.from("room_events").insert({room_id:BS_ROOM.id,user_id:ME.id,type:"backstage_clock",payload:{deadline:dl}}).then(()=>{},()=>{}); }catch(e){}
+      bsStartClockAt(parseServerTs(dl), true);
+    } else {
+      bsStartClock();   // local fallback — adopts the shared deadline when the event folds
+    }
+  }
 }
 
 function bsTrack(ev){
@@ -4608,6 +4669,11 @@ $("bs_cut").onclick=async()=>{
 $("bs_leave").onclick=()=>exitBackstage();
 
 async function exitBackstage(){
+  // absence isn't a secret (wave 8 d8): tell the other side the flow is
+  // over for me — the fold closes their offer window with the goodnight
+  // beat ONLY if they're still deciding (a mutual reveal ignores this).
+  try{ if(BS_ROOM) sb.from("room_events").insert({room_id:BS_ROOM.id,user_id:ME.id,type:"backstage_left",payload:{}}).then(()=>{},()=>{}); }catch(e){}
+  BS_CLOCK_EMITTED=false;
   bsTeardownDecision();
   try{ if(BS_DAILY){ await BS_DAILY.leave(); await BS_DAILY.destroy(); } }catch(e){}
   BS_DAILY=null; BS_ROOM=null; BS_WINNER_UID=null;
@@ -5033,9 +5099,17 @@ function videoJoin(){
   // idempotent: a joined instance short-circuits; an in-flight join IS the
   // join — so exactly one token fetch and one createCallObject can ever be
   // in motion.
-  if(DAILY && DAILY_JOINED) return Promise.resolve();
+  // wave 8 (d7): a REJOIN races the previous room's leave — the fast-path
+  // guard used to read the dying call's state, no-op, and leave the new
+  // room with four dark tiles.  The in-flight leave settles FIRST; only
+  // then is 'already joined' believable.
   if(DAILY_JOIN_P) return DAILY_JOIN_P;
-  DAILY_JOIN_P=(async()=>{ try{ await _videoJoinOnce(); } finally { DAILY_JOIN_P=null; } })();
+  if(!DAILY_LEAVE_P && DAILY && DAILY_JOINED) return Promise.resolve();
+  DAILY_JOIN_P=(async()=>{ try{
+    if(DAILY_LEAVE_P){ try{ await DAILY_LEAVE_P; }catch(e){} }
+    if(DAILY && DAILY_JOINED) return;
+    await _videoJoinOnce();
+  } finally { DAILY_JOIN_P=null; } })();
   return DAILY_JOIN_P;
 }
 async function _videoJoinOnce(){
@@ -5455,7 +5529,7 @@ window.__lc = {
   showLastCall, confirmWinner, endShow, renderFinale, enterPhotoWait,
   /* backstage (wave 5/6) — decision/swap layer + call-truth presence,
      drivable by gates 31 and 32 */
-  enterBackstage, bsEnterDecision, bsCheckSwap, bsSyncPresence, bsAttemptJoin,
+  enterBackstage, bsEnterDecision, bsCheckSwap, bsSyncPresence, bsAttemptJoin, startWinnerSnap,
   get BS_STATE(){ return { room:BS_ROOM?BS_ROOM.id:null, phase:BSD_PHASE, offered:BSD_OFFERED,
                            title:(document.getElementById("bsd_title")||{}).textContent||"",
                            revealed:BSD_PHASE==="revealed",
@@ -5463,7 +5537,8 @@ window.__lc = {
                            clockOn:document.getElementById("bs_clock").classList.contains("on"),
                            hostWaiting:document.getElementById("bs_tile_host").classList.contains("bs-tile--waiting"),
                            winnerWaiting:document.getElementById("bs_tile_winner").classList.contains("bs-tile--waiting"),
-                           errorShown:document.getElementById("bs_error").style.display!=="none" }; },
+                           errorShown:document.getElementById("bs_error").style.display!=="none",
+                           deadline:BS_DEADLINE }; },
   /* diagnostics — the quiet surface (F5): vdbg is console/?debug-only,
      lcCamStatus is the ONE show-language chip.  CAM_STATE observes the
      recovery machine (F6/F11): a clean join shows fires=0 and a leave

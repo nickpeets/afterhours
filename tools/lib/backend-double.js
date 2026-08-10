@@ -36,6 +36,7 @@ class BackendDouble {
     this.sessions = new Map();   // clientId -> uid
     this.listeners = [];         // fn(evt) — harness fans out to pages
     this.rpcLog = [];            // every rpc call, for gate assertions
+    this.authLog = [];           // every auth op, for gate assertions (retry counting)
     this.swaps = {};             // room_id -> { uid: contact_text } (backstage swap offers)
     this.clockSkew = 0;          // ms added to "now" (staleness tests)
   }
@@ -100,6 +101,23 @@ class BackendDouble {
 
   /* ---------- entry point: everything the page asks for ---------- */
   async dispatch(clientId, op, payload) {
+    /* AUTH FAULTS (wave 9) — the boot path's three worlds are only
+       distinguishable if the double can produce all three:
+         D.setFault("auth.getSession", "host", { error: "refresh_token_not_found" })
+             the server answered and refused   → { data:null, error }
+         D.setFault("auth.getSession", "host", { throw: "net::ERR_CONN_RESET" })
+             nothing answered at all           → the page's __rpcCall promise
+             REJECTS, because a `throw` escapes dispatch entirely
+       An error field and a rejected promise are different diseases, and the
+       app is required to tell them apart — hence two modes, not one.
+       authLog records every auth op so a gate can prove the bounded retry
+       actually retried (and only once). */
+    if (typeof op === "string" && op.startsWith("auth.")) {
+      this.authLog.push({ clientId, op });
+      const f = this.faults && (this.faults[op + "|" + clientId] || this.faults[op + "|*"]);
+      if (f && f.throw) throw new Error(f.throw === true ? "network unreachable" : f.throw);
+      if (f && f.error) return { data: null, error: { message: f.error } };
+    }
     try {
       return { data: await this._dispatch(clientId, op, payload || {}), error: null };
     } catch (e) {

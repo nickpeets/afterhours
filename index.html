@@ -1119,7 +1119,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0810.2323</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0811.0031</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1548,20 +1548,75 @@ function ahSessionSlot(){
   }catch(e){ return null; }
 }
 const AH_SESSION_SLOT=ahSessionSlot();
-const SUPA_STORAGE_KEY="sb-doqtfyxgzlfvglfdkphx-auth-token"+(AH_SESSION_SLOT?("."+AH_SESSION_SLOT):"");
+/* THE SLOT NAMESPACE IS NOT OURS ALONE.
+   supabase-js splits an oversized token across "<key>.0", "<key>.1", … —
+   the same base.suffix shape a slot uses.  The old key was
+   BASE + "." + slot, so ?session=4 wrote exactly where chunk 4 of the
+   DEFAULT session would go.  Nothing has collided yet only because the
+   tokens are small enough not to chunk; the day one grows past the
+   threshold — a longer claim, a jsdelivr bump of the unpinned
+   @supabase/supabase-js@2 — a host's real login and a conductor's test
+   slot start writing to the same keys, and the corruption looks like the
+   auth layer losing its mind.
+   Every slot now carries a marker that can never be an integer, so the
+   two namespaces cannot overlap by construction. */
+const AH_AUTH_BASE="sb-"+(SUPA_URL.match(/\/\/([a-z0-9]+)\./)||[,""])[1]+"-auth-token";
+const AH_SLOT_MARK="s-";
+function ahStorageKey(slot){ return slot?(AH_AUTH_BASE+"."+AH_SLOT_MARK+slot):AH_AUTH_BASE; }
+/* one-time carry-over: a tab already holding a slot session under the old
+   colliding key keeps its login instead of being silently signed out.
+   Returns the legacy key it moved, or null. */
+function ahMigrateSlotKey(slot){
+  if(!slot) return null;
+  const legacy=AH_AUTH_BASE+"."+slot, current=ahStorageKey(slot);
+  try{
+    if(localStorage.getItem(current)!==null) return null;   // never clobber a live slot
+    const v=localStorage.getItem(legacy);
+    if(v===null) return null;
+    localStorage.setItem(current,v);
+    localStorage.removeItem(legacy);
+    return legacy;
+  }catch(e){ return null; }
+}
+/* sweep every dead slot store for THIS project — the old sweeper only knew
+   the auto-generated ".tab-" ones, so nine waves of named conductor slots
+   (.host, .crowd1, .4, .a) accumulated on an origin we now KNOW is shared
+   with other apps.  Rules:
+     · another project's key is not ours to delete, ever
+     · an all-digits suffix is chunk-shaped and therefore AMBIGUOUS: it may
+       be a numeric legacy slot or a real chunk of the default session.  We
+       do not guess — we report it and leave it.
+     · the key this tab is using is never touched. */
+function ahSweepAuthSlots(maxAgeMs=7*864e5){
+  const swept=[],ambiguous=[];
+  try{
+    for(const k of Object.keys(localStorage)){
+      if(k===SUPA_STORAGE_KEY) continue;
+      if(k.indexOf(AH_AUTH_BASE+".")!==0) continue;
+      const suffix=k.slice(AH_AUTH_BASE.length+1);
+      if(/^\d+$/.test(suffix)){ ambiguous.push(k); continue; }
+      try{
+        const v=JSON.parse(localStorage.getItem(k));
+        if(v&&v.expires_at&&(v.expires_at*1000)<Date.now()-maxAgeMs){ localStorage.removeItem(k); swept.push(k); }
+      }catch(e){}
+    }
+  }catch(e){}
+  return {swept,ambiguous};
+}
+const SUPA_STORAGE_KEY=ahStorageKey(AH_SESSION_SLOT);
 if(AH_SESSION_SLOT) console.info("[afterhours] auth slot:",AH_SESSION_SLOT,"->",SUPA_STORAGE_KEY);
 /* PWA: register the network-first service worker (safe no-op in unsupported browsers) */
 if("serviceWorker" in navigator){ window.addEventListener("load",()=>{ if(/nickpeets\.github\.io|lastcall\.love|localhost/.test(location.hostname)) navigator.serviceWorker.register("sw.js").catch(e=>console.log("[lastcall] sw:",e.message)); }); }
+/* order matters: carry an existing slot session onto the safe key BEFORE
+   the client reads storage, then sweep, then construct. */
 try{
-  Object.keys(localStorage).forEach(k=>{
-    if(/-auth-token\.tab-/.test(k) && k!==SUPA_STORAGE_KEY){
-      try{ const v=JSON.parse(localStorage.getItem(k));
-        if(v&&v.expires_at&&(v.expires_at*1000)<Date.now()-7*864e5) localStorage.removeItem(k);
-      }catch(e){}
-    }
-  });
+  const moved=ahMigrateSlotKey(AH_SESSION_SLOT);
+  if(moved) console.info("[afterhours] slot session moved off the colliding key:",moved,"->",SUPA_STORAGE_KEY);
+  const {swept,ambiguous}=ahSweepAuthSlots();
+  if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
+  if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b0810.2323"); }catch(e){}
+try{ console.log("[lastcall] build b0811.0031"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -1900,11 +1955,11 @@ async function enterApp(){
     uerr=r?r.error:null;
   }catch(e){ uerr={message:String(e&&e.message||e),transport:true}; }
   if(uerr&&!user){
-    vdbg("enterApp: getUser failed ("+(uerr.transport?"unreachable":"refused")+"): "+(uerr.message||uerr),true);
+    vdbg("enterApp: getUser failed ("+(uerr.transport?"unreachable":"refused")+"): "+(uerr.message||uerr),true,"[auth]");
     return (LAST_RESTORE=authNoticeForFailure(uerr));
   }
   if(!user){
-    vdbg("enterApp: no user behind the session — the sign-in screen is the answer");
+    vdbg("enterApp: no user behind the session — the sign-in screen is the answer",false,"[auth]");
     return (LAST_RESTORE="signed-out");
   }
   authNotice(null);
@@ -4931,8 +4986,12 @@ const VDEBUG_ON = new URLSearchParams(location.search).has("debug");
    under the deliberate ?debug switch — an ✕-severity line no longer
    force-shows anything.  User-visible video states go through
    lcCamStatus() below, in show language, nothing rawer. */
-function vdbg(msg, isErr){
-  console.log("[video]", msg);
+function vdbg(msg, isErr, tag){
+  // the channel tag is cosmetic and console-only — the quiet rule (gate 21)
+  // is about what reaches the SCREEN, not what the console line is called.
+  // It exists because session-restore lines were announcing themselves as
+  // "[video]", which is a lie that costs someone ten minutes at 1am.
+  console.log(tag||"[video]", msg);
   if(!VDEBUG_ON) return;               // no panel node, no raw text in the DOM
   let p=document.getElementById("vdebug");
   if(!p){
@@ -5583,19 +5642,19 @@ async function restoreSession({retry=true}={}){
   if(session){
     // a token in hand outranks a grumble alongside it — never lock out a
     // user we can actually authenticate
-    if(error) vdbg("session restore: session present, client also reported: "+(error.message||error));
-    vdbg("session restore: signed in ("+((session.user&&session.user.id)||"?")+")");
+    if(error) vdbg("session restore: session present, client also reported: "+(error.message||error),false,"[auth]");
+    vdbg("session restore: signed in ("+((session.user&&session.user.id)||"?")+")",false,"[auth]");
     authNotice(null);
     LAST_RESTORE="session";
     await enterApp();
     return LAST_RESTORE;
   }
   if(!error){
-    vdbg("session restore: no session — the sign-in screen is the answer");
+    vdbg("session restore: no session — the sign-in screen is the answer",false,"[auth]");
     authNotice(null);
     return (LAST_RESTORE="signed-out");
   }
-  vdbg("session restore failed ("+(error.transport?"unreachable":"refused")+"): "+(error.message||error),true);
+  vdbg("session restore failed ("+(error.transport?"unreachable":"refused")+"): "+(error.message||error),true,"[auth]");
   if(error.transport&&retry){
     // one hiccup is not a sign-out.  Exactly one retry — the {retry:false}
     // guarantees this cannot recurse a third time.
@@ -5663,6 +5722,11 @@ window.__lc = {
      assert on the verdict, never on pixels. */
   restoreSession, authNotice,
   get LAST_RESTORE(){ return LAST_RESTORE; },
+  /* auth storage — ahStorageKey is the ONE place a slot becomes a key, and
+     it is what keeps slots out of supabase-js's chunk namespace. */
+  ahStorageKey, ahMigrateSlotKey, ahSweepAuthSlots,
+  get AH_AUTH_BASE(){ return AH_AUTH_BASE; },
+  get SUPA_STORAGE_KEY(){ return SUPA_STORAGE_KEY; },
   get CAM_STATE(){ return { tries:CAM_TRIES, gaveUp:CAM_GAVE_UP, blurKilled:BLUR_KILLED,
                             appOff:CAM_APP_OFF, watchdogFires:WATCHDOG_FIRES, pending:!!WATCHDOG_T }; },
   /* video layer */

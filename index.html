@@ -4337,7 +4337,17 @@ function handleEvent(ev){
       // wave 8 (d8): a decline stays secret, but ABSENCE isn't — when the
       // other party leaves the backstage flow entirely, the offer window
       // closes with the goodnight beat instead of running out on nobody.
-      if(BS_ROOM && actor!==ME.id && BSD_PHASE==="deciding") bsGoodnight("They slipped out into the night.");
+      // wave 9: absence is not a secret in ANY phase.  This used to fire ONLY
+      // while BSD_PHASE==="deciding", so a departure during the live call was
+      // received and dropped on the floor — she went on watching a frozen tile
+      // of someone who had already gone, until her own clock ran out.  The
+      // deciding case still folds the offer window; every other phase at least
+      // retires their tile and says so.
+      if(BS_ROOM && actor!==ME.id){
+        const who=bsPeerLeft(actor);
+        if(BSD_PHASE==="deciding") bsGoodnight("They slipped out into the night.");
+        else toast((who||"They")+" slipped out into the night.");
+      }
       break;
     case "swap":
       // (wave 5) the reveal rides the OFFER EVENT, not the 3s poll: the
@@ -4565,6 +4575,11 @@ async function startWinnerSnap(winnerUid){
 
 /* ============ WINNER'S ROOM (backstage) ============ */
 let BS_DAILY=null, BS_ROOM=null, BS_WINNER_UID=null;
+/* uids who have TOLD us they left the backstage flow.  The backstage_left
+   event outranks the call's participant map: a peer can be gone from the flow
+   while a stale roster still lists them, and presence must not resurrect a
+   tile the event has already retired.  Cleared on every fresh entry. */
+let BS_GONE={};
 let BS_TICK=null, BS_DEADLINE=0, BSD_TICK=null, BSD_DEADLINE=0, BSD_POLL=null, BSD_PHASE=null, BSD_OFFERED=false;
 const BS_SECONDS=180, BSD_SECONDS=60;
 
@@ -4704,6 +4719,7 @@ async function enterBackstage(winnerUid, winnerName){
   lcBeatClearAll();   // one surface owns the screen from here (wave 6)
   BS_ROOM=CURRENT_ROOM;
   if(!BS_ROOM) return;
+  BS_GONE={};   // a fresh entry knows nothing about who left the last one
   BS_WINNER_UID=winnerUid||null;
   const iAmHost=BS_ROOM.host_id===ME.id;
   $("bs_nm_host").textContent=BS_ROOM.contestant_name||"Host";
@@ -4792,12 +4808,13 @@ function bsSyncPresence(){
       name:($("bs_nm_winner").textContent||"the winner") },
   ];
   seats.forEach(s=>{
-    const here=!!(s.uid && joined[s.uid]);
+    // a peer who ANNOUNCED their exit is gone even if the call still lists them
+    const here=!!(s.uid && joined[s.uid] && !BS_GONE[s.uid]);
     s.tile.classList.toggle("bs-tile--waiting",!here);
     s.wait.style.display=here?"none":"flex";
     if(!here){
       s.wait.textContent="waiting for "+s.name+"…";
-      s.tile.querySelectorAll("video").forEach(v=>v.remove());
+      bsEmptyTile(s.tile);
     }
   });
   if(BS_ROOM.host_id && BS_WINNER_UID && joined[BS_ROOM.host_id] && joined[BS_WINNER_UID]){
@@ -4837,6 +4854,48 @@ $("bs_cut").onclick=async()=>{
 };
 $("bs_leave").onclick=()=>exitBackstage();
 
+/* ONE way to empty a backstage tile, and it stops what it removes.  Dropping
+   the <video> alone leaves its MediaStream tracks LIVE on a detached element —
+   the camera light stays on and the stream outlives the room.  (srcObject is
+   never assigned here: gate 3 forbids nulling it, and it does not need to be —
+   stopping the tracks and detaching the element is the whole teardown.) */
+function bsEmptyTile(tile){
+  if(!tile) return;
+  tile.querySelectorAll("video").forEach(v=>{
+    try{ const s=v.srcObject; if(s && s.getTracks) s.getTracks().forEach(tr=>{ try{ tr.stop(); }catch(e){} }); }catch(e){}
+    v.remove();
+  });
+}
+/* the SURFACE is torn down with the call.  bsSyncPresence() is the only other
+   thing that empties these tiles and it early-returns the moment BS_ROOM is
+   null, so the exit has to own this itself — otherwise the winner's room keeps
+   a live self-view mounted behind a hidden panel, and the next entry opens on
+   last night's frames before presence has said a word. */
+function bsWipeTiles(){
+  [["bs_tile_host","bs_wait_host","the host"],["bs_tile_winner","bs_wait_winner","the winner"]].forEach(([tid,wid,fallback])=>{
+    const tile=$(tid), wait=$(wid);
+    bsEmptyTile(tile);
+    if(tile) tile.classList.add("bs-tile--waiting");
+    if(wait){ wait.textContent="waiting for "+fallback+"…"; wait.style.display="flex"; }
+  });
+}
+/* a peer announced their exit: retire their tile off the EVENT, not off the
+   call.  The participant map can still list them for as long as the transport
+   takes to notice, and she should not be watching a frozen frame in the
+   meantime. */
+function bsPeerLeft(uid){
+  if(!BS_ROOM || !uid) return;
+  BS_GONE[uid]=true;
+  const isHost = uid===BS_ROOM.host_id;
+  const tile = isHost ? $("bs_tile_host") : $("bs_tile_winner");
+  const wait = isHost ? $("bs_wait_host") : $("bs_wait_winner");
+  const name = (isHost ? ($("bs_nm_host").textContent) : ($("bs_nm_winner").textContent)) || "them";
+  bsEmptyTile(tile);
+  if(tile) tile.classList.add("bs-tile--waiting");
+  if(wait){ wait.textContent="waiting for "+name+"…"; wait.style.display="flex"; }
+  return name;
+}
+
 async function exitBackstage(){
   // absence isn't a secret (wave 8 d8): tell the other side the flow is
   // over for me — the fold closes their offer window with the goodnight
@@ -4845,7 +4904,8 @@ async function exitBackstage(){
   BS_CLOCK_EMITTED=false;
   bsTeardownDecision();
   try{ if(BS_DAILY){ await BS_DAILY.leave(); await BS_DAILY.destroy(); } }catch(e){}
-  BS_DAILY=null; BS_ROOM=null; BS_WINNER_UID=null;
+  bsWipeTiles();   // BEFORE BS_ROOM goes: nothing else empties these tiles
+  BS_DAILY=null; BS_ROOM=null; BS_WINNER_UID=null; BS_GONE={};
   $("bs_error").style.display="none";
   Object.keys(AUDIO_ELS).filter(k=>k.startsWith("bs-")).forEach(stopAudio);
   $("backstage").classList.remove("show");

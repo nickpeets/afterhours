@@ -62,16 +62,44 @@ async function frameRoom(h, fx) {
  * that rendered it, and a run under anything else SAYS SO — in a note,
  * and inside any frame failure.  It does not fail on a mismatch: a
  * divergent environment is a fact to state, not a verdict to render, and
- * failing would only teach people to ignore the gate. */
+ * failing would only teach people to ignore the gate.
+ *
+ * (Live confirmation, arriving one commit later: the Codespace reports
+ * Chromium 151 where the container reports 141, and their generic-sans
+ * metrics differ by 26% — yet every frame still matches.  See the note on
+ * fingerprint() for why that combination is possible, and why the first
+ * cut of this measurement was asking the wrong question.) */
+/* MEASURE WHAT THE FRAMES ACTUALLY RENDER WITH.
+   The first cut of this measured the generic sans-serif/serif/monospace
+   families, which was wrong in a way that would have been worse than no
+   fingerprint at all.  This app's body stack computes to
+   "Archivo, system-ui, sans-serif"; Archivo is a Google font and the
+   harness stubs Google Fonts offline, so the frames are drawn in
+   SYSTEM-UI — a different font from generic sans-serif, with different
+   metrics (330.66 vs 303.3 in the container that found this).  A
+   Codespace run then reported generic sans at 383.3 while its frames
+   still matched the baseline pixel-for-pixel: the metric was diverging
+   over a font no frame uses.  A fingerprint that cries wolf about
+   something invisible, while staying blind to the font that actually
+   draws the text, is a liability.
+   So the stacks are read from computed style off the live page — body,
+   the display face, the monospace slot — and both the resolved stack
+   STRING and its measured width are recorded.  A CSS change to a font
+   stack is a change to what renders, and now shows up as one. */
 function fingerprint(h, page) {
   return page.evaluate(() => {
     const cx = document.createElement("canvas").getContext("2d");
-    const w = (fam) => { cx.font = "16px " + fam; return Math.round(cx.measureText("LAST CALL — Hostess 0123456789 gjpqy").width * 100) / 100; };
-    return { font: { sans: w("sans-serif"), serif: w("serif"), mono: w("monospace") } };
+    const S = "LAST CALL — Hostess 0123456789 gjpqy";
+    const w = (fam) => { cx.font = "16px " + fam; return Math.round(cx.measureText(S).width * 100) / 100; };
+    const famOf = (sel) => { const el = document.querySelector(sel); return el ? getComputedStyle(el).fontFamily : "(absent)"; };
+    const stacks = { body: famOf("body"), display: famOf("#auth h1"), mono: famOf("#buildstamp") };
+    const font = {};
+    for (const k of Object.keys(stacks)) font[k] = { stack: stacks[k], w: w(stacks[k]) };
+    return { font };
   }).then((r) => ({ chromium: h.browser.version(), font: r.font }));
 }
-const describe = (fp) => "Chromium " + (fp && fp.chromium || "?") +
-  " / fonts " + (fp && fp.font ? [fp.font.sans, fp.font.serif, fp.font.mono].join("·") : "?");
+const describe = (fp) => "Chromium " + (fp && fp.chromium || "?") + " / " +
+  (fp && fp.font ? Object.keys(fp.font).map((k) => k + " " + fp.font[k].w + " [" + fp.font[k].stack + "]").join(", ") : "fonts ?");
 const same = (a, b) => a && b && a.chromium === b.chromium && JSON.stringify(a.font) === JSON.stringify(b.font);
 
 module.exports = {

@@ -43,10 +43,22 @@ Known resolved paths per environment (don't rediscover):
 
 - Previous container: `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`
   (Chromium 141.0.7390.37, via the `/opt/pw-browsers/chromium` symlink)
-- Codespace didactic-guide: `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`
-  (Chromium 141.0.7390.37, same symlink; `npx playwright-core install chromium`
-  is blocked in this environment — cdn.playwright.dev returns 403 "host not
-  permitted" — so the preinstalled binary is the only route)
+- Codespace didactic-guide:
+  `/home/codespace/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome`
+  (Chrome for Testing **151.0.7922.34**).  `/opt/pw-browsers` does NOT exist
+  here — the entry that used to claim it did was wrong, and cost a
+  rediscovery.  `npx playwright-core install chromium` is still blocked in
+  this environment (cdn.playwright.dev returns 403 "host not permitted"), so
+  the preinstalled binary is the only route.
+
+  **This is a DIFFERENT Chromium from the container's 141**, which matters for
+  exactly one gate: `golden`'s baseline was captured under 141, and font
+  rasterisation differs between the two.  Run the battery in the Codespace by
+  all means — but a `golden` diff there is an ENVIRONMENT difference, not a
+  regression, and it must not be "fixed" by regenerating the baseline from the
+  Codespace.  META.json records `capturedWith` precisely so this is checkable
+  rather than arguable; regenerate only in the environment that routinely runs
+  the battery.
 
 ## How it works
 

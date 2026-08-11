@@ -2802,7 +2802,22 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   });
   // empty chairs are the join CTA
   $("rt_chairs").querySelectorAll("[data-takechair]").forEach(el=>{
-    el.onclick=()=>{ if(!AMHOST) $("rt_joinline").click(); };
+    el.onclick=()=>{
+      if(AMHOST) return;
+      /* RULING (wave 9): the open chair is a door ONTO the bench, never a door
+         out of it.  A man already benched fell straight into rt_joinline's
+         "already in line" branch — leave_room + join_room — so the tap that
+         reads as "take the chair" silently cost him his place and put him back
+         in the crowd, mid-show, with no way back but her tap.  Canon is
+         untouched: she picks from the bench and nobody self-seats (gate 43
+         locks the absence of a self-seat path).  The tap simply costs him
+         nothing, and says why.  His role is read from ROOM_STATE.members — the
+         SAME derivation the guarded branch reads — so the guard can never
+         disagree with the branch it is guarding. */
+      const meRow=ROOM_STATE.members.find(m=>m.user_id===ME.id);
+      if(meRow && meRow.role==="line"){ toast("You're on the bench — she picks from there. ♥"); return; }
+      $("rt_joinline").click();
+    };
   });
   // the crowd scores the bench continuously; the host seats from it
   $("lineitems").querySelectorAll(".lc-lane").forEach(el=>{

@@ -1119,7 +1119,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0811.0031</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0811.0110</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1616,7 +1616,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b0811.0031"); }catch(e){}
+try{ console.log("[lastcall] build b0811.0110"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -1637,7 +1637,87 @@ if(/type=recovery/.test(location.hash)){
     if(s) s.textContent="Choose a new password for your account.";
   });
 }
-sb.auth.onAuthStateChange((event)=>{ if(sbAuthEventHook) sbAuthEventHook(event); });
+/* ============ SESSION LIFE (wave 9 item 5) ============
+   Reproduced under observation on prod, 2026-08-10: a host signed in at
+   17:04 with her tab hidden was signed out by 18:23 without touching
+   anything.  The access token lives 3600s and the refresh was due at
+   ~17:56 — in a backgrounded tab the browser throttles the timer that
+   would have run it.  supabase-js then cleared its own storage key
+   (surgically: only that key; ten unrelated slot keys beside it were
+   untouched), and the app never heard a word, because the auth listener
+   handled exactly one event and it was PASSWORD_RECOVERY.  The first
+   symptom available to her would have been a write 401ing mid-show.
+
+   The listener is no longer deaf:
+     TOKEN_REFRESHED  the refresh worked — record the new expiry, say so.
+     SIGNED_OUT       if WE didn't ask for it, that is the failure above.
+                      One check, then the sign-in screen, said out loud.
+                      The app must not keep running on credentials it no
+                      longer holds.
+     SIGNED_IN        record the expiry.
+   And because a throttled timer is exactly what a hidden tab does to the
+   refresh, coming back to the front re-checks a token at or near expiry —
+   the moment she picks the phone back up, before her next write.
+
+   checkSessionAlive() deliberately does NOT go through enterApp(): a
+   liveness check must never re-render a show that is in progress. */
+let SIGNING_OUT=false;            // a sign-out WE asked for is not a failure
+let SESSION_EXPIRES_AT=null;      // epoch seconds of the current access token
+const SESSION_CHECK_MARGIN=120;   // seconds of headroom that still count as safe
+function noteSession(session){
+  SESSION_EXPIRES_AT=(session&&session.expires_at)||null;
+  return SESSION_EXPIRES_AT;
+}
+function secsToExpiry(){ return SESSION_EXPIRES_AT?Math.round(SESSION_EXPIRES_AT-Date.now()/1000):null; }
+function authBeginSignOut(){ SIGNING_OUT=true; }
+/* is the session still there?  No app re-entry, no re-render — just the
+   truth, in the verdict vocabulary restoreSession established.  "dropped"
+   is new and means: we WERE signed in, we are not any more, and nobody
+   asked. */
+async function checkSessionAlive(){
+  let session=null,error=null;
+  try{
+    const r=await sb.auth.getSession();
+    session=r&&r.data?r.data.session:null;
+    error=r?r.error:null;
+  }catch(e){ error={message:String(e&&e.message||e),transport:true}; }
+  if(session){
+    noteSession(session);
+    vdbg("session check: alive, "+secsToExpiry()+"s of token left",false,"[auth]");
+    authNotice(null);
+    return (LAST_RESTORE="session");
+  }
+  vdbg("session check: gone ("+(error?(error.message||error):"storage cleared beneath us")+")",true,"[auth]");
+  if(error) return (LAST_RESTORE=authNoticeForFailure(error));
+  // no session AND no error: supabase-js already gave up and cleared its
+  // own key.  This is the 17:56 failure, seen from the app side at last.
+  try{ $("auth").classList.remove("hide"); }catch(e){}
+  authNotice("Your session ended while you were away.  Sign in to step back inside.",null);
+  SESSION_EXPIRES_AT=null;
+  return (LAST_RESTORE="dropped");
+}
+sb.auth.onAuthStateChange((event,session)=>{
+  if(event==="TOKEN_REFRESHED"){
+    noteSession(session);
+    vdbg("token refreshed — "+secsToExpiry()+"s until the next one",false,"[auth]");
+  }else if(event==="SIGNED_IN"||event==="INITIAL_SESSION"){
+    if(session) noteSession(session);
+  }else if(event==="SIGNED_OUT"){
+    if(SIGNING_OUT) vdbg("signed out, as asked",false,"[auth]");
+    else{
+      vdbg("SIGNED_OUT and nobody asked — checking what is left",true,"[auth]");
+      checkSessionAlive();
+    }
+  }
+  if(sbAuthEventHook) sbAuthEventHook(event,session);
+});
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState!=="visible") return;
+  const left=secsToExpiry();
+  if(left===null||left>SESSION_CHECK_MARGIN) return;   // still comfortably valid
+  vdbg("back in front with "+left+"s of token left — checking the session",false,"[auth]");
+  checkSessionAlive();
+});
 function showSetPw(){
   ["loginPanel","signupPanel"].forEach(id=>{ const p=document.getElementById(id); if(p) p.style.display="none"; });
   const tabs=document.querySelector(".tabrow"); if(tabs) tabs.style.display="none";
@@ -1746,6 +1826,7 @@ $("signout").onclick=async()=>{
       for(const r of (mine||[])){ await sb.rpc("end_show",{room_id:r.id,winner_id:null}); }
     }catch(e){}
   }
+  authBeginSignOut();
   await sb.auth.signOut(); location.reload();
 };
 
@@ -3896,6 +3977,7 @@ $("st_delete").onclick=async()=>{
     const {error}=await sb.rpc("delete_my_account");
     if(error){ err.textContent="Could not delete: "+error.message; stReset(); return; }
   }catch(e){ err.textContent="Could not delete: "+(e.message||"unknown error"); stReset(); return; }
+  authBeginSignOut();
   try{ await sb.auth.signOut(); }catch(e){}
   location.reload();
 };
@@ -5643,7 +5725,8 @@ async function restoreSession({retry=true}={}){
     // a token in hand outranks a grumble alongside it — never lock out a
     // user we can actually authenticate
     if(error) vdbg("session restore: session present, client also reported: "+(error.message||error),false,"[auth]");
-    vdbg("session restore: signed in ("+((session.user&&session.user.id)||"?")+")",false,"[auth]");
+    noteSession(session);
+    vdbg("session restore: signed in ("+((session.user&&session.user.id)||"?")+", "+secsToExpiry()+"s of token left)",false,"[auth]");
     authNotice(null);
     LAST_RESTORE="session";
     await enterApp();
@@ -5722,6 +5805,11 @@ window.__lc = {
      assert on the verdict, never on pixels. */
   restoreSession, authNotice,
   get LAST_RESTORE(){ return LAST_RESTORE; },
+  /* session life — checkSessionAlive is the ONE liveness probe and it never
+     re-enters the app; authBeginSignOut marks a sign-out as ours. */
+  checkSessionAlive, authBeginSignOut, noteSession,
+  get SESSION_EXPIRES_AT(){ return SESSION_EXPIRES_AT; },
+  get SIGNING_OUT(){ return SIGNING_OUT; },
   /* auth storage — ahStorageKey is the ONE place a slot becomes a key, and
      it is what keeps slots out of supabase-js's chunk namespace. */
   ahStorageKey, ahMigrateSlotKey, ahSweepAuthSlots,

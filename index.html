@@ -3096,8 +3096,16 @@ function startHeartbeat(){
 }
 function stopHeartbeat(){ if(HEARTBEAT){clearInterval(HEARTBEAT);HEARTBEAT=null;} }
 
-/* best-effort clean exit: fire leave_room when the tab closes or is hidden,
-   so members don't ghost for 60s waiting on the freshness window */
+/* best-effort clean exit: fire leave_room when the tab is genuinely TORN DOWN —
+   closed, navigated away, reloaded.  NOT on tab-hide; see the listeners below,
+   which are the authority on this and say why.
+
+   (This comment used to read "…when the tab closes or is hidden", describing
+   behaviour that had already been removed.  On 2026-08-11 an agent read it,
+   believed it over the wiring twelve lines down, diagnosed a bug that did not
+   exist, and nearly opened a branch to reimplement what was already there.  A
+   stale comment is not a harmless comment: it outranks the code for anyone
+   reading quickly.) */
 let LEFT_ON_UNLOAD=false;
 function bestEffortLeave(){
   if(LEFT_ON_UNLOAD || !CURRENT_ROOM) return;

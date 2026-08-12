@@ -428,3 +428,44 @@ filter, two truth channels, idempotent writes:
   reverts and it is said ("That seat didn't take — try again").  A
   join_line rides with an immediate heartbeat so the new row is born
   fresh.
+
+---
+
+# OPEN QUESTIONS — carried out of the 2026-08-11 live run
+
+Three things this run named precisely and did **not** settle.  They are recorded
+here so nobody re-derives them, and so nobody mistakes them for work in flight.
+None of them is a licence to change behaviour: each names what evidence would
+close it.
+
+**Q9 — where do hearts come from when nobody is hearting?**
+Anomaly d4 of the b0809.1727 conductor run: hearts went 0 → 35 with nobody
+tapping.  Gate 39 has already pinned the CLIENT as containing no writer, which
+narrows this rather than answering it.  The remaining suspect is a **server-side
+seeder** — a trigger, a default, a backfill, or a demo fixture on the Supabase
+side.  **What would settle it:** a query against the hearts/room_events tables
+during a live show with no taps, plus a read of the table's triggers and
+defaults.  That is a database question, not a browser question, and no harness
+gate can reach it.  Do not "fix" a client that has been shown not to write.
+
+**Q12 — does a mid-phase rejoin lose video on a REAL transport?**
+Anomaly d7.  Gate 39 covers the reattach *logic* — `videoJoin`'s fast-path guard
+reading a dying call's state while the leave was in flight.  It cannot cover the
+transport half, because the Daily double is per-window: remote streams are
+synthesised locally and media never moves between windows.  **What would settle
+it:** a live rejoin against real Daily, mid-phase, with the tiles observed on the
+rejoining client.  Until then the logic is gated and the transport is unproven,
+and those are different claims.
+
+**Q60 — is a 60-second freshness window right for phones?**
+`activeRows()` drops a member 60s after their last beat, against an 8s beat
+interval.  A person whose phone backgrounds the app is still in the room and
+re-syncs on return, but for that window they are absent from every roster and
+their chair reads empty to everyone else.  Whether 60s is the right number is
+**unmeasured**.  **What would settle it:** timing real backgrounded devices —
+phone lock, incoming call, app switch — against beat delivery, on the platforms
+the show actually runs on.  This is tuning, not a disease.  It is explicitly
+**not** a mandate to rewrite the presence model: the closed-vs-away distinction
+is already implemented (`pagehide`/`beforeunload` leave; `visibilitychange` does
+not), and one agent has already mistaken the stale comment above
+`bestEffortLeave` for a missing feature.  Measure before touching.

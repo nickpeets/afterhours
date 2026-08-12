@@ -169,16 +169,26 @@ thirteen above.
 | 8 | winner photo black | **DEAD** — a real photo on the winner card, confirmed in two windows. |
 | 10 | backstage clock skew | **DEAD** — both sides render the same number off one shared deadline. |
 | 13 | offerer waits on a ghost | **PARTIAL** — see below. |
-| 1, 2, 5, 6, 9, 11, 12 | membership / counts / video | **UNREACHABLE BY THIS RIG** |
-| 7 | spectator ejected at show end | **NOT REACHED** — measurement contaminated by the operator. |
+| 1, 2, 11 | host roster split, evaporating bench, count flapping | **UNREACHABLE BY THIS RIG** |
+| 5, 6, 7 | her call, chair mislabel, spectator ejected | **NOT REACHED** — live-reachable, simply not reached in this run |
+| 9, 12 | hearts materialising, rejoin loses video | **NEEDS A RIG THAT DOES NOT EXIST** — see below |
 
-**UNREACHABLE BY THIS RIG is not NOT REACHED.**  It does not mean run longer.
-Scoring the membership set requires reading several participants' clients
-*simultaneously*, and the browser tooling available to an agent addresses only
-one tab group — inside which exactly one tab is ever visible.  No amount of
-additional live running fixes that.  Whatever covers those seven has to be a
-harness gate or a rig that does not yet exist.  Do not read them as unfinished
-work.
+**These three labels mean different things, and the first version of this table
+got them wrong.**  It filed all eight as UNREACHABLE BY THIS RIG.  Three of them
+are nothing of the sort, and mislabelling them would have told a future reader
+not to bother trying.  Corrected here, and the correction is itself the point:
+
+- **UNREACHABLE BY THIS RIG** — #1, #2, #11.  Scoring these needs several
+  participants' clients read *simultaneously*, and agent browser tooling
+  addresses one tab group, inside which exactly one tab is ever visible.  No
+  amount of additional live running fixes that.  A human watching several
+  windows *can* score them; an agent driving them cannot.
+- **NOT REACHED** — #5, #6, #7.  Ordinary gaps.  #5 is observable from the host
+  window alone; #6 needs one player window in warm-up; #7 needs two windows and
+  one discipline rule (nobody touches the losers' windows at show end — the rule
+  this run broke).  Run longer and they get scored.
+- **NEEDS A RIG THAT DOES NOT EXIST** — #9 and #12's transport half.  See the
+  open questions at the end of this document.
 
 ## #13 — the half that was still alive, and why the harness was blind to it
 

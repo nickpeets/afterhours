@@ -4345,16 +4345,18 @@ function handleEvent(ev){
       // wave 8 (d8): a decline stays secret, but ABSENCE isn't — when the
       // other party leaves the backstage flow entirely, the offer window
       // closes with the goodnight beat instead of running out on nobody.
-      // wave 9: absence is not a secret in ANY phase.  This used to fire ONLY
-      // while BSD_PHASE==="deciding", so a departure during the live call was
-      // received and dropped on the floor — she went on watching a frozen tile
-      // of someone who had already gone, until her own clock ran out.  The
-      // deciding case still folds the offer window; every other phase at least
-      // retires their tile and says so.
+      /* RULING (wave 9): an empty winner's room must never run a countdown.
+         PR #41 unfenced the TELLING but not the WAITING — outside the deciding
+         phase his tile was retired and a line was said, and then her clock went
+         on ticking against nobody for the rest of the three minutes.  Caught in
+         the live run at b0811.2124, and gate 44 was structurally blind to it:
+         gate 44 asserts that she is TOLD, which was the half already right.
+         bsGoodnight is now unfenced — same beat, same goodnight, every phase.
+         Its own BSD_PHASE==="revealed" guard still stands: once contacts have
+         been swapped the night is theirs and his leaving does not end it. */
       if(BS_ROOM && actor!==ME.id){
-        const who=bsPeerLeft(actor);
-        if(BSD_PHASE==="deciding") bsGoodnight("They slipped out into the night.");
-        else toast((who||"They")+" slipped out into the night.");
+        bsPeerLeft(actor);                                  // retire his tile at once…
+        bsGoodnight("They slipped out into the night.");    // …and stop her clock
       }
       break;
     case "swap":

@@ -148,8 +148,21 @@ module.exports = {
         `she is TOLD, in show language, rather than left waiting on a ghost (toast: ${JSON.stringify(she.toast)})`);
       t.ok(/waiting for/.test(she.waitText),
         `his tile carries a labeled waiting frame again ("${she.waitText}")`);
-      t.ok(await host.page.evaluate(() => document.getElementById("backstage").classList.contains("show")),
-        "…and SHE is still backstage — his exit closes his room, never hers");
+      /* SUPERSEDED by the wave 9 ruling, and left here as a record of why.
+         This gate used to assert "…and SHE is still backstage — his exit closes
+         his room, never hers".  That was written when the fix only unfenced the
+         TELLING.  The live run at b0811.2124 showed the consequence: she stayed
+         backstage all right, and her three-minute clock kept running against an
+         empty room.  The owner ruled that an empty winner's room must not run a
+         countdown, so his departure now ends the night for both — see gate 45,
+         which owns the clock half.  Here we assert only that the goodnight beat
+         is what took her out, never a silent disappearance. */
+      const outcome = await host.page.evaluate(() => ({
+        stillBackstage: document.getElementById("backstage").classList.contains("show"),
+        toast: document.getElementById("toast").textContent || "",
+      }));
+      t.ok(!outcome.stillBackstage && /goodnight/i.test(outcome.toast),
+        `his exit ends the night with the goodnight beat, not silently (backstage=${outcome.stillBackstage}, toast=${JSON.stringify(outcome.toast)})`);
 
       const errs = [host, winner].flatMap((cl) => cl.errors).filter((e) => !/favicon/.test(e));
       t.ok(errs.length === 0, "zero console errors in both windows — " + errs.slice(0, 2).join(" | "));

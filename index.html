@@ -5999,6 +5999,20 @@ window.__lc = {
   get ME(){ return ME; },
   get MYPROFILE(){ return MYPROFILE; },
   get AMHOST(){ return AMHOST; },
+  /* THE WATCHDOG'S CLOCK, READABLE AND SETTABLE.
+     The host-left watchdog fires on Date.now()-HOST_LAST_SEEN>80000.  While
+     this was a module-local `let`, no gate could reach it: the only ways to
+     test the branch were to burn eighty-plus real seconds of battery time or
+     to grep index.html for the identifiers inside it — and gate 39's d2 did
+     the latter, which proves two strings exist in a file and nothing about
+     what the app does.  That is the structural rule one level over: the
+     battery already forbids a gate from reimplementing a FUNCTION it cannot
+     reach, and the same has to hold for STATE, or gates quietly downgrade to
+     source greps while the check count keeps climbing.
+     The setter is the whole point — a gate ages the clock, and the real
+     watchdog runs against real rows. */
+  get HOST_LAST_SEEN(){ return HOST_LAST_SEEN; },
+  set HOST_LAST_SEEN(v){ HOST_LAST_SEEN=v; },
   get CURRENT_ROOM(){ return CURRENT_ROOM; },
   get ROOM_STATE(){ return ROOM_STATE; },
   get VIDEO_TILES(){ return VIDEO_TILES; },

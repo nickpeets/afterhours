@@ -41,6 +41,26 @@ record of what actually happened in front of five browsers.
 
 ## The eight edges (branch D / gate 39)
 
+> **"GATE 39 COVERS THESE" WAS TRUE OF SIX OF THEM, NOT EIGHT.**  Corrected
+> 2026-08-12 after reading the gate instead of the sentence about the gate.
+> Two of d1–d8 were held by a SOURCE GREP and nothing else:
+>
+> - **d2** (spectator ejected) was one assertion that sliced `index.html` at the
+>   watchdog and checked `status==="ended"` and `roomEndedUnderUs` appeared
+>   within 900 characters.  That proves two identifiers sit near each other in a
+>   file.  It cannot prove the branch is reached — and it is fenced behind
+>   `DAILY && DAILY_JOINED`, so it is not reached at all unless the client is in
+>   the video call, which a grep can never notice.  **Now held by gate 47**,
+>   which ages the real watchdog and asserts he lands on the finale.
+> - **d3** (black winner photo) is *still* a source grep, and no runtime
+>   assertion anywhere in the battery checks that the shipped photo is not
+>   black.  Gates 7, 23 and 24 all reach the snap ceremony and assert the SCREEN
+>   appears; none look at the pixels.  Logged, not fixed.
+>
+> The lesson generalises past these two: when a gate cannot reach the state a
+> claim depends on, it does not fail — it silently downgrades to a source check
+> while the battery's check count keeps climbing.  See METHOD's fifth rule.
+
 6.  **d1** — "TAKE THE CHAIR" card during warm-up benches you with a bench toast
     instead of seating you in the chair it names.
 7.  **d2** — spectator ejected at show end with no finale card (tab b → bare
@@ -375,6 +395,41 @@ screenshots as corroboration, never as the measurement.  Stated generally:
 - When a rig limitation cannot be removed, look for the reading it cannot
   corrupt — that is usually cheaper than fixing the rig, and it is what let
   #13's second half be scored from a throttled window with no asterisk.
+
+**The fifth rule: a gate that cannot reach the state does not fail — it
+degrades to a grep, and the check count keeps climbing.**
+
+Audited the whole battery for this on 2026-08-12: **24 of 451 `t.ok` sites are
+source-only** (roughly 24 of 693 executed checks, ~3.5%).  Most of them are
+fine, and the split is what matters:
+
+| kind | count | verdict |
+|---|---|---|
+| universal negatives — "this pattern appears NOWHERE" | ~13 | **correct tool.** Runtime cannot prove absence; you would have to exercise every path. `parse`, `forbidden`, `safari-scan`, the "gone from the CODE" pins. |
+| static pin WITH a runtime companion for the same symptom | ~9 | **belt and braces.** Gate 40 already drives `setFault("auth.getSession", …)` at runtime; gate 42 drives real `TOKEN_REFRESHED`/`SIGNED_OUT`; gate 39's d1 taps the card and watches the row change. The grep guards the mechanism, the runtime proves the consequence. |
+| grep standing ALONE — nothing anywhere proves the symptom | **2** | the real finding. |
+
+The two that stood alone:
+
+- **d2, spectator ejected** — source-only **BY NECESSITY**: `HOST_LAST_SEEN` was
+  a module-local `let`, so the branch could not be aged from a gate.  Fixed by
+  exporting it and writing gate 47.
+- **d3, black winner photo** — source-only **BY CHOICE**: gates 7, 23 and 24 all
+  reach the snap ceremony and assert the screen appears; not one looks at the
+  pixels.  Runtime was available and nobody wrote it.  Still open.
+
+So the battery is not riddled with greps wearing a gate's clothes — the number
+is two, not twenty-four.  But the mechanism that produced those two is real, and
+it is silent, which is why it is written down as a rule rather than a footnote:
+
+- Before accepting a source-only assertion, ask which of the three kinds it is.
+  Only the first is a good answer.
+- If the honest answer is "the state is unreachable", **export the state** —
+  the same reflex the battery already has for unreachable functions — rather
+  than settling for the grep.
+- A source grep cannot see a fence.  d2's branch is gated on `DAILY &&
+  DAILY_JOINED`; the grep passed for two waves against code no test ever
+  entered.
 
 **The fourth rule: assert what the person in the room would complain about,
 not what the diff did.**

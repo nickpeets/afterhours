@@ -64,14 +64,41 @@ class BackendDouble {
     });
     return id;
   }
-  addMember(room_id, user_id, role, { seat_index = null, ageMs = 0 } = {}) {
+  /* BENCH ORDER IS A SERVER COLUMN, and the double was missing it.
+     Measured against production on 2026-08-12, same man, two readings:
+       spectator → { role:"spectator", line_position: null,  joined_at: 07:44:32 }
+       benched   → { role:"line",      line_position: 249,   joined_at: 07:44:32 }
+     So `line_position` is minted AT BENCH ENTRY and is globally monotonic
+     (a different room minutes earlier read 248), while `joined_at` records
+     when he entered the ROOM and is untouched by benching.
+
+     That distinction is the whole point.  `joined_at` is the field you reach
+     for when asked to seat "the longest-waiting benched man", and it is
+     WRONG: a spectator who lurks twenty minutes and then taps the bench
+     carries an early joined_at and would jump ahead of a man who benched on
+     arrival.  A gate written against a double that only has joined_at could
+     not have caught that — it would have had no other field to assert.  So
+     the double carries line_position with production's semantics, and the
+     ONE derivation of bench order reads it.
+
+     NOT MEASURED: whether production re-mints on a SECOND bench entry (leave
+     the bench, come back).  We mint only when null, which keeps his original
+     place; if production sends him to the back instead, this is the line that
+     is wrong.  Logged in SPEC.md rather than guessed at. */
+  addMember(room_id, user_id, role, { seat_index = null, ageMs = 0, line_position = undefined } = {}) {
     const row = {
       id: nid("m"), room_id, user_id, role, seat_index,
       last_seen: this.iso(this.now() - ageMs),
       joined_at: this.iso(this.now() - ageMs),
+      line_position: line_position !== undefined ? line_position
+                   : (role === "line" ? this.nextLinePosition() : null),
     };
     this.members.push(row);
     return row;
+  }
+  nextLinePosition() {
+    if (this._linePos == null) this._linePos = 200;   // start high, like prod's global counter
+    return ++this._linePos;
   }
   loginClient(clientId, uid) { this.sessions.set(clientId, uid); }
 
@@ -203,6 +230,8 @@ class BackendDouble {
         if (this.events.some((e) => e.room_id === a.room_id && e.type === "pass" && e.payload?.target_user === uid))
           throw new Error("passed — cannot rejoin the line");
         row.role = "line"; row.last_seen = this.iso();
+        /* minted at BENCH ENTRY, never on room join — see addMember's note */
+        if (row.line_position == null) row.line_position = this.nextLinePosition();
         this.emit("room_members", "UPDATE", { ...row });
         return null;
       }

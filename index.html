@@ -1949,6 +1949,11 @@ function beatCrowdCall(name){ lcBeat("crowdcall",{ms:2200,
 /* F4 — recruitment expired (8/9): the show moves on short-handed */
 function beatShortHanded(){ lcBeat("shorthand",{ms:1600,
   html:'<div class="lc-beat__chip">NOBODY STEPPED UP \u2014 MOVING ON SHORT-HANDED</div>'}); }
+/* F2b — the pick window ran out and the bench filled the chair anyway.
+   Named, not anonymous: the room watched him wait, so the room hears him
+   called.  An auto-seat is a beat, never a silent mutation. */
+function beatBenchCalled(name){ lcBeat("benchcalled",{ms:1800,
+  html:'<div class="lc-beat__chip">THE BENCH IS CALLED — '+lcEsc(String(name||"SOMEONE").toUpperCase())+' TAKES THE CHAIR</div>'}); }
 /* F3 — bench emptied mid-pick (RULING Q7): say it, move on */
 function beatBenchDry(){ lcBeat("benchdry",{ms:1400,
   html:'<div class="lc-beat__chip">THE BENCH IS EMPTY \u2014 MOVING ON</div>'}); }
@@ -3205,7 +3210,10 @@ function startHostPoll(){
         const rowsNow=activeRows(ROOM_STATE.members, CURRENT_ROOM);
         const anySeated=rowsNow.some(m=>m.role==="chair"||m.role==="kept");
         window.__SEATED_UIDS=window.__SEATED_UIDS||{};
-        const liners=rowsNow.filter(m=>m.role==="line" && !window.__SEATED_UIDS[m.user_id]).slice(0,3);
+        // ONE derivation (wave 10): bench order comes from benchQueue, never
+        // from an unordered slice.  Curtain-up and the pick-window expiry now
+        // give the same answer to "who is next".
+        const liners=benchQueue(ROOM_STATE.members, CURRENT_ROOM, 3);
         if((ph===null||ph==="preshow") && !anySeated && liners.length>=3 && !window.__SEATING_SHOW){
           window.__SEATING_SHOW=true;
           for(let i=0;i<3;i++){
@@ -3282,6 +3290,49 @@ function showEnded(rm, explicit){
 function roomEndedUnderUs(rm){ showEnded(rm, false); }
 function stopHostPoll(){
   stopHostBeat(); if(HOST_POLL){clearInterval(HOST_POLL);HOST_POLL=null;} }
+
+/* THE ONE DERIVATION OF BENCH ORDER.
+   Every surface that answers "who is next off the bench" asks this and only
+   this.  Two answers to that question is the same disease fix/count-truth
+   cured for headcounts, and it is worse here because it is silent: nobody
+   notices the wrong man was seated, they just quietly lose their turn.
+
+   ORDER BY line_position, WHICH IS NOT joined_at.  Measured against
+   production, same man, two readings:
+       spectator -> { line_position: null, joined_at: 07:44:32 }
+       benched   -> { line_position: 249,  joined_at: 07:44:32 }   unchanged
+   line_position is minted AT BENCH ENTRY and is globally monotonic;
+   joined_at records when he entered the ROOM.  Sorting by joined_at seats a
+   man who lurked twenty minutes as a spectator ahead of one who took the
+   bench the moment he arrived.  This show is about waiting your turn — that
+   is not a rounding error, it is the wrong man in the chair.
+   Rows with no line_position sort last, never first: an unknown position is
+   never allowed to jump a known one. */
+function nextOffBench(members, room){
+  const rows=activeRows(members||[], room||CURRENT_ROOM);
+  window.__SEATED_UIDS=window.__SEATED_UIDS||{};
+  const waiting=rows.filter(m=>m.role==="line" && !window.__SEATED_UIDS[m.user_id]);
+  if(!waiting.length) return null;
+  return waiting.slice().sort((a,b)=>{
+    const ap=(a.line_position==null)?Infinity:a.line_position;
+    const bp=(b.line_position==null)?Infinity:b.line_position;
+    if(ap!==bp) return ap-bp;
+    return String(a.user_id).localeCompare(String(b.user_id));   // stable, never random
+  })[0];
+}
+/* The same order for paths that need several (curtain up).  It CALLS
+   nextOffBench rather than re-sorting — an earlier draft of this function
+   carried its own copy of the comparator, which is precisely the two-
+   derivations disease this pair exists to cure, committed inside the cure. */
+function benchQueue(members, room, n){
+  const out=[]; const skip={};
+  for(let i=0;i<(n||1);i++){
+    const next=nextOffBench((members||[]).filter(m=>!skip[m.user_id]), room);
+    if(!next) break;
+    skip[next.user_id]=true; out.push(next);
+  }
+  return out;
+}
 
 // auto-seat: while chairs are open and people wait, seat them (host drives it)
 let AUTOSEATING=false;
@@ -3378,6 +3429,7 @@ const LC_SECTION_SECS={showstart:6,spotlight:30,openfloor:45,mingle:45,deliberat
    enough that dead air can't set in. */
 const LC_PASS_PICK_SECS=20;
 let PASS_PICK=null;   // {until:ms} — host-side marker that the bench-pick window is open
+let PICK_AUTOSEATING=false;  // an expiry auto-seat is in flight; keep the poll out
 let EG_DECIDE_ARM=0;  // her-call clock-out arm when the server sent no deadline (wave 8)
 // choosing and answering are the SAME server phase — the difference is whether
 // a target is set.  Her choosing beat is ~10s; his answer is the full 30.
@@ -3536,11 +3588,44 @@ function egTickStart(){
     // the pick/recruit window expiring: the HOST advances the show herself —
     // deciding is excluded from the generic resolver below (RULING Q5).
     // A recruit window expiring = the show moves on SHORT-HANDED (8/9).
-    if(PASS_PICK && Date.now()>PASS_PICK.until){
+    if(PASS_PICK && Date.now()>PASS_PICK.until && !PICK_AUTOSEATING){
       const wasRecruit=!!PASS_PICK.recruit;
-      passPickClear();
-      if(wasRecruit){ recruitResolve(); if(typeof beatShortHanded==="function") beatShortHanded(); }
-      sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}).then(()=>{ egRefreshRoom(); loadRoomState(); }).catch(()=>{});
+      /* RULING (owner, 2026-08-11): the window must not expire into an EMPTY
+         CHAIR.  She still picks — she just doesn't have to.  On expiry the
+         longest-waiting benched man takes the seat and the room is told.
+
+         Canon is intact: this is HER room seating him, the same door
+         curtain-up already uses, and it is emphatically not self-seating —
+         nothing here is reachable by the man himself (see gate 43).  The
+         bench is a place you are chosen FROM, and being chosen by the clock
+         is still being chosen. */
+      const next = wasRecruit ? null : nextOffBench(ROOM_STATE.members, CURRENT_ROOM);
+      if(next){
+        /* CRUCIALLY: PASS_PICK is left SET across this call.  hostSeat's own
+           PASS_PICK branch is the path her tap takes — recruitResolve, then
+           passPickClear, then skip_phase, then egRefreshRoom — and the clock
+           filling the chair must move the show exactly the way her finger
+           would have.  An earlier draft cleared the marker first and called
+           hostSeat as a plain seat: the man got his chair and the show sat
+           there, because the advance lives inside the branch that was skipped.
+           Gates 15 and 30 both caught it, which is what they are for.
+           PICK_AUTOSEATING keeps the next poll tick out while this is in
+           flight — the marker is still set, so without it the block re-enters. */
+        PICK_AUTOSEATING=true;
+        window.__SEATED_UIDS=window.__SEATED_UIDS||{};
+        window.__SEATED_UIDS[next.user_id]=true;
+        /* the ever-cache, not a fresh fetch: a name once known is never
+           forgotten, and this beat must not blank on a profile race */
+        const nm=((window.__PROFS_EVER||{})[next.user_id]||{}).display_name||"Someone";
+        hostSeat(next.user_id).then(()=>{
+          if(typeof beatBenchCalled==="function") beatBenchCalled(nm);
+        }).catch(()=>{}).then(()=>{ PICK_AUTOSEATING=false; });
+      } else {
+        passPickClear();
+        if(wasRecruit){ recruitResolve(); if(typeof beatShortHanded==="function") beatShortHanded(); }
+        else if(typeof beatBenchDry==="function") beatBenchDry();
+        sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id}).then(()=>{ egRefreshRoom(); loadRoomState(); }).catch(()=>{});
+      }
     }
     // the recruit card's clock is REAL: tick it from the shared deadline
     if(PASS_PICK && PASS_PICK.recruit){
@@ -5854,6 +5939,9 @@ window.__lc = {
   benchHeadshot, takeBenchSeat,
   /* seating / host actions */
   hostSeat, hostKeep, hostPass, autoSeatFromLine,
+  /* bench order — nextOffBench is the ONE answer to "who is next off the
+     bench", benchQueue the same order for the paths that need several */
+  nextOffBench, benchQueue,
   /* round flow — the post-pass bench-pick window (host-side marker) +
      the ONE Q3 viability predicate */
   passPickOpen, passPickClear, passViable,

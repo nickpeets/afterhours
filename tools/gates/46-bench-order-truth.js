@@ -90,8 +90,14 @@ module.exports = {
       "the pick-window expiry asks nextOffBench who is next, rather than deciding for itself");
 
     const curtain = js.slice(js.indexOf("cold start: full bench"), js.indexOf("cold start: full bench") + 1400);
-    t.ok(/nextOffBench\(/.test(curtain),
+    /* benchQueue is allowed here BECAUSE it delegates to nextOffBench — that
+       delegation is asserted below, so this is one derivation reached two
+       ways, not two derivations. */
+    t.ok(/benchQueue\(|nextOffBench\(/.test(curtain),
       "curtain-up asks the same helper — one answer to 'who is next', not two");
+    const bq = js.slice(js.indexOf("function benchQueue"), js.indexOf("function benchQueue") + 500);
+    t.ok(bq.length > 50 && /nextOffBench\(/.test(bq) && !/line_position/.test(bq),
+      "…and benchQueue DELEGATES to nextOffBench rather than carrying a second copy of the comparator");
     t.ok(!/filter\(m=>m\.role==="line"[^)]*\)\s*\.slice\(0,3\)/.test(curtain.replace(/\s+/g, "")),
       "…and no longer takes an unordered slice of the line rows");
 
@@ -100,19 +106,28 @@ module.exports = {
     try {
       const D = h.double;
       const hostU = D.addUser({ id: "u_host", name: "Jackie", email: "host@bench.test" });
-      ["u_s1", "u_early", "u_mid", "u_late"].forEach((id) => D.addUser({ id, name: id }));
+      ["u_s1", "u_hold1", "u_hold2", "u_early", "u_mid", "u_late"].forEach((id) => D.addUser({ id, name: id }));
 
       const host = await h.newClient("host", { isMobile: true, hasTouch: true });
       host.login(hostU); await host.goto();
       await host.page.waitForSelector("#lobby", { state: "visible", timeout: 15000 });
 
       /* ---------- scenario A: the pick window expires with a bench ----------
+         EXACTLY ONE CHAIR OPENS.  An earlier draft of this fixture seated only
+         the man she passes, which left all three chairs empty — and a room
+         with nobody seated and a full bench is a CURTAIN UP, where seating
+         three is correct.  The gate failed and the app was right; the fixture
+         was asking the wrong question.  Two men stay in their chairs so the
+         pass opens one seat and one seat only.
+
          Bench order is deliberately NOT insertion order: u_late is added
          first but carries the HIGHEST line_position, so a gate that reads
          the array's head instead of the column picks the wrong man. */
       const roomA = D.addRoom({ id: "r_bench_a", host_id: hostU, name: "Jack's Room", phase: "deciding", round: 1 });
       D.rooms.get(roomA).phase_deadline = D.iso(D.now() + 120000);
       D.addMember(roomA, "u_s1", "chair", { seat_index: 0 });
+      D.addMember(roomA, "u_hold1", "chair", { seat_index: 1 });
+      D.addMember(roomA, "u_hold2", "chair", { seat_index: 2 });
       D.addMember(roomA, "u_late", "line", { line_position: 940 });
       D.addMember(roomA, "u_early", "line", { line_position: 301 });   // ← the longest waiting
       D.addMember(roomA, "u_mid", "line", { line_position: 615 });
@@ -132,16 +147,18 @@ module.exports = {
       await waitFor(() => (D.memberRow(roomA, "u_s1") || {}).role === "spectator", 8000, "the pass lands");
       await waitFor(() => host.page.evaluate(() => !!window.__lc.PASS_PICK), 8000, "the pick window opens");
 
-      const tapsBefore = await host.page.evaluate(() => window.__lc.__benchTapCount || 0);
-
-      /* nothing is clicked from here on — this is the whole point of the gate */
+      /* Nothing is clicked from here on.  That is the whole point of the
+         gate, and it is guaranteed by CONSTRUCTION — this driver issues no
+         further input — rather than by an assertion.  An earlier draft
+         "proved" it by comparing a __benchTapCount that does not exist,
+         which reads 0 both times and passes no matter what the app does.
+         A vacuous green is a false green one scope down; deleted. */
       await waitFor(() => (D.memberRow(roomA, "u_early") || {}).role === "chair", 30000,
         "the LONGEST-WAITING man to be seated when the window expires untouched");
 
       const after = await host.page.evaluate(() => ({
         pick: window.__lc.PASS_PICK,
         rows: window.__lc.ROOM_STATE.members.map((m) => ({ u: m.user_id, role: m.role, lp: m.line_position })),
-        taps: window.__lc.__benchTapCount || 0,
       }));
       const seated = after.rows.filter((r) => r.role === "chair" || r.role === "kept").map((r) => r.u);
       const stillLine = after.rows.filter((r) => r.role === "line").map((r) => r.u).sort();
@@ -149,11 +166,11 @@ module.exports = {
       t.ok(seated.includes("u_early"),
         `the empty chair is filled rather than carried into the next round (seated: ${seated.join(", ")})`);
       t.ok(!seated.includes("u_mid") && !seated.includes("u_late"),
-        "exactly ONE man comes off the bench — the window fills a seat, it does not empty the bench");
+        `exactly ONE man comes off the bench — the window fills a seat, it does not empty the bench (seated: ${seated.join(", ")})`);
+      t.ok(seated.includes("u_hold1") && seated.includes("u_hold2"),
+        "the two men who were never passed keep their chairs — one seat opened, one seat filled");
       t.ok(stillLine.join(",") === "u_late,u_mid",
         `the men behind him keep their places (${stillLine.join(", ")})`);
-      t.ok(after.taps === tapsBefore,
-        "she never tapped — canon intact: she still picks, she just does not have to");
       t.ok(!after.pick, "the window marker is cleared");
 
       /* --- announced in the feed --- */

@@ -153,6 +153,15 @@ but nothing about membership counts does.
   one hour; a 45-minute run started 20 minutes after sign-in will die mid-show
   and it will look like a bug.
 - Use `?session=<slot>` per window so the accounts do not share auth storage.
+- **The workspace that owns the battery goes to sleep, and a sleeping workspace
+  is not a failing gate.**  The Codespace has an idle timeout.  On the
+  2026-08-11 run it raised a "Stop Now / Keep Working" prompt mid-run, the
+  wrong button was pressed, and a 42-gate battery died partway with no error
+  anywhere — the log simply stopped growing.  Nothing in the output says
+  "the machine went away"; it reads exactly like a hung gate.  So: answer Keep
+  Working before a long pass, run the battery under `nohup` into a file, and
+  treat *a log that has stopped growing* as a dead workspace until proven
+  otherwise.  Cost more of that session than any bug in the build did.
 
 ---
 
@@ -261,6 +270,33 @@ Practical form:
 
 A wrong finding is more expensive than a missing one: it gets a branch, a gate,
 and a merge before anyone checks it.
+
+**The second rule the same run produced: verify state from a source that does
+not depend on the tool that reported it.**
+
+Four times in one session the browser-driving tool reported a command as
+*failed* when it had in fact executed — PRs #41, #44 and #45 were each created
+by a call that returned an error.  Once, the inverse: a merge that reported
+nothing wrong genuinely had not run, because the workspace had died underneath
+it.  Both directions are one defect, and it is a property of this rig rather
+than noise:
+
+- A reported failure is not evidence that nothing happened.  Ask `gh pr list`,
+  `git rev-parse origin/main`, the file on disk — never the tool's own report.
+- A reported success is not evidence that something happened either.  The same
+  check answers both, which is why it is cheap enough to always run.
+- Batch the work into one command so there is one thing to verify rather than
+  five, and end the batch with the check.
+
+This is the same shape as the false red that opened this section: **trust
+state, not the report of what happened to state.**
+
+A worked example of the units trap, from the same session: the deploy was
+compared to git by string length and read 352293 against the file's 353464
+bytes, which looks like a stale deploy short by 1171.  It was UTF-16 code
+units against UTF-8 bytes — the file's `♥ · — ’` are multibyte.  The deploy was
+byte-identical.  Comparing two numbers proves nothing until both are in the
+same unit.
 
 ---
 

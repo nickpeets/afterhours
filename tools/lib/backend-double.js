@@ -450,6 +450,28 @@ class BackendDouble {
   /* ---------- table ops (the query-builder transport) ---------- */
   table(clientId, spec) {
     const { table, action, values, filters = [], order, limit, single, maybeSingle, selectAfter } = spec;
+
+    /* Fault injection for TABLE writes, added for gate 49.  rpc() has had this
+       since wave 8; table() never did, so every gate that wanted to see a
+       user-facing failure message had to assert the STRING from source and
+       hope.  Two modes, and they are different diseases:
+         D.setFault("table:profiles.upsert", "w", { error: "permission denied" })
+             the write fails loudly  → the app's `if(error)` branch
+         D.setFault("table:profiles.upsert", "w", { drop: true })
+             the write is ACCEPTED and never lands, and the read-back returns
+             what was already there → the app's "didn't stick" branch.  This is
+             production's face for an RLS denial that answers 200, the same
+             shape join_line already models. */
+    const fkey = "table:" + table + "." + action;
+    const tf = this.faults && (this.faults[fkey + "|" + clientId] || this.faults[fkey + "|*"]);
+    if (tf && tf.error) throw new Error(tf.error);
+    if (tf && tf.drop) {
+      if (!selectAfter) return null;
+      const idv = (values && !Array.isArray(values) && values.id) ||
+                  (filters.find((f) => f.col === "id") || {}).val || null;
+      const cur = (table === "profiles" && idv) ? (this.profiles.get(idv) || { id: idv }) : {};
+      return single ? { ...cur } : [{ ...cur }];
+    }
     const rowsOf = () => {
       if (table === "rooms") return [...this.rooms.values()];
       if (table === "profiles") return [...this.profiles.values()];

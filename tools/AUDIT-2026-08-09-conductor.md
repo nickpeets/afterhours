@@ -130,6 +130,27 @@ That is a manufactured reading of anomalies **2, 3, 11 and 12** — evaporating
 rows, ghost rows, flapping counts, dark tiles — none of which the app was
 actually committing.
 
+**And on 2026-08-12 it was reproduced deliberately, in seconds, which turns the
+paragraph above from an argument into a mechanism.**  One benched man, one
+hidden tab:
+
+```
+ROOM_STATE.members   [{u:c4f781c3, role:"line", seat:null}]   ← the row is right there
+roomCounts()         {crowd:0, line:0, bench:0, chairs:0, kept:0, total:1}
+```
+
+The row exists and says `line`; the count says zero.  Nothing is wrong with the
+app.  `activeRows()` filters on a 60-second freshness window fed by an 8-second
+heartbeat, Chrome throttles background timers toward roughly one per minute, and
+a throttled heartbeat falls off the edge of that window.  The count is correctly
+reporting what the freshness rule can see.
+
+Two things follow.  **Any headcount measured from a throttled tab is void** —
+not suspect, void; do not score it, do not average it, do not mention it as
+weak evidence.  And **this failure is now triggerable on demand**, so a future
+session can confirm in under a minute whether a strange count is the app or the
+rig, instead of arguing about it for an hour.
+
 ## What it does NOT explain
 
 Anomaly **1 (host roster split)** is not reachable this way.  Its signature is
@@ -149,6 +170,27 @@ but nothing about membership counts does.
   `document.visibilityState` stays `"visible"` for an unminimized window even
   when it is not the focused one; that is the whole trick.
 - Before starting, assert `document.hidden === false` in every window.
+
+> **THE AGENT CANNOT DO THIS, AND THE EARLIER WORDING BLAMED THE WRONG PARTY.**
+> This document used to read as though the 2026-08-11 rig was invalid because
+> the operator failed to tile.  That is not what happened.  The browser
+> extension drives a *tab group*, and a tab group lives in ONE window — the
+> instant a tab is pulled out into its own window it leaves the group and the
+> agent loses it entirely.  So "five separate windows" and "five windows the
+> agent can drive" are mutually exclusive with this tooling.  Every rig the
+> agent has ever actually had is five tabs in one window with four of them
+> throttled, which is exactly the recorded failure: all tabs `hidden`, rows
+> 150–180s stale, `activeRows() === 0`.  It is a **tooling constraint, not a
+> setup mistake**, and stating it the other way sends the next session hunting
+> for an operator error that does not exist.
+>
+> **What works instead.**  A screenshot does NOT focus a tab (checked:
+> `hidden` stays `true`, `hasFocus` stays `false` after a capture), so the
+> agent can never make a window visible by itself.  But `javascript_tool`
+> executes in BACKGROUND tabs.  So drive the other participants from the
+> background through JS and let a human focus only the ONE window whose timers
+> are being measured.  Better still, prefer assertions that do not depend on
+> visibility at all — see the flag-vs-render rule in METHOD.
 - Record each slot's auth token `expires_at` at the top of the run.  Tokens are
   one hour; a 45-minute run started 20 minutes after sign-in will die mid-show
   and it will look like a bug.
@@ -177,7 +219,7 @@ thirteen above.
 | 4 | question reaches host only | **DEAD** — the target sees his own question.  `fix/question-truth` holds in prod. |
 | 8 | winner photo black | **DEAD** — a real photo on the winner card, confirmed in two windows. |
 | 10 | backstage clock skew | **DEAD** — both sides render the same number off one shared deadline. |
-| 13 | offerer waits on a ghost | **PARTIAL** — see below. |
+| 13 | offerer waits on a ghost | **DEAD** — both halves, the second one live at `b0811.2124` on 2026-08-12.  See below. |
 | 1, 2, 11 | host roster split, evaporating bench, count flapping | **UNREACHABLE BY THIS RIG** |
 | 5, 6, 7 | her call, chair mislabel, spectator ejected | **NOT REACHED** — live-reachable, simply not reached in this run |
 | 9, 12 | hearts materialising, rejoin loses video | **NEEDS A RIG THAT DOES NOT EXIST** — see below |
@@ -217,6 +259,37 @@ Gate 44 asserts that she is **told**, which is exactly the half that was right.
 A harness gate written against the half you already understand cannot fail on
 the half you don't.  This is the clearest argument in this document for keeping
 a live run in the loop.
+
+### And then the waiting half died too — live, 2026-08-12
+
+PR #44 unfenced `bsGoodnight`, gate 45 pinned it, and the harness went green.
+That is confidence about a double, not about production.  So it was driven on
+the real build, against real Supabase and real realtime, host and winner both
+backstage and both in the call:
+
+```
+BEFORE (her side)  clockOn true · room da7e5100 · chipOn true · clockText 2:18 · backstage true
+   he clicks #bs_leave  →  his side: backstage closes, BS_STATE.room null
+AFTER  (her side)  clockOn FALSE · room NULL · chipOn FALSE · backstage FALSE
+                   winnerWaiting true · clockText frozen at 2:09
+                   toast "They slipped out into the night.  Last call.  Goodnight ✦"
+   identical across 8 samples, still identical at +71s — no interval survived
+```
+
+**#13 is DEAD in both halves.**  The telling was fixed by PR #41, the waiting by
+PR #44, and both are now confirmed outside the harness.
+
+**Why this reading survives a hidden tab, which is the part worth keeping.**
+Her window was throttled for the whole measurement.  That would have destroyed a
+*text-based* reading — and it is the trap this run came closest to falling into,
+because a throttled interval that never fires is indistinguishable from a clock
+that stopped, and it would have "confirmed" PR #44 for entirely the wrong
+reason.  A false green is worse than a false red: nobody re-checks a pass.  The
+escape is that `clockOn` and `BS_STATE.room` are flags the app *sets in code*,
+not values an interval *renders*.  A throttled interval leaves `clockOn` **true**
+and the text stale; what was measured was `clockOn` going **false** and `room`
+going **null** — the opposite signature.  The frozen `2:09` is the throttle.
+The `false` and the `null` are the fix.
 
 **Owner ruling, 2026-08-11: the clock stops.**  An empty winner's room running a
 three-minute countdown is the room lying to her.  `bsGoodnight` fires on
@@ -270,6 +343,38 @@ Practical form:
 
 A wrong finding is more expensive than a missing one: it gets a branch, a gate,
 and a merge before anyone checks it.
+
+**The third rule, from the 2026-08-12 run: measure the flag the app SETS, never
+the value an interval RENDERS.**
+
+This is what makes a live reading survive a rig you cannot fully control, and it
+is the difference between validating a fix and appearing to.
+
+A hidden tab throttles `setInterval` toward one call per minute.  So an interval
+that never fires and a countdown that was deliberately stopped look identical on
+screen — both show a number that is not moving.  Score the screen and a
+throttled tab hands you a **false green** on exactly the fix you came to
+validate.  That is the worse direction: a false red gets re-run, a false green
+gets believed and built on.
+
+The two are trivially separable at the state layer, because they have opposite
+signatures:
+
+| | `clockOn` | rendered text |
+|---|---|---|
+| throttled interval | still **true** | stale |
+| genuinely stopped | flipped **false** | stale |
+
+So: assert on `BS_STATE.clockOn`, on `BS_STATE.room` going `null`, on a class
+being removed — things a line of code changed.  Treat rendered text and
+screenshots as corroboration, never as the measurement.  Stated generally:
+
+- **A flag is evidence.  A rendering is a symptom.**
+- If an assertion would still pass when the tab is merely asleep, it is not an
+  assertion.
+- When a rig limitation cannot be removed, look for the reading it cannot
+  corrupt — that is usually cheaper than fixing the rig, and it is what let
+  #13's second half be scored from a throttled window with no asterisk.
 
 **The second rule the same run produced: verify state from a source that does
 not depend on the tool that reported it.**

@@ -52,10 +52,13 @@ record of what actually happened in front of five browsers.
 >   `DAILY && DAILY_JOINED`, so it is not reached at all unless the client is in
 >   the video call, which a grep can never notice.  **Now held by gate 47**,
 >   which ages the real watchdog and asserts he lands on the finale.
-> - **d3** (black winner photo) is *still* a source grep, and no runtime
->   assertion anywhere in the battery checks that the shipped photo is not
->   black.  Gates 7, 23 and 24 all reach the snap ceremony and assert the SCREEN
->   appears; none look at the pixels.  Logged, not fixed.
+> - **d3** (black winner photo) was a source grep too, and no runtime assertion
+>   anywhere checked that the shipped photo was not black — gates 7, 23 and 24
+>   all reach the snap ceremony and assert only that the SCREEN appears.
+>   **Now held by gate 48**, which decodes the rendered `<img class="winnerphoto">`
+>   and samples it.  Unlike d2 this was source-only **by CHOICE**: `WINNER_PHOTO`
+>   is exported nowhere, but the photo is *rendered*, so the shipped artifact
+>   was in the DOM the whole time.  Nothing was blocking the assertion.
 >
 > The lesson generalises past these two: when a gate cannot reach the state a
 > claim depends on, it does not fail — it silently downgrades to a source check
@@ -237,11 +240,12 @@ thirteen above.
 |---|---|---|
 | 3 | ghost row | **DEAD** — one "someone", "+1 IN LINE", one real benched man.  No contradiction. |
 | 4 | question reaches host only | **DEAD** — the target sees his own question.  `fix/question-truth` holds in prod. |
-| 8 | winner photo black | **DEAD** — a real photo on the winner card, confirmed in two windows. |
+| 8 | winner photo black | **DEAD** — a real photo on the winner card, confirmed in two windows, and since 2026-08-12 held by **gate 48**, which decodes the rendered image and samples it.  A regression lock, not a bug proof: it arrived green and its header says so. |
 | 10 | backstage clock skew | **DEAD** — both sides render the same number off one shared deadline. |
 | 13 | offerer waits on a ghost | **DEAD** — both halves, the second one live at `b0811.2124` on 2026-08-12.  See below. |
 | 1, 2, 11 | host roster split, evaporating bench, count flapping | **UNREACHABLE BY THIS RIG** |
-| 5, 6, 7 | her call, chair mislabel, spectator ejected | **NOT REACHED** — live-reachable, simply not reached in this run |
+| 5, 6 | her call, chair mislabel | **NOT REACHED LIVE, BUT GATED FOR REAL** — #5 is driven end-to-end by gate 19 (hearts seeded, clock armed, leader wins through `decide_keep`, beat lands, plus the tie case); #6 by gate 39's d1 runtime (the tap benches and the verb flips).  A live pass would confirm, not discover. |
+| 7 | spectator ejected | **DEAD IN THE HARNESS** — held by **gate 47** since 2026-08-12, which ages the real watchdog and asserts he lands on the finale.  Previously a source grep; see the note under the eight edges. |
 | 9, 12 | hearts materialising, rejoin loses video | **NEEDS A RIG THAT DOES NOT EXIST** — see below |
 
 **These three labels mean different things, and the first version of this table
@@ -254,10 +258,17 @@ not to bother trying.  Corrected here, and the correction is itself the point:
   addresses one tab group, inside which exactly one tab is ever visible.  No
   amount of additional live running fixes that.  A human watching several
   windows *can* score them; an agent driving them cannot.
-- **NOT REACHED** — #5, #6, #7.  Ordinary gaps.  #5 is observable from the host
-  window alone; #6 needs one player window in warm-up; #7 needs two windows and
-  one discipline rule (nobody touches the losers' windows at show end — the rule
-  this run broke).  Run longer and they get scored.
+- **NOT REACHED** — #5, #6, #7 were filed here, and on 2026-08-12 all three were
+  found to be genuinely covered in the harness after reading the gates rather
+  than the sentences about them (#5 by gate 19, #6 by gate 39's d1 runtime, #7
+  by the new gate 47).  A live pass would confirm them, not discover them.
+
+**WHAT A LIVE PASS STILL OWES, AS OF 2026-08-12: one thing.**  Not four.  The
+concurrent `line_position` mint order — whether three men benching within
+seconds of each other receive positions in the order the server saw them — is
+the only claim left that needs real rows, because the double mints from a local
+counter and can only replay the ordering a gate wrote.  See SPEC Q46.  That is a
+much smaller reason to book five windows than this table implied a day earlier.
 - **NEEDS A RIG THAT DOES NOT EXIST** — #9 and #12's transport half.  See the
   open questions at the end of this document.
 
@@ -396,6 +407,37 @@ screenshots as corroboration, never as the measurement.  Stated generally:
   corrupt — that is usually cheaper than fixing the rig, and it is what let
   #13's second half be scored from a throttled window with no asterisk.
 
+**The sixth rule: a production threshold and a gate threshold are different
+instruments.**
+
+Production must not refuse a genuinely dim room, so `startWinnerSnap` ships a
+photo if THREE sampled pixels are lit.  A gate must fail on the symptom, and a
+gate inheriting that same three passes on a 99%-black frame — which is anomaly
+d3 nearly intact.  Measured against the fixture the real answer was 243 of 243
+lit, so gate 48's bar is 50%: wide against a known fixture, still loud on black.
+
+This is the vacuous assertion wearing a number, and it is harder to spot than a
+missing field because it *looks* rigorous — there is a comparison, a constant,
+a unit.  Whenever an assertion borrows a threshold from the code it is testing,
+ask the only question that matters: **can this number still fail?**
+
+**The seventh rule: say in the header whether a gate was forged against a live
+bug or written against working code.**
+
+They are different evidence and a green battery hides the difference.  Gate 47
+was forged: the symptom was live, the branch was unreachable, and the red was
+real (with a note recording which part of that red was the missing export and
+which was the author's own short timeout).  Gate 48 was written against code
+that already worked — the fix was two waves old and a live run had confirmed it
+— so it is a REGRESSION LOCK, and its header says so in those words.
+
+Neither is worthless and neither is a substitute for the other.  A lock that has
+never been red is weaker evidence that the bug is dead; it is perfectly good
+evidence that the bug cannot come back quietly.  What is not acceptable is
+manufacturing a red by breaking the app to watch a gate fail: that proves the
+gate can detect damage you inflicted, which is not the claim anyone cares about.
+Say which kind it is and let the reader weigh it.
+
 **The fifth rule: a gate that cannot reach the state does not fail — it
 degrades to a grep, and the check count keeps climbing.**
 
@@ -415,8 +457,23 @@ The two that stood alone:
   a module-local `let`, so the branch could not be aged from a gate.  Fixed by
   exporting it and writing gate 47.
 - **d3, black winner photo** — source-only **BY CHOICE**: gates 7, 23 and 24 all
-  reach the snap ceremony and assert the screen appears; not one looks at the
-  pixels.  Runtime was available and nobody wrote it.  Still open.
+  reach the snap ceremony and assert the screen appears; not one looked at the
+  pixels.  Runtime was available and nobody wrote it.  **Closed by gate 48.**
+
+Both are now shut, and a follow-up re-check confirmed there is no third case:
+gate 41 looked like one (its `ahMigrateSlotKey` pin appeared unaccompanied to a
+script) but genuinely drives migration at runtime — it seeds a legacy key, calls
+the migrator, and asserts both that the key moved and that a live slot is never
+clobbered.  The script had missed it because the gate aliases `__lc` to `L`.
+**Read the gate, not a grep for the gate** — the same error one level up.
+
+One more shape worth naming, found while writing gate 48: **a threshold can be
+vacuous the way a missing field can.**  The first draft inherited the app's own
+bar — ship if three sampled pixels are lit.  That is correct for production,
+which must not refuse a genuinely dim room; as a *gate* it passes on a 99%-black
+frame, which is the d3 symptom nearly intact.  Measuring the fixture (243 of 243
+lit) and setting the bar at 50% made it an assertion again.  When an assertion
+borrows a production threshold, check whether the number can still fail.
 
 So the battery is not riddled with greps wearing a gate's clothes — the number
 is two, not twenty-four.  But the mechanism that produced those two is real, and

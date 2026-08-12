@@ -109,6 +109,16 @@ module.exports = {
       await waitFor(() => winner.page.evaluate(() => window.__lc.BS_STATE.clockOn), 8000, "the winner's clock — both in the call");
       await waitFor(() => host.page.evaluate(() => window.__lc.BS_STATE.clockOn), 8000, "the host's clock — both in the call");
 
+      /* WAIT FOR THE SECOND TILE, do not assume it.  `clockOn` flips as soon as
+         both parties are in the call, but mounting the remote <video> is a
+         separate async hop — so sampling the surface the instant the clock
+         starts is a race.  It passed in isolation and failed once under full
+         battery load at 45 gates (videos=1, live srcObject=1), which is the
+         worst kind of red: it points at the app and means the harness.
+         A flaky sanity check is more corrosive than a missing one, because it
+         teaches you to discount reds. */
+      await waitFor(() => winner.page.evaluate(() => document.querySelectorAll("#backstage video").length >= 2),
+        8000, "both tiles mounted on his side");
       const before = await winner.page.evaluate(SURFACE);
       t.ok(before.videos === 2 && before.liveSrc === 2,
         `fixture sanity: his room is genuinely live before he goes (videos=${before.videos}, live srcObject=${before.liveSrc})`);

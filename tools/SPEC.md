@@ -487,9 +487,31 @@ that, and only two of them are settled:
   answer this honestly: it mints positions from a local counter, so it would
   only be replaying the ordering the gate wrote.
 
-**What would settle it:** three live slots benching in a known order within a
-few seconds of each other, then reading the three rows.  It needs a third
-signed-in window, so it pairs naturally with the live pass that also owes
-#5, #6 and #7 — one run, four findings.  Until then, say "ordering verified in
-harness, column verified in production, concurrent minting order unverified"
-rather than "bench order is correct".
+**ANSWERED IN PART, 2026-08-12, from the database side rather than a rig.**
+
+- **Server-side — SETTLED.**  `join_line` sends only `{room_id}`.  The client
+  never supplies `line_position` anywhere; it reads it to sort and nothing else.
+  The client-supplied branch is closed outright.
+- **Re-entry — SETTLED, and the earlier guess was wrong.**  Measured on one man,
+  three states: bench → 250, leave the bench → `line_position` **null**,
+  re-bench → **251**.  He goes to the BACK of the queue, not to his old place.
+  The mechanism is that leaving runs `leave_room` then `join_room`, so the row
+  is deleted and recreated — the null is a new row, not a wiped column.  The
+  double models this correctly and its comment now says so.
+- **Sequence vs `max()+1` — STILL OPEN, and deliberately not guessed.**  Values
+  read 248 and 249 an hour apart in two DIFFERENT rooms, then 250 and 251 later,
+  so it is global and not per-room `max()+1`.  Consecutive with no gaps across
+  an hour mildly favours `max()+1` over the whole table, since a Postgres
+  sequence usually leaks gaps from rolled-back transactions — but on an instance
+  with no other traffic a sequence looks identical.  That is a hint, not a
+  proof.
+- **Concurrent mint order — STILL UNVERIFIED.**  The double mints from a local
+  counter, so it can only replay the ordering a gate wrote.
+
+**What would settle the remainder:** either the DDL for `line_position` (a
+database question), or three signed-in slots benching within the same second and
+then reading the three rows — a sequence cannot collide, application-level
+`max()+1` can, and a collision would be a real race and a better finding than a
+clean run.  Until then say "column and re-entry verified in production, ordering
+verified in harness, concurrent mint order unverified" rather than "bench order
+is correct".

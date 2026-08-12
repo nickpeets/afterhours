@@ -527,6 +527,32 @@ Two habits fall out of it, and both paid off the same night:
   more rigorous rather than less. Anticipating a failure mode is not the same
   as diagnosing one.
 
+**The eighth rule: a guess written as a comment survives every merge.  Only
+measuring kills it.**
+
+Fourth instance in this repo, and the one that got closest to shipping.  The
+double's `line_position` note said, in its own words: "NOT MEASURED: whether
+production re-mints on a SECOND bench entry — we mint only when null, which
+keeps his original place."  Production does the opposite: bench → 250, leave
+the bench → null, re-bench → 251.  He goes to the BACK of the queue.  The
+measurement happened AFTER the branch was bundled, so the guess rode through
+#51 into main and sat in the harness describing behaviour reality disproves.
+
+What makes this one worse than an ordinary stale comment is that it was
+HONEST.  It said NOT MEASURED, in capitals, which is exactly what this audit
+asks for — and it still misled, because a capitalised caveat does not survive
+being skimmed, and the sentence beside it reads as fact to the next session.
+
+- **Write the measurement, or write the question.  Never the guess.**
+  "Re-entry: unknown — needs three states read off one man" ages correctly.
+  "We mint only when null, which keeps his place" does not.
+- A guess needs no maintenance to become a lie: the code moves and the
+  sentence stays.  That is why all four instances were found by reading the
+  wiring, never by reading the prose.
+- If a branch is bundled before the thing is measured, the measurement belongs
+  in a follow-up commit ON THAT BRANCH — not in the next one, where it lands
+  against a tree that no longer matches what was measured.
+
 **The second rule the same run produced: verify state from a source that does
 not depend on the tool that reported it.**
 

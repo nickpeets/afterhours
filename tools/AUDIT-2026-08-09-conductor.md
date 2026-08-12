@@ -376,6 +376,45 @@ screenshots as corroboration, never as the measurement.  Stated generally:
   corrupt — that is usually cheaper than fixing the rig, and it is what let
   #13's second half be scored from a throttled window with no asterisk.
 
+**The fourth rule: assert what the person in the room would complain about,
+not what the diff did.**
+
+Three gates in one session asserted the change and missed the consequence, and
+that is not three coincidences — it is a property of writing a gate immediately
+after writing the fix, while the diff is still the most vivid thing in your head:
+
+| gate | asserted (what the diff did) | missed (what she would notice) |
+|---|---|---|
+| 44 | he is **told** | her clock kept running on an empty room |
+| 46 | the man is **seated** | the show stood still with him in the chair |
+| 46 | a tap counter that did not exist | nothing — it could not fail |
+
+The first two are the same shape as each other; the third is the degenerate
+case, an assertion with no possible failure. In every one, the thing asserted
+was true and the room was still broken.
+
+The correction is to write the assertion from the seat, not from the patch.
+She does not care that a row's `role` changed to `chair`; she cares that the
+night is moving. He does not care that his tile went to "waiting for…"; he
+cares whether anyone is coming back. Before a gate is finished, say out loud
+what the person on the other side of the screen would say if it passed and the
+feature were still wrong — then assert *that*.
+
+Two habits fall out of it, and both paid off the same night:
+
+- **Prefer the consequence to the mechanism.** "The show advances" survives a
+  refactor of how it advances. "`skip_phase` was called" does not, and it is
+  also the weaker claim.
+- **A pre-agreed explanation for a red gate is a reason to look harder, not a
+  licence to stop looking.** Gates 15 and 30 went red on the pick-window
+  branch and both the agent and the reviewing model had *already agreed in
+  advance* that a red there would be a contract change needing an amendment.
+  It was not — it was a real standstill caused by the fix. Taking the
+  pre-approved amendment would have converted a live bug into a documented
+  contract, with a rationale comment and a second signature making it look
+  more rigorous rather than less. Anticipating a failure mode is not the same
+  as diagnosing one.
+
 **The second rule the same run produced: verify state from a source that does
 not depend on the tool that reported it.**
 

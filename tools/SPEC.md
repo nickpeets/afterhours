@@ -469,3 +469,27 @@ the show actually runs on.  This is tuning, not a disease.  It is explicitly
 is already implemented (`pagehide`/`beforeunload` leave; `visibilitychange` does
 not), and one agent has already mistaken the stale comment above
 `bestEffortLeave` for a missing feature.  Measure before touching.
+
+**Q46 — do three men benching at once get `line_position` in the order the
+server saw them?**
+`fix/pick-window-autoseat` seats the longest-waiting benched man when the pick
+window expires, ordering by `line_position`.  Three separate claims sit under
+that, and only two of them are settled:
+
+- **Verified in production** — the column exists, is minted at BENCH ENTRY (not
+  room join), and increments globally.  Measured 2026-08-12, same man, two
+  readings: spectator `line_position null / joined_at 07:44:32`, benched
+  `line_position 249 / joined_at unchanged`.
+- **Verified in the harness** — gate 46 drives the expiry and curtain-up and
+  holds both to the same order, against rows whose positions the gate sets.
+- **UNVERIFIED** — that three men tapping the bench *concurrently* receive
+  positions in the order the server actually saw them.  The double cannot
+  answer this honestly: it mints positions from a local counter, so it would
+  only be replaying the ordering the gate wrote.
+
+**What would settle it:** three live slots benching in a known order within a
+few seconds of each other, then reading the three rows.  It needs a third
+signed-in window, so it pairs naturally with the live pass that also owes
+#5, #6 and #7 — one run, four findings.  Until then, say "ordering verified in
+harness, column verified in production, concurrent minting order unverified"
+rather than "bench order is correct".

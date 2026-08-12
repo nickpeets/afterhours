@@ -71,6 +71,12 @@ record of what actually happened in front of five browsers.
 8.  **d3** — winner snap photo is a black frame on every winner card; the finale
     snap capture races the video element.
 9.  **d4** — hearts self-materialized, 0 → 35 with nobody hearting.
+    **ANSWERED 2026-08-12 and the diagnosis was backwards.**  There is no
+    server-side seeder (no triggers, no autonomous writer — read from
+    production).  The CLIENT has four heart writers, `sendHeart()` inserts
+    `room_events` directly rather than through an RPC, and the 0 → 35 jump
+    is the ENTRY SEED repainting a backlog.  Gate 39's d4 pin said the
+    opposite and could not fail; rewritten in `fix/heart-truth`.
 10. **d5** — backstage clock skew ~16s; each side runs its own 3:00.
 11. **d6** — watcher count flapping, 6 vs 1 across tabs within seconds.
 12. **d7** — mid-phase rejoin loses all video; b re-entered during her call and
@@ -552,6 +558,37 @@ being skimmed, and the sentence beside it reads as fact to the next session.
 - If a branch is bundled before the thing is measured, the measurement belongs
   in a follow-up commit ON THAT BRANCH — not in the next one, where it lands
   against a tree that no longer matches what was measured.
+
+**The ninth rule: a runtime assertion over a scene that never enters the path
+is a grep with better manners — and it hides better than a grep.**
+
+Gate 39's d4 asserted `!D.events.some(e => e.type === "heart")` and concluded
+"the client contains no heart writer".  The scene it ran was a seating flow that
+never taps a tile and never opens the draft, so the code it cleared was never
+executed.  The assertion could not fail.  Production later proved the conclusion
+false in both directions: there is no server-side seeder, and the client has
+FOUR heart writers.
+
+**Why this one matters more than the two the fifth rule found.**  Yesterday's
+audit swept the battery for source-only assertions and reported "two greps
+standing alone, not twenty-four", which read as *the battery has been cleared*.
+It had not been.  That audit filtered on **source-only**, and this assertion is
+**runtime** — it drives a real page, reads real state, and passes the filter
+while being exactly as empty.  The number was right and the reassurance it
+carried was wrong.
+
+- **Ask what the scene ENTERS, not what the assertion reads.**  A `t.ok` over
+  live state proves nothing if the scenario never reaches the code.
+- **Universal negatives need a scene that could produce the positive.**  "No
+  hearts were written" is only evidence if something in that scene *could* have
+  written one.  Otherwise it is a tautology with a page attached.
+- **Say the scope in the message.**  "A full seating flow wrote zero hearts" was
+  true; the clause after the dash — "the client contains no heart writer" — was
+  a conclusion the scene did not support.  Assertions that smuggle a conclusion
+  past their own scope are how a battery lies while every line in it is true.
+- And the corollary for anything that asks *does the client do X?*: **search
+  direct table writes as well as RPCs.**  `sendHeart()` was invisible to a
+  production search of database functions because it never calls one.
 
 **The second rule the same run produced: verify state from a source that does
 not depend on the tool that reported it.**

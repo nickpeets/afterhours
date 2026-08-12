@@ -467,16 +467,47 @@ tapping.
   client contains no heart writer" over a seating flow that never taps a tile
   and never opens the draft.  See METHOD rule 9.
 
-**STILL OPEN, and it is a rate question rather than a source question:** whether
-observed write rates (70 rows in 47s from one client; 427 rows from another
-across a session) are people hammering a surface where every tile is a heart, or
-a caller I have not found.  No path in the client fires more than once per tap —
-every binding is `el.onclick =`, which replaces rather than accumulates, and
-`#hero_chair` is a sibling of the suitor chairs, not their parent, so nothing
-bubbles into two handlers.  **What would settle it:** the distribution of
-inter-write gaps for one writer in one room.  Clustering at 1.00s or 4.00s means
-the app is writing (the tally poll and the roster poll); any other fixed period
-means a timer; an irregular spread with a floor near 150ms means a person.
+**THE RATE QUESTION IS ALSO SETTLED, 2026-08-12, and it was a person.**  Read
+directly from production through the app's own session, not asked of anyone:
+room `4b7dcab5` is ONE writer, 70 rows, 46.6 seconds.  The gaps between
+consecutive writes are
+
+    2.48  0.87  0.40  0.25  1.44  1.27  2.06  1.16  0.77  0.18  1.63  2.75
+    1.16  0.70  3.35  then a sustained run at 0.19–0.29 with the odd 0.51
+
+which is a person deciding, and then a person hammering at roughly four taps a
+second.  **Nothing sits at 1.00s or 4.00s** — the two cadences the app itself
+runs (`egStartTallyPoll` at 1000ms, the roster poll at 4000ms) — and nothing is
+periodic at all.  A timer is exact; a render loop is locked to a render; this
+warms up, varies, and floors at ~0.18s, which is a thumb.  Two smaller rooms
+show the same signature (16 rows in 5.3s, 11 in 7.4s, floors ~0.2s).
+
+So d4 is closed on three instruments that each prove a different thing: **no
+server writer** (production function and trigger read), **four client writers all
+bound to real taps and none firing twice** (source, then gate 39 at runtime), and
+**a human tapping rate** (production timestamps).  The remaining surprise is a
+design one rather than a defect: the whole stage is a heart button — her tile,
+every chair, every bench lane — so a person fiddling with the screen writes a
+heart nearly every time they touch it.
+
+**Q61 — how much of the database's vocabulary reaches a stranger's screen?**
+Found while fixing rank 1.1 (the "tell Nick" string).  That string was the only
+user-facing text naming the operator, and it is gone with a universal negative
+holding it (gate 49).  But the same scan turned up **22 sites** that interpolate
+a raw `error.message` straight into `textContent` or `toast()` — "Seat failed:
+…", "Couldn't go live: …", "Couldn't join line: …".  Most of the time the reason
+is harmless; when it is a Postgres or RLS message it is unreadable to a guest and
+it looks like the app is broken open.
+
+Deliberately **not** rewritten tonight: 22 strings is a wide change with real
+regression surface on paths gates cover only partly, made hours before a trial
+night, and the failure it prevents is embarrassment rather than breakage.
+
+**What would settle it:** a single house rule and one pass — the person sees what
+to DO, `console.log` keeps the reason, and gate 49's DOM assertion (the raw
+reason appears nowhere a person can read) extended from the setup card to every
+sink.  Worth doing *after* the trial night, when the list of strings people
+actually hit is evidence rather than a guess.
 
 **Q12 — does a mid-phase rejoin lose video on a REAL transport?**
 Anomaly d7.  Gate 39 covers the reattach *logic* — `videoJoin`'s fast-path guard

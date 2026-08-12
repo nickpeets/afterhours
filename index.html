@@ -1119,7 +1119,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0812.1545</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0812.2107</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1616,7 +1616,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b0812.1545"); }catch(e){}
+try{ console.log("[lastcall] build b0812.2107"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2021,8 +2021,16 @@ $("set_go").onclick=async()=>{
     try{ localStorage.setItem("lc_prefs_pending", JSON.stringify({birthdate:bday,gender:gsel,seeking:ssel})); }catch(e){}
     ({data:saved,error}=await sb.from("profiles").upsert({id:ME.id,zip_code:zip,radius_miles:radius,expand_ok:expand}).select("zip_code").single());
   }
-  if(error){ err.textContent="Couldn't save: "+error.message; return; }
-  if(!saved || saved.zip_code!==zip){ err.textContent="Save didn't stick (permissions?) — tell Nick."; return; }
+  if(error){ console.log("profile save:",error.message); err.textContent="That didn't save. Check your signal and tap Save again."; return; }
+  /* RANK 1 COPY RULE (pre-trial-night): a stranger in the first sixty seconds
+     must never be handed the operator's name or the database's vocabulary.
+     This line used to blame permissions and end by naming the operator, which
+     is fine among friends and mortifying in front of someone who has never
+     seen the app.  (The old text is not quoted here on purpose: gate 49
+     asserts the operator's name appears NOWHERE in this file, and a comment
+     quoting the string would defeat its own fix.)  The raw reason still goes to the console, where the
+     person debugging can read it; the screen says what to DO. */
+  if(!saved || saved.zip_code!==zip){ console.log("profile save: write did not stick"); err.textContent="That didn't save. Tap Save once more — if it still won't stick, close this and open the link again."; return; }
   MYPROFILE={...MYPROFILE,zip_code:zip,radius_miles:radius,expand_ok:expand};
   $("setup").style.display="none";
   enterApp();

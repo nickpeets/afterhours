@@ -81,10 +81,20 @@ class BackendDouble {
      the double carries line_position with production's semantics, and the
      ONE derivation of bench order reads it.
 
-     NOT MEASURED: whether production re-mints on a SECOND bench entry (leave
-     the bench, come back).  We mint only when null, which keeps his original
-     place; if production sends him to the back instead, this is the line that
-     is wrong.  Logged in SPEC.md rather than guessed at. */
+     MEASURED SINCE (2026-08-12), and the earlier guess here was wrong.  This
+     comment used to say "NOT MEASURED: whether production re-mints on a SECOND
+     bench entry — we mint only when null, which keeps his original place".
+     Production does the opposite: bench → 250, leave the bench → line_position
+     NULL, re-bench → 251.  A man who steps off and comes back goes to the BACK
+     of the queue.
+     The mechanism is why, and it is tidier than "the field is cleared":
+     leaving the bench runs leave_room then join_room, so the ROW IS DELETED AND
+     RECREATED — the null is a new row, not a wiped column.  This double already
+     models that (leave_room splices, join_room re-adds with null), so the two
+     versions behave identically on every path that exists today.  Minting
+     unconditionally is kept anyway because it states the measured intent and
+     stays correct if a direct chair-to-bench path is ever added that does not
+     round-trip through leave_room. */
   addMember(room_id, user_id, role, { seat_index = null, ageMs = 0, line_position = undefined } = {}) {
     const row = {
       id: nid("m"), room_id, user_id, role, seat_index,
@@ -230,8 +240,10 @@ class BackendDouble {
         if (this.events.some((e) => e.room_id === a.room_id && e.type === "pass" && e.payload?.target_user === uid))
           throw new Error("passed — cannot rejoin the line");
         row.role = "line"; row.last_seen = this.iso();
-        /* minted at BENCH ENTRY, never on room join — see addMember's note */
-        if (row.line_position == null) row.line_position = this.nextLinePosition();
+        /* Minted AT BENCH ENTRY, never on room join, and minted AFRESH every
+           time — a man who steps off the bench and comes back goes to the BACK
+           of the queue.  Measured, not assumed; see addMember's note. */
+        row.line_position = this.nextLinePosition();
         this.emit("room_members", "UPDATE", { ...row });
         return null;
       }

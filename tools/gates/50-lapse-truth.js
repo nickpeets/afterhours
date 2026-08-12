@@ -117,14 +117,23 @@ module.exports = {
         const tile = document.querySelector('#rt_chairs [data-heartuid="u_a"]');
         return {
           tileExists: !!tile,
+          tileAway: !!(tile && tile.classList.contains("is-away")),
           tileText: tile ? (tile.textContent || "").trim().slice(0, 120) : "",
           chairsText: (document.getElementById("rt_chairs").textContent || "").replace(/\s+/g, " ").trim().slice(0, 400),
         };
       });
-      t.ok(/away|stepped|back in a|paused|dark|lost him|reconnect/i.test(her.chairsText),
-        `CHAIR: his absence is LEGIBLE to her — the chair says he is away rather than emptying itself in silence. Her chairs read: ${JSON.stringify(her.chairsText)}`);
-      t.ok(her.tileExists,
-        "CHAIR: the man is still ON her screen while he is away — passing him must be a decision she makes about a person she can see, not a seat that quietly went blank");
+      /* ONE ARTIFACT, deliberately.  The first draft of this check accepted any
+         of away|stepped|paused|reconnect — a synonym list, which is a gate that
+         passes on whichever word somebody happens to type and fails to say what
+         the app should DO.  That is the vacuous shape wearing different clothes.
+         The artifact is: the seated man's chair tile carries `is-away`, and the
+         card says AWAY.  Nothing renders that today; naming it is the point. */
+      t.ok(her.tileAway,
+        `CHAIR: her chair tile for him carries the is-away state — one named artifact, not a list of words that might mean it (tile present=${her.tileExists}, is-away=${her.tileAway})`);
+      t.ok(/\bAWAY\b/.test(her.chairsText),
+        `CHAIR: the card says AWAY in her own row of chairs, so the absence is readable at a glance. Her chairs read: ${JSON.stringify(her.chairsText)}`);
+      t.ok(her.tileExists && !/OPEN CHAIR/.test(her.tileText),
+        `CHAIR: his seat is NOT advertised to the crowd while he sits there — an OPEN CHAIR card in his place is the room soliciting a replacement for a man who never left (tile present=${her.tileExists}, tile reads ${JSON.stringify(her.tileText)})`);
 
       /* ---------- BENCH: does the glance cost him his turn? ---------- */
       /* He unlocks.  visibilitychange → visible is the app's own recovery

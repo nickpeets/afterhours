@@ -532,6 +532,70 @@ an owner's call about what the signal is for, not a bug to be gated.
 the people in the room, it is a feature.  If someone says "I didn't mean to do
 that" — even once — it is a control problem, and *that sentence* is the finding.
 
+**Q63 — what does a locked phone actually cost, and what is the sweep
+threshold really?  OBSERVED LIVE 2026-08-12, gated RED as gate 50.**
+The owner watched a guest's phone lock and the guest come back OUT of the room.
+Gate 50 reproduces it and fails on purpose, 6 of 10:
+
+- **BENCH — he is not sent to the back of the queue, he is taken off the bench.**
+  Measured in the harness: `role=spectator`, `line_position` was 201, **now
+  null**.  He would have to notice and re-join the line himself, which is what
+  then mints him a new position at the back.
+- **CHAIR — the seat does not merely empty, it is ADVERTISED.**  Her screen
+  renders three `OPEN CHAIR` cards while he sits there with a dark screen: the
+  room soliciting a replacement for a man who never left.  No away state, no
+  dimming, no trace of him.
+
+**The mechanism is client-side and deliberate.**  On `visibilitychange` →
+visible, when the beat returns and he is no longer in members — exactly what a
+swept row does — the app runs `leave_room` then `join_room`, which deletes the
+row and recreates it as a spectator.  That is the same `leave_room`/`join_room`
+pair whose re-entry semantics Q46 measured.
+
+**THE NUMBER IS UNVERIFIED AND EVERYTHING LEANS ON IT.**  45s appears in exactly
+one place of authority: a client comment (`45s sweep window / 8s = 5 beats of
+margin`).  The harness copied it into `SWEEP_MS`, and the double's own header
+admits its rules were "derived from reading index.html, not from a spec."  So a
+guess in a comment became a constant in the test rig — METHOD rule 8, one layer
+out.  For scale: **a spotlight is 30s and the host-pick window is 20s**, so if 45
+is right the sweep is 1.5 spotlights and 2.25 pick-windows, and a glance at a
+text costs a man the entire window in which she picks the next man off the bench.
+
+**Not reachable by any session.**  PostgREST serves tables and RPCs, never
+catalog objects: `/rest/v1/pg_proc` returns 404.  A function *body* is not a
+thing RLS can be argued with — the row-level trick that answered Q9 does not
+apply.  It needs the SQL editor.
+
+**ONE PASTE, NO ROUND TRIPS.**  Read-only, and it answers the threshold, the
+minting rule and the re-entry semantics together:
+
+```sql
+-- 1. every function whose body mentions the sweep or the line
+select p.proname, pg_get_functiondef(p.oid) as body
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and (p.proname in ('sweep_stale_members','active_members','join_room',
+                     'leave_room','join_line','heartbeat')
+       or pg_get_functiondef(p.oid) ~* 'interval|last_seen|line_position');
+
+-- 2. the column's own rule: default, identity, or nothing
+select column_name, column_default, is_identity, identity_generation, data_type
+from information_schema.columns
+where table_name = 'room_members'
+  and column_name in ('line_position','last_seen','role','seat_index');
+
+-- 3. anything scheduled (a cron sweep looks different from a read-time filter)
+select * from cron.job;   -- errors harmlessly if pg_cron is not installed
+```
+
+**What each answer settles.**  A literal `interval '45 seconds'` (or any other
+number) in query 1 turns the comment into a fact and gives the value to compare
+against the 30s spotlight.  If the sweep is a *read-time filter* inside
+`active_members` rather than a writer, then nothing is ever marked `gone` on a
+schedule and the harness's `sweep_stale_members` models a job that does not
+exist.  Query 2 says whether `line_position` is a sequence, a `max()+1` default,
+or minted in function bodies — which also closes the last third of Q46.
+
 **Q12 — does a mid-phase rejoin lose video on a REAL transport?**
 Anomaly d7.  Gate 39 covers the reattach *logic* — `videoJoin`'s fast-path guard
 reading a dying call's state while the leave was in flight.  It cannot cover the

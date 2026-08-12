@@ -509,6 +509,29 @@ reason appears nowhere a person can read) extended from the setup card to every
 sink.  Worth doing *after* the trial night, when the list of strings people
 actually hit is evidence rather than a guess.
 
+**Q62 — is a stray touch supposed to be a vote?  (PRODUCT, not a defect.)**
+Found while closing Q9, and it is the sharpest thing that came out of it.  **The
+entire stage is a heart button**: her tile (`hero_chair`), every suitor chair
+(`.heart-tap`), every bench lane (`.lc-lane`), and the draft-storm buttons.  A
+guest who touches the screen for any reason — steadying the phone, tapping a face
+to see it better, double-tapping out of habit — writes a heart.  Measured in
+production: one person at roughly **four taps a second**, 70 rows in 47 seconds.
+
+That is working as built, and the copy invites it ("bang the hearts").  The
+question is what it MEANS, because hearts are not decoration: they are the
+crowd's signal to the host, and the draft's top-hearts branch can seat a man on
+them.  So a stray touch is currently indistinguishable from a vote, and five
+strangers holding phones will produce counts nobody intended.
+
+**Deliberately not solved.**  Every fix has a real cost — a press-and-hold costs
+the hammering the show is built around; a cooldown makes an enthusiastic room
+feel broken; making her tile inert removes the one gesture aimed at her.  This is
+an owner's call about what the signal is for, not a bug to be gated.
+
+**What would settle it:** the trial night.  If the counts read as enthusiasm to
+the people in the room, it is a feature.  If someone says "I didn't mean to do
+that" — even once — it is a control problem, and *that sentence* is the finding.
+
 **Q12 — does a mid-phase rejoin lose video on a REAL transport?**
 Anomaly d7.  Gate 39 covers the reattach *logic* — `videoJoin`'s fast-path guard
 reading a dying call's state while the leave was in flight.  It cannot cover the

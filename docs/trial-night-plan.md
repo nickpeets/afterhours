@@ -163,6 +163,35 @@ Same 90-second lock as SNAP 3, with two devices instead of five.
 
 ---
 
+## The rehearsal debrief — three capture rules, not a form
+
+The rehearsal's findings are worthless if they live in Nick's head.  That is the
+same disease as the thirteen anomalies, which existed only in a chat log until
+yesterday.  Three rules, each a single artefact, each written **during** the
+sitting rather than after:
+
+1. **The stranger's own sentences, verbatim.**  Not a summary of his confusion —
+   the words.  "Wait, why does it want my zip?" is evidence; "he was confused by
+   the zip step" is an opinion about evidence.  Anything he says out loud while
+   nobody is helping him gets written down as spoken, in quotes.  Count how many
+   times you *wanted* to explain something and write the number down; the count
+   is the result of item (a), not a feeling about it.
+2. **One screenshot per named moment, from the phone that saw the problem.**  For
+   the denied camera: the room as it looked with the host dark.  For the lock: his
+   screen at wake-up and one other person's at the same moment.  Same rule as the
+   SNAP — uncropped, taken immediately, especially if it looks wrong.
+3. **The verdict sentence for each item, written before you sleep on it.**  Each
+   of the three rehearsal items has a don't-book-yet condition above.  Write BOOK
+   or DON'T BOOK against each one, plus the single sentence that decided it.
+   Three lines total.  If an item is genuinely ambiguous, that is DON'T BOOK, and
+   the sentence says why it was ambiguous.
+
+That is the whole debrief: quotes, a handful of screenshots, three verdict lines.
+It should take five minutes and it is enough for a session that was not in the
+room to pick the work up cold tomorrow.
+
+---
+
 ## What this plan deliberately does not do
 
 - **No running logs, no timers, no note-taking.** Anything that needs sustained

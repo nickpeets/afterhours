@@ -438,15 +438,45 @@ here so nobody re-derives them, and so nobody mistakes them for work in flight.
 None of them is a licence to change behaviour: each names what evidence would
 close it.
 
-**Q9 — where do hearts come from when nobody is hearting?**
+**Q9 — where do hearts come from when nobody is hearting? — ANSWERED
+2026-08-12.**
 Anomaly d4 of the b0809.1727 conductor run: hearts went 0 → 35 with nobody
-tapping.  Gate 39 has already pinned the CLIENT as containing no writer, which
-narrows this rather than answering it.  The remaining suspect is a **server-side
-seeder** — a trigger, a default, a backfill, or a demo fixture on the Supabase
-side.  **What would settle it:** a query against the hearts/room_events tables
-during a live show with no taps, plus a read of the table's triggers and
-defaults.  That is a database question, not a browser question, and no harness
-gate can reach it.  Do not "fix" a client that has been shown not to write.
+tapping.
+
+- **No server-side seeder exists.**  Read from the production database: zero
+  triggers on `room_events` or `room_members`; every heart-adjacent function is
+  either `draft_heart` (client-called) or a read (`heartbeat`, `resolve_draft`,
+  `get_draft_tallies`, `get_draft_view`, `engine_award_seat`,
+  `engine_open_draft`).  Nothing writes hearts autonomously.
+- **The client has FOUR heart writers, not zero.**  Every suitor chair, the
+  `hostctl` fallback, every bench lane, and the host's own tile all call
+  `sendHeart()`; the draft storm calls `draft_heart`.  The stage IS the heart
+  button, by design.
+- **`sendHeart()` bypasses RPC entirely** — it does
+  `sb.from("room_events").insert({type:"heart", …})`.  That is why searching
+  database *functions* came back clean: there was no function to find.  Any
+  future "does the client write X?" question must search direct table writes as
+  well as RPCs.
+- **The 0 → 35 jump is the ENTRY SEED, not a writer.**  `loadRoomState` reads
+  every prior `room_events` row (limit 200) and repaints the tallies in one
+  lump, so a client arriving mid-show sees the whole backlog appear at once
+  having tapped nothing.  Gate 39's d4 now drives exactly that: a tap writes one
+  row, a self-tap writes none, and a late arrival paints two hearts while
+  writing zero.
+- **What gate 39 used to say was wrong, and could not fail.**  It asserted "the
+  client contains no heart writer" over a seating flow that never taps a tile
+  and never opens the draft.  See METHOD rule 9.
+
+**STILL OPEN, and it is a rate question rather than a source question:** whether
+observed write rates (70 rows in 47s from one client; 427 rows from another
+across a session) are people hammering a surface where every tile is a heart, or
+a caller I have not found.  No path in the client fires more than once per tap —
+every binding is `el.onclick =`, which replaces rather than accumulates, and
+`#hero_chair` is a sibling of the suitor chairs, not their parent, so nothing
+bubbles into two handlers.  **What would settle it:** the distribution of
+inter-write gaps for one writer in one room.  Clustering at 1.00s or 4.00s means
+the app is writing (the tally poll and the roster poll); any other fixed period
+means a timer; an irregular spread with a floor near 150ms means a person.
 
 **Q12 — does a mid-phase rejoin lose video on a REAL transport?**
 Anomaly d7.  Gate 39 covers the reattach *logic* — `videoJoin`'s fast-path guard

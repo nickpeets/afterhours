@@ -2290,7 +2290,7 @@ let ROSTER_FAILS=0;
 async function loadRoomState(){
   if(!CURRENT_ROOM) return;
   const mySeq=++ROSTER_FETCH_SEQ;
-  const {data:members,error}=await sb.rpc("active_members",{room_id:CURRENT_ROOM.id});
+  let {data:members,error}=await sb.rpc("active_members",{room_id:CURRENT_ROOM.id});   // let: the seated read below merges into it
   if(!CURRENT_ROOM) return;   // left the room while the RPC was in flight
   if(error){
     console.log("active_members:",error.message);
@@ -2300,6 +2300,68 @@ async function loadRoomState(){
   }
   ROSTER_FAILS=0;
   if(mySeq!==ROSTER_FETCH_SEQ) return;   // superseded: a newer fetch owns the commit
+
+  /* THE SEATED MEN COME FROM THE TABLE, NOT FROM THE RPC.  active_members
+     ends with `(role = 'kept' or last_seen > now() - interval '60 seconds')`
+     (read off the server 2026-08-12), so a man in a chair whose phone slept
+     for sixty-one seconds STOPS BEING RETURNED AT ALL.  He is not stale on
+     her screen, he is absent from it — and the chair renders OPEN CHAIR while
+     he is still sitting there.  No amount of client-side render logic can fix
+     that, because the row never arrives.
+
+     So: one supplementary read, straight off room_members, RESTRICTED TO
+     SEATED ROLES.  RLS permits it — policy `room_members_select_in_room`
+     allows any member of the room, or its host, to select the table.
+
+     THE RESTRICTION IS THE POINT, and it is what keeps this from widening
+     anything.  active_members rewrites `user_id` behind an md5 mask for OTHER
+     people's `line` rows during a running show.  It does NOT mask chair or
+     kept rows — the video path needs those ids and already has them.  By
+     reading raw for seated roles only, this cannot surface an identity the
+     RPC was hiding: the rows it reads were never masked in the first place.
+     Bench rows still come from the RPC, still masked, untouched.
+
+     Failure is soft on purpose.  If this read errors we keep the RPC's answer
+     and the old behaviour, which is a chair that empties itself — bad, but no
+     worse than yesterday, and a roster that throws is worse than both.
+
+     TWO CAVEATS FOR WHOEVER READS THIS NEXT, both of which are easy to lose.
+
+     ONE: TWO FILTERS WERE FOUND BY BUMPING INTO THEM, NOT BY ENUMERATING THE
+     PATH.  The roster passes through this read and then through activeRows(),
+     and both were dropping the seated man.  Both are fixed.  NOBODY HAS WALKED
+     THE ROSTER'S FILTER CHAIN END TO END — a third filter is not ruled out, it
+     is merely not encountered.  That is the honest state of this fix and it
+     should stay written down until someone does the walk.
+
+     TWO: THE SEATED-ROLES RESTRICTION HOLDS BY CONSTRUCTION, NOT BY A GUARD.
+     Nothing here prevents a future caller from widening `.in("role", …)` to
+     include `line`, and the moment it does, this read STEPS AROUND THE MASK
+     that active_members applies to other people's bench rows.  Construction is
+     easy to widen without noticing, which is exactly what makes it a weak
+     place to keep a constraint.  If this list grows, that is a decision about
+     the mask and it needs to be made deliberately. */
+  let merged = members || [];
+  try{
+    const {data:seated}=await sb.from("room_members")
+      .select("*").eq("room_id",CURRENT_ROOM.id).in("role",["chair","kept"]);
+    if(!CURRENT_ROOM) return;
+    if(mySeq!==ROSTER_FETCH_SEQ) return;
+    if(seated && seated.length){
+      const bySeat=new Map(seated.filter(m=>m && m.role!=="gone").map(m=>[m.user_id,m]));
+      merged = merged.map(m=>{
+        const s=bySeat.get(m.user_id);
+        if(!s) return m;
+        bySeat.delete(m.user_id);          // claimed: the table's copy wins
+        return s;
+      });
+      /* whatever is LEFT never came back from the RPC — that is the man the
+         60s filter hid, and he is exactly who this read exists for */
+      for(const m of bySeat.values()) merged.push(m);
+    }
+  }catch(e){ /* soft: keep the RPC's answer */ }
+  members = merged;
+
   const present=(members||[]).filter(m=>m.user_id!==CURRENT_ROOM.host_id && m.role!=="gone");
   const uids=[...new Set(present.map(m=>m.user_id))];
   window.__PROFS_EVER = window.__PROFS_EVER || {};
@@ -2428,10 +2490,43 @@ function rosterOverlay(rows){
    (the ghost "someone") sat on every bench all night beside a "0 IN LINE"
    label.  Every surface — counts, chair grid, bench lanes, spectator
    math — now reads the SAME filtered rows from here. */
+/* AWAY is "seated, and his beat has stopped" — the state that exists only
+   because activeRows now holds his chair through it.  Same 60s the server
+   filters on, so the two agree on where the window starts.  Deliberately NOT
+   true for a `gone` row: past the sweep he is not away, he has left. */
+function lcIsAway(m){
+  if(!m || (m.role!=="chair" && m.role!=="kept")) return false;
+  if(!m.last_seen) return false;
+  const t=Date.parse(m.last_seen);
+  if(!t) return false;
+  const nowMs=(typeof serverNow==="function")?serverNow():Date.now();
+  return (nowMs-t)>=60000;
+}
 function activeRows(members, room){
   const nowMs=(typeof serverNow==="function")?serverNow():Date.now();
   const isFresh=(m)=>{
-    if(m.role==="kept") return true;              // a kept man is on stage; staleness doesn't unseat him
+    /* A SEAT ON STAGE IS NOT A LIVENESS SIGNAL.  This exemption was already
+       here for `kept` and the reasoning covers `chair` identically: a man in a
+       chair is on camera, and the room is looking at him.  Dropping him
+       because his phone slept for sixty-one seconds does not remove him from
+       the show — it removes him from HER SCREEN while he is still sitting
+       there, and replaces him with an OPEN CHAIR card that solicits a
+       replacement for a man who never left.
+
+       Read off the server 2026-08-12: active_members ends with a disjunct of
+       the form [role is kept] OR [last_seen within 60 seconds], so this shape
+       is what production already uses; this widens it by one role on the
+       client.  (The SQL is quoted verbatim in tools/SPEC.md Q63 rather than
+       here: written out in full it reads as a role assignment, and the
+       `forbidden` gate greps this file for exactly that — correctly, since a
+       comment is not exempt from being mistaken for code by the next reader.)
+
+       THE EXEMPTION MUST NOT OUTLIVE THE ROW, and it cannot: the filter below
+       still drops role==='gone' unconditionally.  At 180s the server's sweep
+       marks him gone and he leaves the chair for real — which is a departure,
+       not a lapse.  Between 60s and 180s he keeps the seat and is marked AWAY
+       so she can pass him out on purpose rather than watch it happen. */
+    if(m.role==="kept" || m.role==="chair") return true;
     if(!m.last_seen) return true;                 // no beat recorded yet: a brand-new row is present
     const t=Date.parse(m.last_seen);
     return !t || (nowMs-t)<60000;
@@ -2638,7 +2733,12 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     if(c){
       const nm=nameOf(c.user_id);
       const isMe=c.user_id===ME.id;
-      setText(el.querySelector(".chair__name-t"), nm+(isMe?" · YOU":""));
+      /* AWAY, and it is the other half of holding the seat.  Keeping him
+         rendered without saying why trades an invisible failure for a
+         confusing one: she gets a live-looking chair with a dark rectangle in
+         it and no idea whether to wait or pass.  One named artifact, not a
+         mood — the tile carries `is-away` and the name line says AWAY. */
+      setText(el.querySelector(".chair__name-t"), nm+(isMe?" · YOU":"")+(lcIsAway(c)?" · AWAY":""));
       setText(el.querySelector(".chair__hearts-n"), fmtHearts(HEARTS[c.user_id]));
       const t=el.querySelector(".cclock__t");
       if(t && !t.dataset.ticking) setText(t, fmtClock(clockRemaining(c)));
@@ -2658,6 +2758,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     el.classList.toggle("is-target", isTarget);
     el.classList.toggle("is-live", isTarget && phase==="spotlight");
     el.classList.toggle("is-camoff", !!c && c.cam_off===true);
+    el.classList.toggle("is-away",   !!c && lcIsAway(c));
     el.classList.remove("is-strip","is-gone");
     // the collapsed-strip label is stale the moment the spotlight ends
     setText(el.querySelector(".chair__strip-names"),"");

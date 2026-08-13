@@ -348,6 +348,48 @@ Both fixes shipped 2026-08-11 held in production, not merely in the harness:
 
 # METHOD — read this before running a live pass
 
+## THE TAB CONTRACT — standing rule, read before anything else
+
+Owner's rule, 2026-08-13, verbatim in force.  It sits above every other rule
+here because it governs whether any of them reach anyone.  It survives session
+resets; a chat does not.
+
+1. **NEVER MORE THAN THREE MINUTES SILENT.**  A one-line heartbeat: what you
+   are doing *right now*.  Not a report.  If a single tool call will run longer
+   than three minutes and you physically cannot post during it, say so BEFORE
+   you start it, with an estimate — *"reading four function bodies through the
+   dashboard, back in about ten minutes."*  **Silence is only acceptable when
+   it was announced in advance.**
+2. **AFTER EVERY POST, READ THE TAB BEFORE CONTINUING.**  The owner may have
+   ruled, corrected, or redirected while you were working.  Check for a new
+   instruction and follow it before proceeding with what you had planned.  **The
+   tab is the authority; your plan is not.**
+3. **POST BEFORE A SEQUENCE, NOT ONLY AFTER.**  What you are about to do, and
+   how long it will take.
+4. **POST AT EVERY CHECKPOINT** — every commit, every measurement, every read
+   that changes a conclusion.  Three conclusions reversed mid-stream on the
+   night this rule was written, and each was worth knowing immediately rather
+   than at the end.
+5. **POST WHEN BLOCKED, IMMEDIATELY, AND NAME THE KIND:** Codespace idled /
+   Chrome dropped / waiting on a ruling / waiting on the owner.  Four different
+   responses are needed and **silence looks identical for all of them.**
+6. **SHAPE, EVERY TIME: DID / OBSERVED (raw) / BLOCKED / NEXT.**
+7. **IF A RULING IS OUTSTANDING, SAY SO AND KEEP WORKING ON WHAT ISN'T
+   BLOCKED.**  Never idle waiting.
+
+**Why three minutes, in the owner's reasoning:** a gate is ~7s, a battery a
+couple of minutes, most browser sequences under two.  Three sits just above
+routine work, so **a breach means something**.  Below that it would fire
+constantly and get ignored.
+
+The failure this rule exists to kill is not slowness — it is an agent going
+dark for twenty minutes inside a chain of reasoning that had already turned out
+to be wrong twice, while the one party who could have stopped it sat watching a
+blank tab.  A finding held back until the end is a finding that arrived after
+the decisions it should have changed.
+
+---
+
 **On a live rig, establish the action before interpreting the pixels.**
 
 The 2026-08-11 run produced four confident findings that were all wrong, and
@@ -590,6 +632,34 @@ carried was wrong.
   direct table writes as well as RPCs.**  `sendHeart()` was invisible to a
   production search of database functions because it never calls one.
 
+**The tenth rule, and it is a workflow rule rather than an evidence one: RUN
+THE BATTERY WHERE YOU ARE.**
+
+The battery runs in the agent's own container.  `node tools/lib/run.js
+--only=<gate-name>`, Chromium already resolved at `/opt/pw-browsers/chromium`,
+one gate green in under seven seconds.  It had been assumed for days that gates
+could only run in the Codespace, so every gate was written blind, transferred
+through a lossy channel, and only then discovered to be wrong — with a full
+45-gate battery as the feedback loop.
+
+**The Codespace is for PUSHING, not for running.**  What it has that the
+container does not is a git credential; the git proxy refuses this repo from
+here, and that is the *only* thing it is needed for.  Those two facts were
+conflated, and the cost was measured in hours.
+
+- Write the gate locally.  Red it locally.  Green it locally.  Transfer ONCE,
+  when it says what you mean.
+- `--only=<name>` matches `gate.name`, not the filename — `--only=lapse-truth`,
+  not `--only=50`.
+- A gate that has never run is not a gate.  The local runner removes the last
+  excuse for landing one.
+
+The general shape, and the reason this sits in METHOD rather than a README: an
+environment limit that was real in one direction (no push) was assumed in every
+direction (no run).  Nobody tested the assumption because the workaround worked.
+**Ask what a limitation actually blocks, and test that boundary once, rather than
+building a workflow around its widest possible reading.**
+
 **The second rule the same run produced: verify state from a source that does
 not depend on the tool that reported it.**
 
@@ -616,6 +686,107 @@ bytes, which looks like a stale deploy short by 1171.  It was UTF-16 code
 units against UTF-8 bytes — the file's `♥ · — ’` are multibyte.  The deploy was
 byte-identical.  Comparing two numbers proves nothing until both are in the
 same unit.
+
+**The eleventh rule, which is the second rule turned around to face me: A
+RENDERING OF STATE IS NOT STATE, AND THAT NOW INCLUDES MY OWN TOOL OUTPUT.**
+
+Transferring a patch on 2026-08-12, two of thirty-eight base64 lines arrived
+401 characters long.  The known failure is that the Codespace terminal drops
+characters on long lines, so that is what it was recorded as — and it was
+wrong.  The terminal typed *exactly* what it was given.  The corruption was
+upstream, in the reading: a long-line shell output rendered `VyDVVcz` as
+`VyDVlVcz`, and the corruption was retyped faithfully, twice, before anyone
+thought to test it.  Confirmed by grepping the real file for both spellings —
+one hit, zero hits.
+
+The transfer discipline held.  **The reader failed.**  Rule 2 says do not trust
+a tool's report of what it did; this says do not trust a tool's rendering of
+what a file *contains* either, and the second is harder to remember because
+reading feels like looking rather than like being told.
+
+The standing rule, and it costs nothing:
+
+- **Source long payloads at 100 characters per line, not 400.**  The corruption
+  has only ever appeared on long lines.
+- **Per-line checksum at both ends.**  Compute the digest list where the file
+  is, compare it where the file is going, and name the mismatching line
+  numbers.  Two of thirty-eight were wrong and both were found in one pass.
+- **Verify the whole artifact after decode**, not just the transport.
+
+**Corollary to rule 11, and it cost two transfers in one night: A STALE
+TERMINAL LOOKS EXACTLY LIKE A SLOW ONE.**
+
+Both show you the previous command's output.  A terminal that has silently
+stopped accepting input renders perfectly — the prompt is there, the scrollback
+is there, and the only thing missing is any evidence that what you typed
+arrived.  Waiting longer does not distinguish them, and neither does taking
+another screenshot.
+
+**The discriminator is a command whose output could not possibly be the old
+one:** the branch name, a line count, a marker echo.  Ask for one thing you can
+tell apart, not for the state you were hoping to see.  On 2026-08-12 an entire
+25-line payload went nowhere and the screen looked completely normal; reading
+back `git rev-parse --abbrev-ref HEAD` and seeing the OLD branch is what caught
+it.
+
+The corollary to the corollary: this is why the per-line checksum matters more
+than it looks.  It makes a half-delivered payload **detectable** rather than
+dangerous.  An interrupted transfer is a nuisance; an interrupted transfer you
+cannot detect is a corrupted commit.
+
+**The twelfth rule, and it is the sharpest thing the 2026-08-12 run produced:
+A PROVENANCE LABEL IS NOT PROVENANCE.**
+
+`backend-double.js` carried three wrong things at once: a value (`SWEEP_MS` at
+45s, from a client comment), a relationship (the sweep firing *before* the
+freshness filter, which no one ever wrote down), and a semantic (`join_line`
+re-minting a man's place instead of keeping it).  The third was wearing this
+label:
+
+> a man who steps off the bench and comes back goes to the BACK of the queue.
+> **Measured, not assumed.**
+
+It was not measured.  It was the file describing itself.  The readings behind
+it were real — 250, null, 251, off production rows — but they were readings of
+a `leave_room`/`join_room` round-trip, generalised into a rule about re-entry
+that the server does not have.  The server says the opposite in a comment of
+its own: `-- FIFO line order: keep your place if you are already in line`.
+
+Three things make it worth a rule of its own:
+
+1. **It was a guess wearing the costume of the thing that would have caught
+   it.**  A line marked "assumed" invites a check.  A line marked "measured"
+   closes the question.
+2. **It propagated.**  "Back of the queue" went out as a finding to the
+   conductor on the strength of this comment, before the server was ever read,
+   and had to be retracted.
+3. **Its own refutation was in the next paragraph.**  The same comment went on
+   to say "the ROW IS DELETED AND RECREATED — the null is a new row, not a
+   wiped column," which is the correct mechanism sitting directly beneath a
+   conclusion it contradicts.  No new evidence was needed.  Nobody read to the
+   end of the comment they were quoting.
+
+The standing rule for the double, and for anything else that models a system
+it is not:
+
+- **Every behavioural claim is SOURCE or ASSUMED.  There is no third
+  category**, because the third category is where all three defects lived.
+- **SOURCE means the artifact and the date**: the function name, the column
+  rule, the cron row, read on a stated day.  "Matches production" is not a
+  source.
+- **ASSUMED is not a confession, it is a work item**, and it is cheap to write.
+  The dangerous label is the one that sounds finished.
+- **A double is a copy, not a reference.**  A copy that asserts its own
+  fidelity is the hardest kind of wrong to see, because the assertion is
+  indistinguishable from the evidence right up until someone reads the
+  original.
+
+The corollary for gates: a gate written against an unverified double inherits
+its fiction. `bench-order-truth` passed before and after `join_line` was
+corrected — not because it was robust, but because it injects `line_position`
+through fixtures and never calls `join_line` at all.  **It tested ordering and
+was named for it; the minting had no gate.**  A green battery is evidence about
+the paths it enters, and silence about the rest.
 
 ---
 

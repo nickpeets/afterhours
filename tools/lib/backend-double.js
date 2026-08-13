@@ -2,21 +2,43 @@
  *
  * Lives in NODE, not in the page: every browser client (host window, suitor
  * windows) talks to the SAME double through an exposed binding, so
- * multi-window flows exercise real shared state exactly like production
- * Supabase.  The in-page shim (supabase-shim.js) is a dumb transport; ALL
- * semantics live here.
+ * multi-window flows exercise real shared state rather than per-window mocks.
+ * The in-page shim (supabase-shim.js) is a dumb transport; ALL semantics live
+ * here.  ("exactly like production Supabase" is what this sentence used to
+ * claim.  It is a copy, and the whole point of the audit below is that a copy
+ * asserting its own fidelity is the hardest kind of wrong to see.)
  *
- * Faithfulness notes.  The two timing constants below are now READ FROM THE
- * SERVER (SQL editor, 2026-08-12); everything else here is still derived from
- * reading index.html rather than from a spec, and is marked as such.
- *  - the host has NO room_members row, by design.
- *  - active_members() is SECURITY DEFINER in prod: it returns rows regardless
- *    of RLS.  Here: rows with role!=='gone' that are fresh (last_seen within
- *    FRESH_MS) OR role==='kept' (a kept man is on stage; staleness doesn't
- *    unseat him).
- *  - sweep_stale_members marks rows 'gone' after SWEEP_MS without a beat.
- *  - realtime postgres_changes fire on rooms / room_members / room_events
- *    mutations, delivered to every subscribed client.
+ * PROVENANCE.  Every behavioural claim in this file is now labelled SOURCE
+ * (read from the server, with the artifact and the date) or ASSUMED (derived
+ * from reading index.html, unverified).  There is no third category, because
+ * the third category is what caused three defects in this file: a value
+ * (SWEEP_MS 45s), a relationship (sweep before hide), and a semantic
+ * (join_line re-minting) — and the semantic was wearing a label that said
+ * "Measured, not assumed."
+ *
+ * Faithfulness notes, each one labelled:
+ *  - SOURCE (server function `active_members`, SQL editor 2026-08-12): the
+ *    freshness filter is `last_seen > now() - interval '60 seconds'`.
+ *  - SOURCE (server function `sweep_stale_members`, same read): rows are
+ *    marked 'gone' at `now() - interval '3 minutes'`.
+ *  - SOURCE (server function `join_line`, same read): FIFO — an existing
+ *    `line` row keeps `v_prev_pos`; anything else mints
+ *    `nextval('line_position_seq')`.
+ *  - ASSUMED (from index.html, unverified): active_members() is SECURITY
+ *    DEFINER and so returns rows regardless of RLS.  The FILTER was read; the
+ *    security qualifier was not, and the two were being asserted in one
+ *    breath.
+ *  - ASSUMED (from index.html, unverified): the host has NO room_members row.
+ *    Consistent with every read so far and never checked against the schema.
+ *  - ASSUMED (from index.html, unverified): the `kept` exemption inside
+ *    active_members — rows with role==='kept' survive the freshness filter.
+ *    THIS ONE MATTERS RIGHT NOW: the lapse fix extends that exemption to
+ *    seated men, so the double is about to be the only authority for the
+ *    behaviour the fix is judged against.  Read it off the server before the
+ *    fix is called proven.
+ *  - ASSUMED (from index.html, unverified): realtime postgres_changes fire on
+ *    rooms / room_members / room_events mutations, delivered to every
+ *    subscribed client.
  *
  * ON THE TWO CONSTANTS, AND WHAT WAS ACTUALLY WRONG WITH THEM.  The diagnosis
  * this correction was ordered against was "the double has ONE number where the
@@ -88,7 +110,8 @@ class BackendDouble {
     return id;
   }
   /* BENCH ORDER IS A SERVER COLUMN, and the double was missing it.
-     Measured against production on 2026-08-12, same man, two readings:
+     SOURCE: production ROW reads (not function bodies), 2026-08-12, same man,
+     two readings:
        spectator → { role:"spectator", line_position: null,  joined_at: 07:44:32 }
        benched   → { role:"line",      line_position: 249,   joined_at: 07:44:32 }
      So `line_position` is minted AT BENCH ENTRY and is globally monotonic
@@ -104,20 +127,32 @@ class BackendDouble {
      the double carries line_position with production's semantics, and the
      ONE derivation of bench order reads it.
 
-     MEASURED SINCE (2026-08-12), and the earlier guess here was wrong.  This
-     comment used to say "NOT MEASURED: whether production re-mints on a SECOND
-     bench entry — we mint only when null, which keeps his original place".
-     Production does the opposite: bench → 250, leave the bench → line_position
-     NULL, re-bench → 251.  A man who steps off and comes back goes to the BACK
-     of the queue.
-     The mechanism is why, and it is tidier than "the field is cleared":
-     leaving the bench runs leave_room then join_room, so the ROW IS DELETED AND
-     RECREATED — the null is a new row, not a wiped column.  This double already
-     models that (leave_room splices, join_room re-adds with null), so the two
-     versions behave identically on every path that exists today.  Minting
-     unconditionally is kept anyway because it states the measured intent and
-     stays correct if a direct chair-to-bench path is ever added that does not
-     round-trip through leave_room. */
+     RETRACTED 2026-08-12, and this is the one worth reading twice.  What stood
+     here was: "Production does the opposite: bench → 250, leave the bench →
+     line_position NULL, re-bench → 251.  A man who steps off and comes back
+     goes to the BACK of the queue."
+
+     The READINGS were real — 250, null, 251, off production rows.  The
+     SENTENCE drawn from them was not.  `join_line` on the server (read direct,
+     2026-08-12) preserves: `if v_prev_role = 'line' and v_prev_pos is not null
+     then v_pos := v_prev_pos`.  251 appeared only because `leave_room` had
+     already DELETED the row, so there was no previous position left to keep.
+     The observation was of the round-trip, and it was generalised into a rule
+     about re-entry that the server does not have.
+
+     And the retraction was already sitting in the next paragraph.  The old
+     comment went on: "the ROW IS DELETED AND RECREATED — the null is a new row,
+     not a wiped column."  That is the correct mechanism, written down, directly
+     underneath a conclusion it contradicts.  Nobody had to find new evidence;
+     the evidence was adjacent.
+
+     Then it chose wrong on its own terms: "Minting unconditionally is kept
+     anyway because it states the measured intent and stays correct if a direct
+     chair-to-bench path is ever added that does not round-trip through
+     leave_room."  That path is exactly what the lapse fix creates — a seated
+     man held through the invisible window and re-benched without a leave_room.
+     The comment named the scenario that would break it and picked the branch
+     that breaks. */
   addMember(room_id, user_id, role, { seat_index = null, ageMs = 0, line_position = undefined } = {}) {
     const row = {
       id: nid("m"), room_id, user_id, role, seat_index,
@@ -130,7 +165,13 @@ class BackendDouble {
     return row;
   }
   nextLinePosition() {
-    if (this._linePos == null) this._linePos = 200;   // start high, like prod's global counter
+    /* SOURCE: server function join_line, read 2026-08-12 — the mint is
+       `nextval('line_position_seq')`, ONE sequence, so positions are global
+       across rooms rather than per-room.  Starting high models a counter that
+       has been running a while.  (This line previously said "like prod's
+       global counter" with nothing behind it; it happens to have been right,
+       which is not the same as having been checked.) */
+    if (this._linePos == null) this._linePos = 200;
     return ++this._linePos;
   }
   loginClient(clientId, uid) { this.sessions.set(clientId, uid); }
@@ -262,11 +303,25 @@ class BackendDouble {
         if (!row) row = this.addMember(a.room_id, uid, "spectator");
         if (this.events.some((e) => e.room_id === a.room_id && e.type === "pass" && e.payload?.target_user === uid))
           throw new Error("passed — cannot rejoin the line");
+        /* READ FROM THE SERVER 2026-08-12, function join_line, verbatim:
+             -- FIFO line order: keep your place if you are already in line
+             if v_prev_role = 'line' and v_prev_pos is not null
+               then v_pos := v_prev_pos;
+               else v_pos := nextval('line_position_seq');
+           THE SERVER WAS BUILT TO KEEP HIS PLACE.
+
+           What stood here before said the opposite — "minted AFRESH every time,
+           a man who steps off the bench and comes back goes to the BACK of the
+           queue.  Measured, not assumed."  It was not measured.  It was this
+           file describing itself, and the label was the dangerous part: a guess
+           wearing the costume of the thing that would have caught it.  It
+           propagated — "back of the queue" went out as a finding on the
+           strength of this comment before the server was ever read. */
+        const prevRole = row.role, prevPos = row.line_position;
         row.role = "line"; row.last_seen = this.iso();
-        /* Minted AT BENCH ENTRY, never on room join, and minted AFRESH every
-           time — a man who steps off the bench and comes back goes to the BACK
-           of the queue.  Measured, not assumed; see addMember's note. */
-        row.line_position = this.nextLinePosition();
+        row.line_position = (prevRole === "line" && prevPos != null)
+          ? prevPos
+          : this.nextLinePosition();
         this.emit("room_members", "UPDATE", { ...row });
         return null;
       }

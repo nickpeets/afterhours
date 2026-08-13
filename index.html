@@ -5024,7 +5024,31 @@ $("bsd_offer").onclick=async()=>{
   }catch(e){ $("bsd_status").textContent="Swap unavailable tonight."; $("bsd_offer").disabled=false; $("bsd_offer").textContent="Swap info 🍸"; }
 };
 $("bsd_skip").onclick=async()=>{
-  if(BSD_OFFERED){ try{ await sb.rpc("rescind_swap",{room_id:BS_ROOM.id}); }catch(e){} }
+  if(BSD_OFFERED){
+    /* GATE 55 (rescind-truth): a retraction is a promise to the person who
+       made it.  What stood here swallowed the result — the catch could only
+       see network throws, a server refusal arrived as a resolved {error} and
+       was discarded — and said GOODNIGHT over a still-live offer.  If the
+       other side then offered inside their own window, contact info the user
+       explicitly withdrew revealed anyway.  Now: bounded retry, and the one
+       unreachable end state is leaving with a live offer IN SILENCE. */
+    $("bsd_skip").disabled=true;
+    let rescinded=false;
+    for(let a=0;a<3 && !rescinded;a++){
+      let err=null;
+      try{ const {error}=await sb.rpc("rescind_swap",{room_id:BS_ROOM.id}); err=error; }
+      catch(e){ err={message:String((e&&e.message)||e)}; }
+      if(!err){ rescinded=true; break; }
+      console.log("rescind: attempt "+(a+1)+" failed:",err.message);
+      if(a<2) await new Promise(r=>setTimeout(r,600*(a+1)));
+    }
+    $("bsd_skip").disabled=false;
+    if(!rescinded){
+      $("bsd_status").textContent="Couldn't take your info back \u2014 check your connection and tap again.  Your offer stays live until this works.";
+      return;
+    }
+    BSD_OFFERED=false;
+  }
   bsGoodnight(null);
 };
 $("bsd_copy").onclick=()=>{ try{ navigator.clipboard.writeText($("bsd_rev_what").textContent); toast("Copied."); }catch(e){} };

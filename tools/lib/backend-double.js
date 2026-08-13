@@ -6,7 +6,9 @@
  * Supabase.  The in-page shim (supabase-shim.js) is a dumb transport; ALL
  * semantics live here.
  *
- * Faithfulness notes (derived from reading index.html, not from a spec):
+ * Faithfulness notes.  The two timing constants below are now READ FROM THE
+ * SERVER (SQL editor, 2026-08-12); everything else here is still derived from
+ * reading index.html rather than from a spec, and is marked as such.
  *  - the host has NO room_members row, by design.
  *  - active_members() is SECURITY DEFINER in prod: it returns rows regardless
  *    of RLS.  Here: rows with role!=='gone' that are fresh (last_seen within
@@ -15,11 +17,32 @@
  *  - sweep_stale_members marks rows 'gone' after SWEEP_MS without a beat.
  *  - realtime postgres_changes fire on rooms / room_members / room_events
  *    mutations, delivered to every subscribed client.
+ *
+ * ON THE TWO CONSTANTS, AND WHAT WAS ACTUALLY WRONG WITH THEM.  The diagnosis
+ * this correction was ordered against was "the double has ONE number where the
+ * server has TWO."  That is not what the file said.  The split already existed
+ * — FRESH_MS and SWEEP_MS, two named constants, the right shape.  What was
+ * wrong was the ORDER: SWEEP_MS was 45s and FRESH_MS is 60s, so in the double
+ * the sweep BURIED a man five beats before the roster would have HIDDEN him.
+ * The server runs the other way round: hide at 60s, bury at 180s.
+ *
+ * The consequence is exactly the one the diagnosis predicted, by a different
+ * mechanism.  Defect 2 lives in the gap between hiding and burying — his row
+ * alive, him unrendered.  With the sweep firing FIRST that gap does not exist;
+ * it is inverted into a gap where he is buried but still rendered, which is
+ * not a state production can reach.  A number in the wrong order is not a
+ * smaller error than a missing constant, and it is harder to see, because the
+ * file looks right: two names, two windows, both plausible.
+ *
+ * METHOD rule 8, a layer deeper than the 45 itself: the guess that survived
+ * was not the value, it was the RELATIONSHIP between two values.  Nobody had
+ * to write it down for it to be load-bearing.
  */
 "use strict";
 
-const FRESH_MS = 60_000;   // active_members freshness window
-const SWEEP_MS = 45_000;   // sweep_stale_members threshold
+/* Read from the server 2026-08-12, not derived from index.html. */
+const FRESH_MS = 60_000;    // active_members: last_seen > now() - interval '60 seconds'
+const SWEEP_MS = 180_000;   // sweep_stale_members: now() - interval '3 minutes'
 
 let _seq = 1;
 const nid = (p) => p + "_" + (_seq++).toString(36).padStart(6, "0");

@@ -1754,9 +1754,23 @@ $("signupPanel").onsubmit=async(e)=>{
   const {data,error}=await sb.auth.signUp({email,password:pass});
   if(error){
     if(/not invited/i.test(error.message||"")){
-      // capture the knock so promoting them later is one query — the refusal IS the invite request
-      try{ await sb.rpc("request_invite",{email_in:email}); }catch(e){}
-      err.textContent="This pilot is invite-only — you're on the list now.  We'll open the doors soon.";
+      // capture the knock so promoting them later is one query — the refusal IS
+      // the invite request.  GATE 57 (invite-truth): the knock is read and
+      // retried, and the copy only claims the list when the knock LANDED —
+      // what stood here swallowed the result and told a stranger they were on
+      // a list they never reached.
+      let knocked=false;
+      for(let a=0;a<3 && !knocked;a++){
+        let kerr=null;
+        try{ const {error:ke}=await sb.rpc("request_invite",{email_in:email}); kerr=ke; }
+        catch(e2){ kerr={message:String((e2&&e2.message)||e2)}; }
+        if(!kerr){ knocked=true; break; }
+        console.log("invite: request_invite attempt "+(a+1)+" failed:",kerr.message);
+        if(a<2) await new Promise(r=>setTimeout(r,600*(a+1)));
+      }
+      err.textContent = knocked
+        ? "This pilot is invite-only — you're on the list now.  We'll open the doors soon."
+        : "This pilot is invite-only — and saving your spot didn't go through just now.  Try again in a minute.";
     } else {
       err.textContent=error.message;
     }

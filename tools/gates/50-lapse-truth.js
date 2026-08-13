@@ -1,5 +1,35 @@
 /* GATE 50 — lapse-truth: what a locked phone costs.  RED ON PURPOSE.
  *
+ * ===================================================================
+ * THIS GATE LANDED RED FOR PARTLY THE WRONG REASON.  Read this first.
+ * ===================================================================
+ * It was written and merged (PR #57) against a double whose sweep fired at 45s
+ * and whose freshness filter is 60s — the two thresholds in the WRONG ORDER.
+ * The scene below ages `last_seen` by FIFTY SECONDS, a number chosen to cross
+ * that 45s sweep.  Under the numbers the server actually has — hide at 60s,
+ * bury at 180s — fifty seconds crosses NOTHING.
+ *
+ * So the run reproduced a path production cannot take.  THE SYMPTOM IS REAL:
+ * the owner watched a guest's phone lock and the guest come back out of the
+ * room.  THE SCENE WAS NOT.  Those are different claims and this header
+ * previously ran them together.
+ *
+ * Measured after the double was corrected, three ages, one run each:
+ *   50s   role=chair, in active_members, her tile PRESENT — nothing happens,
+ *         which is correct: inside the freshness window there is no lapse.
+ *   90s   role=chair, NOT in active_members, her tile GONE, three OPEN CHAIR
+ *         cards — DEFECT 2, isolated for the first time.
+ *   200s  role=gone — the sweep.  The bench man goes spectator, position null.
+ *
+ * And the bench half below is under retraction pending the conductor's call:
+ * with `join_line` corrected to preserve the place (as the server does), the
+ * 90s window costs him NOTHING — the recovery beats first, the beat refreshes
+ * a row that is still alive, and he is back inside the window before the
+ * roster is read.  The client design works.  He only loses the bench past
+ * 180s, where the row is genuinely swept.
+ *
+ * Do not read the assertions below as settled until this block is removed.
+ *
  * OBSERVED LIVE, 2026-08-12, by the owner: a guest whose phone locked did not
  * merely go stale — he came back OUT of the room.  This gate is written to make
  * that concrete, and it is expected to FAIL on today's build.  It is not a

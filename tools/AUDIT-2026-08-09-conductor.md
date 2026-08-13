@@ -645,6 +645,86 @@ units against UTF-8 bytes — the file's `♥ · — ’` are multibyte.  The de
 byte-identical.  Comparing two numbers proves nothing until both are in the
 same unit.
 
+**The eleventh rule, which is the second rule turned around to face me: A
+RENDERING OF STATE IS NOT STATE, AND THAT NOW INCLUDES MY OWN TOOL OUTPUT.**
+
+Transferring a patch on 2026-08-12, two of thirty-eight base64 lines arrived
+401 characters long.  The known failure is that the Codespace terminal drops
+characters on long lines, so that is what it was recorded as — and it was
+wrong.  The terminal typed *exactly* what it was given.  The corruption was
+upstream, in the reading: a long-line shell output rendered `VyDVVcz` as
+`VyDVlVcz`, and the corruption was retyped faithfully, twice, before anyone
+thought to test it.  Confirmed by grepping the real file for both spellings —
+one hit, zero hits.
+
+The transfer discipline held.  **The reader failed.**  Rule 2 says do not trust
+a tool's report of what it did; this says do not trust a tool's rendering of
+what a file *contains* either, and the second is harder to remember because
+reading feels like looking rather than like being told.
+
+The standing rule, and it costs nothing:
+
+- **Source long payloads at 100 characters per line, not 400.**  The corruption
+  has only ever appeared on long lines.
+- **Per-line checksum at both ends.**  Compute the digest list where the file
+  is, compare it where the file is going, and name the mismatching line
+  numbers.  Two of thirty-eight were wrong and both were found in one pass.
+- **Verify the whole artifact after decode**, not just the transport.
+
+**The twelfth rule, and it is the sharpest thing the 2026-08-12 run produced:
+A PROVENANCE LABEL IS NOT PROVENANCE.**
+
+`backend-double.js` carried three wrong things at once: a value (`SWEEP_MS` at
+45s, from a client comment), a relationship (the sweep firing *before* the
+freshness filter, which no one ever wrote down), and a semantic (`join_line`
+re-minting a man's place instead of keeping it).  The third was wearing this
+label:
+
+> a man who steps off the bench and comes back goes to the BACK of the queue.
+> **Measured, not assumed.**
+
+It was not measured.  It was the file describing itself.  The readings behind
+it were real — 250, null, 251, off production rows — but they were readings of
+a `leave_room`/`join_room` round-trip, generalised into a rule about re-entry
+that the server does not have.  The server says the opposite in a comment of
+its own: `-- FIFO line order: keep your place if you are already in line`.
+
+Three things make it worth a rule of its own:
+
+1. **It was a guess wearing the costume of the thing that would have caught
+   it.**  A line marked "assumed" invites a check.  A line marked "measured"
+   closes the question.
+2. **It propagated.**  "Back of the queue" went out as a finding to the
+   conductor on the strength of this comment, before the server was ever read,
+   and had to be retracted.
+3. **Its own refutation was in the next paragraph.**  The same comment went on
+   to say "the ROW IS DELETED AND RECREATED — the null is a new row, not a
+   wiped column," which is the correct mechanism sitting directly beneath a
+   conclusion it contradicts.  No new evidence was needed.  Nobody read to the
+   end of the comment they were quoting.
+
+The standing rule for the double, and for anything else that models a system
+it is not:
+
+- **Every behavioural claim is SOURCE or ASSUMED.  There is no third
+  category**, because the third category is where all three defects lived.
+- **SOURCE means the artifact and the date**: the function name, the column
+  rule, the cron row, read on a stated day.  "Matches production" is not a
+  source.
+- **ASSUMED is not a confession, it is a work item**, and it is cheap to write.
+  The dangerous label is the one that sounds finished.
+- **A double is a copy, not a reference.**  A copy that asserts its own
+  fidelity is the hardest kind of wrong to see, because the assertion is
+  indistinguishable from the evidence right up until someone reads the
+  original.
+
+The corollary for gates: a gate written against an unverified double inherits
+its fiction. `bench-order-truth` passed before and after `join_line` was
+corrected — not because it was robust, but because it injects `line_position`
+through fixtures and never calls `join_line` at all.  **It tested ordering and
+was named for it; the minting had no gate.**  A green battery is evidence about
+the paths it enters, and silence about the rest.
+
 ---
 
 # CARRIED OUT OF THE 2026-08-11 RUN

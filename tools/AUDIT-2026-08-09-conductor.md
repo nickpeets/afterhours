@@ -713,6 +713,27 @@ The standing rule, and it costs nothing:
   numbers.  Two of thirty-eight were wrong and both were found in one pass.
 - **Verify the whole artifact after decode**, not just the transport.
 
+**Corollary to rule 11, and it cost two transfers in one night: A STALE
+TERMINAL LOOKS EXACTLY LIKE A SLOW ONE.**
+
+Both show you the previous command's output.  A terminal that has silently
+stopped accepting input renders perfectly — the prompt is there, the scrollback
+is there, and the only thing missing is any evidence that what you typed
+arrived.  Waiting longer does not distinguish them, and neither does taking
+another screenshot.
+
+**The discriminator is a command whose output could not possibly be the old
+one:** the branch name, a line count, a marker echo.  Ask for one thing you can
+tell apart, not for the state you were hoping to see.  On 2026-08-12 an entire
+25-line payload went nowhere and the screen looked completely normal; reading
+back `git rev-parse --abbrev-ref HEAD` and seeing the OLD branch is what caught
+it.
+
+The corollary to the corollary: this is why the per-line checksum matters more
+than it looks.  It makes a half-delivered payload **detectable** rather than
+dangerous.  An interrupted transfer is a nuisance; an interrupted transfer you
+cannot detect is a corrupted commit.
+
 **The twelfth rule, and it is the sharpest thing the 2026-08-12 run produced:
 A PROVENANCE LABEL IS NOT PROVENANCE.**
 

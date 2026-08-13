@@ -2323,7 +2323,24 @@ async function loadRoomState(){
 
      Failure is soft on purpose.  If this read errors we keep the RPC's answer
      and the old behaviour, which is a chair that empties itself — bad, but no
-     worse than yesterday, and a roster that throws is worse than both. */
+     worse than yesterday, and a roster that throws is worse than both.
+
+     TWO CAVEATS FOR WHOEVER READS THIS NEXT, both of which are easy to lose.
+
+     ONE: TWO FILTERS WERE FOUND BY BUMPING INTO THEM, NOT BY ENUMERATING THE
+     PATH.  The roster passes through this read and then through activeRows(),
+     and both were dropping the seated man.  Both are fixed.  NOBODY HAS WALKED
+     THE ROSTER'S FILTER CHAIN END TO END — a third filter is not ruled out, it
+     is merely not encountered.  That is the honest state of this fix and it
+     should stay written down until someone does the walk.
+
+     TWO: THE SEATED-ROLES RESTRICTION HOLDS BY CONSTRUCTION, NOT BY A GUARD.
+     Nothing here prevents a future caller from widening `.in("role", …)` to
+     include `line`, and the moment it does, this read STEPS AROUND THE MASK
+     that active_members applies to other people's bench rows.  Construction is
+     easy to widen without noticing, which is exactly what makes it a weak
+     place to keep a constraint.  If this list grows, that is a decision about
+     the mask and it needs to be made deliberately. */
   let merged = members || [];
   try{
     const {data:seated}=await sb.from("room_members")

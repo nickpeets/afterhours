@@ -3253,15 +3253,66 @@ document.addEventListener("visibilitychange",()=>{
       // ...but if the 45s sweep already marked us 'gone', a heartbeat cannot
       // resurrect us: the row is excluded from every roster.  Re-enter.
       try{
-        const mine=(ROOM_STATE.members||[]).find(m=>m.user_id===ME.id);
-        if(!mine && CURRENT_ROOM){
-          // the swept row still EXISTS marked 'gone', so join_room may no-op on
-          // it.  Clear it first — this works whatever the server's upsert does.
-          try{ await sb.rpc("leave_room",{room_id:CURRENT_ROOM.id}); }catch(e){}
-          await sb.rpc("join_room",{room_id:CURRENT_ROOM.id});
-          await sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id});
-          await loadRoomState();
-          toast("Welcome back \u2014 you're in the room \ud83c\udf78");
+        /* DECIDE FROM STATE, NOT FROM A RENDERING.  What stood here read
+           ROOM_STATE.members — and ROOM_STATE here can predate the sweep.
+           This same handler starts TWO roster loads (syncRoomTruth's and the
+           one just awaited); the loser is superseded and returns WITHOUT
+           committing, so the roster consulted could still be the one from
+           before we were marked gone — the swept man finds himself on it,
+           decides he is fine, and stays buried.  Measured in the harness
+           2026-08-13: seq3 superseded by seq4, decision made against seq1's
+           commit.  So: read MY OWN row straight off the table.  RLS permits
+           (any member or the host may select room_members) and one's own row
+           is never masked. */
+        const {data:myRows,error:meErr}=await sb.from("room_members")
+          .select("*").eq("room_id",CURRENT_ROOM.id).eq("user_id",ME.id);
+        const mine=(myRows||[])[0];
+        if(!meErr && CURRENT_ROOM && (!mine || mine.role==="gone")){
+          /* THIS IS A WORKAROUND FOR A SERVER THAT HAS NO REVIVE PATH, and
+             the next reader must not mistake it for intended design.  Read off
+             the server 2026-08-13: nothing ever un-sets role='gone' —
+             heartbeat has no role predicate, join_room keeps role ("no
+             downgrade" cuts both ways), active_members excludes gone.  So the
+             ONLY door back into the room is delete-and-recreate, and the
+             delete is exactly what costs a benched man his place (join_line
+             preserves on prev_role, which a fresh row does not have).  The
+             real fix is server-side — presence separate from role — and it
+             retires this whole block along with the bench bug.
+
+             Until then, delete-then-HOPE becomes delete-then-VERIFY.  The old
+             shape discarded every result: leave_room could fail (row still
+             there, join_room no-ops on it, man stuck 'gone' silently), or
+             join_room could fail AFTER the delete — the man ERASED from the
+             show by his own recovery, no row, no message, nothing.  Both ends
+             now read their results, the re-add retries bounded, and the
+             terminal failure is LOUD: being told to reload is bad, but being
+             silently deleted is the worst outcome this app has. */
+          let cleared=!mine;   // no row at all: nothing to delete, go straight to the re-add
+          if(mine){
+            const {error:leaveErr}=await sb.rpc("leave_room",{room_id:CURRENT_ROOM.id});
+            if(leaveErr){
+              console.log("recovery: leave_room failed:",leaveErr.message);
+              toast("Reconnecting hiccup \u2014 hang tight, retrying shortly.");
+            }else cleared=true;
+          }
+          if(cleared){
+            let joined=false;
+            for(let a=0;a<3 && !joined;a++){
+              const {error:joinErr}=await sb.rpc("join_room",{room_id:CURRENT_ROOM.id});
+              if(!joinErr){ joined=true; break; }
+              console.log("recovery: join_room attempt "+(a+1)+" failed:",joinErr.message);
+              await new Promise(r=>setTimeout(r,600*(a+1)));
+            }
+            if(joined){
+              await sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id});
+              await loadRoomState();
+              toast("Welcome back \u2014 you're in the room \ud83c\udf78");
+            }else{
+              /* the end state this block exists to make unreachable: DELETED
+                 AND NOT RE-ADDED must never pass in silence */
+              toast("Connection lost \u2014 reload the page to rejoin the room.");
+            }
+          }
         }
       }catch(e){}
     },()=>{});

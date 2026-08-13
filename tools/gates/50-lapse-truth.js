@@ -7,8 +7,11 @@
  * that "a lapse costs your place" stops being a reading of two functions and
  * becomes a run.
  *
- * THE PATH, off index.html.  The server sweeps a silent row to role='gone'
- * after ~45s.  On visibilitychange back to visible the client beats first —
+ * THE PATH.  Read from the SERVER on 2026-08-12, not inferred: `active_members`
+ * filters on `last_seen > now() - interval '60 seconds'`, and
+ * `sweep_stale_members` marks a row 'gone' at `now() - interval '3 minutes'`.
+ * TWO clocks, 60s and 180s, and the gap between them is where this lives.
+ * On visibilitychange back to visible the client beats first —
  * correct, and its own comment says why: "re-joining would reset bench ->
  * spectator".  But when the beat returns and he is no longer in members, which
  * is exactly what a swept row does, it runs:
@@ -34,23 +37,50 @@
  *     assertion is that he comes back ON the bench, in the same position,
  *     still ahead of the man who was behind him.
  *
- * WHY IT STAYS RED FOR NOW.  The bench half cannot be fixed from the client:
- * join_line sends only {room_id} and the position is minted server-side, afresh,
- * at the back (measured 2026-08-12: bench 250 → leave → null → re-bench 251).
- * Reading or changing that function needs the database.  This gate is the thing
- * that turns green the day that door opens, and until then it is the honest
- * record that we know what is broken and have not fixed it.
+ * TWO DEFECTS, ONE SYMPTOM, and they must not be conflated — the first draft of
+ * this header conflated them and was wrong twice over.
  *
- * ON THE 45-SECOND NUMBER, since this gate leans on it.  SWEEP_MS in the double
- * is 45_000, and the double's own header says its rules were "derived from
- * reading index.html, not from a spec".  The only evidence anywhere for 45s is a
- * client COMMENT — "45s sweep window / 8s = 5 beats of margin".  Nobody has read
- * the server function; PostgREST does not serve function bodies at all
- * (/rest/v1/pg_proc → 404), so it is unreachable from any session.  The harness
- * has inherited an unverified number from a comment, which is METHOD rule 8 one
- * layer out.  Treat 45s as a CLAIM.  What this gate actually asserts is
- * independent of the exact threshold: whatever the number is, crossing it must
- * not silently empty a chair or cost a man his turn.
+ *   DEFECT 1 (the bench).  The client destroys a LIVE row.  `join_line` on the
+ *     server literally says `-- FIFO line order: keep your place if you are
+ *     already in line`, and does `if v_prev_role = 'line' and v_prev_pos is not
+ *     null then v_pos := v_prev_pos; else v_pos := nextval('line_position_seq')`.
+ *     THE SERVER WAS BUILT TO KEEP HIS PLACE.  He only loses it because the
+ *     recovery calls `leave_room` FIRST, deleting the row, so there is no
+ *     previous role left to preserve.  The client reads an absence that means
+ *     STALE (>60s, filtered by active_members) as if it meant GONE (>180s,
+ *     actually swept) and destroys a perfectly good row on the strength of it.
+ *     Client-side, and small.
+ *   DEFECT 2 (the chair).  A SEAT IS RENDERED OFF A LIVENESS WINDOW.  There is
+ *     exactly one roster source — `loadRoomState` calls `active_members` — and
+ *     it hides him at 60s.  So between 60s and 180s his row is intact, his
+ *     seat_index is intact, and her screen still shows OPEN CHAIR.  Fixing
+ *     defect 1 does NOTHING for this: he never reaches the client to be
+ *     rendered.  This is a render-source question, not an away-state redesign.
+ *
+ * AND THE EXCEPTION ALREADY EXISTS.  `activeRows` opens with
+ * `if (m.role === "kept") return true;  // a kept man is on stage; staleness
+ * doesn't unseat him`.  The idea that a seat on stage is not a liveness signal
+ * is already in the code — it was applied to `kept` and not to `chair`.
+ *
+ * An earlier version of this header said the bench half needed the database.
+ * It does not.  That sentence was written from a client comment; see below.
+ *
+ * ON THE 45-SECOND NUMBER, WHICH WAS NEVER REAL.  Until tonight everything here
+ * leaned on `45s sweep window / 8s = 5 beats of margin` — a client comment.  The
+ * harness copied it into SWEEP_MS, the double's own header admits its rules were
+ * "derived from reading index.html, not from a spec", and a report built on it
+ * claimed "the sweep is 1.5 spotlights" as a measurement.  The database says 60
+ * and 180.  **45 appears nowhere in it.**  A guess in a comment became a
+ * constant in the test rig and then a number in a finding — METHOD rule 8,
+ * catching a reader rather than the codebase, which is the rule earning its
+ * place rather than a mark against anyone.
+ *
+ * SWEEP_MS in the double is still 45_000 and is deliberately LEFT ALONE here:
+ * changing the double's constants is a fidelity change that belongs in its own
+ * commit with its own reasoning, not smuggled in behind a gate.  It does not
+ * affect this gate, because these assertions are independent of the threshold —
+ * whatever the number is, crossing it must not silently empty a chair or cost a
+ * man his turn.
  */
 "use strict";
 const { Harness } = require("../lib/harness");

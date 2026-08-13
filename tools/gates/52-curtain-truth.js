@@ -21,9 +21,12 @@
  *   3. the loop still attempts every seat (locking the measured behaviour so
  *      a future refactor to try/catch-per-loop cannot reintroduce an abort).
  *
- * NOT asserted here (awaiting the conductor's ruling on show flow): whether
- * beatCurtainUp holds entirely when zero men sat.  When ruled, that clause
- * lands in this gate with the ruling quoted.
+ *   4. THE CURTAIN HOLDS AT ZERO.  Conductor's ruling, 2026-08-13, verbatim:
+ *      "If nobody sat, there is no stage to reveal, and the card is a lie
+ *      told to the room — the same disease as three OPEN CHAIR cards for a
+ *      man who never left.  Threshold is at least one seated.  Not all
+ *      three — a two-of-three curtain is a real show with an empty chair,
+ *      which she can work with."
  */
 "use strict";
 const { Harness } = require("../lib/harness");
@@ -46,6 +49,13 @@ module.exports = {
       D.addMember(room, "u_1", "line"); D.addMember(room, "u_2", "line"); D.addMember(room, "u_3", "line");
       await c.page.evaluate((r) => window.__lc.openRoom(r), { ...D.rooms.get(room) });
       await c.page.waitForSelector("#room.show", { timeout: 10000 });
+
+      /* count curtain beats without changing what they do */
+      await c.page.evaluate(() => {
+        window.__CURTAIN_N = 0;
+        const orig = window.beatCurtainUp;
+        window.beatCurtainUp = function () { window.__CURTAIN_N++; return typeof orig === "function" ? orig.apply(this, arguments) : undefined; };
+      });
 
       /* every seat call fails the way the repaired server fails on a ghost */
       D.setFault("seat_member", "host", { error: "seat_member: no such member in room" });
@@ -73,6 +83,10 @@ module.exports = {
       const poisoned = await c.page.evaluate(() => Object.keys(window.__SEATED_UIDS || {}));
       t.ok(poisoned.length === 0,
         `a man whose seating FAILED is not remembered as seated — __SEATED_UIDS stays clean so a retry can still reach him (marked: ${JSON.stringify(poisoned)})`);
+
+      const curtains = await c.page.evaluate(() => window.__CURTAIN_N || 0);
+      t.ok(curtains === 0,
+        `THE CURTAIN HELD: zero men seated, zero TAKE YOUR SEATS cards — the card is not a lie told to the room (beats fired: ${curtains})`);
 
       D.setFault("seat_member", "host", null);
     } finally { await h.close(); }

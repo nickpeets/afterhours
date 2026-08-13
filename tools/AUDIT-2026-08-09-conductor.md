@@ -590,6 +590,34 @@ carried was wrong.
   direct table writes as well as RPCs.**  `sendHeart()` was invisible to a
   production search of database functions because it never calls one.
 
+**The tenth rule, and it is a workflow rule rather than an evidence one: RUN
+THE BATTERY WHERE YOU ARE.**
+
+The battery runs in the agent's own container.  `node tools/lib/run.js
+--only=<gate-name>`, Chromium already resolved at `/opt/pw-browsers/chromium`,
+one gate green in under seven seconds.  It had been assumed for days that gates
+could only run in the Codespace, so every gate was written blind, transferred
+through a lossy channel, and only then discovered to be wrong — with a full
+45-gate battery as the feedback loop.
+
+**The Codespace is for PUSHING, not for running.**  What it has that the
+container does not is a git credential; the git proxy refuses this repo from
+here, and that is the *only* thing it is needed for.  Those two facts were
+conflated, and the cost was measured in hours.
+
+- Write the gate locally.  Red it locally.  Green it locally.  Transfer ONCE,
+  when it says what you mean.
+- `--only=<name>` matches `gate.name`, not the filename — `--only=lapse-truth`,
+  not `--only=50`.
+- A gate that has never run is not a gate.  The local runner removes the last
+  excuse for landing one.
+
+The general shape, and the reason this sits in METHOD rather than a README: an
+environment limit that was real in one direction (no push) was assumed in every
+direction (no run).  Nobody tested the assumption because the workaround worked.
+**Ask what a limitation actually blocks, and test that boundary once, rather than
+building a workflow around its widest possible reading.**
+
 **The second rule the same run produced: verify state from a source that does
 not depend on the tool that reported it.**
 

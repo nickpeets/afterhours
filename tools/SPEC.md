@@ -532,6 +532,55 @@ an owner's call about what the signal is for, not a bug to be gated.
 the people in the room, it is a feature.  If someone says "I didn't mean to do
 that" — even once — it is a control problem, and *that sentence* is the finding.
 
+**Q63 — what a locked phone costs.  ANSWERED 2026-08-12 FROM THE SERVER,
+gated RED as gate 50.**
+The owner watched a guest's phone lock and the guest come back OUT of the room.
+Gate 50 reproduces it and fails on purpose, 6 of 10.  The database was then read
+directly (SQL editor, read-only) and **it exonerates itself**.
+
+**THE REAL NUMBERS** — from the function bodies, not from a comment:
+
+| | value | source |
+|---|---|---|
+| invisible to everyone | `interval '60 seconds'` | `active_members` |
+| row marked `gone` | `interval '3 minutes'` | `sweep_stale_members` |
+| `line_position` | `nextval('line_position_seq')` | `join_line` |
+
+**45 seconds appears nowhere in the database.**  It existed only in a client
+comment (`45s sweep window / 8s = 5 beats of margin`), the harness copied it into
+`SWEEP_MS`, and a report leaned on it hard enough to state "the sweep is 1.5
+spotlights" as a measurement.  It was not one.
+
+**TWO DEFECTS, ONE SYMPTOM.**
+
+- **Defect 1 — the client destroys a live row.**  `join_line` says, in its own
+  comment, `-- FIFO line order: keep your place if you are already in line`, and
+  keeps `v_prev_pos` whenever the previous role was still `line`.  **The server
+  was built to preserve his place.**  He loses it only because the recovery path
+  calls `leave_room` first, deleting the row, so there is no previous role left
+  to find.  The client reads an absence meaning STALE (>60s, filtered) as if it
+  meant GONE (>180s, swept).  **Client-side, and small.**
+- **Defect 2 — a seat is rendered off a liveness window.**  `loadRoomState` is
+  the only roster source and it calls `active_members`, which hides him at 60s.
+  Between 60s and 180s his row is intact, his `seat_index` is intact, and her
+  screen still renders OPEN CHAIR and offers his seat to the crowd.  **Fixing
+  defect 1 does nothing for this** — he never reaches the client to be rendered.
+
+**The exception already exists in the code.**  `activeRows` opens with
+`if (m.role === "kept") return true;  // a kept man is on stage; staleness
+doesn't unseat him`.  The principle that a seat on stage is not a liveness signal
+was already written down; it was applied to `kept` and not to `chair`.  So
+defect 2 is a render-source question, not an away-state redesign.
+
+**NOT BLOCKED ON THE DATABASE.**  Both defects are client-side.  The earlier
+claim that the bench half needed a DB change came from the same unverified
+comment and was wrong.
+
+**Still open, and it is the owner's:** should a seat assignment be rendered off a
+liveness window at all?  A 60-second window should probably not be able to offer
+a man's chair to the crowd — but "how long may a seat outlive its beat" is a
+show question, not a correctness one.
+
 **Q12 — does a mid-phase rejoin lose video on a REAL transport?**
 Anomaly d7.  Gate 39 covers the reattach *logic* — `videoJoin`'s fast-path guard
 reading a dying call's state while the leave was in flight.  It cannot cover the
@@ -582,15 +631,21 @@ that, and only two of them are settled:
   The mechanism is that leaving runs `leave_room` then `join_room`, so the row
   is deleted and recreated — the null is a new row, not a wiped column.  The
   double models this correctly and its comment now says so.
-- **Sequence vs `max()+1` — STILL OPEN, and deliberately not guessed.**  Values
-  read 248 and 249 an hour apart in two DIFFERENT rooms, then 250 and 251 later,
-  so it is global and not per-room `max()+1`.  Consecutive with no gaps across
-  an hour mildly favours `max()+1` over the whole table, since a Postgres
-  sequence usually leaks gaps from rolled-back transactions — but on an instance
-  with no other traffic a sequence looks identical.  That is a hint, not a
-  proof.
-- **Concurrent mint order — STILL UNVERIFIED.**  The double mints from a local
-  counter, so it can only replay the ordering a gate wrote.
+- **Sequence vs `max()+1` — CLOSED 2026-08-12, and it is a SEQUENCE.**  Read
+  from `join_line` directly: `v_pos := nextval('line_position_seq')`.  The
+  earlier reasoning — consecutive values with no gaps mildly favouring `max()+1`
+  because sequences leak gaps from rollbacks — was a hint pointing the wrong way,
+  and it is a good example of why a hint was labelled a hint.  **A sequence
+  cannot collide, so the concurrent-mint-order worry below is dead.**
+- **And the re-entry measurement was misread.**  bench 250 → leave → null →
+  re-bench 251 was never the server re-minting on principle.  `join_line`
+  preserves `v_prev_pos` whenever the previous role is still `line`; the new
+  number appeared because `leave_room` had DELETED the row first.  The
+  measurement was right and the conclusion drawn from it was wrong.
+- **Concurrent mint order — CLOSED by the same read.**  A Postgres sequence
+  hands out distinct increasing values under concurrency by construction, so
+  there is nothing left to race.  The double still mints from a local counter,
+  which is fine: it now models a sequence rather than approximating an unknown.
 
 **What would settle the remainder:** either the DDL for `line_position` (a
 database question), or three signed-in slots benching within the same second and

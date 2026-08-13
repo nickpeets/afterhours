@@ -3325,13 +3325,39 @@ function startHostPoll(){
         const liners=benchQueue(ROOM_STATE.members, CURRENT_ROOM, 3);
         if((ph===null||ph==="preshow") && !anySeated && liners.length>=3 && !window.__SEATING_SHOW){
           window.__SEATING_SHOW=true;
+          /* EVERY RESULT IS READ.  A Postgres raise arrives as a RESOLVED
+             {error} — it never throws — so the old shape here (await, discard
+             the result) meant a failed seating was invisible by construction:
+             no toast, no console line, the man marked seated anyway, and the
+             curtain playing over however many chairs actually filled.
+             Measured 2026-08-13: all three calls faulted, attempts=3,
+             toast="", console silent.  The loop was never at risk of
+             aborting; it was at risk of LYING.
+
+             Now: per-call read, count what actually happened, mark a man
+             seated only when the server said yes, and tell her the score when
+             it is not 3-of-3. */
+          let seatedN=0, attempted=0;
           for(let i=0;i<3;i++){
             const row=ROOM_STATE.members.find(m=>m.user_id===liners[i].user_id);
             if(!row || row.role!=="line") continue;          // the row moved on — never re-seat it
-            window.__SEATED_UIDS[liners[i].user_id]=true;
-            await sb.rpc("seat_member",{room_id:CURRENT_ROOM.id,user_id:liners[i].user_id,seat_index:i});
+            attempted++;
+            const {error:seatErr}=await sb.rpc("seat_member",{room_id:CURRENT_ROOM.id,user_id:liners[i].user_id,seat_index:i});
+            if(seatErr){
+              console.log("curtain-up seat failed:",liners[i].user_id,seatErr.message);
+              continue;                                       // his failure costs nobody else a chair
+            }
+            window.__SEATED_UIDS[liners[i].user_id]=true;     // only a CONFIRMED seat is remembered
+            seatedN++;
           }
-          if(typeof beatCurtainUp==="function") beatCurtainUp();
+          if(seatedN<attempted||attempted<3)
+            toast("Seating: "+seatedN+" of 3 chairs filled — tap a bench seat to fill the rest.");
+          /* HOLD THE CURTAIN unless at least one man actually sat.  Owner's
+             ruling, 2026-08-13: "if nobody sat, there is no stage to reveal,
+             and the card is a lie told to the room."  Threshold is ONE, not
+             three — a 2-of-3 curtain is a real show with an empty chair, and
+             she can work with that. */
+          if(seatedN>0 && typeof beatCurtainUp==="function") beatCurtainUp();
           await loadRoomState();
           window.__SEATING_SHOW=false;
         }

@@ -2257,7 +2257,11 @@ async function openRoom(r){
   // re-prompt, no flash — but the write is re-affirmed by the same
   // capture-gated entry point that admitted him the first time.
   if(!AMHOST){
-    const meRow=ROOM_STATE.members.find(m=>m.user_id===ME.id);
+    /* self-fate decider #5 (gate 54's census): reads the TABLE, not the
+       rendering — a reload that raced the roster commit must not re-affirm
+       (or skip re-affirming) the wrong role.  Non-destructive either way
+       (join_line preserves), but the read is factored so it cannot drift. */
+    const {row:meRow}=await myRowFromTable();
     if(meRow && meRow.role==="line"){ try{ await takeBenchSeat(); }catch(e){} }
   }
   await loadEventHistory();
@@ -2409,6 +2413,12 @@ async function loadRoomState(){
    row absent past one sync → the verb reverts and it is SAID. */
 function benchReconcile(){
   if(!window.__OPTIMISTIC_BENCH) return;
+  /* DELIBERATELY reads the rendering (gate 54 census, decider #6): this
+     function's whole job is to ask "did the ROSTER COMMIT confirm my
+     optimistic verb yet" — the rendering IS the subject here, not a proxy
+     for the table.  Worst case is a wrong toast that self-heals; it feeds
+     no rpc.  Do not "fix" this onto myRowFromTable: that would confirm the
+     verb against a source the verb's consumers never see. */
   const me=(ROOM_STATE.members||[]).find(m=>m.user_id===ME.id);
   if(me && (me.role==="line"||me.role==="chair"||me.role==="kept")){
     window.__OPTIMISTIC_BENCH=null; updateJoinBtn(); return;   // confirmed
@@ -2795,6 +2805,9 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   // The bench faces are the CROWD's secret.  She picks blind — and the men in
   // the chairs are competitors, not audience: they don't get to scout who's
   // next either.  Only spectators see the bench's faces.  (Owner rule, 8/5.)
+  // render-path reader, DELIBERATELY on the rendering (gate 54 census): a
+  // sync paint cannot await a table read; worst case is one repaint of the
+  // bench blind toggle, self-healed by the next commit.  Feeds no rpc.
   const iAmSeated = ROOM_STATE.members.some(m=>m.user_id===ME.id && (m.role==="chair"||m.role==="kept"));
   if(items) items.classList.toggle("is-blind", AMHOST || iAmSeated);
 
@@ -2916,7 +2929,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   });
   // empty chairs are the join CTA
   $("rt_chairs").querySelectorAll("[data-takechair]").forEach(el=>{
-    el.onclick=()=>{
+    el.onclick=async()=>{
       if(AMHOST) return;
       /* RULING (wave 9): the open chair is a door ONTO the bench, never a door
          out of it.  A man already benched fell straight into rt_joinline's
@@ -2925,10 +2938,17 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
          in the crowd, mid-show, with no way back but her tap.  Canon is
          untouched: she picks from the bench and nobody self-seats (gate 43
          locks the absence of a self-seat path).  The tap simply costs him
-         nothing, and says why.  His role is read from ROOM_STATE.members — the
-         SAME derivation the guarded branch reads — so the guard can never
-         disagree with the branch it is guarding. */
-      const meRow=ROOM_STATE.members.find(m=>m.user_id===ME.id);
+         nothing, and says why.
+
+         GATE 54 SCENE 4: his role is read from the SAME SOURCE the guarded
+         branch reads — THE TABLE (myRowFromTable) — so the guard can never
+         disagree with the branch it is guarding.  It read ROOM_STATE until
+         the branch moved onto the table (erasure-truth); for one commit the
+         two disagreed, and a bench man with a stale roster read could lose
+         his place to this very tap.  If the read fails, the tap does NOTHING
+         destructive — a hiccup toast beats a wrong door. */
+      const {row:meRow,error:meErr}=await myRowFromTable();
+      if(meErr){ toast("Connection hiccup \u2014 try that again."); return; }
       if(meRow && meRow.role==="line"){ toast("You're on the bench — she picks from there. ♥"); return; }
       $("rt_joinline").click();
     };
@@ -3238,6 +3258,32 @@ function bestEffortLeave(){
 // chat/gifts for any viewer whose tab was ever backgrounded.
 window.addEventListener("pagehide",(e)=>{ if(!e.persisted) bestEffortLeave(); });   // bfcache hide = app switch, not a close
 window.addEventListener("beforeunload",bestEffortLeave);
+/* THE ONE own-row read (conductor's factoring ruling, 2026-08-13).  Every
+   decision about MY OWN fate reads this, never ROOM_STATE: a rendering can
+   trail the table by a whole sweep (gate 53's forge) or a whole role (gate
+   54, scene 3).  RLS permits — any member or the host may select the table —
+   and one's own row is never masked.  Six self-fate deciders exist; as they
+   are fixed they all route through HERE, so the read cannot drift. */
+async function myRowFromTable(){
+  if(!CURRENT_ROOM || !ME) return {row:null, error:{message:"no room"}};
+  try{
+    const {data,error}=await sb.from("room_members").select("*")
+      .eq("room_id",CURRENT_ROOM.id).eq("user_id",ME.id);
+    return {row:(data||[])[0]||null, error};
+  }catch(e){ return {row:null, error:{message:String((e&&e.message)||e)}}; }
+}
+/* THE ONE bounded re-add after a hard delete (gate 54, HALF B).  Every
+   result read, retries with backoff, logs under the caller's tag so a trace
+   names the path that died.  True iff the row is back. */
+async function rejoinRoomBounded(tag){
+  for(let a=0;a<3;a++){
+    const {error}=await sb.rpc("join_room",{room_id:CURRENT_ROOM.id});
+    if(!error) return true;
+    console.log(tag+": join_room attempt "+(a+1)+" failed:",error.message);
+    await new Promise(r=>setTimeout(r,600*(a+1)));
+  }
+  return false;
+}
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible" && CURRENT_ROOM){
     // came back — EVERY role re-syncs the room truth at once (the host was
@@ -3264,9 +3310,7 @@ document.addEventListener("visibilitychange",()=>{
            commit.  So: read MY OWN row straight off the table.  RLS permits
            (any member or the host may select room_members) and one's own row
            is never masked. */
-        const {data:myRows,error:meErr}=await sb.from("room_members")
-          .select("*").eq("room_id",CURRENT_ROOM.id).eq("user_id",ME.id);
-        const mine=(myRows||[])[0];
+        const {row:mine,error:meErr}=await myRowFromTable();
         if(!meErr && CURRENT_ROOM && (!mine || mine.role==="gone")){
           /* THIS IS A WORKAROUND FOR A SERVER THAT HAS NO REVIVE PATH, and
              the next reader must not mistake it for intended design.  Read off
@@ -3296,13 +3340,7 @@ document.addEventListener("visibilitychange",()=>{
             }else cleared=true;
           }
           if(cleared){
-            let joined=false;
-            for(let a=0;a<3 && !joined;a++){
-              const {error:joinErr}=await sb.rpc("join_room",{room_id:CURRENT_ROOM.id});
-              if(!joinErr){ joined=true; break; }
-              console.log("recovery: join_room attempt "+(a+1)+" failed:",joinErr.message);
-              await new Promise(r=>setTimeout(r,600*(a+1)));
-            }
+            const joined=await rejoinRoomBounded("recovery");
             if(joined){
               await sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id});
               await loadRoomState();
@@ -5242,8 +5280,15 @@ async function takeBenchSeat(){
 
 $("rt_joinline").onclick=async()=>{
   if(AMHOST){ if(typeof egOpenDrawer==="function") egOpenDrawer(null); return; }
+  /* GATE 54 (erasure-truth): MY OWN fate reads MY OWN ROW off the table.
+     The button's label was painted from ROOM_STATE, and a rendering can be a
+     whole role behind the table (scene 3: screen said line, table said
+     spectator, and the old code hard-deleted the spectator's row on the
+     strength of it).  One factored read, shared with the recovery guard. */
+  const {row:__meRow,error:__meErr}=await myRowFromTable();
+  if(__meErr){ toast("Connection hiccup \u2014 try that again."); return; }
   {
-    const meRow=ROOM_STATE.members.find(m=>m.user_id===ME.id);
+    const meRow=__meRow;
     if(meRow && (meRow.role==="chair"||meRow.role==="kept")){
       // RULING Q2: leaving is NEVER blocked — but walking out of your own
       // answer is passing yourself, and a pass is final for the show.
@@ -5253,9 +5298,17 @@ $("rt_joinline").onclick=async()=>{
         ? "Leave mid-answer?  That counts as a pass \u2014 you're out for the night."
         : "Leave the chair?  She'll fill it from the bench.";
       if(!confirm(q)) return;
-      try{
-        await sb.rpc("leave_room",{room_id:CURRENT_ROOM.id});
-        await sb.rpc("join_room",{room_id:CURRENT_ROOM.id});   // back as crowd
+      /* GATE 54 HALF B: both results read, the re-add bounded, the terminal
+         failure LOUD.  What stood here discarded both results inside a try
+         whose catch could only see network throws (a resolved {error} never
+         throws), and congratulated the man it had just erased. */
+      const {error:leaveErr}=await sb.rpc("leave_room",{room_id:CURRENT_ROOM.id});
+      if(leaveErr){
+        console.log("stepdown: leave_room failed:",leaveErr.message);
+        toast("Couldn't leave the chair \u2014 try again.");
+        return;
+      }
+      if(await rejoinRoomBounded("stepdown")){
         if(wasTarget){
           I_WAS_PASSED=true;
           try{ await sb.from("room_events").insert({room_id:CURRENT_ROOM.id,user_id:ME.id,
@@ -5264,16 +5317,27 @@ $("rt_joinline").onclick=async()=>{
           toast("You stepped out of the spotlight \u2014 that's a pass. \ud83e\udd42");
         }
         else toast("You stepped down \u2014 enjoy the show \ud83c\udf78");
-      }catch(e){ toast("Couldn't leave the chair."); }
+      }else{
+        /* the erased-and-congratulated end state, made unreachable */
+        toast("Connection lost \u2014 reload the page to rejoin the room.");
+      }
       await loadRoomState();
       return;
     }
   }
-  const me=ROOM_STATE.members.find(m=>m.user_id===ME.id);
+  const me=__meRow;
   if(me && me.role==="line"){
-    // already in line — leave the line (back to spectator)
+    // already in line — leave the line (back to spectator).  GATE 54 HALF B:
+    // the delete is read, the re-add is read AND retried, silence impossible.
     const {error}=await sb.rpc("leave_room",{room_id:CURRENT_ROOM.id});
-    if(!error){ await sb.rpc("join_room",{room_id:CURRENT_ROOM.id}); }
+    if(error){
+      console.log("leaveline: leave_room failed:",error.message);
+      toast("Couldn't leave the line \u2014 try again.");
+      loadRoomState();
+      return;
+    }
+    if(!(await rejoinRoomBounded("leaveline")))
+      toast("Connection lost \u2014 reload the page to rejoin the room.");
     loadRoomState();
     return;
   }

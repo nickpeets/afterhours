@@ -291,8 +291,31 @@ class BackendDouble {
       case "active_members": return this.activeMembers(a.room_id);
       case "join_room": {
         if (!uid) throw new Error("not authenticated");
+        /* SOURCE: server function join_room, read 2026-08-12.  It selects the
+           member row, and:
+             if v_member is null then
+               insert into room_members (room_id, user_id, role, last_seen)
+               values (v_room_id, v_uid, 'spectator', now())
+               on conflict on constraint room_members_room_user_uniq do nothing
+             else
+               -- already a member: refresh presence, keep role (no downgrade)
+               update room_members set last_seen = now() where id = v_member.id
+             end if;
+
+           THE INSERT ONLY RUNS WHEN THERE IS NO ROW.  A swept row is still a
+           row, so a man who has been buried comes back through the else branch
+           and KEEPS role='gone'.  The server says "no downgrade" in its own
+           comment and means it in both directions: it will not demote a chair,
+           and it will not promote a corpse.
+
+           What stood here revived a gone row as 'spectator'.  That was the
+           fifth unsourced behaviour in this file and the most expensive: a
+           counterfactual run against it concluded that dropping the client's
+           leave_room call was harmless.  On the real server dropping it strands
+           the man at role='gone' with no path back, because nothing on the
+           server ever un-sets 'gone'. */
         let row = this.memberRow(a.room_id, uid);
-        if (row) { if (row.role === "gone") row.role = "spectator"; row.last_seen = this.iso(); }
+        if (row) { row.last_seen = this.iso(); }          // keep role, no downgrade
         else row = this.addMember(a.room_id, uid, "spectator");
         this.emit("room_members", "INSERT", { ...row });
         return null;
@@ -327,8 +350,21 @@ class BackendDouble {
       }
       case "heartbeat": {
         if (!uid) return null;
+        /* SOURCE: server function heartbeat, read 2026-08-12.  Its entire body
+           is `update room_members set last_seen = now()` keyed on the room and
+           auth.uid().  THERE IS NO ROLE PREDICATE — the string 'gone' does not
+           appear in the function at all.
+
+           What stood here was `if (row && row.role !== "gone")`, which skipped
+           swept rows.  That was never read off anything; it is the fourth
+           unsourced behaviour found in this file, and it mattered: a beat that
+           skips a gone row makes the row look frozen, and a beat that refreshes
+           one makes it look alive-but-hidden.  The server does the latter.
+           `role` is left alone either way, so a swept man's last_seen keeps
+           moving while active_members goes on excluding him for `role <>
+           'gone'`. */
         const row = this.memberRow(a.room_id, uid);
-        if (row && row.role !== "gone") { row.last_seen = this.iso(); }
+        if (row) { row.last_seen = this.iso(); }
         return null;
       }
       case "leave_room": {

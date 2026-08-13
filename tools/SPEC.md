@@ -572,9 +572,47 @@ doesn't unseat him`.  The principle that a seat on stage is not a liveness signa
 was already written down; it was applied to `kept` and not to `chair`.  So
 defect 2 is a render-source question, not an away-state redesign.
 
-**NOT BLOCKED ON THE DATABASE.**  Both defects are client-side.  The earlier
-claim that the bench half needed a DB change came from the same unverified
-comment and was wrong.
+**~~NOT BLOCKED ON THE DATABASE. Both defects are client-side.~~ WITHDRAWN
+2026-08-12 — the server was read directly and both halves turn on it.**  This
+paragraph was written from the double, and the double was wrong about the two
+functions the claim rested on.  What the server actually says, read from
+`pg_get_functiondef` on 2026-08-12:
+
+| function | text | the double said |
+|---|---|---|
+| `heartbeat` | `update … set last_seen = now()`, **no role predicate at all** | skipped rows with `role='gone'` |
+| `join_room` | inserts only `if v_member is null`; otherwise `-- already a member: refresh presence, keep role (no downgrade)` | revived a `gone` row as `spectator` |
+| `active_members` | `where role <> 'gone' and (role = 'kept' or last_seen > now() - interval '60 seconds')` | correct |
+| `sweep_stale_members` | `set role='gone' …` — **role only**, `line_position` untouched | correct |
+| `join_line` | keeps `v_prev_pos` when `v_prev_role = 'line'` | re-minted every time |
+| `leave_room` | hard `DELETE` | correct |
+
+**Nothing on the server ever un-sets `'gone'`.**  Not the beat, not `join_room`.
+So past 180s the client's `leave_room` + `join_room` is the only exit that
+exists, and it costs the place by construction — the row is destroyed, so the
+new row's previous role is not `'line'`.
+
+- **The bench (defect 1) is real and it is server-shaped.**  Three candidate
+  fixes, all server-side: the sweep must not bury a benched man at 180s, or
+  `join_room` must restore the prior role, or `join_line` must preserve on
+  `v_prev_pos` regardless of `v_prev_role`.  **Do not "just remove the
+  `leave_room` call"** — removing it strands him at `'gone'` permanently, which
+  is worse than losing a turn.  That call is the only thing currently rescuing
+  him, and it rescues him badly.
+- **The chair (defect 2) is a render-source question, and the source is an
+  RPC.**  `loadRoomState` is the only roster read, it calls `active_members`,
+  and the exemption is a disjunct in the server's own `WHERE`.  The client
+  **never** touches `room_members` directly — 0 occurrences of
+  `from("room_members")`, against 8 `from("room_events").insert` and 8
+  `from("profiles").select`, so the mechanism for a direct read exists and is
+  used elsewhere.  Whether RLS on `room_members` permits a client `select` is
+  **the open question**, and it decides client-side vs server-side.  It is not
+  assumed here either way.
+
+**Provenance note.**  The withdrawn claim was mine, and it was ruled on by the
+conductor from my read of the double.  Neither of us had read the server.  See
+METHOD rule 12: a double that reproduces the symptom is not evidence of the
+mechanism.
 
 **Still open, and it is the owner's:** should a seat assignment be rendered off a
 liveness window at all?  A 60-second window should probably not be able to offer

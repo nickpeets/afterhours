@@ -14,21 +14,54 @@
  * room.  THE SCENE WAS NOT.  Those are different claims and this header
  * previously ran them together.
  *
- * Measured after the double was corrected, three ages, one run each:
+ * THE SERVER WAS THEN READ DIRECTLY (2026-08-12, six functions).  Everything
+ * below is from that read, not from the double:
+ *
+ *   heartbeat            update ... set last_seen = now().  NO role predicate;
+ *                        the string 'gone' does not occur in the function.
+ *   join_room            inserts 'spectator' ONLY `if v_member is null`.  Else
+ *                        `-- already a member: refresh presence, keep role (no
+ *                        downgrade)` — a swept row keeps role='gone'.
+ *   active_members       where role <> 'gone' and (role = 'kept' or last_seen >
+ *                        now() - interval '60 seconds')
+ *   sweep_stale_members  set role='gone' … last_seen < now() - '3 minutes'.
+ *                        ROLE ONLY — line_position is left intact.
+ *   join_line            keeps v_prev_pos if v_prev_role = 'line'.
+ *   leave_room           a hard DELETE.
+ *
+ * THE CHAIN PAST 180s, and it is worse than "he loses his turn".  The sweep
+ * sets role='gone' and leaves position 201 sitting on the row.  The beat keeps
+ * refreshing last_seen but never touches role.  join_room finds a row and
+ * keeps its role.  active_members excludes role='gone'.  **NOTHING ON THE
+ * SERVER EVER UN-SETS 'gone'.**  The client's leave_room + join_room is the
+ * only exit that exists, and it costs the place by construction: the row is
+ * destroyed, so the new row's previous role is not 'line'.
+ *
+ * DEFECT 1 IS ALIVE, AND `leave_room` IS THE DESTRUCTIVE STEP.  But DO NOT
+ * "just remove the call".  Removing it strands him at role='gone' with no path
+ * back — invisible to every roster, permanently.  That call is currently the
+ * only thing rescuing him from the swept state, and it rescues him badly.  The
+ * fix is a REVIVE PATH — a swept row returns to its prior role with
+ * line_position intact — not a deletion.
+ *
+ * AN EARLIER VERSION OF THIS BLOCK RETRACTED DEFECT 1.  That retraction was
+ * made on the double's word — it claimed join_room revives a 'gone' row as
+ * 'spectator', which the server does not do — and it is withdrawn.  The double
+ * held a wrong MECHANISM that produced the CORRECT SYMPTOM, which is the
+ * hardest failure to catch by testing: the test passes and the observation
+ * matches.  See METHOD rule 12.
+ *
+ * Measured after the double was corrected, one run each:
  *   50s   role=chair, in active_members, her tile PRESENT — nothing happens,
  *         which is correct: inside the freshness window there is no lapse.
  *   90s   role=chair, NOT in active_members, her tile GONE, three OPEN CHAIR
- *         cards — DEFECT 2, isolated for the first time.
- *   200s  role=gone — the sweep.  The bench man goes spectator, position null.
+ *         cards, and the bench man keeps role=line and position 201.
+ *         DEFECT 2 ALONE, isolated for the first time.
+ *   200s  role=gone.  The bench man returns spectator, position null.
+ *         DEFECT 1.
  *
- * And the bench half below is under retraction pending the conductor's call:
- * with `join_line` corrected to preserve the place (as the server does), the
- * 90s window costs him NOTHING — the recovery beats first, the beat refreshes
- * a row that is still alive, and he is back inside the window before the
- * roster is read.  The client design works.  He only loses the bench past
- * 180s, where the row is genuinely swept.
- *
- * Do not read the assertions below as settled until this block is removed.
+ * The scene below is still 50s and still wrong.  Re-scening onto 90s and 200s
+ * is the next commit; this block stays until it is done.
  *
  * OBSERVED LIVE, 2026-08-12, by the owner: a guest whose phone locked did not
  * merely go stale — he came back OUT of the room.  This gate is written to make

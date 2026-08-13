@@ -1823,7 +1823,22 @@ $("signout").onclick=async()=>{
   } else if(ME){
     // not in a room view, but might own a live room (e.g. signed out from the lobby) — end any
     try{ const {data:mine}=await sb.from("rooms").select("id").eq("host_id",ME.id).eq("status","live");
-      for(const r of (mine||[])){ await sb.rpc("end_show",{room_id:r.id,winner_id:null}); }
+      for(const r of (mine||[])){
+        /* GATE 56 (endshow-truth): each ending read + retried; sign-out still
+           proceeds (a user can always leave — blocking it is the conductor's
+           call, per the gate's product note) but an orphaned live room is
+           never SILENT. */
+        let ended=false;
+        for(let a=0;a<3 && !ended;a++){
+          let err=null;
+          try{ const {error}=await sb.rpc("end_show",{room_id:r.id,winner_id:null}); err=error; }
+          catch(e){ err={message:String((e&&e.message)||e)}; }
+          if(!err){ ended=true; break; }
+          console.log("signout: end_show attempt "+(a+1)+" failed for room "+r.id+":",err.message);
+          if(a<2) await new Promise(r2=>setTimeout(r2,600*(a+1)));
+        }
+        if(!ended) toast("Couldn't close your live room \u2014 it may still show as live.");
+      }
     }catch(e){}
   }
   authBeginSignOut();
@@ -4173,7 +4188,20 @@ async function egDecideTap(uid){
     // KEEP ONE is the ending: he's the winner, the night goes backstage
     const nm=(ROOM_STATE.profs[uid]?.display_name)||"him";
     if(typeof beatKept==="function") beatKept(nm, uid); else toast("You kept "+nm+" 💘");
-    try{ await sb.rpc("end_show",{room_id:CURRENT_ROOM.id,winner_id:uid}); }catch(e){}
+    /* GATE 56 (endshow-truth): the keep is DECIDED — kept role written, the
+       beat playing, her night heading backstage — so the ending must land or
+       be said.  What stood here swallowed it, and one refusal left the rooms
+       row lying 'live' to the lobby while the winner stood backstage. */
+    let ended=false;
+    for(let a=0;a<3 && !ended;a++){
+      let err=null;
+      try{ const {error}=await sb.rpc("end_show",{room_id:CURRENT_ROOM.id,winner_id:uid}); err=error; }
+      catch(e){ err={message:String((e&&e.message)||e)}; }
+      if(!err){ ended=true; break; }
+      console.log("keep: end_show attempt "+(a+1)+" failed:",err.message);
+      if(a<2) await new Promise(r=>setTimeout(r,600*(a+1)));
+    }
+    if(!ended) toast("The night didn't close out \u2014 tap LAST CALL to end the show.");
     egRefreshRoom(); loadRoomState();
     return true;
   }

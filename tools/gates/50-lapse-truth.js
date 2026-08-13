@@ -195,13 +195,21 @@ module.exports = {
       /* Both phones go dark.  No client code runs while a screen is locked —
          iOS suspends JS outright — so this is modelled the only honest way:
          the beats simply stop, and the server's own sweep does the rest. */
-      const stale = new Date(D.now() - 50_000).toISOString();
+      /* NINETY SECONDS.  Chosen against the server's real thresholds — past
+         the 60s at which active_members stops returning him, well short of
+         the 180s at which the sweep buries him.  That gap IS defect 2, and it
+         is the state a locked phone is in for two of every three minutes.
+         (The previous scene aged 50s, a number picked to cross the double's
+         inverted 45s sweep.  It crossed nothing real.) */
+      const stale = new Date(D.now() - 90_000).toISOString();
       D.memberRow(room, "u_a").last_seen = stale;
       D.memberRow(room, "u_b").last_seen = stale;
       D.rpc("host", "sweep_stale_members", { room_id: room });
 
-      t.ok(D.memberRow(room, "u_a").role === "gone" && D.memberRow(room, "u_b").role === "gone",
-        "fixture: the sweep buried both of them — this is the state a locked phone reaches, not a state anyone chose");
+      t.ok(D.memberRow(room, "u_a").role === "chair" && D.memberRow(room, "u_b").role === "line",
+        `fixture: at 90s the sweep has NOT touched them — both rows are alive and hold their roles (a=${D.memberRow(room, "u_a").role}, b=${D.memberRow(room, "u_b").role}). This is the invisible-but-alive window, not a departure.`);
+      t.ok(!D.activeMembers(room).some((m) => m.user_id === "u_a"),
+        "fixture: and active_members no longer returns him — alive on the server, absent from every client. That gap is the whole defect.");
 
       /* ---------- CHAIR: is his absence LEGIBLE to her? ---------- */
       await host.page.evaluate(() => window.__lc.loadRoomState && window.__lc.loadRoomState());

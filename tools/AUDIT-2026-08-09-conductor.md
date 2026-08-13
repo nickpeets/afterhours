@@ -348,6 +348,48 @@ Both fixes shipped 2026-08-11 held in production, not merely in the harness:
 
 # METHOD — read this before running a live pass
 
+## THE TAB CONTRACT — standing rule, read before anything else
+
+Owner's rule, 2026-08-13, verbatim in force.  It sits above every other rule
+here because it governs whether any of them reach anyone.  It survives session
+resets; a chat does not.
+
+1. **NEVER MORE THAN THREE MINUTES SILENT.**  A one-line heartbeat: what you
+   are doing *right now*.  Not a report.  If a single tool call will run longer
+   than three minutes and you physically cannot post during it, say so BEFORE
+   you start it, with an estimate — *"reading four function bodies through the
+   dashboard, back in about ten minutes."*  **Silence is only acceptable when
+   it was announced in advance.**
+2. **AFTER EVERY POST, READ THE TAB BEFORE CONTINUING.**  The owner may have
+   ruled, corrected, or redirected while you were working.  Check for a new
+   instruction and follow it before proceeding with what you had planned.  **The
+   tab is the authority; your plan is not.**
+3. **POST BEFORE A SEQUENCE, NOT ONLY AFTER.**  What you are about to do, and
+   how long it will take.
+4. **POST AT EVERY CHECKPOINT** — every commit, every measurement, every read
+   that changes a conclusion.  Three conclusions reversed mid-stream on the
+   night this rule was written, and each was worth knowing immediately rather
+   than at the end.
+5. **POST WHEN BLOCKED, IMMEDIATELY, AND NAME THE KIND:** Codespace idled /
+   Chrome dropped / waiting on a ruling / waiting on the owner.  Four different
+   responses are needed and **silence looks identical for all of them.**
+6. **SHAPE, EVERY TIME: DID / OBSERVED (raw) / BLOCKED / NEXT.**
+7. **IF A RULING IS OUTSTANDING, SAY SO AND KEEP WORKING ON WHAT ISN'T
+   BLOCKED.**  Never idle waiting.
+
+**Why three minutes, in the owner's reasoning:** a gate is ~7s, a battery a
+couple of minutes, most browser sequences under two.  Three sits just above
+routine work, so **a breach means something**.  Below that it would fire
+constantly and get ignored.
+
+The failure this rule exists to kill is not slowness — it is an agent going
+dark for twenty minutes inside a chain of reasoning that had already turned out
+to be wrong twice, while the one party who could have stopped it sat watching a
+blank tab.  A finding held back until the end is a finding that arrived after
+the decisions it should have changed.
+
+---
+
 **On a live rig, establish the action before interpreting the pixels.**
 
 The 2026-08-11 run produced four confident findings that were all wrong, and

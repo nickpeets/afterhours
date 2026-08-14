@@ -102,6 +102,11 @@ module.exports = {
         `(d) the sign-out sweep RETRIES the ending it used to swallow (attempts: ${endShows() - e1})`);
       t.ok(host.logs.some((l) => /signout.*end_show|end_show.*(fail|attempt)/i.test(l.text)),
         "(d) the orphaned live room is NAMED in the console before sign-out proceeds — never a silent orphan");
+      /* COPY PIN, labelled as a pin and not behaviour (the sign-out reload
+         races any toast read): the ruling 2026-08-14 requires the exit to
+         OFFER THE RETRY — the shipped copy must name the recovery route. */
+      t.ok(/still LIVE\.\s*Sign back in and tap LAST CALL/.test(ctx.html),
+        "(d) copy pin: the toast names the recovery — still LIVE, sign back in, tap LAST CALL");
       D.setFault("end_show", "host", null);
     } finally { await h.close(); }
   },

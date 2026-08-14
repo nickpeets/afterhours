@@ -32,12 +32,14 @@
  *   4. when the server answers, the same tap rescinds and says goodnight —
  *      the fix must not make a working retraction stickier.
  *
- * PRODUCT NOTE, handed up rather than decided here (conductor to rule): the
- * OFFER-CLOCK TIMEOUT path (bsGoodnight on left<=0) exits with a live offer
- * and NO rescind at all, by construction.  Whether timeout-with-
- * unreciprocated-offer should rescind is a product decision about what the
- * offer means after the window closes; this gate deliberately does not
- * assert it either way.
+ * RULED (2026-08-14, superseding the product note that stood here),
+ * verbatim: "RESCIND TIMEOUT: it must rescind.  An offer-clock expiry that
+ * leaves a live offer is the identical defect to a failed rescind, reached
+ * through a different door…  If the timeout path can't rescind for some
+ * structural reason, it must not exit; hold him in the decision layer and
+ * tell him."  Scenes 4a/4b hold exactly that: a clean expiry WITHDRAWS the
+ * offer before goodnight; a refused withdrawal HOLDS him, told, with the
+ * LEAVE-IT-HERE tap as the named retry.
  */
 "use strict";
 const { Harness } = require("../lib/harness");
@@ -112,6 +114,71 @@ module.exports = {
         !document.getElementById("backstage").classList.contains("show")), 8000,
         "goodnight to proceed once the retraction took");
       t.ok(true, "…and goodnight proceeds — a working retraction is no stickier than before");
+
+      /* ---- scene 4a: the CLOCK expires with a live offer and a refusing
+             server — held in the decision layer, told, never a silent exit ---- */
+      const reenter = async () => {
+        /* goodnight's exitBackstage clears CURRENT_ROOM and lands the lobby —
+           a second backstage session re-enters through the room door */
+        await w.page.evaluate((r) => window.__lc.openRoom(r), { ...D.rooms.get(room) });
+        await w.page.waitForSelector("#room.show", { timeout: 10000 });
+        await w.page.evaluate(() => window.__lc.enterBackstage("u_win", "Winner"));
+        await w.page.waitForTimeout(400);
+        await w.page.evaluate(() => window.__lc.bsEnterDecision("callclock"));
+        await waitFor(() => w.page.evaluate(() => window.__lc.BS_STATE.phase === "deciding"), 8000,
+          "the decision layer again");
+        await w.page.evaluate(() => {
+          document.querySelector('#bsd_chips .ctypechip[data-t="Phone"]').click();
+          document.getElementById("bsd_val").value = "503-555-0142";
+          document.getElementById("bsd_offer").click();
+        });
+        await waitFor(() => Promise.resolve((D.swaps[room] || {})["u_win"] != null), 5000,
+          "the offer to land again");
+      };
+      await reenter();
+      D.setFault("rescind_swap", "winner", { error: "boom: rescind unavailable" });
+      const r4 = rescinds();
+      /* fire the expiry: jump the page clock past the offer window — and
+         RESTORE it as soon as the expiry has fired, or the +120s trips the
+         host-left watchdog on the next re-entry (found the hard way) */
+      await w.page.evaluate(() => { window.__on = Date.now; Date.now = () => window.__on() + 120000; });
+      await waitFor(async () => Promise.resolve(rescinds() - r4 >= 2), 12000,
+        "the expiry to retry the withdrawal");
+      await w.page.evaluate(() => { if (window.__on) { Date.now = window.__on; window.__on = null; } });
+      await w.page.waitForTimeout(2600);
+      const held = await w.page.evaluate(() => ({
+        deciding: document.getElementById("bsdecide").classList.contains("show"),
+        backstage: document.getElementById("backstage").classList.contains("show"),
+        status: (document.getElementById("bsd_status").textContent || "").trim(),
+      }));
+      t.ok((D.swaps[room] || {})["u_win"] != null && held.deciding && held.backstage,
+        `4a: an expiry that CANNOT withdraw does not exit — he is held in the decision layer over his still-live offer (deciding=${held.deciding}, backstage=${held.backstage})`);
+      t.ok(/leave it here/i.test(held.status),
+        `4a: …and TOLD, with the retry named (status=${JSON.stringify(held.status)})`);
+      t.ok(w.logs.some((l) => /rescind-timeout/.test(l.text)),
+        "4a: …and the console names the timeout path's failing call");
+      /* the named retry works once the server answers */
+      D.setFault("rescind_swap", "winner", null);
+      await w.page.evaluate(() => document.getElementById("bsd_skip").click());
+      await waitFor(() => Promise.resolve((D.swaps[room] || {})["u_win"] == null), 8000,
+        "the named retry to withdraw the offer");
+      await waitFor(() => w.page.evaluate(() =>
+        !document.getElementById("backstage").classList.contains("show")), 8000,
+        "goodnight after the recovered withdrawal");
+
+      /* ---- scene 4b: a CLEAN expiry withdraws the offer itself, then exits ---- */
+      await reenter();
+      const r5 = rescinds();
+      await w.page.evaluate(() => { window.__on = Date.now; Date.now = () => window.__on() + 120000; });
+      await waitFor(() => Promise.resolve((D.swaps[room] || {})["u_win"] == null), 12000,
+        "the clean expiry to withdraw the offer by itself");
+      await w.page.evaluate(() => { if (window.__on) { Date.now = window.__on; window.__on = null; } });
+      t.ok(rescinds() - r5 >= 1 && (D.swaps[room] || {})["u_win"] == null,
+        "4b: a clean expiry WITHDRAWS the offer — the clock running out is a retraction, not an abandonment");
+      await waitFor(() => w.page.evaluate(() =>
+        !document.getElementById("backstage").classList.contains("show")), 8000,
+        "goodnight after the clean expiry");
+      t.ok(true, "4b: …and then goodnight proceeds as before");
     } finally { await h.close(); }
   },
 };

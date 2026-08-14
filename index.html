@@ -1851,7 +1851,7 @@ $("signout").onclick=async()=>{
           console.log("signout: end_show attempt "+(a+1)+" failed for room "+r.id+":",err.message);
           if(a<2) await new Promise(r2=>setTimeout(r2,600*(a+1)));
         }
-        if(!ended) toast("Couldn't close your live room \u2014 it may still show as live.");
+        if(!ended) toast("Couldn't close your live room \u2014 it's still LIVE.  Sign back in and tap LAST CALL to end it.");
       }
     }catch(e){}
   }
@@ -2447,7 +2447,9 @@ function benchReconcile(){
      optimistic verb yet" — the rendering IS the subject here, not a proxy
      for the table.  Worst case is a wrong toast that self-heals; it feeds
      no rpc.  Do not "fix" this onto myRowFromTable: that would confirm the
-     verb against a source the verb's consumers never see. */
+     verb against a source the verb's consumers never see.  And per rule 13's
+     partial-migration corollary: if this ever DOES convert, find its pairs —
+     converting one side of a paired derivation reopens gate 54 scene 4. */
   const me=(ROOM_STATE.members||[]).find(m=>m.user_id===ME.id);
   if(me && (me.role==="line"||me.role==="chair"||me.role==="kept")){
     window.__OPTIMISTIC_BENCH=null; updateJoinBtn(); return;   // confirmed
@@ -2837,6 +2839,8 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   // render-path reader, DELIBERATELY on the rendering (gate 54 census): a
   // sync paint cannot await a table read; worst case is one repaint of the
   // bench blind toggle, self-healed by the next commit.  Feeds no rpc.
+  // Rule 13 partial-migration corollary applies if this ever converts:
+  // one side of a paired derivation never moves alone (gate 54 scene 4).
   const iAmSeated = ROOM_STATE.members.some(m=>m.user_id===ME.id && (m.role==="chair"||m.role==="kept"));
   if(items) items.classList.toggle("is-blind", AMHOST || iAmSeated);
 
@@ -4990,7 +4994,28 @@ async function bsEnterDecision(reason){
     const c=$("bsd_count");
     c.textContent="0:"+String(left).padStart(2,"0");
     c.classList.toggle("low",left<=15);
-    if(left<=0){ bsGoodnight(BSD_OFFERED?"The clock ran out.":null); }
+    if(left<=0){
+      /* RULING 2026-08-14, verbatim principle: NO SILENT EXIT.  "An
+         offer-clock expiry that leaves a live offer is the identical defect
+         to a failed rescind, reached through a different door."  The expiry
+         WITHDRAWS the offer; if the server refuses every retry, the exit
+         does not proceed — he is held in the decision layer and told the
+         LEAVE-IT-HERE tap is his retry. */
+      clearInterval(BSD_TICK); BSD_TICK=null;
+      (async()=>{
+        if(BSD_OFFERED){
+          const ok=await bsRescindBounded("rescind-timeout");
+          if(!ok){
+            $("bsd_status").textContent="The clock ran out \u2014 but your offer couldn't be taken back.  Tap LEAVE IT HERE to retry.";
+            return;                       // held, told, never a silent exit
+          }
+          BSD_OFFERED=false;
+          bsGoodnight("The clock ran out.");
+          return;
+        }
+        bsGoodnight(null);
+      })();
+    }
   },250);
   BSD_POLL=setInterval(bsCheckSwap,3000);
 }
@@ -5040,7 +5065,26 @@ function bsTeardownDecision(){
   $("bsd_count").style.display="";
   $("bsd_status").textContent="";
   $("bsd_val").value="";
+  /* found by gate 55 scene 4: the offer button was never re-armed, so a
+     SECOND backstage session in one night opened on a dead "Offered" button */
+  $("bsd_offer").disabled=false; $("bsd_offer").textContent="Swap info 🍸";
   $("bs_clock").classList.remove("on","low");
+}
+
+/* THE ONE bounded retraction (gates 55 + ruling 2026-08-14: NO SILENT EXIT).
+   Shared by the LEAVE-IT-HERE tap and the offer-clock timeout so the two
+   doors cannot drift apart — an expiry that leaves a live offer is the
+   failed rescind through a different door.  True iff the offer is gone. */
+async function bsRescindBounded(tag){
+  for(let a=0;a<3;a++){
+    let err=null;
+    try{ const {error}=await sb.rpc("rescind_swap",{room_id:BS_ROOM.id}); err=error; }
+    catch(e){ err={message:String((e&&e.message)||e)}; }
+    if(!err) return true;
+    console.log(tag+": rescind_swap attempt "+(a+1)+" failed:",err.message);
+    if(a<2) await new Promise(r=>setTimeout(r,600*(a+1)));
+  }
+  return false;
 }
 
 /* decision UI wiring */
@@ -5075,15 +5119,7 @@ $("bsd_skip").onclick=async()=>{
        explicitly withdrew revealed anyway.  Now: bounded retry, and the one
        unreachable end state is leaving with a live offer IN SILENCE. */
     $("bsd_skip").disabled=true;
-    let rescinded=false;
-    for(let a=0;a<3 && !rescinded;a++){
-      let err=null;
-      try{ const {error}=await sb.rpc("rescind_swap",{room_id:BS_ROOM.id}); err=error; }
-      catch(e){ err={message:String((e&&e.message)||e)}; }
-      if(!err){ rescinded=true; break; }
-      console.log("rescind: attempt "+(a+1)+" failed:",err.message);
-      if(a<2) await new Promise(r=>setTimeout(r,600*(a+1)));
-    }
+    const rescinded=await bsRescindBounded("rescind");
     $("bsd_skip").disabled=false;
     if(!rescinded){
       $("bsd_status").textContent="Couldn't take your info back \u2014 check your connection and tap again.  Your offer stays live until this works.";

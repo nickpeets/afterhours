@@ -820,6 +820,19 @@ scene 4 — fixing the branch onto the table while the guard kept the
 rendering reopened, for one commit, the exact demotion the guard exists to
 prevent).
 
+**Corollary to rule 13 (conductor, 2026-08-14), THE SHAPE OF PARTIAL
+MIGRATION:** when converting one site of a paired derivation, THE PAIR MOVES
+TOGETHER or the invariant breaks in between.  The erasure fix moved the
+open-chair guard's branch onto the table and left the guard on the
+rendering — so the two derivations disagreed, which the guard's own written
+invariant explicitly forbids, and for one commit a bench man with a stale
+roster read could lose his place to the very tap the guard protects (gate
+54, scene 4).  Not a slip: while six sites move one at a time, EVERY
+INTERMEDIATE STATE has some pair reading different sources; the invariant
+only holds at the ends.  Two sites remain unconverted by reasoned choice
+(benchReconcile, the bench-blind render read) — anything future that
+converts one of them can reopen exactly this, and their comments say so.
+
 **THE LEDGER GAP, logged 2026-08-13, ruled "worth a line on the list,
 though not tonight":** the events that matter most are the ones the ledger
 does not record.  `leave_room` deletes with no event, the recovery writes

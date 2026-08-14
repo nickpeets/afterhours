@@ -111,3 +111,13 @@ unchanged.
   migration): what happens to a row buried when the show then ENDS —
   gone_at set, heartbeat no longer running, nothing clears it.  Unanswered;
   blocks the migration until it is.
+- Q-e RULED (Nick, 2026-08-14, via planner tab): THE HOLD IS 15 SECONDS,
+  FLAT — "You have to be ready to play the game and be present to win
+  someone's attention."  The 60s/180s chairHold thresholds are design
+  decisions superseded as PRODUCT intent, not tuning constants; for the
+  CHAIR, SPEC Q60's freshness question is answered by intent — 15s WITH a
+  visible held state (clock frozen, RECONNECTING amber), a different
+  contract.  Server-side implementation (chairHold semantics vs today's
+  sweep) is a build item, not a ruling item; it does NOT block the host
+  exemption.  [Composed at rebuild 2026-08-14 from the tab's verbatim
+  ruling; the dead commit's exact Q-e wording did not survive.]

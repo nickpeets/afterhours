@@ -83,8 +83,10 @@ All draft-storm coverage work is HELD.
     answer; gifts and floor-holds disabled during spotlights; host can skip
     any timed phase.  AS-BUILT: **PARTIAL.**  `skip_phase` exists and is
     used (3014).  No clock-pause mechanism found at HEAD (no pause writer on
-    the section clock).  **RULED — see foot, ruling 2: "any timed phase" is
-    corrected to "any timed phase EXCEPT the call."**
+    the section clock) — so the design's "answering never eats audition time"
+    rule is not half-built, it is UNBUILT WITH NO HOOKS: new substrate is
+    required before it can exist.  **RULED — see foot, ruling 2: "any timed
+    phase" is corrected to "any timed phase EXCEPT the call."**
 11. **Questions** — DESIGN: no free-typed questions anywhere; she picks
     authored decks at GO LIVE.  AS-BUILT: **MATCHES.**  `ask_question` sends
     a `question_id` from the picked deck (4011); contract tables
@@ -126,6 +128,10 @@ Two instances at HEAD, both string-verified 2026-08-14:
 
 - **Strike pips** (point 8): render at 2855–2861, `is-lastlife` at 2+, zero
   writers of `strikes` in the repo, including `tools/lib/backend-double.js`.
+  Stated flatly so the next reader is not fooled by a mockup: `m.strikes` is
+  undefined on every row the client will ever receive, so the pips can never
+  render meaningfully and the 2+ check is dead code wearing finished UI.  The
+  system does not half-work; it half-renders.
 - **`claim_open_chair`**: `autoSeatFromLine`'s fence comment (3598) cites it
   as the engine-room alternative; the function exists nowhere — the only
   other mentions are gate 43, which was written to assert ZERO call sites.

@@ -3595,7 +3595,9 @@ function benchQueue(members, room, n){
 let AUTOSEATING=false;
 async function autoSeatFromLine(){
   if(!AMHOST || AUTOSEATING) return;
-  if(EG_ON) return;  // engine rooms: the line is masked to the host — joiners self-seat via claim_open_chair
+  if(EG_ON) return;  // engine rooms: the line is masked to the host, so this loop would seat masked ids.
+                     // Seating there is the curtain-up loop and her own tap (seat_member) — there is NO
+                     // self-seat path (gate 43 asserts zero claim_open_chair call sites; no such function exists).
   // wave 8: derive from the SAME filtered rows as every other surface, and
   // never auto-seat the same man twice — the loop must be idempotent even
   // over a stale local roster.

@@ -788,6 +788,61 @@ through fixtures and never calls `join_line` at all.  **It tested ordering and
 was named for it; the minting had no gate.**  A green battery is evidence about
 the paths it enters, and silence about the rest.
 
+**THE THIRTEENTH RULE, named by the conductor on 2026-08-13 after it was
+found from three independent directions in one night — the rpc census, the
+gate-53 forge, and the ROOM_STATE reader count.  ONE ITEM, NOT THREE:**
+
+**DECIDE FROM A RENDERING, THEN CALL A DESTRUCTIVE RPC AND DISCARD THE
+RESULT.  Two halves, either one survivable; together they erase people.**
+
+- Half A: a decision about YOUR OWN fate read off ROOM_STATE — a rendering
+  that can trail the table by a whole sweep (the gate-53 forge: the guard's
+  roster read lost a supersede race and consulted a commit from before the
+  burial) or a whole role (gate 54 scene 3: screen said line, table said
+  spectator, and the hard delete fired anyway).
+- Half B: a hard DELETE followed by an unread re-create.  leave_room is a
+  hard delete; a discarded join_room after it is a man erased by his own
+  client, silently.  Three instances were live on 2026-08-13: the lapse
+  recovery (gate 53), the chair step-down and the leave-line toggle (gate
+  54).  The sibling swallows — rescind (gate 55), the end_show pair (gate
+  56), request_invite (gate 57) — are half B without the delete: an act the
+  user believes happened, silently lost.
+
+The fix pattern, factored so it cannot drift: **anything deciding your own
+fate reads your own row off the table (`myRowFromTable`, the ONE read);
+anything re-creating after a delete reads and retries bounded
+(`rejoinRoomBounded`, the ONE re-add), and the terminal failure is LOUD.**
+Render-only readers stay on the rendering deliberately — they feed no rpc
+and self-heal on the next commit; the six self-fate deciders are the whole
+surface, and each is either on the helper or carries a comment saying why
+not.  A guard and the branch it guards read the SAME source (gate 54,
+scene 4 — fixing the branch onto the table while the guard kept the
+rendering reopened, for one commit, the exact demotion the guard exists to
+prevent).
+
+**Corollary to rule 13 (conductor, 2026-08-14), THE SHAPE OF PARTIAL
+MIGRATION:** when converting one site of a paired derivation, THE PAIR MOVES
+TOGETHER or the invariant breaks in between.  The erasure fix moved the
+open-chair guard's branch onto the table and left the guard on the
+rendering — so the two derivations disagreed, which the guard's own written
+invariant explicitly forbids, and for one commit a bench man with a stale
+roster read could lose his place to the very tap the guard protects (gate
+54, scene 4).  Not a slip: while six sites move one at a time, EVERY
+INTERMEDIATE STATE has some pair reading different sources; the invariant
+only holds at the ends.  Two sites remain unconverted by reasoned choice
+(benchReconcile, the bench-blind render read) — anything future that
+converts one of them can reopen exactly this, and their comments say so.
+
+**THE LEDGER GAP, logged 2026-08-13, ruled "worth a line on the list,
+though not tonight":** the events that matter most are the ones the ledger
+does not record.  `leave_room` deletes with no event, the recovery writes
+nothing, and the row itself is the only evidence — which the delete
+destroys.  The 200s live observation of 2026-08-12 is formally
+UNATTRIBUTED for exactly this reason (two real mechanisms, no trace to
+pick between them), and every future incident of this shape will hit the
+same wall until deletion writes a ledger fact.  List item, not tonight's
+work.
+
 ---
 
 # CARRIED OUT OF THE 2026-08-11 RUN

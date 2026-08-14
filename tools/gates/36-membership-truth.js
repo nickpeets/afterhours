@@ -1,6 +1,14 @@
 /* GATE 36 — membership-truth: one disease, three faces (wave-8 conductor
  * run, b0809.1727).  Ships with fix/membership-truth.
  *
+ * SCOPE NOTE (conductor's ruling, 2026-08-13): despite the name, this gate
+ * covers EXACTLY the three wave-8 faces below — the host roster split, the
+ * evaporating bench row, the ghost row — and the setFault machinery they
+ * forced into the double.  It is not a general theory of membership: role
+ * semantics live in gates 51/53/54, presence in 50/53, the filter chain in
+ * its own listed gate.  Read the name as "the membership diseases of
+ * b0809.1727", not "membership, proven".
+ *
  *   a. HOST ROSTER SPLIT — the server seated three (four player tabs
  *      unanimous); the host tab alone read line×3 for >30s, survived a
  *      re-auth, and her cold-start auto-seat re-fired every ~4s writing

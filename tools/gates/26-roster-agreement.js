@@ -1,6 +1,15 @@
-/* GATE 26 — roster-truth: every client agrees WHO IS SEATED, within one
- * sync interval, with realtime fully dead on some of them.  Ships with
+/* GATE 26 — roster-agreement (né roster-truth; renamed by the conductor's
+ * ruling 2026-08-13): every client agrees WHO IS SEATED, within one sync
+ * interval, with realtime fully dead on some of them.  Ships with
  * fix/roster-truth.  This is gate 23's discipline applied to the roster.
+ *
+ * SCOPE, honestly (the rename's reason): this gate covers seat-map
+ * AGREEMENT between windows and monotonic roster commits.  It does NOT
+ * cover the roster's filter chain — loadRoomState's supplementary seated
+ * read, activeRows, rosterOverlay — whose end-to-end walk has NEVER been
+ * done (loadRoomState's own caveat says so in the code).  That walk is a
+ * separate listed gate.  "roster-truth" implied all of it; this covers
+ * agreement, so it is named agreement.
  *
  * The live finding: after a pass, desktop windows kept the passed man
  * seated for MINUTES while the host's iPad showed his replacement.  Two
@@ -30,7 +39,7 @@ const waitFor = async (fn, ms, what) => {
 };
 
 module.exports = {
-  name: "roster-truth",
+  name: "roster-agreement",
   async run(t, ctx) {
     const h = await Harness.launch();
     try {

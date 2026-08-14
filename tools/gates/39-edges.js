@@ -58,9 +58,11 @@ module.exports = {
       "d1: the empty-chair card no longer promises TAKE THE CHAIR (mislabeled action gone)");
     t.ok(/OPEN CHAIR/.test(html) && /join the bench — she fills it from there/.test(html),
       "d1: the card says what the tap does (bench, her pick)");
-    const watchdog = html.slice(html.indexOf("HOST_LAST_SEEN && Date.now()-HOST_LAST_SEEN>80000"));
-    t.ok(/status==="ended"/.test(watchdog.slice(0, 900)) && /roomEndedUnderUs/.test(watchdog.slice(0, 900)),
-      "d2: the host-left watchdog asks the rooms row first — an ENDED show routes to the finale, never a bare lobby");
+    /* d2 DELETED (conductor's ruling, 2026-08-13): the source-grep that stood
+       here was the assertion gate 47's header proved covers nothing — "ONE
+       assertion and it is a source grep."  d2's real, behavioural coverage
+       lives in gate 47 (watchdog-truth).  Per METHOD: a gate whose name
+       implies more than its scope covers nothing. */
     const snap = html.slice(html.indexOf("async function startWinnerSnap"), html.indexOf("async function startWinnerSnap") + 3200);
     t.ok(/getImageData/.test(snap) && /videoWidth/.test(snap) && /never black/i.test(snap),
       "d3: the snap waits for a live frame, samples for black, and ships NOTHING rather than a black card");

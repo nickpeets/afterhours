@@ -12,17 +12,23 @@
  *   toast.  A silent no-op that also manufactures history with a hole where
  *   the person should be.
  *
- * BE HONEST ABOUT WHAT THIS IS: A DEFECT SHAPE THAT HAS NOT YET BEEN
- * TRIGGERED, not an observed failure.  Measured in production 2026-08-13:
- * 279 seat events, every target_user 36 chars (a dashed uuid), zero 32-char
- * md5-shaped ids, zero NULLs.  The miss has NEVER fired.  What the raise
- * buys is that the NEXT bad id is loud instead of invisible — and the mask
- * (active_members rewriting other people's line rows behind
- * md5(room_id||user_id) during a running show) has already shown one route
- * by which a bad id can exist: a 32-hex md5 IS a valid uuid literal to
- * Postgres — it parses, matches nobody, and vanishes.  This gate exists so
- * that the first time the trap fires is in a harness, not in front of five
- * strangers.  It does not claim to have caught it firing.
+ * CORRECTED 2026-08-14: THE TRAP FIRED.  SEVENTEEN TIMES, IN PRODUCTION.
+ * This header used to say the miss had "NEVER fired", resting on a
+ * 2026-08-13 measurement: 279 seat events, every target_user 36 chars,
+ * zero 32-char md5-shaped ids, zero NULLs.  That was a LENGTH check
+ * against a shape the server does not emit.  The mask is a SALTED md5
+ * CAST ::uuid — 36 characters WITH dashes — so a masked id is
+ * length-indistinguishable from a real uuid, and the measurement was
+ * blind by construction.  Preimage-matching the ledger's target_user
+ * values against md5 masks (2026-08-14) found 17 real seat attempts whose
+ * target matched a masked id: the host's mid-show bench tap passed a
+ * masked id to seat_member's bare no-check UPDATE, zero rows moved, no
+ * error surfaced, and the event insert manufactured history anyway.
+ * Seventeen men tapped in, waited, were chosen, and never got their
+ * chair.  The wrong measurement is left described here, per METHOD (a
+ * wrong document is corrected where it stood, not silently replaced):
+ * the number was real; the conclusion drawn from it was invented.
+ * The raise this gate pins means the EIGHTEENTH is loud.
  *
  * THE DOUBLE ALREADY THREW, AND THAT IS ITS OWN SMALL FINDING.  Its
  * seat_member has raised "no such member" since it was written — the sixth

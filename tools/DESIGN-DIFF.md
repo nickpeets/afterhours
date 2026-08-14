@@ -15,7 +15,7 @@ PROVENANCE, per METHOD rule 12 — read this before quoting anything below.
 - Every AS-BUILT claim is **SOURCE(client)**: read and string-verified by the
   rebuilding agent against `index.html` at HEAD `4247458` (merge of PR #62),
   2026-08-14.  Line numbers are at that HEAD.
-- Battery at this HEAD: 54 gates · 782 checks · all clean (b0812.2107 stamp).
+- Battery at this HEAD: 54 gates · 782 checks · all clean (b0814.2203 stamp).
 
 ## HEADLINE — THE DRAFT STORM IS SUPERSEDED BY DESIGN
 
@@ -124,7 +124,7 @@ final; recorded here verbatim from the tab:
 
 ## HALF-BUILT SURFACES — UI wired to server state that does not exist
 
-Two instances at HEAD, both string-verified 2026-08-14:
+Three instances at HEAD, all string-verified 2026-08-14:
 
 - **Strike pips** (point 8): render at 2855–2861, `is-lastlife` at 2+, zero
   writers of `strikes` in the repo, including `tools/lib/backend-double.js`.
@@ -132,6 +132,15 @@ Two instances at HEAD, both string-verified 2026-08-14:
   undefined on every row the client will ever receive, so the pips can never
   render meaningfully and the 2+ check is dead code wearing finished UI.  The
   system does not half-work; it half-renders.
+- **The rivals' "mute"** (point 10's neighbour, found on the planner's flag
+  2026-08-14): the spotlight two-up collapse is real behaviour (2808–2830
+  drives `is-strip`/`is-gone` off `phase==="spotlight" && spotTarget`), but
+  the strip's own label — "muted until the answer lands" — is copy over
+  unmuted audio.  `setLocalAudio` is seat-scoped only (`syncLocalPublish`
+  5909: publish = host or seated, spotlight-blind) and subscriptions are
+  always `audio: true` (6124).  The room hears the rivals while the UI says
+  it doesn't.  The design's "gifts and floor-holds disabled during
+  spotlights" has the same no-substrate status as the clock pause.
 - **`claim_open_chair`**: `autoSeatFromLine`'s fence comment (3598) cites it
   as the engine-room alternative; the function exists nowhere — the only
   other mentions are gate 43, which was written to assert ZERO call sites.

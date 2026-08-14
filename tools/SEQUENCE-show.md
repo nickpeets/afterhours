@@ -113,9 +113,19 @@ dead agent's numbering.
     (`ask-urgent` at ≤6s, 3177–3179).
 26. Choosing clock expired with no ask → THE HOUSE PICKS ONE (`__AUTOQ`
     guard, 3204–3230).
-27. During his answer, the other two mute to a strip (CSS `is-strip`
-    classes; two-up interview shot).  His clock does NOT pause — no pause
-    mechanism exists at HEAD (DESIGN-DIFF point 10: unbuilt with no hooks).
+27. During his answer the quad breaks to a two-up: the rivals collapse into
+    ONE strip so nobody vanishes.  The COLLAPSE IS BEHAVIOR, not just CSS —
+    driven per render for `phase==="spotlight" && spotTarget` (2808–2830:
+    first rival carries `is-strip` with both names folded in, the second
+    goes `is-gone`, empty seats don't split the shot).  But the MUTING IS
+    A LABEL: the strip sub-text says "muted until the answer lands", and
+    NOTHING mutes them — `setLocalAudio` is seat-scoped only
+    (`syncLocalPublish`, 5909: publish = host or seated, spotlight-blind),
+    and receive-side subscriptions are always `audio: true` (6124).  The
+    rivals stay audible to the room while the UI says otherwise — a
+    half-built surface of the label kind (logged in DESIGN-DIFF).  His
+    clock does NOT pause — no pause mechanism exists at HEAD (DESIGN-DIFF
+    point 10: unbuilt with no hooks).
 28. Open floor is 45s (`openfloor:45`, 3682; `mingle` is its render class,
     3093).  Then back to spotlight — rounds proceed spotlight → openfloor
     → spotlight … into deliberation after round three.  The full ORDER

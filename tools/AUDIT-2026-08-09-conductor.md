@@ -845,6 +845,90 @@ work.
 
 ---
 
+**THE FOURTEENTH RULE, named 2026-08-19 after the advisor and the agent made
+the same mistake in opposite directions in one session: AN ASSERTION RELAYED
+TO YOU IS NOT A READ.**
+
+An advisor's claim about the server carries no more authority than your own
+memory of a read you cannot reproduce.  Both are recollections.  If a fact
+about the server is going into a comment, a document, or a gate header, it is
+read from the server in THIS session or it is labelled UNKNOWN — no third
+option, and no exemption for the person giving the order.
+
+This rule exists because it was broken by the person who wrote it.  The wave-11
+session prompt carried the standing rule that a server claim must be read from
+the server; four messages later the same advisor instructed the executing agent
+to write "read from server" into `index.html` on his own recollection.  The
+agent refused and was right to.  The correct response to that refusal is not to
+override it — it is to go and take the read.
+
+Its corollary, from the same session: **SOURCED and INFERRED are different
+labels and the difference is not pedantry.**  That `claim_open_chair` names a
+`room_events` column the table does not have is SOURCED — two reads, both
+verbatim.  That it therefore raises when called is INFERRED, because observing
+the raise costs a write.  The inference is tight.  It is still an inference, and
+the comment says so.  An agent that collapses the two has learned to launder a
+guess through a true premise.
+
+**KNOWN-UNREAD SPANS — a standing provenance ledger under this rule.  If a read
+came back incomplete, it is logged here rather than smoothed over, because an
+incomplete capture that nobody wrote down becomes a complete one the next time
+somebody quotes it.**
+
+- `public.engine_open_draft(p_room uuid, p_seat integer, p_seats_remaining
+  integer)` — read 2026-08-19 from Studio, role postgres.  The definition is
+  otherwise exact and was verified by length (4007) and an in-page checksum
+  computed against the LIVE result set, not against the reconstruction.  One
+  run of roughly 110 characters INSIDE THE Rev-3 COMMENT BLOCK — between the
+  words "One synthetic aggregate" and "for it either." — could not be pulled
+  out of the page: the reading environment's output filter refused that span
+  repeatedly.  It is prose in a comment, not code, and no gate or document
+  depends on it.  **It is UNREAD.  Do not reconstruct it, do not paraphrase it,
+  and do not treat any later quotation of it as sourced unless the span itself
+  has been read.**  The checksum caveat matters: it certifies the original cell
+  value, so it will NOT catch a paraphrase silently substituted for the gap.
+
+---
+
+**THE FIFTEENTH RULE, same session: A CITATION SWEEP IS A TRUTH CHECK, NOT AN
+OFFSET MAP.**
+
+A moved-line map tells you where a line went.  It does not tell you whether the
+claim about that line was ever true.  Never rewrite a citation without reading
+the target and confirming it carries what the document says it carries — and
+never rewrite one that is already correct, because that is how a right number
+becomes a wrong one.
+
+Wave 11 was told "every line number in both documents is a stale offset."
+Measured: 107 of 181 were still correct, and the 74 that were stale were stale
+by exactly the same amount, because `index.html` had changed in three places
+totalling two lines.  The instruction to rewrite everything would have damaged
+107 correct citations to fix 74 wrong ones.
+
+Its corollary, learned the hard way in the same hour: **when your own edit moves
+the lines, re-cite against YOUR TIP, not the base you branched from.**  Compute
+the drift from the real diff AFTER the edit lands.  A sweep that measures
+against the pre-edit tree ships stale on arrival — which is the defect the sweep
+exists to remove, one turn later.
+
+---
+
+**THE SIXTEENTH RULE, found by accident in the same read: A GATE THAT DOCUMENTS
+A FENCE ALSO HIDES WHAT IS BEHIND IT.**
+
+Gate 43 asserts zero client call sites for `claim_open_chair`.  That assertion
+is true and the gate is sound.  It is also the reason nobody discovered, for the
+entire life of the function, that the function is broken — the path never
+executed, so nothing ever reported it.
+
+The gate did its job perfectly and bought a blind spot with the same motion.
+When a gate's purpose is to prove that something is NEVER CALLED, nothing behind
+that gate is under test, and its correctness decays unobserved.  Write the
+consequence into the gate's own header so the next reader knows the silence
+behind it is not evidence of health.
+
+---
+
 # CARRIED OUT OF THE 2026-08-11 RUN
 
 **A retracted finding, kept on the record so it is not rediscovered.**  That run

@@ -38,17 +38,22 @@ dead agent's numbering.
 
 ## PART II — the bench (the only way toward a chair)
 
-8. `takeBenchSeat` (5361–5383) is the ONE DOOR ONTO THE BENCH — every path
+8. `takeBenchSeat` (5384–5406) is the ONE DOOR ONTO THE BENCH — every path
    funnels here: the ♥ TAKE A BENCH SEAT button, the empty-chair tap, and
    rejoin/restore.  Gate 12 asserts structurally that its `join_line` call is
    the only bench-role write site in the file.
-9. The headshot is captured and AWAITED before the role write (5373–5374) —
+9. The headshot is captured and AWAITED before the role write (5396–5397) —
    the crowd's view of the bench IS the photo; a man on file is restored
    silently; a denied camera still seats him with the silhouette.
-10. A heartbeat rides the successful join (5380) so the new row reads fresh
+10. A heartbeat rides the successful join (5403) so the new row reads fresh
     immediately — the wave-8 "evaporating bench seat" fix.
-11. Nobody self-seats into a chair, by canon — gate 43 asserts ZERO
-    `claim_open_chair` call sites.  SHE seats you, and only she.
+11. Nobody self-seats into a chair.  The rule is now IN SPEC ("no member seats
+    himself; seating is initiated by the host or by the engine", OWNER RULING
+    2026-08-19) rather than only in gate 43's header, which is where it used to
+    live and where it could not be checked.  Gate 43 enforces the client half:
+    ZERO `claim_open_chair` call sites.  Note the rule is about who INITIATES —
+    the engine seats men without a host tap on three paths (auto curtain-up,
+    sole-candidate award, pick-window autoseat) and none of them is a self-seat.
 12. The bench renders as lanes with hearts, strike pips (dead code — see
     DESIGN-DIFF, half-built surfaces), and a leader halo: "a lone man leads
     nobody, a tie is not a lead, and nobody leads at zero" (2870–2877).
@@ -76,11 +81,11 @@ dead agent's numbering.
     2-of-3 curtain is a real show with an empty chair.
 18. With three chairs filled from preshow, the HOST client calls `start_show`
     (2998–3005), guarded by `__STARTING` against re-entry.
-19. `showstart` is a 6-second beat (`LC_SECTION_SECS.showstart`, 3682),
+19. `showstart` is a 6-second beat (`LC_SECTION_SECS.showstart`, 3705),
     advanced by the HOST CLIENT'S OWN `setTimeout` calling `skip_phase`
     (3011–3016) — a client-owned timer, in tension with design point 12.
 20. Mid-show bench seating — her tap on a bench lane — goes
-    `egDecideTap`/lane tap → `hostSeat(uid)` (2993, 3615) → `seat_member`.
+    `egDecideTap`/lane tap → `hostSeat(uid)` (2993, 3638) → `seat_member`.
     **THIS IS THE SEVENTEEN'S PATH**: the host's roster is masked
     (`active_members` masks other people's line rows to her), so the id her
     client resolves can be a masked md5-as-uuid that matches nobody.
@@ -88,21 +93,32 @@ dead agent's numbering.
     ruled host exemption lands, mid-show bench seating is LOUDLY broken
     rather than silently.  UNKNOWN: the server's current `seat_member` text
     (last read 2026-08-13).
-21. `autoSeatFromLine` (3596–3612) auto-seats from the line while chairs are
-    open — but is fenced out of every engine room (`if(EG_ON) return`,
-    3598).  Its fence comment cites `claim_open_chair` as the alternative;
-    that function does not exist (gap G7, fix queued).
+21. `autoSeatFromLine` (3596–3635) auto-seats from the line while chairs are
+    open — but is fenced out of every engine room (`if(EG_ON) return`, 3598;
+    fence comment 3598–3621).  **SOURCE(server), read 2026-08-19.**  The fence
+    comment used to deny that `claim_open_chair` existed.  It exists:
+    `public.claim_open_chair(room_id uuid) returns boolean`, SECURITY DEFINER.
+    It refuses on four conditions — room not live, caller not already on the
+    bench, phase not preshow, three chairs already taken — and seats the
+    CALLER, keyed to the authenticated user, with no target argument.  It is
+    unreachable (zero client call sites, gate 43) and broken: its ledger write
+    names a `room_events` column the table does not have.  **INFERRED, not
+    observed** — a call reaching that write raises, and the raise aborts the
+    seat write with it, so the failure is "errors and nothing happens".
+    Observing it costs a write, so it was not observed.  G7 is CLOSED as a
+    documentation defect.  Whether the dead function is repaired or dropped is
+    an open ruling, not a gap in this document.
 
 ## PART IV — the rounds (spotlight → open floor, ×3)
 
 22. Choosing and answering are the SAME server phase, `spotlight` — the
-    difference is whether `spotlight_target` is set (3691–3694).  Choosing
-    runs 20s, an answer 30s (`lcSectionTotal`, 3694).
+    difference is whether `spotlight_target` is set (3714–3717).  Choosing
+    runs 20s, an answer 30s (`lcSectionTotal`, 3717).
 23. CHOOSING: only the host may ask, only in the choosing window
     (`is-choosing` = spotlight with no target, 3097–3098; TAP TO ASK is a
     choosing-beat affordance only, CSS 304–308).  Questions come from
     authored decks: `ask_question` sends a `question_id` and a target
-    (4011); no free-typed questions exist.
+    (4034); no free-typed questions exist.
 24. The rotation is legible: ASKED is a fact about (occupant, round), never
     about the chair — derived from `askedThisRound()` for the current
     occupant, only inside the round segment, wiped by deliberation, never
@@ -120,13 +136,13 @@ dead agent's numbering.
     goes `is-gone`, empty seats don't split the shot).  But the MUTING IS
     A LABEL: the strip sub-text says "muted until the answer lands", and
     NOTHING mutes them — `setLocalAudio` is seat-scoped only
-    (`syncLocalPublish`, 5909: publish = host or seated, spotlight-blind),
-    and receive-side subscriptions are always `audio: true` (6124).  The
+    (`syncLocalPublish`, 5932: publish = host or seated, spotlight-blind),
+    and receive-side subscriptions are always `audio: true` (6147).  The
     rivals stay audible to the room while the UI says otherwise — a
     half-built surface of the label kind (logged in DESIGN-DIFF).  His
     clock does NOT pause — no pause mechanism exists at HEAD (DESIGN-DIFF
     point 10: unbuilt with no hooks).
-28. Open floor is 45s (`openfloor:45`, 3682; `mingle` is its render class,
+28. Open floor is 45s (`openfloor:45`, 3705; `mingle` is its render class,
     3093).  Then back to spotlight — rounds proceed spotlight → openfloor
     → spotlight … into deliberation after round three.  The full ORDER
     ARRAY as a single fact is SOURCE(double) only: `["preshow",
@@ -134,69 +150,69 @@ dead agent's numbering.
     (backend-double.js 420) — `draft` is ABSENT from it (gap G10).  The
     server's real `advance_phase` order is UNKNOWN and is on the SQL read
     list.
-29. RULING Q2 (in-code, 5390 ff / 4145 ff): a chair leaving during his own
+29. RULING Q2 (in-code, 5413 ff / 4168 ff): a chair leaving during his own
     answer is passing himself — leaving is NEVER blocked, but it is final
     for the night, and the HOST's client owns the collapse (question card
     down, wipe beat, server target cleared).
 
 ## PART V — her call (deliberation → deciding → four exits)
 
-30. Deliberation 60s, then deciding ("HER CALL") 60s (3682) — two phases
+30. Deliberation 60s, then deciding ("HER CALL") 60s (3705) — two phases
     where the design wants one 90s beat.
 31. Prod enters `deciding` with a NULL `phase_deadline`; the host client
-    arms her OWN 60s window at entry (`EG_DECIDE_ARM`, 3753–3756).  A
+    arms her OWN 60s window at entry (`EG_DECIDE_ARM`, 3776–3779).  A
     parked 0:00 is a lie, so a dry window renders as no clock rather than
-    zero (3710–3713).
+    zero (3733–3736).
 32. The decision tray: KEEP ONE / PASS ONE / CLEAR THE DECK / WALK AWAY.
     The option set re-derives on GENUINE roster changes only (role/
     membership signature, 3043–3050) — never freshness flapping.
-33. RULING Q5, in code at 3893–3925: HER CALL never silently expires.
+33. RULING Q5, in code at 3916–3948: HER CALL never silently expires.
     Clock-out = the crowd decides — the heart leader among seated chairs is
     KEPT on the ordinary KEEP path, announced loud.  A tie or an empty
     stage HOLDS the clock until she taps.  The crowd's call is measured
     twice (same leader across two ticks ≥600ms) before it fires, because it
-    ends the show.  The generic resolver EXCLUDES `deciding` (3846, 3926 ff)
+    ends the show.  The generic resolver EXCLUDES `deciding` (3869, 3949 ff)
     — nothing else may advance her call.  **HEARD ENOUGH does not appear on
     the decision tray** (ruled 2026-08-14, final).
-34. KEEP ONE → `decide_keep` (4201–4204) → the kept beat, then the ending
+34. KEEP ONE → `decide_keep` (4224–4227) → the kept beat, then the ending
     MUST land or be said: `end_show` retried 3× with backoff, and a refusal
     is told to her rather than the rooms row lying `live` (gate 56,
-    4205–4222).
+    4228–4245).
 35. PASS ONE → `decide_pass` → prod ALSO flips the phase to `draft`
-    server-side (client comment 3743–3745; server text UNKNOWN).  The
-    client opens its OWN 20s pick window (`LC_PASS_PICK_SECS=20`, 3687;
-    `passPickOpen` 4131–4141): the host writes the shared `phase_deadline`
+    server-side (client comment 3766–3768; server text UNKNOWN).  The
+    client opens its OWN 20s pick window (`LC_PASS_PICK_SECS=20`, 3710;
+    `passPickOpen` 4154–4164): the host writes the shared `phase_deadline`
     (host owns her room row), toasts "Chair's open — tap the bench to seat
     his replacement."
 36. While the pick window is open it is the ONLY advancing authority
-    (wave 5, 3741–3747): the resolver is silenced, the server's draft flip
+    (wave 5, 3764–3770): the resolver is silenced, the server's draft flip
     must not kill it.  It closes only through its own exits: her tap, its
     expiry, the bench emptying, the chair refilling, or leaving the room.
 37. Her tap during the window takes the hostSeat PASS_PICK branch —
     recruitResolve → passPickClear → `skip_phase` → refresh — so the clock
     filling the chair moves the show exactly as her finger would have
-    (3860–3879; gates 15 and 30 exist because an earlier draft seated the
+    (3883–3902; gates 15 and 30 exist because an earlier draft seated the
     man and stood the show still).
 38. Window expiry with a bench: the front of `benchQueue` is auto-seated
     (same ONE derivation as curtain-up).  Expiry with a dry bench:
-    `skip_phase`, with the short-handed/bench-dry beat (3880–3885).
+    `skip_phase`, with the short-handed/bench-dry beat (3903–3908).
 39. RULING 2026-08-14, final: a PASS refill starts a FRESH 3-ROUND CYCLE —
     acceptable because the skip is the pacing valve; any change to the skip
     reopens the ruling.  (The as-built cycle reset is NOT yet verified
     against the server's round handling — UNKNOWN, on the SQL read list.)
 40. CLEAR THE DECK → confirm → `decide_clear` if 3 are waiting, else
-    confirm → `end_show` alone (4110–4116).  WALK AWAY → confirm → the
-    end-show flow (4118–4120), the walked-alone finale.
+    confirm → `end_show` alone (4133–4139).  WALK AWAY → confirm → the
+    end-show flow (4141–4143), the walked-alone finale.
 41. The `draft` phase at HEAD is EXIT-ONLY in every artifact read: the
     double's order array omits it (backend-double.js 420); the client's
-    draft machinery (`resolve_draft` nudge 3933, `seat_pick` candidate tap
-    4280) handles a phase only prod's `decide_pass` enters.  Per the design
+    draft machinery (`resolve_draft` nudge 3956, `seat_pick` candidate tap
+    4303) handles a phase only prod's `decide_pass` enters.  Per the design
     brief the entire draft storm is SUPERSEDED — do not build coverage.
 
 ## PART VI — endings (finale → backstage → goodnight)
 
 42. `end_show` ends the rooms row; every client's watcher routes to a
-    finale card, never a bare lobby (wave 6 rule, 1446, 5192).
+    finale card, never a bare lobby (wave 6 rule, 1446, 5215).
 43. Winner path: the snap ceremony (photo decoded and sampled by gate 48 —
     ≥50% lit against a 243/243 fixture), his key warms to hers, backstage.
 44. Non-winners: rejected cells go cold; spectators get the finale card —
@@ -210,7 +226,7 @@ dead agent's numbering.
     real and asserts he lands on the finale.
 46. Backstage: both sides in the call, shared deadline, one clock.  A
     departing counterpart retires the tile (`backstage_left` event, PR #41)
-    AND stops her clock: `bsGoodnight` is unfenced (PR #44, 4699–4714) —
+    AND stops her clock: `bsGoodnight` is unfenced (PR #44, 4722–4737) —
     "They slipped out into the night." — same beat, same goodnight, every
     phase; only its `BSD_PHASE==="revealed"` contacts guard stands.
     Confirmed live 2026-08-12 by flag reads (`clockOn` false, `BS_STATE.room`
@@ -226,9 +242,15 @@ Numbering note: G7 and G10 keep the dead agent's numbers (preserved verbatim
 in the tab); the rest of the original nine-gap list did not survive and the
 items below are this rebuild's own.
 
-- **G7** — `autoSeatFromLine`'s fence comment (3598) cites
-  `claim_open_chair`, which exists nowhere.  The fence is right; the reason
-  is fiction.  Fix queued.
+- **G7 — CLOSED 2026-08-19 by a server read.**  `autoSeatFromLine`'s fence
+  comment (3598–3621) used to deny that `claim_open_chair` existed anywhere.
+  **SOURCE(server):** it exists.  The fence itself was right; its stated reason
+  was wrong.  The correct reason is that the function is unreachable (zero
+  client call sites, gate 43) and broken at its ledger write, which names a
+  `room_events` column that is not on the table — the raise is INFERRED, not
+  observed, because observing it costs a write.  The comment now carries that
+  reason.  What remains open is not this gap: it is whether the dead function
+  is repaired or dropped, which is a ruling.
 - **G10** — the double has NO DRAFT ENTRY: `advance_phase` order array
   omits `draft` (backend-double.js 420), so no gate has ever entered the
   draft storm through the front door — rule 9's scene-never-entered hole.

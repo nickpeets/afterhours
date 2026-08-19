@@ -45,24 +45,24 @@ All draft-storm coverage work is HELD.
    resolved server-side) — the `seat_pick` shape, not `seat_member(uid)`.
    The seventeen's design-correct fix.  AS-BUILT: **DIVERGES.**  Her tap
    resolves client-side to a uid and calls `hostSeat(uid)` → `seat_member`
-   (tap 2993, hostSeat 3615) — the exact path the seventeen died on.
-   `seat_pick` appears only in the contract comment (3665) and the draft
-   candidate flow (4280).
+   (tap 2993, hostSeat 3638) — the exact path the seventeen died on.
+   `seat_pick` appears only in the contract comment (3688) and the draft
+   candidate flow (4303).
 3. **Show start** — DESIGN: 3s beat.  AS-BUILT: **DIVERGES.**  6s
-   (`LC_SECTION_SECS` 3682: `showstart:6`), and it is advanced by the HOST
+   (`LC_SECTION_SECS` 3705: `showstart:6`), and it is advanced by the HOST
    CLIENT'S OWN `setTimeout` calling `skip_phase` (3011–3016).
 4. **Deliberation** — DESIGN: ONE 90s phase.  AS-BUILT: **DIVERGES.**  Two
-   phases: `deliberation:60` + `deciding:60` (3682).
+   phases: `deliberation:60` + `deciding:60` (3705).
 5. **PASS ONE** — DESIGN: one blind refill then a FRESH 3-ROUND CYCLE.
    AS-BUILT: **DIVERGES.**  A 20s host pick window (`LC_PASS_PICK_SECS=20`,
-   3687; `passPickOpen` 4131–4141 writes the shared deadline) AND a server
-   flip to `draft` (via prod `decide_pass`, 3743), no cycle reset.
+   3710; `passPickOpen` 4154–4164 writes the shared deadline) AND a server
+   flip to `draft` (via prod `decide_pass`, 3766), no cycle reset.
    **RULED — see foot, ruling 3: fresh cycle stands.**
 6. **CLEAR THE DECK** — DESIGN: confirm → three blind refills, seated one at
-   a time.  AS-BUILT: **DIVERGES.**  Confirm → `decide_clear` (4115) only if
-   3 are waiting, else confirm → `end_show` alone (4110–4112).
+   a time.  AS-BUILT: **DIVERGES.**  Confirm → `decide_clear` (4138) only if
+   3 are waiting, else confirm → `end_show` alone (4133–4135).
 7. **WALK AWAY** — DESIGN: confirm → "walked alone" finale.  AS-BUILT:
-   **MATCHES in shape.**  `eg_dwalk` routes to the end-show flow (4120);
+   **MATCHES in shape.**  `eg_dwalk` routes to the end-show flow (4143);
    ends the night alone.
 8. **Strikes** — DESIGN: lose a promotion = keep place + strike; 3 strikes =
    removed, cannot rejoin tonight; SERVER owns counts.  AS-BUILT: **NOT
@@ -89,15 +89,15 @@ All draft-storm coverage work is HELD.
     phase" is corrected to "any timed phase EXCEPT the call."**
 11. **Questions** — DESIGN: no free-typed questions anywhere; she picks
     authored decks at GO LIVE.  AS-BUILT: **MATCHES.**  `ask_question` sends
-    a `question_id` from the picked deck (4011); contract tables
-    `question_decks`/`questions` (3666).
+    a `question_id` from the picked deck (4034); contract tables
+    `question_decks`/`questions` (3689).
 12. **Server owns every timer and every consequential outcome**, including
     who is seated on expiry; the client renders and sends intent.  AS-BUILT:
     **DIVERGES, repeatedly.**  Showstart advanced by the host client's timer
     (3011–3016); `deciding` arrives with NO server deadline and her client
-    arms its own (3753); the pass-pick window deadline is written by the
-    host client (4134–4136); the KEEP ending is a client-side retry loop
-    around `end_show` (4205 ff).
+    arms its own (3776); the pass-pick window deadline is written by the
+    host client (4157–4159); the KEEP ending is a client-side retry loop
+    around `end_show` (4228 ff).
 
 ## FOOT — THE THREE CONTRADICTIONS, RULED (Nick, 2026-08-14, via planner tab)
 
@@ -137,14 +137,29 @@ Three instances at HEAD, all string-verified 2026-08-14:
   drives `is-strip`/`is-gone` off `phase==="spotlight" && spotTarget`), but
   the strip's own label — "muted until the answer lands" — is copy over
   unmuted audio.  `setLocalAudio` is seat-scoped only (`syncLocalPublish`
-  5909: publish = host or seated, spotlight-blind) and subscriptions are
-  always `audio: true` (6124).  The room hears the rivals while the UI says
+  5932: publish = host or seated, spotlight-blind) and subscriptions are
+  always `audio: true` (6147).  The room hears the rivals while the UI says
   it doesn't.  The design's "gifts and floor-holds disabled during
   spotlights" has the same no-substrate status as the clock pause.
-- **`claim_open_chair`**: `autoSeatFromLine`'s fence comment (3598) cites it
-  as the engine-room alternative; the function exists nowhere — the only
-  other mentions are gate 43, which was written to assert ZERO call sites.
-  The fence is right; its stated reason is fiction.
+- **`claim_open_chair`** — **CORRECTED 2026-08-19, SOURCE(server).**  This
+  entry previously denied that the function existed.  It exists:
+  `public.claim_open_chair(room_id uuid) returns boolean`, SECURITY DEFINER,
+  read from Supabase Studio as role `postgres` on 2026-08-19.  It refuses on
+  four conditions — room not live, caller not already on the bench, phase not
+  preshow, three chairs already taken — and seats the CALLER, keyed to the
+  authenticated user, with no target argument.
+  It is UNREACHABLE: zero client call sites, which gate 43 locks at zero.
+  It is also BROKEN: its final ledger write names a `room_events` column the
+  table does not have (the table has `user_id`; the function names `actor`).
+  **INFERRED, not observed** — a call that reaches that write raises, and the
+  raise aborts the whole call, so the seat write rolls back with it.  Failure
+  is "errors and nothing happens", never "seated with a silent ledger".
+  Observing the raise costs a write, so it was not observed and is not claimed
+  as such.  `autoSeatFromLine`'s fence comment (3598–3621) now carries this
+  reason instead of the old one.
+  **THE MECHANISM IS THE POINT:** gate 43's zero-call-sites assertion is why
+  this was never found.  A gate that documents a fence also hides what is
+  behind it — nothing executed the path, so nothing reported it.
 
 Related, banked by the first version of this doc: the bench leader/tie logic
 (2870–2877 — "a lone man leads nobody, a tie is not a lead, nobody leads at

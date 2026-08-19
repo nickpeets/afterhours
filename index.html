@@ -3596,8 +3596,29 @@ let AUTOSEATING=false;
 async function autoSeatFromLine(){
   if(!AMHOST || AUTOSEATING) return;
   if(EG_ON) return;  // engine rooms: the line is masked to the host, so this loop would seat masked ids.
-                     // Seating there is the curtain-up loop and her own tap (seat_member) — there is NO
-                     // self-seat path (gate 43 asserts zero claim_open_chair call sites; no such function exists).
+                     // Seating there is the curtain-up loop and her own tap (seat_member).
+                     //
+                     // THE OLD REASON HERE WAS FALSE.  It denied the existence of the named function.
+                     // The function is real:
+                     // a SECURITY DEFINER function taking a room id and returning boolean.  READ FROM THE
+                     // SERVER 2026-08-19 (Supabase Studio, role postgres) — not remembered, not relayed.
+                     // It refuses on FOUR conditions, not three: the room is not live; the caller is not
+                     // already on the bench; the phase is not preshow; three chairs are already taken.
+                     // The caller seats HERSELF — every predicate and the seat write are keyed to the
+                     // authenticated user, and there is no target argument.
+                     //
+                     // It is nevertheless UNREACHABLE and BROKEN, which is why nobody found out:
+                     //   - zero client call sites, and gate 43 locks that count at zero;
+                     //   - its last statement writes the ledger under a column name the table does not
+                     //     have (room_events has user_id; the function names actor).  INFERRED, not
+                     //     observed: any call that reaches that statement raises.  Observing it costs a
+                     //     write, so it was not observed, and this comment does not claim it was;
+                     //   - the raise would abort the whole call, so the seat write rolls back with it.
+                     //     The failure is "errors and nothing happens", never "seated with a silent
+                     //     ledger" — which is the far worse defect we do not have.
+                     //
+                     // So there is still NO self-seat path in an engine room.  The reason is that the one
+                     // that exists is dead, not that it was never written.
   // wave 8: derive from the SAME filtered rows as every other surface, and
   // never auto-seat the same man twice — the loop must be idempotent even
   // over a stale local roster.

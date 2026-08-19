@@ -1,11 +1,25 @@
 /* GATE 43 — bench-take: the open chair is a door ONTO the bench, never a door
  * out of it.  Ships with fix/bench-take.
  *
- * THE BUG.  In an engine room `autoSeatFromLine()` returns early:
+ * THE BUG.  In an engine room `autoSeatFromLine()` returns early behind an
+ * `if(EG_ON) return;` fence, whose comment used to point at `claim_open_chair`
+ * as the engine-room seating path.
  *
- *     if(EG_ON) return;  // ... joiners self-seat via claim_open_chair
+ * HEADER CORRECTED 2026-08-19, SOURCE(server).  This header used to deny that the
+ * named function existed anywhere outside that comment.  That denial was false and
+ * was never read from the server.  The function exists:
+ * `public.claim_open_chair(room_id uuid) returns boolean`, SECURITY DEFINER,
+ * read from Supabase Studio as role `postgres`.  It refuses unless the room is
+ * live, the caller is already on the bench, the phase is preshow, and fewer than
+ * three chairs are taken; it seats the CALLER, keyed to the authenticated user.
  *
- * and `claim_open_chair` exists nowhere but in that comment.  So the only
+ * NONE OF THAT WEAKENS THIS GATE.  The static assertion below counts CLIENT CALL
+ * SITES, not server definitions, and that count is still zero.  The function is
+ * unreachable from the app, and separately it is broken: its ledger write names a
+ * `room_events` column the table does not have.  INFERRED, not observed — a call
+ * reaching that write raises; observing it costs a write, so it was not observed.
+ *
+ * So the only
  * affordance a benched man has is the OPEN CHAIR cell, which funnels into
  * `$("rt_joinline").click()` — and that handler's FIRST matching branch for a
  * man whose role is already "line" is leave_room + join_room.  Tapping the

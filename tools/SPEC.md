@@ -26,8 +26,33 @@ may strand the show below a viable cast without an explicit, named ending
   `roomCounts()` is the ONE headcount derivation (gate 11).
 - **Every bench entry goes through the headshot gate** — `takeBenchSeat()`
   is the one door; rejoin with a face on file is silent (gate 12).
+- **NO MEMBER SEATS HIMSELF.  Seating is INITIATED by the host or by the
+  engine — never by the man being seated.**  (OWNER RULING, 2026-08-19,
+  relayed by Nick in session.  This rule was previously UNWRITTEN: it lived
+  only in gate 43's header as "canon (owner ruling, wave 9)", and from there
+  was restated in SEQUENCE-show and quoted onward by gate 46.  Three documents
+  asserted a rule that appeared in none, which made it unfalsifiable.  It is
+  written here now, where it can be read.)
+
+  The rule is about **who initiates**, not about who ends up in a chair.  A man
+  reaches a chair without a host tap on three paths, and on none of them does
+  he seat himself — all three are the ENGINE acting:
+
+  - **Auto curtain-up** — three on the bench with no host tap seats all three
+    and fires `start_show` (below, PRESHOW).
+  - **Sole-candidate award** — `engine_award_seat` with `source =
+    'sole_candidate'`, reached from `engine_open_draft` when the frozen
+    candidate list has exactly one name.  SOURCE(server), read 2026-08-19.
+  - **Pick-window autoseat** — `fix/pick-window-autoseat` seats the
+    longest-waiting benched man when the pick window expires (Q46, below).
+
+  These are CONSISTENT WITH the rule, not exceptions to it.  Do not read them
+  as precedent for a self-seat path.
+
 - **Host tap always wins** — a host tap on a bench lane seats that man
-  immediately, in any phase, at any bench count (gates 12, 15).
+  immediately, in any phase, at any bench count (gates 12, 15).  This is
+  **precedence among initiators** — it presupposes that the engine also
+  initiates — and it is not an exclusivity rule.
 - **PASS is offered iff the bench can refill the chair** — `bench ≥ 1`,
   full stop (RULING Q3 v2, 8/9 — the old "post-pass seated ≥ 2" arm is
   DELETED: the live run proved it produces an open chair with nobody in

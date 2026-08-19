@@ -161,6 +161,19 @@ Three instances at HEAD, all string-verified 2026-08-14:
   this was never found.  A gate that documents a fence also hides what is
   behind it — nothing executed the path, so nothing reported it.
 
+  **PENDING SERVER CHANGE — DROP, NOT REPAIR.  Logged, not scheduled; not this
+  wave and not a client PR's to execute.**  With the seating-authority rule now
+  written into SPEC (no member seats himself; seating is initiated by the host
+  or the engine), `claim_open_chair` is not merely dead housekeeping — it is
+  the only path in the system where a user's own action would put him in a
+  chair, which the ruled design forbids.  Repairing it would build a design
+  violation on purpose and leave a loaded gun for whoever calls it in six
+  months; the fact that it currently raises is the only thing that has ever
+  stopped it.  Recommendation is therefore DROP.  Two conditions before anyone
+  acts: the drop is a WRITE against production and needs its own explicit go,
+  and the reasoning must rest on SPEC's rule as now written rather than on gate
+  43's header, which is where this claim used to live unverifiable.
+
 Related, banked by the first version of this doc: the bench leader/tie logic
 (2870–2877 — "a lone man leads nobody, a tie is not a lead, nobody leads at
 zero") is the client substrate the 5s-promotion mechanic will stand on.

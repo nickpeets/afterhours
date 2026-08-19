@@ -47,8 +47,13 @@ dead agent's numbering.
    silently; a denied camera still seats him with the silhouette.
 10. A heartbeat rides the successful join (5403) so the new row reads fresh
     immediately — the wave-8 "evaporating bench seat" fix.
-11. Nobody self-seats into a chair, by canon — gate 43 asserts ZERO
-    `claim_open_chair` call sites.  SHE seats you, and only she.
+11. Nobody self-seats into a chair.  The rule is now IN SPEC ("no member seats
+    himself; seating is initiated by the host or by the engine", OWNER RULING
+    2026-08-19) rather than only in gate 43's header, which is where it used to
+    live and where it could not be checked.  Gate 43 enforces the client half:
+    ZERO `claim_open_chair` call sites.  Note the rule is about who INITIATES —
+    the engine seats men without a host tap on three paths (auto curtain-up,
+    sole-candidate award, pick-window autoseat) and none of them is a self-seat.
 12. The bench renders as lanes with hearts, strike pips (dead code — see
     DESIGN-DIFF, half-built surfaces), and a leader halo: "a lone man leads
     nobody, a tie is not a lead, and nobody leads at zero" (2870–2877).

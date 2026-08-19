@@ -870,6 +870,24 @@ the raise costs a write.  The inference is tight.  It is still an inference, and
 the comment says so.  An agent that collapses the two has learned to launder a
 guess through a true premise.
 
+**KNOWN-UNREAD SPANS — a standing provenance ledger under this rule.  If a read
+came back incomplete, it is logged here rather than smoothed over, because an
+incomplete capture that nobody wrote down becomes a complete one the next time
+somebody quotes it.**
+
+- `public.engine_open_draft(p_room uuid, p_seat integer, p_seats_remaining
+  integer)` — read 2026-08-19 from Studio, role postgres.  The definition is
+  otherwise exact and was verified by length (4007) and an in-page checksum
+  computed against the LIVE result set, not against the reconstruction.  One
+  run of roughly 110 characters INSIDE THE Rev-3 COMMENT BLOCK — between the
+  words "One synthetic aggregate" and "for it either." — could not be pulled
+  out of the page: the reading environment's output filter refused that span
+  repeatedly.  It is prose in a comment, not code, and no gate or document
+  depends on it.  **It is UNREAD.  Do not reconstruct it, do not paraphrase it,
+  and do not treat any later quotation of it as sourced unless the span itself
+  has been read.**  The checksum caveat matters: it certifies the original cell
+  value, so it will NOT catch a paraphrase silently substituted for the gap.
+
 ---
 
 **THE FIFTEENTH RULE, same session: A CITATION SWEEP IS A TRUTH CHECK, NOT AN

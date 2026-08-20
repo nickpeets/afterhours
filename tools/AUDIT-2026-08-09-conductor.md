@@ -988,3 +988,34 @@ Verified twice against the live nickpeets/afterhours remote:
 Nothing here is new policy. It restates, with a fresh verbatim reproduction instead of a
 recollection, the same boundary this file's METHOD section already names for the harness and
 the tab: read the actual thing in front of you, not the comment describing it.
+
+# METHOD ADDITION — gate-writing lesson from gate 60 (2026-08-20)
+
+**Two harness limitations, both discovered writing gate 60's is-leading/
+is-surging animation claim, both worth knowing before the next gate that
+touches CSS or animation:**
+
+1. **`prefers-reduced-motion: reduce` masks every runtime animation read.**
+   The harness launches with `reducedMotion: "reduce"`, and index.html carries
+   its own `@media (prefers-reduced-motion:reduce){ #room *{ animation:none
+   !important; ... } }` rule.  Together these force
+   `getComputedStyle(el).animationName` to read `"none"` for ANY `#room`
+   element, regardless of what the source actually declares.  A gate that
+   asserts on the computed animation name will pass or fail identically
+   whether the underlying CSS rule exists or not — it cannot discriminate,
+   which makes it worse than no assertion: it looks like coverage.
+2. **Direct CSSOM access (`document.styleSheets` → `sheet.cssRules`) is not
+   reliable in this harness either.**  One stylesheet threw `Failed to read
+   the 'cssRules' property from 'CSSStyleSheet': Cannot access rules`; the
+   other returned `rules=0` — no matches, no error, just nothing to read.
+   Tried as the fallback when computed-style reads were found useless above;
+   it is not a working fallback.
+
+**The instrument that works: a static source-regex assertion against
+`ctx.html`.**  `ctx.html` is the raw file text every gate already receives —
+`/\.lc-lane\.is-leading\{[^}]*animation:lc-lane-surge/.test(html)` proves the
+declaration exists in source, which is what an animation/CSS-declaration
+claim actually needs proven.  Runtime assertions still belong in the same
+gate for anything DOM-observable (class application, element counts, rendered
+state) — the boundary is: CSS declarations are a source-text claim, not a
+runtime-observable one, in this harness.

@@ -225,3 +225,68 @@ mistaken for "this code is clean".
   rule's working set.  Left in place deliberately this PR so the NEXT UP diff
   is exactly the behaviour change and nothing else; they are safe to delete on
   sight in any later commit that touches this block.
+
+## PROMOTION CARD — removed, no substrate ever existed (REMOVED, PR2/fix/dead-surfaces-out)
+
+**PROVENANCE NOTE:** the removal was briefed as going into "DESIGN-DIFF's existing
+REMOVED PENDING SUBSTRATE section."  No section carries that exact title in this
+document — the nearest analog is HALF-BUILT SURFACES above, which already named
+the promotion mechanic's substrate as gone ("Related, banked by the first version
+of this doc..."). Filed here as its own section instead of silently inventing a
+title that was not actually there, and cross-referenced from HALF-BUILT SURFACES.
+
+**AS-BUILT before fix/dead-surfaces-out, SOURCE(client):** a full "chair rising"
+UI — a 0:05 countdown, a RISING pill, and "tap a bench seat to override" copy —
+rendered in all three chair slots, gated on `CURRENT_ROOM?.promoting`.  That field
+is written nowhere: zero server call sites, and it is not among the columns the
+backend double (or, so far as this repo can verify, production) carries on a room
+row.  The card, and everything that lit it (`promo`, `isPromo`, the `is-promo` and
+`is-promoting` classes, four CSS consumers of those classes, and three copy
+branches keyed on `promo` — the bench hint, the watchbar text, and the phase-chip
+label), never rendered for anyone, ever.
+
+**REMOVED:** the three `<div class="chair__promo">` blocks (clock + who + sub,
+one per seat) and their `0:05` literals; the `promo`/`isPromo` variables; the two
+`setText` calls that targeted the card's who/sub spans; the `is-promo` classList
+toggle (folding `is-empty`'s condition down to just `!c`); the `is-promoting`
+root toggle; the `promo`-keyed branches in the bench-hint note, the watchbar
+text, and the phase-chip label; and the CSS — `.chair__promo`/`.chair__promo-
+clock`/`.chair__promo-who`/`.chair__promo-sub`/`.chair.is-promo` and its four
+consumer rules (the gold phasechip selector, the hostctl-hide selector, the seat
+z-index selector, and the blind-bench amber-lane rule).
+
+**JUDGMENT CALL — scope was wider than the literal brief.**  Taking only the
+markup and the three setText calls, and leaving `promo`/`isPromo`/`is-promo`/
+`is-promoting` alive, would have left CSS rules bound to classes JS would then
+never set again — an orphaned surface in the opposite direction from the one
+this PR exists to close.  The full reachable chain came out together.  Left
+alone, deliberately: the `:not(.is-promo)` guards inside two compound selectors
+that gate real features (`.lc-hearttap` visibility, the CHOOSING-beat `.hostctl`
+rule) — touching a live selector list to shave a now-provably-dead token was
+judged not worth the risk to an active rule; and `is-promoting-out` (the bench
+lane "amber trail" CSS, same disease as `is-surging` — zero JS setters — but not
+named in this PR's scope), logged fresh below instead.
+
+**WHAT WOULD BE NEEDED TO BRING IT BACK PROPERLY:** a server-side `promoting`
+fact — seat, candidate user id, and an absolute deadline timestamp — written by
+whatever engine step decides a bench man is rising, and emitted to every client
+so the countdown is ONE shared clock rather than a per-client `0:05` literal.
+The client would read the deadline (the same pattern `phase_deadline` already
+uses for section timers) rather than hardcoding a duration, so a page that
+attaches mid-countdown shows the true remaining time instead of a fresh 5
+seconds.  Until that fact exists and is written, any card is decoration.
+
+## OUT OF SCOPE, logged not fixed (fix/dead-surfaces-out)
+
+- **`is-promoting-out`** — SOURCE(client): the CSS rule exists (the bench-lane
+  "amber trail," under the "K — bench promotion" comment) and nothing anywhere
+  sets the class.  Same disease as `is-surging` before this PR removed it, but
+  it was not named in this PR's scope, so it was not touched.  Safe to remove
+  on sight in a later pass the way `is-surging` was removed in this one.
+- **`:not(.is-promo)` guards** — SOURCE(client): two compound selectors
+  (`.lc-hearttap` visibility, the CHOOSING-beat `.hostctl` "TAP TO ASK" rule)
+  still exclude `.is-promo`, a class nothing sets anymore after this PR.  The
+  guard is now a provable no-op.  Left alone because both selectors gate real,
+  live behavior on other classes (`is-host`, `is-empty`, `is-strip`, `is-asked`)
+  and editing a live selector list to remove a dead token was judged riskier
+  than the clutter it leaves behind.

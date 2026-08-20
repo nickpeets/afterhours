@@ -217,7 +217,7 @@ mistaken for "this code is clean".
   ruled scope.
 - **`is-surging` — dead CSS with no setter.**  SOURCE(client): the rule exists
   (index.html 612-616) and the class is *removed* on the empty-lane branch
-  (2887), but nothing anywhere sets it.  The SURGING vocabulary in the
+  (2908), but nothing anywhere sets it.  The SURGING vocabulary in the
   stylesheet comment describes a feature that was never wired.  Left as-is:
   deleting it is a design question about whether a rate badge is still wanted.
 - **Dead locals `tallies` / `leadN`.**  SOURCE(client), index.html 2847-2848:

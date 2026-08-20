@@ -949,3 +949,42 @@ cheap and general: *quote the listener, not the comment above it.*
    reads empty to everyone.  Whether 60s is the right number is a **tuning
    question that needs measurement on real devices** — not a disease, and
    explicitly not a licence to rewrite the presence model.
+
+# METHOD UPDATE — 2026-08-20, bundles and base64 paste-transfer retired for good
+
+**The proxy denial, verbatim, reproduced fresh from the analysis container while writing this
+entry (not a recollection, not paraphrased):**
+
+    remote: access denied by the git proxy: nickpeets/afterhours is not in this session's
+    authorized repository set, so the proxy will not inject a credential for it. To fix, add
+    the repository to the session's sources.
+    fatal: unable to access 'https://github.com/nickpeets/afterhours.git/': The requested URL
+    returned error: 403
+
+That is the analysis container's own git remote, refused at the proxy layer before GitHub ever
+sees the request. The container never had, and structurally cannot be given, write access to
+this repo. Every identity the container might use funnels through the same per-container
+authorization set, so no retry, no alternate remote URL, and no credential swap changes the
+outcome. The Codespace is the only environment holding a valid push credential for this repo,
+and stays the sole place commits are authored.
+
+**Two retirements this confirms, both permanent, not "until further notice":**
+
+1. Bundle-delivery (writing a git bundle, moving it between environments, applying it on the
+   other side) is retired. It was a workaround for exactly this asymmetry, and it is no longer
+   used regardless of how convenient it would be for a given diff.
+2. Base64 paste-transfer between the analysis container and the Codespace is retired. Same
+   reason, same permanence.
+
+**Standing rule going forward: push after the first commit, and after every commit after that.**
+Verified twice against the live nickpeets/afterhours remote:
+
+- A probe push from the analysis container, above — denied at the proxy, confirming the
+  container cannot author commits here, only read and verify them.
+- The real work: fix/dead-surfaces-out's three commits (0816b59, 46a587c, 7863751), each
+  pushed to origin/fix/dead-surfaces-out from the Codespace immediately after being made,
+  before any further edits — not batched, not held to the end of the branch.
+
+Nothing here is new policy. It restates, with a fresh verbatim reproduction instead of a
+recollection, the same boundary this file's METHOD section already names for the harness and
+the tab: read the actual thing in front of you, not the comment describing it.

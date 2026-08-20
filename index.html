@@ -129,8 +129,8 @@
   gap:2px; font-size:9px; color:#4a0724; border:0;
   background:linear-gradient(#ffd6e9,#ff8ac2);
 }
-/* gold phase chip — spotlight / promotion */
-#room.is-spotlight .lc-phasechip, #room.is-promoting .lc-phasechip{
+/* gold phase chip — spotlight */
+#room.is-spotlight .lc-phasechip{
   color:var(--gold); background:rgba(255,214,233,.2); border:1px solid rgba(255,214,233,.7);
 }
 
@@ -306,7 +306,6 @@
    the chairs are not ask buttons then.  And a man who has already had his
    question is not offered again — everyone gets a fair shot. */
 #room.is-host.is-choosing .chair:not(.is-host):not(.is-empty):not(.is-promo):not(.is-strip):not(.is-asked) .hostctl{ display:flex; }
-#room.is-promoting .hostctl,
 #room.is-deciding .hostctl,
 /* a question is live: the answer is not skippable by asking another */
 #room.is-spotlight .hostctl{ display:none; }
@@ -343,39 +342,6 @@
 .chair.is-empty .vid,
 .chair.is-empty .lc-hearttap,
 .chair.is-empty .hostctl{ display:none; }
-
-/* --- promotion: reserved, NOT joinable.  Gold countdown, never a teal +. --- */
-.chair__promo{
-  position:absolute; inset:0; z-index:3; display:none;
-  flex-direction:column; align-items:center; justify-content:center;
-  gap:6px; padding:0 12px;
-}
-.chair__promo-clock{
-  font-family:'Azeret Mono',monospace; font-weight:700; font-size:30px; line-height:1;
-  color:#fff; text-shadow:0 0 16px rgba(255,194,77,.9);
-}
-.chair__promo-who{
-  display:flex; align-items:center; gap:5px; padding:2px 9px; border-radius:11px;
-  background:rgba(255,194,77,.9); font-family:'Azeret Mono',monospace;
-  font-weight:700; font-size:8px; letter-spacing:.12em; color:#3d2600; white-space:nowrap;
-}
-.chair__promo-sub{
-  font-family:Archivo,sans-serif; font-size:10px; line-height:1.35;
-  color:rgba(255,224,190,.85); text-align:center;
-}
-.chair.is-promo{
-  background:rgba(255,194,77,.14);
-  border:2px solid var(--lane-amber);
-  box-shadow:0 0 24px rgba(255,194,77,.6);
-}
-.chair.is-promo .chair__feed{ background:rgba(26,18,38,.72); }
-.chair.is-promo .chair__promo{ display:flex; }
-.chair.is-promo .chair__hearts,
-.chair.is-promo .cclock,
-.chair.is-promo .chair__name,
-.chair.is-promo .vid,
-.chair.is-promo .lc-hearttap,
-.chair.is-promo .hostctl{ display:none; }
 
 /* --- collapsed strip: occupied-but-muted.  Nobody vanishes. --- */
 .chair__strip{
@@ -471,7 +437,6 @@
    call confirms the participant left.  The join CTA sits above any leftover
    frame in the milliseconds between, so an empty cell still reads as empty. */
 #room .chair.is-empty .chair__empty,
-#room .chair.is-promo .chair__promo,
 #room .chair.is-strip .chair__strip{ z-index:4; }
 /* an empty cell must look empty even if a frame is still in flight — but the
    mock's empty cell has NO fill, so this covers only while a video is present */
@@ -609,11 +574,6 @@
   animation:lc-lane-surge 1.4s ease-in-out infinite;
 }
 .lc-lane.is-leading .lc-lane__badge{ display:block; }
-.lc-lane.is-surging{
-  --ls:255,122,184;
-  border-color:var(--lane-rose); box-shadow:0 0 18px rgba(255,122,184,.55);
-  animation:lc-lane-surge .62s ease-in-out infinite;
-}
 .lc-lane.is-mine{ border-color:rgba(255,45,143,.7); }
 .lc-lane.is-empty{
   border:1px dashed rgba(185,168,255,.35); box-shadow:none; animation:none;
@@ -638,9 +598,6 @@
 }
 #lineitems.is-blind .lc-lane.is-leading .lc-lane__cell{
   background:linear-gradient(180deg,#2a2450,#12142e);
-}
-.is-promoting #lineitems.is-blind .lc-lane.is-leading .lc-lane__cell{
-  background:linear-gradient(180deg,#3a2f18,#1a1508);
 }
 #lineitems.is-blind .lc-lane:not(.is-empty) .lc-lane__sil{ display:block; }
 /* Owner decision (Nick, 8/5): the blind bench shows NAMES.  The handoff
@@ -1119,7 +1076,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0820.0029</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0820.0541</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1227,11 +1184,6 @@
               <div class="chair__empty-t">OPEN CHAIR</div>
               <div class="chair__empty-s">join the bench — she fills it from there</div>
             </div>
-            <div class="chair__promo">
-              <div class="chair__promo-clock">0:05</div>
-              <div class="chair__promo-who">RISING</div>
-              <div class="chair__promo-sub">tap a bench seat to override</div>
-            </div>
             <div class="chair__strip">
               <span class="chair__strip-names"></span>
               <span class="chair__strip-icon">🔇</span>
@@ -1260,11 +1212,6 @@
               <div class="chair__empty-t">OPEN CHAIR</div>
               <div class="chair__empty-s">join the bench — she fills it from there</div>
             </div>
-            <div class="chair__promo">
-              <div class="chair__promo-clock">0:05</div>
-              <div class="chair__promo-who">RISING</div>
-              <div class="chair__promo-sub">tap a bench seat to override</div>
-            </div>
             <div class="chair__strip">
               <span class="chair__strip-names"></span>
               <span class="chair__strip-icon">🔇</span>
@@ -1292,11 +1239,6 @@
               <div class="chair__empty-plus">+</div>
               <div class="chair__empty-t">OPEN CHAIR</div>
               <div class="chair__empty-s">join the bench — she fills it from there</div>
-            </div>
-            <div class="chair__promo">
-              <div class="chair__promo-clock">0:05</div>
-              <div class="chair__promo-who">RISING</div>
-              <div class="chair__promo-sub">tap a bench seat to override</div>
             </div>
             <div class="chair__strip">
               <span class="chair__strip-names"></span>
@@ -1616,7 +1558,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b0820.0029"); }catch(e){}
+try{ console.log("[lastcall] build b0820.0541"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2716,7 +2658,6 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   const spotTargetRaw = CURRENT_ROOM?.spotlight_target || null;
   const spotTarget = (spotTargetRaw && ROOM_STATE.members.some(m=>m.user_id===spotTargetRaw && (m.role==="chair"||m.role==="kept")))
     ? spotTargetRaw : null;
-  const promo = CURRENT_ROOM?.promoting || null;   // {seat, name, endsAt} when a chair is rising
   // RULING Q2: a vacated spotlight NEVER plays on.  When the raw target is
   // set but he is no longer seated, the HOST collapses the segment at once
   // — no ghost card, no dead 30s clock (audit F4).
@@ -2730,7 +2671,6 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     const el=$("rt_seat"+i); if(!el) continue;
     const c=chairBySeat[i];
     const feed=el.querySelector(".chair__feed");
-    const isPromo = !!promo && Number(promo.seat)===i;
 
     // identity / data hooks (events + heart routing read these)
     if(c){
@@ -2784,14 +2724,8 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
       const t=el.querySelector(".cclock__t");
       if(t && !t.dataset.ticking) setText(t, fmtClock(clockRemaining(c)));
     }
-    if(isPromo){
-      setText(el.querySelector(".chair__promo-who"), (promo.name||"NEXT").toUpperCase()+" RISING");
-      setText(el.querySelector(".chair__promo-sub"), AMHOST?"tap a bench seat to override":"she has 5 seconds to override");
-    }
-
     // state classes — the only layout lever
-    el.classList.toggle("is-empty", !c && !isPromo);
-    el.classList.toggle("is-promo", isPromo);
+    el.classList.toggle("is-empty", !c);
     el.classList.toggle("is-kept",  !!c && c.role==="kept");
     el.classList.toggle("is-mine",  !!c && c.user_id===ME.id);
     el.classList.toggle("lc-selfview", !!c && c.user_id===ME.id && !AMHOST);
@@ -2843,9 +2777,6 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   // one side of a paired derivation never moves alone (gate 54 scene 4).
   const iAmSeated = ROOM_STATE.members.some(m=>m.user_id===ME.id && (m.role==="chair"||m.role==="kept"));
   if(items) items.classList.toggle("is-blind", AMHOST || iAmSeated);
-
-  const tallies=benched.map(m=>HEARTS[m.user_id]||0);
-  const leadN=Math.max(0,...tallies);
 
   /* NEXT UP names the man the room will actually seat next — LANE-BINDING,
      not value-reading.  nextOffBench() is the ONE derivation of "who is next
@@ -2905,7 +2836,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
       setText(lane.querySelector(".lc-lane__n"),"0");
       lane.querySelectorAll(".lc-lane__pips span").forEach(p=>p.classList.remove("on"));
       lane.classList.add("is-empty");
-      lane.classList.remove("is-mine","is-lastlife","is-leading","is-surging");
+      lane.classList.remove("is-mine","is-lastlife","is-leading");
     }
   }
 
@@ -2916,11 +2847,10 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   const freeBench=Math.max(0,3-RC.bench);
   const word=["","one","two","three"][freeBench]||String(freeBench);
   let note;
-  if(promo)           note="tap another to override";
-  else if(freeBench)  note=word+" bench seat"+(freeBench===1?"":"s")+" free too";
+  if(freeBench)  note=word+" bench seat"+(freeBench===1?"":"s")+" free too";
   else                note=AMHOST?"you see hearts, not faces":"waiting for a chair — longest wait goes first";
   setText($("rt_hosthint"), note);
-  setText($("rt_watchbar"), promo?"NEXT DROPS IN":(RC.line?("+"+RC.line+" IN LINE"):"0 IN LINE"));
+  setText($("rt_watchbar"), RC.line?("+"+RC.line+" IN LINE"):"0 IN LINE");
   const kick=$("rt_linekicker");
   if(kick) kick.textContent = AMHOST ? "THE BENCH · BLIND" : "THE BENCH";
 
@@ -2947,7 +2877,6 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     else if(phase==="deliberation") label="DELIBERATING";
     else if(phase==="deciding") label=(secLeft==null)?"HER CALL · HER MOVE":"HER CALL";
     if(AMHOST && PASS_PICK) label=PASS_PICK.recruit ? "RECRUITING \u2014 SEAT OPEN" : "PICK FROM THE BENCH";
-    if(promo) label="PROMOTING";
     // the pill owns the SECTION TIMER too (owner rule 8/5): the tick composes
     // "M:SS · LABEL" from this dataset; chairs carry no clock at all
     chip.textContent = (secLeft!=null ? (fmtClock(secLeft)+" · ") : "") + label;
@@ -3108,7 +3037,6 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   root.classList.toggle("is-host", AMHOST);
   root.classList.toggle("is-suitor", !AMHOST && meSeated);
   root.classList.toggle("is-spectator", !AMHOST && !meSeated);
-  root.classList.toggle("is-promoting", !!promo);
   // phase state classes (README state table) — the spotlight layout hangs off these
   const PHASE_CLS={showstart:"is-showstart",spotlight:"is-spotlight",openfloor:"is-mingle",
                    mingle:"is-mingle",deliberation:"is-mingle",deciding:"is-deciding",draft:"is-drafting"};

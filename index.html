@@ -1119,7 +1119,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0819.1928</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0820.0029</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1313,7 +1313,7 @@
       <div id="rt_line_block">
         <div class="lc-line__head">
           <span class="lc-kicker lc-over-video" id="rt_linekicker">THE BENCH</span>
-          <span class="lc-line__hint lc-over-video" id="rt_hosthint">earning hearts until a chair opens</span>
+          <span class="lc-line__hint lc-over-video" id="rt_hosthint">waiting for a chair — longest wait goes first</span>
           <span class="lc-kicker lc-over-video" id="rt_watchbar"></span>
         </div>
         <div id="rt_line">
@@ -1412,7 +1412,7 @@
       <div class="lc-decide" id="eg_decide" style="display:none">
         <b style="font-family:'Baloo 2',sans-serif;font-size:17px;color:#fff">Round three's done.  Your call.</b>
         <div class="lc-decide__opt lc-decide__opt--keep" id="eg_dkeep"><b>✓ KEEP ONE</b><span style="font-size:12px;color:rgba(255,255,255,.8)">that's the win — you go backstage</span></div>
-        <div class="lc-decide__opt lc-decide__opt--pass" id="eg_dpass"><b>✕ PASS ONE</b><span style="font-size:12px;color:var(--dim)">a chair opens · the crowd shows you who's next</span></div>
+        <div class="lc-decide__opt lc-decide__opt--pass" id="eg_dpass"><b>✕ PASS ONE</b><span style="font-size:12px;color:var(--dim)">a chair opens · you pick, or the longest wait takes it</span></div>
         <div class="lc-decide__opt lc-decide__opt--clear" id="eg_dclear"><b>CLEAR THE DECK</b><span style="font-size:12px;color:var(--dim)">pass all three · they won't be back</span></div>
         <button class="lc-decide__walk" id="eg_dwalk" style="background:none;border:none;color:var(--dim);cursor:pointer;margin-top:2px">…or end the night alone</button>
       </div>
@@ -1616,7 +1616,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b0819.1928"); }catch(e){}
+try{ console.log("[lastcall] build b0820.0029"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2846,6 +2846,32 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
 
   const tallies=benched.map(m=>HEARTS[m.user_id]||0);
   const leadN=Math.max(0,...tallies);
+
+  /* NEXT UP names the man the room will actually seat next — LANE-BINDING,
+     not value-reading.  nextOffBench() is the ONE derivation of "who is next
+     off the bench"; it orders by line_position, the column production mints
+     at bench entry.  We ask it who, then light the lane that man already
+     holds.  We never re-sort here: lane order is by membership row id so a
+     man keeps his lane all night, and the halo moves while the faces do not.
+
+     WHAT THIS REPLACED.  The badge used to be derived from HEARTS — the
+     unique top scorer among the rendered three wore it.  Hearts seat nobody.
+     nextOffBench reads no hearts at all, so a loud man could wear the badge
+     all night while a quieter, earlier man took every chair: the badge named
+     one man and the mechanism seated another.  It was also SILENT in most
+     real states, because it demanded a unique non-zero leader — a tie, a
+     lone bencher and an all-zero bench each lit nothing.  Under line_position
+     those three conditions are not merely wrong, they are irrelevant: a
+     monotonic column always names exactly one man.  They are gone rather
+     than carried forward, so nothing implies they still gate anything.
+
+     NO BADGE when the named man holds no rendered lane.  The bench shows
+     three lanes and the line can be longer; if the next man is the fourth,
+     nothing lights.  No fallback, no nearest-lane guess — a badge on the
+     wrong lane is the defect this replaced, one lane over.  (Gates 58, 59.) */
+  const nextMan = nextOffBench(ROOM_STATE.members, CURRENT_ROOM);
+  const nextUid = nextMan ? nextMan.user_id : null;
+
   for(let i=0;i<3;i++){
     const lane=$("rt_bench"+i); if(!lane) continue;
     const m=benched[i];
@@ -2867,14 +2893,9 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
         if(ph && face.dataset.src!==ph){ face.style.backgroundImage='url("'+ph+'")'; face.dataset.src=ph; }
         if(!ph && face.dataset.src){ face.style.backgroundImage=""; delete face.dataset.src; }
       }
-      // NEXT UP is a standing (leader of a FIFO queue by hearts)
-      // The lane is his for the night; only the HALO moves — and only when the
-      // standing genuinely changes.  A lone man leads nobody, a tie is not a
-      // lead, and nobody leads at zero.
-      const myN=HEARTS[m.user_id]||0;
-      const counts=benched.map(x=>HEARTS[x.user_id]||0).sort((p,q)=>q-p);
-      const uniqueLead = benched.length>=2 && myN>0 && myN===counts[0] && counts[0]>counts[1];
-      lane.classList.toggle("is-leading", uniqueLead);
+      // The lane is his for the night; only the HALO moves, and it moves only
+      // when the standing genuinely changes.  nextUid is resolved once above.
+      lane.classList.toggle("is-leading", !!nextUid && m.user_id===nextUid);
       lane.classList.remove("is-empty");
     }else{
       delete lane.dataset.benchuid;
@@ -2897,7 +2918,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   let note;
   if(promo)           note="tap another to override";
   else if(freeBench)  note=word+" bench seat"+(freeBench===1?"":"s")+" free too";
-  else                note=AMHOST?"you see hearts, not faces":"earning hearts until a chair opens";
+  else                note=AMHOST?"you see hearts, not faces":"waiting for a chair — longest wait goes first";
   setText($("rt_hosthint"), note);
   setText($("rt_watchbar"), promo?"NEXT DROPS IN":(RC.line?("+"+RC.line+" IN LINE"):"0 IN LINE"));
   const kick=$("rt_linekicker");

@@ -1,4 +1,22 @@
 {
-  "capturedFrom": "b0810.2247",
-  "note": "REGRESSION baseline only — captured from the live build, NOT mock-conformant; that build's bugs are baked in."
+  "capturedFrom": "b0820.0029",
+  "capturedWith": {
+    "chromium": "151.0.7922.34",
+    "font": {
+      "body": {
+        "stack": "Archivo, system-ui, sans-serif",
+        "w": 330.66
+      },
+      "display": {
+        "stack": "Monoton, cursive",
+        "w": 284
+      },
+      "mono": {
+        "stack": "monospace",
+        "w": 346.78
+      }
+    }
+  },
+  "note": "REGRESSION baseline only — captured from the live build, NOT mock-conformant; that build's bugs are baked in.",
+  "envNote": "capturedWith records WHAT RENDERED these frames.  Screenshots are not portable by default: the same commit under a different Chromium build produces different bytes, and different font resolution produces different pixels.  Regenerate in the environment that routinely runs the battery, not in whichever one happens to be handy."
 }

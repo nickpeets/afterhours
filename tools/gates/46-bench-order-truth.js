@@ -36,12 +36,40 @@
  * server already answers in a column.  Both paths now read the SAME helper, and
  * this gate holds them to naming the same man.
  *
- * The four claims:
- *   1. ONE derivation — a single exported `nextOffBench`, and no second
- *      hand-rolled ordering of `role==="line"` rows anywhere (static)
- *   2. the expiry seats the LOWEST line_position man, not the array's first
- *   3. it is announced — the feed carries a beat, and she never tapped
- *   4. curtain-up and the expiry, given the same bench, name the same man
+ * WHAT THIS GATE COVERS, AND WHAT IT DOES NOT.  This header used to claim
+ * there was no second hand-rolled ordering of role==="line" rows ANYWHERE
+ * (static).  It asserts no such thing and could not: the static section greps
+ * two named SLICES of the file, not the file.  The claim was wider than the
+ * evidence under it — which is the defect this gate exists to catch, committed
+ * in the gate's own prose.  Restated to match what the assertions reach:
+ *
+ *   STATIC — the helper itself, and the two seating paths that were rewritten
+ *     1. a named single derivation nextOffBench exists; it orders by
+ *        line_position; it never reads joined_at.  (That third check is
+ *        guarded on the slice being non-empty, so a missing helper fails here
+ *        rather than passing vacuously against an empty string.)
+ *     2. benchQueue DELEGATES to it and carries no second copy of the
+ *        comparator
+ *     3. inside the pick-window-expiry slice and the curtain-up slice — and
+ *        only inside those two — seating asks the helper instead of ordering
+ *        the rows itself
+ *
+ *   RUNTIME
+ *     4. the expiry seats the LOWEST line_position man, not the array's first
+ *     5. it is announced — the feed carries a beat, and she never tapped
+ *     6. curtain-up and the expiry, given the same bench, name the same man
+ *
+ * OUT OF SCOPE — named here so it is not mistaken for covered:
+ *   - autoSeatFromLine() takes line[0] of an UNSORTED filter of role==="line"
+ *     rows (index.html 3649-3652).  That is a second ordering in the sense
+ *     this gate's old header denied; it is the classic-room path, neither
+ *     static slice reaches it, and nothing here asserts against it.  Logged in
+ *     tools/DESIGN-DIFF.md under "autoSeatFromLine — unsorted line[0]".  Not
+ *     fixed in fix/truth-in-bench, deliberately.
+ *   - the render's lane ordering sorts the same rows by membership ROW ID, so
+ *     a man keeps his lane all night.  That is a second ordering BY DESIGN: it
+ *     decides which lane a man occupies, never who leaves the bench.  Gates 58
+ *     and 59 hold the NEXT UP badge to the seating order instead.
  */
 "use strict";
 const { Harness } = require("../lib/harness");

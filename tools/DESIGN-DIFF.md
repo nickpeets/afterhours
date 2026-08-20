@@ -175,5 +175,53 @@ Three instances at HEAD, all string-verified 2026-08-14:
   43's header, which is where this claim used to live unverifiable.
 
 Related, banked by the first version of this doc: the bench leader/tie logic
-(2870–2877 — "a lone man leads nobody, a tie is not a lead, nobody leads at
-zero") is the client substrate the 5s-promotion mechanic will stand on.
+was named here as the client substrate the 5s-promotion mechanic would stand
+on.  **THAT SUBSTRATE IS GONE AS OF fix/truth-in-bench** — see the NEXT UP
+entry below.  The promotion mechanic should stand on `nextOffBench` instead,
+which is what actually seats a man.
+
+## NEXT UP — the badge named a man the mechanism never seated (FIXED, PR1)
+
+**AS-BUILT before fix/truth-in-bench, SOURCE(client) at HEAD 7ec8e58:** the
+NEXT UP badge and the `is-leading` halo were derived from HEARTS — whichever
+of the three rendered men held a unique non-zero top score wore it.  The
+mechanism that actually empties the bench is `nextOffBench()`, which orders by
+`line_position` and reads no hearts at all.  The two could name different men
+indefinitely: a loud man wore the badge all night while a quieter, earlier man
+took every chair.  It was additionally SILENT on a tie, on a lone bencher and
+on an all-zero bench, because it demanded a unique non-zero leader — so the
+room's only published claim about who was next was absent through most of a
+normal show and wrong through the rest.
+
+**AS-BUILT now:** the badge is lane-bound to the man `nextOffBench()` names.
+The lone-man / tie / zero conditions are DELETED rather than ported: under a
+globally monotonic column they are not merely wrong, they are irrelevant, and
+carrying them forward would imply they still gate something.  When the named
+man holds no rendered lane — the line is longer than three — NO badge lights,
+with no fallback and no nearest-lane guess.  Gates 58 and 59.
+
+## OUT OF SCOPE, logged not fixed (fix/truth-in-bench)
+
+Three things were found while fixing the above and deliberately left alone.
+They are recorded here so that "we looked at this code and shipped" is not
+mistaken for "this code is clean".
+
+- **`autoSeatFromLine` — unsorted `line[0]`.**  SOURCE(client), index.html
+  3649-3652: it filters `role=="line"` rows out of `activeRows` and takes
+  `line[0]`.  `activeRows` returns rows in arbitrary order, so this seats an
+  arbitrary man, not the longest-waiting one — a second ordering of exactly
+  the kind `nextOffBench` exists to remove.  It is the classic-room path and
+  gate 46's static slices do not reach it, which is why it has survived; gate
+  46's header now names it as out of scope instead of implicitly denying it.
+  Not fixed here because it is a seating-behaviour change outside this PR's
+  ruled scope.
+- **`is-surging` — dead CSS with no setter.**  SOURCE(client): the rule exists
+  (index.html 612-616) and the class is *removed* on the empty-lane branch
+  (2908), but nothing anywhere sets it.  The SURGING vocabulary in the
+  stylesheet comment describes a feature that was never wired.  Left as-is:
+  deleting it is a design question about whether a rate badge is still wanted.
+- **Dead locals `tallies` / `leadN`.**  SOURCE(client), index.html 2847-2848:
+  computed on every bench render and read by nothing.  They were the hearts
+  rule's working set.  Left in place deliberately this PR so the NEXT UP diff
+  is exactly the behaviour change and nothing else; they are safe to delete on
+  sight in any later commit that touches this block.

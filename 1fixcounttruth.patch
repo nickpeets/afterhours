@@ -1,0 +1,260 @@
+From 0a190e711fd2f157999c36f1c264ef798c5dc3b9 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 7 Aug 2026 18:51:51 +0000
+Subject: [PATCH] =?UTF-8?q?fix/count-truth:=20one=20headcount=20derivation?=
+ =?UTF-8?q?=20=E2=80=94=20roomCounts()?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Four independent count derivations (lobby card filter-count, room header
+members.length, line watchbar arithmetic, bench slice) disagreed with each
+other; the watchbar's behind-the-front-three arithmetic is the '0 in line
+while people are benched' bug.  roomCounts(members, room) is now the only
+counter: host +1 (no membership row by design), benched men count toward
+line AND total, staleness re-applied defensively.  All four sites read from
+it; the inline derivations are deleted.  Exported on window.__lc.
+
+New gate 11-count-parity drives the real lobby card, room header, watchbar
+and __lc.roomCounts on the parity roster (host + 2 crowd + 3 bench +
+2 chairs + 1 kept + 1 stale).  Gate 03-forbidden now passes unmodified.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Cz9rEV1j7Y9MThdnvZuvKA
+---
+ index.html                     | 76 ++++++++++++++++++++++++-------
+ tools/gates/11-count-parity.js | 83 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 143 insertions(+), 16 deletions(-)
+ create mode 100644 tools/gates/11-count-parity.js
+
+diff --git a/index.html b/index.html
+index 516f37a..f986a6b 100644
+--- a/index.html
++++ b/index.html
+@@ -1062,7 +1062,7 @@
+         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
+       </form>
+       <div class="note">Pilot build · play money · this is a private test with friends.</div>
+-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.0942</span></div>
++      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.1150</span></div>
+     </div>
+ 
+     <!-- FIRST-RUN SETUP -->
+@@ -1489,7 +1489,7 @@ try{
+     }
+   });
+ }catch(e){}
+-try{ console.log("[lastcall] build b0807.0942"); }catch(e){}
++try{ console.log("[lastcall] build b0807.1150"); }catch(e){}
+ const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
+ 
+ /* ---- invite links & password recovery ----
+@@ -1874,14 +1874,16 @@ async function loadRooms(){
+     return;
+   }
+   // member counts
+-  const ids=rooms.map(r=>r.id);
+   // RLS hides room_members from non-members, so a direct read returns 0 for
+   // every room you are not already in.  active_members() is SECURITY DEFINER.
++  // Same RPC, same member shape, same derivation as the room itself:
++  // roomCounts() is the only counter (lobby must not count from a different
++  // query shape than the room).
+   const counts={};
+-  await Promise.all(ids.map(async id=>{
+-    try{ const {data}=await sb.rpc("active_members",{room_id:id});
+-         counts[id]=(data||[]).filter(m=>m.role!=="gone").length; }
+-    catch(e){ counts[id]=0; }
++  await Promise.all(rooms.map(async r=>{
++    try{ const {data}=await sb.rpc("active_members",{room_id:r.id});
++         counts[r.id]=roomCounts(data||[], r).total; }
++    catch(e){ counts[r.id]=0; }
+   }));
+   list.innerHTML="";
+   rooms.forEach(r=>{
+@@ -2031,6 +2033,44 @@ async function loadRoomState(){
+   reflowVideo();
+ }
+ 
++/* ============================================================================
++   roomCounts — HEADCOUNT TRUTH.
++   The one and only headcount derivation.  Every number the app shows about
++   who is in a room — lobby card, room header, line watchbar, bench slice —
++   reads from here; no call site derives its own count.  Input is the member
++   shape the room renders from (active_members: fresh <60s OR role='kept',
++   never 'gone').  The locks live HERE, once, never at call sites:
++     · the host has no membership row by design — "people in the room"
++       includes her (+1 on total)
++     · benched members (role 'line') count toward total AND line — the old
++       watchbar arithmetic subtracted the three benched men from their own
++       line count, which is the "0 in line while people are benched" bug
++     · staleness cannot inflate a count even from a raw table read: the
++       active_members freshness rule is re-applied defensively
++   ========================================================================= */
++function roomCounts(members, room){
++  const nowMs=(typeof serverNow==="function")?serverNow():Date.now();
++  const isFresh=(m)=>{
++    if(m.role==="kept") return true;              // a kept man is on stage; staleness doesn't unseat him
++    if(!m.last_seen) return true;                 // no beat recorded yet: a brand-new row is present
++    const t=Date.parse(m.last_seen);
++    return !t || (nowMs-t)<60000;
++  };
++  const rows=(members||[]).filter(m=>m
++    && m.role!=="gone"
++    && (!room || !room.host_id || m.user_id!==room.host_id)
++    && isFresh(m));
++  const line=rows.filter(m=>m.role==="line");
++  return {
++    crowd:  rows.filter(m=>m.role==="spectator").length,
++    line:   line.length,
++    bench:  Math.min(3,line.length),
++    chairs: rows.filter(m=>m.role==="chair").length,
++    kept:   rows.filter(m=>m.role==="kept").length,
++    total:  rows.length+1
++  };
++}
++
+ /* ============================================================================
+    renderRoom — PUPPETEER.
+    The room's markup is static (see the #room block).  This function may only
+@@ -2061,7 +2101,9 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
+     || "someone";   // profile fetch races no longer blank a known name
+   const setText=(el,t)=>{ if(el && el.textContent!==t) el.textContent=t; };
+ 
+-  $("rt_count").textContent="👁 "+members.length;
++  // every headcount this render shows comes from the one derivation
++  const RC=roomCounts(members, CURRENT_ROOM);
++  $("rt_count").textContent="👁 "+RC.total;
+ 
+   /* ---- PLAYING SURFACE — three fixed seats ------------------------------ */
+   const chairBySeat={};
+@@ -2222,17 +2264,18 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
+     }
+   }
+ 
+-  // bench header — the note reads as progress; the meta counts everyone
+-  // BEHIND the front three, so a short line reads "0 IN LINE", not blank.
+-  const freeBench=Math.max(0,3-benched.length);
++  // bench header — the note reads as progress.  Both numbers come from
++  // roomCounts(): the old inline arithmetic here counted only the men BEHIND
++  // the front three, so a fully-benched room read "0 IN LINE" — benched
++  // members count toward the line, in the one derivation.
++  const freeBench=Math.max(0,3-RC.bench);
+   const word=["","one","two","three"][freeBench]||String(freeBench);
+   let note;
+   if(promo)           note="tap another to override";
+   else if(freeBench)  note=word+" bench seat"+(freeBench===1?"":"s")+" free too";
+   else                note=AMHOST?"you see hearts, not faces":"earning hearts until a chair opens";
+   setText($("rt_hosthint"), note);
+-  const extra=Math.max(0,line.length-3);
+-  setText($("rt_watchbar"), promo?"NEXT DROPS IN":(extra?("+"+extra+" IN LINE"):"0 IN LINE"));
++  setText($("rt_watchbar"), promo?"NEXT DROPS IN":(RC.line?("+"+RC.line+" IN LINE"):"0 IN LINE"));
+   const kick=$("rt_linekicker");
+   if(kick) kick.textContent = AMHOST ? "THE BENCH · BLIND" : "THE BENCH";
+ 
+@@ -4210,10 +4253,11 @@ document.addEventListener("touchend",e=>{
+    reimplement it.  State fields are live getters into the module scope.
+    No app logic may live in this block. */
+ window.__lc = {
+-  /* roster / rendering — NOTE: headcount derivation is currently INLINE in
+-     loadRooms/renderRoom (no single function exists to export).  When the
+-     unified derivation lands it must be exported here as roomCounts. */
++  /* roster / rendering — roomCounts is THE headcount derivation: every count
++     the app shows (lobby card, room header, watchbar, bench slice) reads
++     from it, and gates assert against the same function. */
+   loadRooms, loadRoomState, renderRoom, updateJoinBtn, keptFinalists,
++  roomCounts,
+   /* bench entry */
+   benchHeadshot,
+   /* seating / host actions */
+diff --git a/tools/gates/11-count-parity.js b/tools/gates/11-count-parity.js
+new file mode 100644
+index 0000000..f56f905
+--- /dev/null
++++ b/tools/gates/11-count-parity.js
+@@ -0,0 +1,83 @@
++/* GATE 11 — count-parity: every headcount the app shows is the SAME number,
++ * derived once, by the real roomCounts().  Ships with fix/count-truth.
++ *
++ * Fixture (the COUNT PARITY roster from the bug filing): host + 2 crowd +
++ * 3 bench + 2 chairs + 1 kept + 1 stale (last_seen 90s ago).  Expected:
++ * 2+3+2+1 = 8 member rows counted, stale excluded, host +1 (she has no
++ * membership row by design) → 9 everywhere.
++ *
++ * Structural rule: this gate drives the REAL app — the lobby card and room
++ * header are read from the real DOM after real renders, and the derivation
++ * is called through window.__lc.roomCounts.  Nothing is re-implemented.
++ */
++"use strict";
++const { Harness } = require("../lib/harness");
++const fixtures = require("../lib/fixtures");
++
++const EXPECT = { crowd: 2, line: 3, bench: 3, chairs: 2, kept: 1, total: 9 };
++
++module.exports = {
++  name: "count-parity",
++  async run(t, ctx) {
++    const h = await Harness.launch();
++    try {
++      const fx = fixtures.standardRoster(h.double);
++      const c = await h.newClient("parity");
++      c.login(fx.crowd[0]);
++      await c.goto();
++
++      /* --- the LOBBY's number, from the real card --- */
++      await c.page.waitForSelector(".roomcard", { timeout: 15000 });
++      await c.page.waitForFunction(() =>
++        /\d+ in the room/.test(document.querySelector(".roomcard .meta")?.textContent || ""), { timeout: 10000 });
++      const lobbyN = await c.page.$eval(".roomcard .meta",
++        (el) => parseInt((el.textContent.match(/(\d+) in the room/) || [])[1], 10));
++
++      /* --- the ROOM header's number, after a real entry --- */
++      await c.page.click(".roomcard");
++      await c.page.waitForSelector("#room.show", { timeout: 15000 });
++      await c.page.waitForFunction(() =>
++        parseInt((document.getElementById("rt_count").textContent || "").replace(/[^0-9]/g, ""), 10) > 0,
++        { timeout: 10000 });
++      await c.page.waitForTimeout(600);   // let the roster settle
++      const headerN = await c.page.$eval("#rt_count",
++        (el) => parseInt(el.textContent.replace(/[^0-9]/g, ""), 10));
++
++      t.ok(lobbyN === headerN,
++        `lobby count === room header count (lobby ${lobbyN} vs header ${headerN})`);
++
++      /* --- the derivation itself, on the roster the room actually holds --- */
++      const rc = await c.lc("(l)=>l.roomCounts(l.ROOM_STATE.members, l.CURRENT_ROOM)");
++      t.ok(headerN === rc.total,
++        `room header reads the derivation, not its own arithmetic (header ${headerN} vs roomCounts.total ${rc.total})`);
++      t.ok(rc.total === EXPECT.total,
++        `total is ${EXPECT.total}: 8 counted rows + the host, who has no membership row (got ${rc.total})`);
++      t.ok(rc.crowd === EXPECT.crowd && rc.chairs === EXPECT.chairs,
++        `crowd/chairs split matches the fixture (crowd ${rc.crowd}, chairs ${rc.chairs})`);
++      t.ok(rc.kept === EXPECT.kept,
++        `kept is included everywhere — staleness never unseats a kept man (kept ${rc.kept})`);
++      t.ok(rc.total === rc.crowd + rc.line + rc.chairs + rc.kept + 1,
++        "total = crowd + line + chairs + kept + host — nobody counted twice, nobody dropped");
++
++      /* --- stale exclusion, driven through the REAL function with the RAW
++             table rows (including the 90s-stale spectator) --- */
++      const raw = h.double.members.filter((m) => m.room_id === fx.room).map((m) => ({ ...m }));
++      t.ok(raw.some((m) => m.user_id === fx.stale[0]),
++        "fixture sanity: the raw table really contains the stale row");
++      const rcRaw = await c.lc("(l,raw)=>l.roomCounts(raw, l.CURRENT_ROOM)", raw);
++      t.ok(rcRaw.total === rc.total,
++        `stale rows cannot inflate any count, even from a raw table read (raw→${rcRaw.total} vs live→${rc.total})`);
++
++      /* --- the "0 in line" bug: benched members count toward the line --- */
++      t.ok(rc.line === EXPECT.line && rc.bench === EXPECT.bench,
++        `three benched men ARE the line (line ${rc.line}, bench ${rc.bench})`);
++      t.ok(rc.line > 0, "line > 0 while the bench is occupied");
++      const watchbar = await c.page.$eval("#rt_watchbar", (el) => el.textContent.trim());
++      t.ok(!/^0 IN LINE/.test(watchbar) && new RegExp("\\+" + EXPECT.line + " IN LINE").test(watchbar),
++        `watchbar shows the benched men, not "0 IN LINE" (got ${JSON.stringify(watchbar)})`);
++
++      const errs = c.errors.filter((e) => !/favicon/.test(e));
++      t.ok(errs.length === 0, "zero console errors — " + errs.slice(0, 2).join(" | "));
++    } finally { await h.close(); }
++  },
++};
+-- 
+2.43.0
+

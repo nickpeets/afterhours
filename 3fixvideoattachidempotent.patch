@@ -1,0 +1,449 @@
+From 9f7010a3026ada92bb4c31037c148fb2310bab00 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 7 Aug 2026 19:15:23 +0000
+Subject: [PATCH 1/2] video: attach-budget instrumentation (diagnose first,
+ counters only)
+
+VIDEO_STATS counts per-participant srcObject assignments, <video>
+creations, re-parents, and disagreement-sweep runs; exported via __lc.
+60s simulated episode (~20 roster updates + poll cycles), UNFIXED code:
+
+  u_a..u_e, u_host: assignments=1 creations=1 re-parents=0 each
+  sweep runs: 82 in 60s (every reflow call, not roster changes)
+  dangling after churn: VIDEO_TILES[sid-2] (u_a, passed but still in
+  call) - entry survives the sweep holding a live srcObject
+
+The attach path is already idempotent for an unchanged stream; the leak
+is the sweep/eviction teardown and its trigger cadence.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Cz9rEV1j7Y9MThdnvZuvKA
+---
+ index.html | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/index.html b/index.html
+index 516f37a..2809ca8 100644
+--- a/index.html
++++ b/index.html
+@@ -3843,6 +3843,16 @@ async function leaveRoom(){
+ let DAILY=null;            // Daily call object
+ let DAILY_JOINED=false;
+ let VIDEO_TILES={};        // session_id -> {uid, el} attached video elements
++
++/* ---- attach-budget diagnostics (counters only, no logic) ----
++   per-participant tallies of (a) srcObject assignments, (b) <video>
++   creations, (c) re-parents of an existing <video>, plus how many times the
++   disagreement sweep ran.  A participant whose stream never changed must
++   show 1 assignment, 1 creation, 0 re-parents.  Gate 13 asserts against
++   these through __lc; they also feed the fix/video-attach-idempotent PR's
++   before/after diagnosis. */
++let VIDEO_STATS={assigns:{},creates:{},reparents:{},sweeps:0};
++function vstat(kind,uid){ VIDEO_STATS[kind][uid]=(VIDEO_STATS[kind][uid]||0)+1; }
+ const DAILY_FN=SUPA_URL+"/functions/v1/daily-room";
+ 
+ /* ---- on-screen video debug panel: auto-appears on failure; full narration with ?debug=1 ---- */
+@@ -4121,6 +4131,7 @@ function placeVideo(uid, sid, track){
+       // SAME track: leave it completely alone.  Re-assigning srcObject restarts
+       // playback and flashes black — that is the blip.
+       if(cur && track && cur.id===track.id) return;
++      vstat("assigns",uid);
+       mine.el.srcObject=new MediaStream([track]);
+       const pp=mine.el.play(); if(pp&&pp.catch) pp.catch(()=>{});
+     }catch(e){}
+@@ -4131,13 +4142,15 @@ function placeVideo(uid, sid, track){
+   host.querySelectorAll(":scope > video").forEach(v=>{ try{v.remove();}catch(e){} });
+   // build a video element
+   let v=document.createElement("video");
++  vstat("creates",uid);
+   v.autoplay=true; v.playsInline=true; v.setAttribute("playsinline","");
+   v.muted=(uid===ME.id); // mute self to avoid echo
+   v.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;border-radius:inherit;background:#000";
+-  try{ v.srcObject=new MediaStream([track]); }catch(e){ console.log("srcObject failed",e); return; }
++  try{ vstat("assigns",uid); v.srcObject=new MediaStream([track]); }catch(e){ console.log("srcObject failed",e); return; }
+   host.style.position="relative";
+   // hide the cartoon-face background under the video
+   const bg=host.querySelector(".vid"); if(bg) bg.style.opacity="0";
++  if(v.parentElement && v.parentElement!==host) vstat("reparents",uid);   // diagnostics: a mounted element moving parents
+   host.appendChild(v);
+   v.dataset.uid=uid;            // the feed carries its own owner
+   VIDEO_TILES[sid]={uid, el:v};
+@@ -4153,6 +4166,7 @@ function reflowVideo(){
+   // real teardown: a feed marked orphaned by a roster blip is only removed if
+   // the CALL agrees the participant is gone
+   try{
++    VIDEO_STATS.sweeps++;
+     const liveUids=new Set(Object.values(parts).map(p=>partUid(p)).filter(Boolean));
+     // EVERY feed, not just orphan-marked ones: a handover leaves the seat
+     // occupied, so the old owner's video is never marked and was never swept
+@@ -4229,6 +4243,7 @@ window.__lc = {
+   /* video layer */
+   videoJoin, videoLeave, placeVideo, reflowVideo, tileFor, onTrack,
+   onTrackStopped, onPartLeft, syncLocalPublish, amISeated,
++  get VIDEO_STATS(){ return VIDEO_STATS; },
+   /* live state (getters — always current, never snapshots) */
+   get ME(){ return ME; },
+   get MYPROFILE(){ return MYPROFILE; },
+-- 
+2.43.0
+
+
+From e61fc90d81ec2f79d5d9713811efa29ae177c34d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Fri, 7 Aug 2026 19:22:49 +0000
+Subject: [PATCH 2/2] fix/video-attach-idempotent: teardown owns the tile; the
+ sweep fires on roster change only
+
+Diagnosis (see previous commit) showed the attach path already idempotent
+(1 assignment / 1 creation / 0 re-parents per stable participant) but the
+disagreement sweep ran 82 times in a 60s episode (every reflow) and its
+bare el.remove() left VIDEO_TILES entries dangling with a live srcObject
+(the passed-but-still-in-call man) - gate 08's orphan.
+
+The fix:
+- releaseTile(sid,{stop}) is THE tile teardown: element removal, entry
+  release, and (for the sweep) stopping the stream are one operation.
+  onTrackStopped / onPartLeft / foreign-feed eviction / cell moves all go
+  through it - no bare remove() anywhere.
+- placeVideo: same-track early return stands; a genuine stream change is
+  one in-place assignment; a genuine cell move is keyed reconciliation
+  (static cells, fresh mount, never a re-parent - Safari restarts
+  playback when a <video> changes parents).
+- sweepVideo extracted from reflowVideo, gated on the participant->tile
+  map signature: it fires on roster CHANGE only, a reflow storm with an
+  unchanged map is a no-op, and a pending 6s disagreement window gets
+  exactly one one-shot recheck (no interval, nothing calls play()).
+
+After, same 60s episode: sweeps 82 -> 13, dangling entries 1 -> 0,
+counters still 1/1/0 per participant.  Gate 08-video-life now passes
+unmodified; new gate 13-reattach-budget scores the whole episode against
+the budget via the app's own counters.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Cz9rEV1j7Y9MThdnvZuvKA
+---
+ index.html                        |  97 +++++++++++++++++-----
+ tools/gates/13-reattach-budget.js | 130 ++++++++++++++++++++++++++++++
+ 2 files changed, 209 insertions(+), 18 deletions(-)
+ create mode 100644 tools/gates/13-reattach-budget.js
+
+diff --git a/index.html b/index.html
+index 2809ca8..5175b99 100644
+--- a/index.html
++++ b/index.html
+@@ -1062,7 +1062,7 @@
+         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
+       </form>
+       <div class="note">Pilot build · play money · this is a private test with friends.</div>
+-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.0942</span></div>
++      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0807.1222</span></div>
+     </div>
+ 
+     <!-- FIRST-RUN SETUP -->
+@@ -1489,7 +1489,7 @@ try{
+     }
+   });
+ }catch(e){}
+-try{ console.log("[lastcall] build b0807.0942"); }catch(e){}
++try{ console.log("[lastcall] build b0807.1222"); }catch(e){}
+ const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
+ 
+ /* ---- invite links & password recovery ----
+@@ -4052,6 +4052,8 @@ async function videoLeave(){
+   Object.values(VIDEO_TILES).forEach(t=>{ try{t.el.remove();}catch(e){} });
+   VIDEO_TILES={};
+   Object.keys(AUDIO_ELS).forEach(stopAudio);
++  VIDEO_MAP_SIG=null;
++  if(SWEEP_RECHECK){ clearTimeout(SWEEP_RECHECK); SWEEP_RECHECK=null; }
+ }
+ 
+ // decide whether MY camera should be on: host always; suitor only when seated in a chair
+@@ -4096,17 +4098,35 @@ function playAudio(sid, track){
+ function stopAudio(sid){
+   if(AUDIO_ELS[sid]){ try{AUDIO_ELS[sid].remove();}catch(e){} delete AUDIO_ELS[sid]; }
+ }
++/* THE one tile teardown.  Removing a <video> and releasing its VIDEO_TILES
++   entry are a single operation — a bare el.remove() anywhere else is how the
++   dangling-entry orphan (gate 8) was born.  stop:true additionally stops the
++   tracks of the element's stream (the sweep's contract: when it takes a tile
++   down, nothing keeps pulling frames). */
++function releaseTile(sid, opts){
++  const t=VIDEO_TILES[sid];
++  if(!t) return;
++  if(opts && opts.stop){
++    try{ if(t.el && t.el.srcObject) t.el.srcObject.getTracks().forEach(tr=>{ try{tr.stop();}catch(e){} }); }catch(e){}
++  }
++  try{ t.el.remove(); }catch(e){}
++  delete VIDEO_TILES[sid];
++}
++function tileSidOf(el){
++  for(const sid in VIDEO_TILES){ if(VIDEO_TILES[sid].el===el) return sid; }
++  return null;
++}
+ function onTrackStopped(ev){
+   const sid=ev.participant?.session_id;
+   if(!sid) return;
+   if(ev.track && ev.track.kind==="audio"){ stopAudio(sid); return; }
+-  if(VIDEO_TILES[sid]){ try{VIDEO_TILES[sid].el.remove();}catch(e){} delete VIDEO_TILES[sid]; }
++  releaseTile(sid);
+ }
+ function onPartLeft(ev){
+   const sid=ev.participant?.session_id;
+   if(!sid) return;
+   stopAudio(sid);
+-  if(VIDEO_TILES[sid]){ try{VIDEO_TILES[sid].el.remove();}catch(e){} delete VIDEO_TILES[sid]; }
++  releaseTile(sid);
+ }
+ 
+ // where does this uid's video belong right now?
+@@ -4121,25 +4141,36 @@ function tileFor(uid){
+ function placeVideo(uid, sid, track){
+   const host=tileFor(uid);
+   if(!host){ return; } // not a slot that shows video (line/spectator)
+-  // same session already mounted here?  Swap the track in place — removing
+-  // and recreating flashes black on every Daily renegotiation.
++  // same session already mounted here?  NEVER touch a correct mount:
++  // if el.srcObject already holds this very track, early-return — assigning
++  // srcObject again (or nulling first, or forcing a reload) restarts
++  // playback and flashes black.  That is the blip.
+   const mine=VIDEO_TILES[sid];
+   if(mine && mine.el && mine.el.parentElement===host){
+     try{
+       const cur=mine.el.srcObject && mine.el.srcObject.getVideoTracks
+                 ? mine.el.srcObject.getVideoTracks()[0] : null;
+-      // SAME track: leave it completely alone.  Re-assigning srcObject restarts
+-      // playback and flashes black — that is the blip.
+       if(cur && track && cur.id===track.id) return;
++      // a GENUINE stream change (new track id): one in-place assignment
+       vstat("assigns",uid);
+       mine.el.srcObject=new MediaStream([track]);
+       const pp=mine.el.play(); if(pp&&pp.catch) pp.catch(()=>{});
+     }catch(e){}
+     return;
+   }
+-  if(mine && mine.el){ try{ mine.el.remove(); }catch(e){} delete VIDEO_TILES[sid]; }   // moved cells: retire the old mount
+-  // one cell, one feed — drop only a FOREIGN feed squatting in this cell
+-  host.querySelectorAll(":scope > video").forEach(v=>{ try{v.remove();}catch(e){} });
++  // a genuine cell move: keyed reconciliation.  The cells are static markup
++  // and never recreated; the old mount is released and a fresh element is
++  // mounted in the new cell.  A <video> is never re-parented — Safari
++  // restarts playback when an element moves between parents.  (The track is
++  // NOT stopped here: it lives on into the new mount.)
++  if(mine && mine.el){ releaseTile(sid); }
++  // one cell, one feed — a FOREIGN feed squatting in this cell (handover)
++  // goes down WITH its VIDEO_TILES entry; the bare remove() that used to
++  // live here left the entry dangling with a live srcObject
++  host.querySelectorAll(":scope > video").forEach(v=>{
++    const s=tileSidOf(v);
++    if(s) releaseTile(s); else { try{ v.remove(); }catch(e){} }
++  });
+   // build a video element
+   let v=document.createElement("video");
+   vstat("creates",uid);
+@@ -4159,20 +4190,35 @@ function placeVideo(uid, sid, track){
+   console.log("[video] attached",uid===ME.id?"(me)":"", "->", host.id||host.className);
+ }
+ 
+-// re-place all known video tracks when roster/seating changes
+-function reflowVideo(){
++/* the participant→tile map, as a comparable signature.  The disagreement
++   sweep fires only when THIS changes — a reflow storm (participant-updated,
++   4s polls) with an unchanged map is a no-op for the sweep. */
++let VIDEO_MAP_SIG=null, SWEEP_RECHECK=null;
++function videoMapSig(){
++  try{
++    return Object.values(DAILY.participants()).map(p=>{
++      const uid=partUid(p);
++      const cell=uid?tileFor(uid):null;
++      return uid+">"+(cell?(cell.id||"cell"):"-");
++    }).sort().join("|");
++  }catch(e){ return "(sig-error)"; }
++}
++/* sweepVideo — the 6-second disagreement sweep, extracted so it can run on
++   roster CHANGE (and on the one-shot recheck that expires a pending 6s
++   window) instead of on every reflow.  When it takes a tile down it fully
++   releases the VIDEO_TILES entry and stops the stream — no orphans. */
++function sweepVideo(){
+   if(!DAILY) return;
+-  const parts=DAILY.participants();
+-  // real teardown: a feed marked orphaned by a roster blip is only removed if
+-  // the CALL agrees the participant is gone
+   try{
+     VIDEO_STATS.sweeps++;
++    const parts=DAILY.participants();
+     const liveUids=new Set(Object.values(parts).map(p=>partUid(p)).filter(Boolean));
+     // EVERY feed, not just orphan-marked ones: a handover leaves the seat
+     // occupied, so the old owner's video is never marked and was never swept
+     document.querySelectorAll('#rt_chairs video').forEach(v=>{
+       const uid=v.dataset.uid||null;          // NOT the cell: render clears that
+-      if(!uid || !liveUids.has(uid)){ v.remove(); return; }
++      const down=()=>{ const s=tileSidOf(v); if(s) releaseTile(s,{stop:true}); else { try{v.remove();}catch(e){} } };
++      if(!uid || !liveUids.has(uid)){ down(); return; }
+       // He may still be in the CALL but no longer belong to THIS cell (he
+       // stepped down and kept his camera on).  The ROSTER is unreliable — a
+       // polled response can momentarily omit a seated man — so one
+@@ -4183,9 +4229,24 @@ function reflowVideo(){
+       // move persists.  Six seconds of continuous disagreement is a move.
+       const t0=parseInt(v.dataset.since||"0",10);
+       if(!t0){ v.dataset.since=String(Date.now()); return; }
+-      if(Date.now()-t0 > 6000) v.remove();
++      if(Date.now()-t0 > 6000) down();
+     });
++    // a pending 6s window needs exactly one future look — a one-shot timer,
++    // never an interval (and nothing in it calls play())
++    const pending=[...document.querySelectorAll('#rt_chairs video')].some(v=>v.dataset.since);
++    if(pending && !SWEEP_RECHECK){
++      SWEEP_RECHECK=setTimeout(()=>{ SWEEP_RECHECK=null; sweepVideo(); },6500);
++    }
+   }catch(e){}
++}
++// re-place all known video tracks when roster/seating changes
++function reflowVideo(){
++  if(!DAILY) return;
++  const parts=DAILY.participants();
++  // the sweep fires on roster CHANGE only: unchanged participant→tile map
++  // means no teardown work, whatever called reflow
++  const sig=videoMapSig();
++  if(sig!==VIDEO_MAP_SIG){ VIDEO_MAP_SIG=sig; sweepVideo(); }
+   Object.values(parts).forEach(p=>{
+     const uid=partUid(p);
+     if(!uid) return;
+diff --git a/tools/gates/13-reattach-budget.js b/tools/gates/13-reattach-budget.js
+new file mode 100644
+index 0000000..539958d
+--- /dev/null
++++ b/tools/gates/13-reattach-budget.js
+@@ -0,0 +1,130 @@
++/* GATE 13 — reattach-budget: a full simulated episode with real
++ * MediaStreams, scored against the attach budget.  Ships with
++ * fix/video-attach-idempotent.
++ *
++ * The budget (per participant, whole episode):
++ *   - srcObject assignments ≤ 1 + (genuine stream changes).  This episode
++ *     contains ZERO genuine stream changes (every track keeps its id), so
++ *     the budget is exactly 1 — the initial mount.
++ *   - <video> creations === distinct mounted participants (one persistent
++ *     element per participant; a re-render or roster blip never recreates).
++ *   - re-parents === 0 episode-wide (Safari restarts playback on a move).
++ * Plus the sweep's contract: it fires on roster CHANGE only (a reflow storm
++ * with an unchanged participant→tile map must not run it), and when it takes
++ * a tile down the VIDEO_TILES entry goes with it — no orphans, no dangling
++ * live srcObject.
++ *
++ * Counters are the app's own (__lc.VIDEO_STATS — instrumentation in
++ * index.html); every transition is driven through the real code.
++ */
++"use strict";
++const { Harness } = require("../lib/harness");
++
++const waitFor = async (fn, ms, what) => {
++  const t0 = Date.now();
++  for (;;) {
++    const v = await fn();
++    if (v) return v;
++    if (Date.now() - t0 > ms) throw new Error("timed out waiting for " + what);
++    await new Promise((r) => setTimeout(r, 250));
++  }
++};
++
++module.exports = {
++  name: "reattach-budget",
++  async run(t, ctx) {
++    const h = await Harness.launch();
++    try {
++      const D = h.double;
++      const hostU = D.addUser({ id: "u_host", name: "Hostess", email: "host@fix.test" });
++      const uids = ["u_a", "u_b", "u_c", "u_d", "u_e"];
++      uids.forEach((id) => D.addUser({ id, name: id }));
++
++      const host = await h.newClient("host");
++      host.login(hostU);
++      await host.goto();
++      await host.page.waitForSelector("#lobby", { state: "visible", timeout: 15000 });
++      const room = D.addRoom({ id: "r_budget", host_id: hostU, name: "Budget Night", phase: "spotlight" });
++      D.rooms.get(room).phase_deadline = D.iso(D.now() + 300000);
++      D.addMember(room, "u_a", "chair", { seat_index: 0 });
++      D.addMember(room, "u_b", "chair", { seat_index: 1 });
++      D.addMember(room, "u_c", "line");
++      D.addMember(room, "u_d", "spectator");
++      D.addMember(room, "u_e", "spectator");
++      await host.page.evaluate((r) => window.__lc.openRoom(r), { ...D.rooms.get(room) });
++      await host.page.waitForSelector("#room.show", { timeout: 10000 });
++      await host.page.evaluate((us) => us.forEach((u) => window.__dailyControl.addRemote(u)), uids);
++      await waitFor(() => host.page.evaluate(() => document.querySelectorAll("#room video").length === 3), 10000,
++        "initial mounts (hero + two chairs)");
++
++      const beat = (ms) => host.page.waitForTimeout(ms);
++      const seatVids = () => host.page.evaluate(() => document.querySelectorAll("[id^=rt_seat] video").length);
++
++      /* --- the episode: seat / unseat / handover / keep / leave churn --- */
++      D.rpc("host", "seat_member", { room_id: room, user_id: "u_c", seat_index: 2 });
++      await waitFor(async () => (await seatVids()) === 3, 10000, "u_c's feed mounts on seating");
++      D.rpc("host", "pass_member", { room_id: room, user_id: "u_a" });         // unseat; stays in call
++      await beat(2500);
++      D.memberRow(room, "u_d").role = "line";
++      D.emit("room_members", "UPDATE", { ...D.memberRow(room, "u_d") });
++      await beat(1000);
++      D.rpc("host", "seat_member", { room_id: room, user_id: "u_d", seat_index: 0 });  // handover into u_a's old seat
++      await waitFor(() => host.page.evaluate(() =>
++        [...document.querySelectorAll("#rt_seat0 video")].some((v) => v.dataset.uid === "u_d")), 10000,
++        "u_d's feed lands in the handed-over seat");
++      D.rpc("host", "keep_member", { room_id: room, user_id: "u_b" });
++      await beat(2500);
++      D.memberRow(room, "u_e").role = "line";
++      D.emit("room_members", "UPDATE", { ...D.memberRow(room, "u_e") });
++      await beat(1000);
++      D.rpc("host", "pass_member", { room_id: room, user_id: "u_d" });         // second unseat
++      await beat(2500);
++      D.rpc("host", "seat_member", { room_id: room, user_id: "u_e", seat_index: 0 });  // second handover
++      await waitFor(() => host.page.evaluate(() =>
++        [...document.querySelectorAll("#rt_seat0 video")].some((v) => v.dataset.uid === "u_e")), 10000,
++        "u_e's feed lands after the second handover");
++      await host.page.evaluate(() => window.__dailyControl.removeRemote("u_d"));  // and one clean leave
++      await beat(8000);   // let every pending 6s disagreement window expire
++
++      /* --- the budget --- */
++      const out = await host.page.evaluate(() => {
++        const s = window.__lc.VIDEO_STATS;
++        const tiles = Object.entries(window.__lc.VIDEO_TILES).map(([sid, x]) => ({ sid, uid: x.uid, inDom: document.contains(x.el) }));
++        const vids = [...document.querySelectorAll("#room video")].map((v) => ({
++          uid: v.dataset.uid,
++          tr: v.srcObject && v.srcObject.getVideoTracks()[0] ? v.srcObject.getVideoTracks()[0].readyState : "none",
++        }));
++        return { assigns: s.assigns, creates: s.creates, reparents: s.reparents, sweeps: s.sweeps, tiles, vids };
++      });
++      const table = () => ["u_host", ...uids].map((u) =>
++        `${u}: assignments=${out.assigns[u] || 0} creations=${out.creates[u] || 0} re-parents=${out.reparents[u] || 0}`).join(" · ");
++
++      const mounted = ["u_host", ...uids].filter((u) => (out.creates[u] || 0) > 0);
++      t.ok(mounted.length === 6, `every participant mounted exactly once over the episode (mounted: ${mounted.length}/6 — ${table()})`);
++      const overAssigned = mounted.filter((u) => (out.assigns[u] || 0) > 1);
++      t.ok(overAssigned.length === 0,
++        `srcObject assignments ≤ 1 per participant (zero genuine stream changes this episode) — ${table()}`);
++      const overCreated = mounted.filter((u) => (out.creates[u] || 0) > 1);
++      t.ok(overCreated.length === 0,
++        `<video> creations === distinct participants — one persistent element each — ${table()}`);
++      const reparented = Object.keys(out.reparents).filter((u) => out.reparents[u] > 0);
++      t.ok(reparented.length === 0, `0 re-parents episode-wide — ${table()}`);
++
++      /* --- no orphans after all that churn --- */
++      t.ok(out.tiles.every((x) => x.inDom),
++        "no dangling VIDEO_TILES entry after churn — " + JSON.stringify(out.tiles.filter((x) => !x.inDom)));
++      t.ok(out.vids.every((v) => v.tr === "live"),
++        "every mounted video still holds a live track: " + JSON.stringify(out.vids));
++
++      /* --- the sweep fires on roster CHANGE only --- */
++      const sweepsBefore = out.sweeps;
++      await host.page.evaluate(() => { for (let i = 0; i < 5; i++) window.__lc.reflowVideo(); });
++      const sweepsAfter = await host.page.evaluate(() => window.__lc.VIDEO_STATS.sweeps);
++      t.ok(sweepsAfter === sweepsBefore,
++        `a reflow storm with an unchanged participant→tile map never runs the sweep (${sweepsBefore} → ${sweepsAfter})`);
++
++      const errs = host.errors.filter((e) => !/favicon/.test(e));
++      t.ok(errs.length === 0, "zero console errors — " + errs.slice(0, 2).join(" | "));
++    } finally { await h.close(); }
++  },
++};
+-- 
+2.43.0
+

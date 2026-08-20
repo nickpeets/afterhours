@@ -3366,8 +3366,7 @@ function startHostPoll(){
         if(window.__EMPTY_TICKS>=2){
           window.__EMPTY_TICKS=0;
           try{
-            await sb.from("rooms").update({phase:"preshow",round:0,spotlight_target:null,phase_deadline:null})
-              .eq("id",CURRENT_ROOM.id).eq("host_id",ME.id);
+            await sb.rpc("reset_to_preshow",{room_id:CURRENT_ROOM.id});
             toast("The stage emptied — back to warm-up 🌙");
             await egRefreshRoom();
           }catch(e){}
@@ -4104,8 +4103,7 @@ async function passPickOpen(){
   if(roomCounts(ROOM_STATE.members, CURRENT_ROOM).bench<1) return false;
   const until=Date.now()+LC_PASS_PICK_SECS*1000;
   PASS_PICK={until};
-  try{ await sb.from("rooms").update({phase_deadline:new Date(until).toISOString()})
-        .eq("id",CURRENT_ROOM.id).eq("host_id",ME.id); }catch(e){}
+  try{ await sb.rpc("set_phase_deadline",{room_id:CURRENT_ROOM.id,until_ts:new Date(until).toISOString()}); }catch(e){}
   await egRefreshRoom();     // pick up the extended deadline (EG_DEADLINE + pill)
   renderRoom();
   toast("Chair's open — tap the bench to seat his replacement.");
@@ -4121,8 +4119,7 @@ function passPickClear(){ PASS_PICK=null; }
 async function segmentCollapse(uid){
   try{ $("eg_question").style.display="none"; }catch(e){}
   if(typeof beatPassed==="function") beatPassed(uid);
-  try{ await sb.from("rooms").update({spotlight_target:null})
-        .eq("id",CURRENT_ROOM.id).eq("host_id",ME.id); }catch(e){}
+  try{ await sb.rpc("clear_spotlight_target",{room_id:CURRENT_ROOM.id}); }catch(e){}
   if(CURRENT_ROOM) CURRENT_ROOM.spotlight_target=null;
   await loadRoomState();
   const opened=await passPickOpen();
@@ -4137,8 +4134,7 @@ async function recruitOpen(){
   if(!AMHOST || !CURRENT_ROOM) return false;
   const until=Date.now()+LC_PASS_PICK_SECS*1000;
   PASS_PICK={until, recruit:true};
-  try{ await sb.from("rooms").update({phase_deadline:new Date(until).toISOString()})
-        .eq("id",CURRENT_ROOM.id).eq("host_id",ME.id); }catch(e){}
+  try{ await sb.rpc("set_phase_deadline",{room_id:CURRENT_ROOM.id,until_ts:new Date(until).toISOString()}); }catch(e){}
   await egRefreshRoom();
   try{
     $("eg_draft_head").textContent="A CHAIR IS OPEN";
@@ -4343,11 +4339,7 @@ $("eg_skip").onclick=async()=>{
   if(sk.dataset.armed==="0") return;
   sk.dataset.armed="0";
   try{
-    await sb.from("rooms").update({
-      phase:"deciding",
-      phase_deadline:new Date(Date.now()+((LC_SECTION_SECS.deciding||60)*1000)).toISOString(),
-      spotlight_target:null
-    }).eq("id",CURRENT_ROOM.id).eq("host_id",ME.id);
+    await sb.rpc("end_deliberation",{room_id:CURRENT_ROOM.id});
     egRefreshRoom();
   }catch(e){ toast("Couldn't move the show along."); }
   setTimeout(()=>{ sk.dataset.armed="1"; }, 1500);

@@ -413,7 +413,35 @@ class BackendDouble {
         return null;
       }
       case "start_show": return this.setPhase(a.room_id, "showstart", 20);
-      case "skip_phase":
+      /* end_deliberation (fix/no-client-room-writes, 2026-08-20 ruling —
+     * OVERTURNS an earlier "one rung, relabelled" ruling once gates 07 and
+     * 30 showed it would retire the jump-to-deciding behaviour SPEC wave 5
+     * explicitly canonised).  skip_phase is untouched and stays a single-step
+     * walker for its six existing call sites — this is a SEPARATE function
+     * for "SHE'S HEARD ENOUGH": one press, straight to her call.
+     * JUDGMENT CALL (flagged per ruling text "your call on which; raise is
+     * safer, say which you chose"): RAISE outside spotlight/openfloor/
+     * deliberation, not a silent no-op — a stray call from the wrong phase
+     * is a client bug worth surfacing, not swallowing.
+     * JUDGMENT CALL #2: the ruling text says "null deadline (waiting on
+     * host)" for the new phase, which supersedes SPEC wave-5's older text
+     * ("fresh 60s clock") for this exact transition — followed literally
+     * here; flagged back to the advisor as a live discrepancy, not resolved
+     * unilaterally. */
+    case "end_deliberation": {
+      const r = this.rooms.get(a.room_id);
+      if (!r) throw new Error("no room");
+      if (uid !== r.host_id) throw new Error("not the host");
+      if (!["spotlight", "openfloor", "deliberation"].includes(r.phase))
+        throw new Error("end_deliberation: only valid in spotlight/openfloor/deliberation");
+      r.phase = "deciding";
+      r.phase_deadline = null;
+      r.spotlight_target = null;   // SPEC wave 5: "spotlight cleared"
+      this.emit("rooms", "UPDATE", { ...r });
+      this.pushEvent(a.room_id, uid, "phase", { reason: "host_skip", phase: "deciding" });
+      return null;
+    }
+    case "skip_phase":
       case "advance_phase": {
         const r = this.rooms.get(a.room_id);
         if (!r) throw new Error("no room");
@@ -426,6 +454,65 @@ class BackendDouble {
         // the conductor's live room proved it (deadline:null, clock parked
         // at a lying 0:00).  The double now does what prod does.
         return this.setPhase(a.room_id, next, next === "deciding" ? null : 60);
+      }
+      /* ---- fix/no-client-room-writes (2026-08-20) ----
+       * Local doubles for the four server functions this branch adds.
+       * These mirror the RULED behaviour, not a read server signature --
+       * engine_set_phase's real parameter shape is still unconfirmed
+       * (grep across this repo turns up nothing; asked the advisor before
+       * posting functions 1-3's real SQL).  The double does not need that
+       * signature: it only needs to update the same rooms columns and emit
+       * the same realtime shape the client already expects, so gates 61-63
+       * can prove the CLIENT wiring is correct pending the real functions'
+       * go-ahead. */
+      case "reset_to_preshow": {
+        const r = this.rooms.get(a.room_id);
+        if (!r) throw new Error("no room");
+        if (uid !== r.host_id) throw new Error("not the host");
+        if (r.status !== "live") throw new Error("room not live");
+        if (r.phase === "preshow" && (r.round || 0) === 0 && !r.spotlight_target) return null;
+        r.phase = "preshow"; r.round = 0;
+        r.spotlight_target = null; r.spotlight_question_id = null;
+        r.phase_deadline = null;
+        this.emit("rooms", "UPDATE", { ...r });
+        this.pushEvent(a.room_id, uid, "phase", { reason: "stage_emptied", phase: "preshow" });
+        return null;
+      }
+      case "set_phase_deadline": {
+        const r = this.rooms.get(a.room_id);
+        if (!r) throw new Error("no room");
+        if (uid !== r.host_id) throw new Error("not the host");
+        if (r.status !== "live" || r.phase === "preshow") return null;
+        if (a.until_ts == null) throw new Error("until_ts required");
+        const untilMs = Date.parse(a.until_ts);
+        if (!(untilMs > this.now())) throw new Error("until_ts must be in the future");
+        if (untilMs > this.now() + 10 * 60_000) throw new Error("until_ts too far out");
+        r.phase_deadline = a.until_ts;
+        this.emit("rooms", "UPDATE", { ...r });
+        this.pushEvent(a.room_id, uid, "phase", { reason: "window_open", phase: r.phase });
+        return null;
+      }
+      case "clear_spotlight_target": {
+        const r = this.rooms.get(a.room_id);
+        if (!r) throw new Error("no room");
+        if (uid !== r.host_id) throw new Error("not the host");
+        r.spotlight_target = null; r.spotlight_question_id = null;
+        this.emit("rooms", "UPDATE", { ...r });
+        this.pushEvent(a.room_id, uid, "phase", { reason: "target_cleared", phase: r.phase });
+        return null;
+      }
+      case "step_down": {
+        if (!uid) throw new Error("not authenticated");
+        const row = this.memberRow(a.room_id, uid);
+        if (!row) throw new Error("no such member");
+        const r = this.rooms.get(a.room_id);
+        const passed = !!(r && r.phase === "spotlight" && r.spotlight_target === uid);
+        row.role = passed ? "gone" : "spectator";
+        row.seat_index = null;
+        this.pushEvent(a.room_id, uid, passed ? "pass" : "stepdown",
+          { target_user: uid, actor: "self", source: "step_down", was_spotlight: passed });
+        this.emit("room_members", "UPDATE", { ...row });
+        return { passed, role: row.role };
       }
       case "end_show": {
         const r = this.rooms.get(a.room_id);

@@ -1076,7 +1076,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0820.0541</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0821.2053</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1558,7 +1558,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b0820.0541"); }catch(e){}
+try{ console.log("[lastcall] build b0821.2053"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -3366,8 +3366,9 @@ function startHostPoll(){
         if(window.__EMPTY_TICKS>=2){
           window.__EMPTY_TICKS=0;
           try{
-            await sb.from("rooms").update({phase:"preshow",round:0,spotlight_target:null,phase_deadline:null})
-              .eq("id",CURRENT_ROOM.id).eq("host_id",ME.id);
+            const {error}=await sb.rpc("reset_to_preshow",{room_id:CURRENT_ROOM.id});
+          if(error){ toast(error.message); }
+          else { toast("The stage emptied — back to warm-up 🌙"); await egRefreshRoom(); }
             toast("The stage emptied — back to warm-up 🌙");
             await egRefreshRoom();
           }catch(e){}
@@ -4104,8 +4105,8 @@ async function passPickOpen(){
   if(roomCounts(ROOM_STATE.members, CURRENT_ROOM).bench<1) return false;
   const until=Date.now()+LC_PASS_PICK_SECS*1000;
   PASS_PICK={until};
-  try{ await sb.from("rooms").update({phase_deadline:new Date(until).toISOString()})
-        .eq("id",CURRENT_ROOM.id).eq("host_id",ME.id); }catch(e){}
+  const {error}=await sb.rpc("set_phase_deadline",{room_id:CURRENT_ROOM.id,until_ts:new Date(until).toISOString()});
+  if(error){ toast(error.message); PASS_PICK=null; return false; }
   await egRefreshRoom();     // pick up the extended deadline (EG_DEADLINE + pill)
   renderRoom();
   toast("Chair's open — tap the bench to seat his replacement.");
@@ -4121,8 +4122,9 @@ function passPickClear(){ PASS_PICK=null; }
 async function segmentCollapse(uid){
   try{ $("eg_question").style.display="none"; }catch(e){}
   if(typeof beatPassed==="function") beatPassed(uid);
-  try{ await sb.from("rooms").update({spotlight_target:null})
-        .eq("id",CURRENT_ROOM.id).eq("host_id",ME.id); }catch(e){}
+  const {error}=await sb.rpc("clear_spotlight_target",{room_id:CURRENT_ROOM.id});
+  if(error){ toast(error.message); }
+  else if(CURRENT_ROOM) CURRENT_ROOM.spotlight_target=null;
   if(CURRENT_ROOM) CURRENT_ROOM.spotlight_target=null;
   await loadRoomState();
   const opened=await passPickOpen();
@@ -4137,8 +4139,8 @@ async function recruitOpen(){
   if(!AMHOST || !CURRENT_ROOM) return false;
   const until=Date.now()+LC_PASS_PICK_SECS*1000;
   PASS_PICK={until, recruit:true};
-  try{ await sb.from("rooms").update({phase_deadline:new Date(until).toISOString()})
-        .eq("id",CURRENT_ROOM.id).eq("host_id",ME.id); }catch(e){}
+  const {error}=await sb.rpc("set_phase_deadline",{room_id:CURRENT_ROOM.id,until_ts:new Date(until).toISOString()});
+  if(error){ toast(error.message); PASS_PICK=null; return false; }
   await egRefreshRoom();
   try{
     $("eg_draft_head").textContent="A CHAIR IS OPEN";
@@ -4342,14 +4344,9 @@ $("eg_skip").onclick=async()=>{
   const sk=$("eg_skip");
   if(sk.dataset.armed==="0") return;
   sk.dataset.armed="0";
-  try{
-    await sb.from("rooms").update({
-      phase:"deciding",
-      phase_deadline:new Date(Date.now()+((LC_SECTION_SECS.deciding||60)*1000)).toISOString(),
-      spotlight_target:null
-    }).eq("id",CURRENT_ROOM.id).eq("host_id",ME.id);
-    egRefreshRoom();
-  }catch(e){ toast("Couldn't move the show along."); }
+    const {error}=await sb.rpc("end_deliberation",{room_id:CURRENT_ROOM.id});
+  if(error) toast(error.message);
+  else egRefreshRoom();
   setTimeout(()=>{ sk.dataset.armed="1"; }, 1500);
 };
 $("eg_ask").onclick=()=>egOpenDrawer(null);

@@ -2888,10 +2888,10 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     el.onclick=async(ev)=>{
       if(ev.target.closest(".hostctl")) return;
       const uid=el.dataset.heartuid; if(!uid) return;
+      if(AMHOST && EG_ON && EG_DECIDE_MODE){ if(await egDecideTap(uid)) return; }
       if(AMHOST && EG_ON && egRoomPhase(CURRENT_ROOM)==="spotlight" && !CURRENT_ROOM.phase_deadline && !$("room").classList.contains("is-asking")){ egOpenDrawer(uid); return; }
       if(AMHOST && EG_ON && $("room").classList.contains("is-asking") && EG_PICKQ){ EG_PICKTARGET=uid; egFireSpotlight(); return; }
       if(AMHOST && EG_ON && $("room").classList.contains("is-asking")){ EG_PICKTARGET=uid; egRenderTargetChip(); egOpenDrawer(uid); return; }
-      if(AMHOST && EG_ON && EG_DECIDE_MODE){ if(await egDecideTap(uid)) return; }
       // Hearts are the CROWD's signal — the one thing that crosses to her.
       // She must never be able to cast one, so her tile tap asks instead.
       if(AMHOST){
@@ -3770,7 +3770,7 @@ function egApply(){
           EG_DECIDE_MODE=null;
           $("eg_dpass").style.display = passViable(ROOM_STATE.members, CURRENT_ROOM) ? "" : "none";
         }
-        $("eg_decide").style.display = EG_DECIDE_MODE ? "none" : "flex";
+        $("eg_decide").style.display = "flex";
       }
     } else { $("eg_drumroll").style.display="flex"; }
   }
@@ -4069,11 +4069,11 @@ function egMingle(phase, r){
 
 /* ---------- S5 decision ---------- */
 function egWireDecision(){
-  $("eg_dkeep").onclick=()=>{ EG_DECIDE_MODE="keep"; toast("Tap the one you're keeping — that's the win."); $("eg_decide").style.display="none"; };
+  $("eg_dkeep").onclick=()=>{ EG_DECIDE_MODE="keep"; toast("Tap the one you're keeping — that's the win."); };
   $("eg_dpass").onclick=()=>{
     // belt to the render's braces: the SAME Q3 predicate at click time
     if(!passViable(ROOM_STATE.members, CURRENT_ROOM)){ toast("Passing now would end the show — keep, clear, or walk."); return; }
-    EG_DECIDE_MODE="pass"; toast("Tap the one you're passing — the bench fills his chair."); $("eg_decide").style.display="none"; };
+    EG_DECIDE_MODE="pass"; toast("Tap the one you're passing — the bench fills his chair."); };
   $("eg_dclear").onclick=async()=>{
     const waiting=ROOM_STATE.members.filter(m=>m.role==="line").length;
     if(waiting<3){

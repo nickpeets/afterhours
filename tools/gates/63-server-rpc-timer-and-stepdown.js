@@ -1,25 +1,25 @@
-/* GATE 63 — server-rpc-timer-and-stepdown: the two no-client-room-writes
- * RPCs gate 62 couldn't reach without either a real clock or a UI that
- * doesn't exist yet.
+/* GATE 63 — server-rpc-timer-and-stepdown: the reset_to_preshow RPC gate 62
+ * couldn't reach without a real clock.
  *
- *   - reset_to_preshow: the empty-stage janitor inside startHostPoll's
- *     REAL 4000ms setInterval (SOURCE: confirmed interval, index.html).
- *     No fake timers — this is an actual ~8-9s wait for two ticks, same
- *     real-timer discipline as gate 46/30's PASS_PICK expiries.
- *   - step_down: not wired to any client call site in this branch (the
- *     leave_room+join_room dance it replaces is a follow-up wiring
- *     change), so it's driven directly against the double —
- *     D.rpc(clientId, "step_down", {room_id}) — the same bypass-the-UI
- *     idiom already used for seat_member/pass_member in older gates.
- *     Both branches (passed / not-passed) are proven, plus the standing
- *     instruction that this function does NOT touch decide_pass or
- *     pass_member (no accidental coupling).
+ *   reset_to_preshow: the empty-stage janitor inside startHostPoll's REAL
+ *   4000ms setInterval (SOURCE: confirmed interval, index.html).  No fake
+ *   timers — an actual ~8-9s wait for two ticks, same real-timer discipline
+ *   as gate 46/30's PASS_PICK expiries.
  *
- * Both RPCs are PENDING PRODUCTION DDL — this gate proves the LOCAL
+ * step_down REMOVED 2026-08-21 (re-audit).  The previous revision drove
+ * step_down with D.rpc(clientId, "step_down", {room_id}) directly against
+ * the double and asserted on D.memberRow/D.events — the double, calling the
+ * double, checked against the double.  No page, no client code, no
+ * index.html.  It passed identically whether the app worked or was a blank
+ * file.  step_down has no client wiring in this branch, so there is nothing
+ * real yet to test; a gate that proves nothing is worse than fewer checks,
+ * so the seven step_down assertions are deleted rather than kept as
+ * double-spec decoration.  When step_down gets a client call site, it earns
+ * a runtime gate the same way end_deliberation did in gate 62.
+ *
+ * reset_to_preshow is PENDING PRODUCTION DDL — this gate proves the LOCAL
  * double's modeled behaviour only; it is not evidence the real Postgres
- * functions exist or match.  reset_to_preshow and step_down are posted to
- * the advisor separately, one at a time, each waiting on its own "go"
- * before it ever runs against production.
+ * function exists or matches.
  */
 "use strict";
 const { Harness } = require("../lib/harness");
@@ -40,6 +40,19 @@ module.exports = {
     const h = await Harness.launch();
     try {
       const D = h.double;
+
+      /* AUDIT 2026-08-21: this gate proved reset_to_preshow FIRES but never
+         proved the raw write it replaced is GONE at runtime — both can be
+         true at once.  rpcLog can't see a raw write: that's op==="table",
+         not op==="rpc".  Wrap D.table so the absence is observed, not
+         assumed (same instrument as gate 62's clause (ii)). */
+      const tableLog = [];
+      const origTable = D.table.bind(D);
+      D.table = (clientId, spec) => {
+        tableLog.push({ clientId, table: spec.table, action: spec.action, values: spec.values });
+        return origTable(clientId, spec);
+      };
+
       const hostU = D.addUser({ id: "u_host", name: "Hostess", email: "host@fix.test" });
       ["u_s1", "u_s2"].forEach((id) => D.addUser({ id, name: id }));
       const boot = async (name, uid) => {
@@ -52,12 +65,12 @@ module.exports = {
       /* --- reset_to_preshow: real timer, empty stage, two ticks --- */
       const room = D.addRoom({ id: "r_empty", host_id: hostU, name: "Empty Stage", phase: "openfloor", round: 3 });
       D.rooms.get(room).phase_deadline = D.iso(D.now() + 60_000);
-      D.rooms.get(room).spotlight_target = "u_ghost";   // proves the clear, not just a no-op read
-      // deliberately NO chair/kept members — the stage is empty from the first tick
+      D.rooms.get(room).spotlight_target = "u_ghost";
       await host.page.evaluate((r) => window.__lc.openRoom(r), { ...D.rooms.get(room) });
       await host.page.waitForSelector("#room.show", { timeout: 10000 });
       const beforeReset = D.rpcLog.length;
-      await host.page.evaluate(() => window.__lc.startHostPoll());   // fresh ticks from an empty stage
+      const beforeTableReset = tableLog.length;
+      await host.page.evaluate(() => window.__lc.startHostPoll());
       t.ok(D.rooms.get(room).status !== undefined, "fixture sanity: room exists before the wait");
       await waitFor(() => D.rpcLog.slice(beforeReset).some((c) => c.name === "reset_to_preshow"), 12_000,
         "reset_to_preshow fires after two empty 4000ms ticks (real timer, ~8-9s)");
@@ -67,43 +80,29 @@ module.exports = {
       t.ok(after.phase === "preshow" && (after.round || 0) === 0 && after.spotlight_target === null,
         "the double actually reset: preshow, round 0, target cleared");
 
+      /* Allowlist BY MATCHED CONTEXT, not by count: host_seen_at (index.html
+         ~L3351) is a rooms UPDATE that rides the SAME host poll as the
+         janitor, so it lands inside this window every run — one of the
+         three writes gate 61 records as logged-not-fixed, and not what
+         "not a raw write" is about here.  The claim is narrow: no raw write
+         touched the STAGE COLUMNS reset_to_preshow now owns. */
+      const STAGE_COLS = ["phase", "round", "spotlight_target", "phase_deadline", "spotlight_question_id"];
+      const rawStageWrites = tableLog.slice(beforeTableReset).filter((w) =>
+        w.table === "rooms" && w.action === "update" &&
+        w.values && STAGE_COLS.some((c) => Object.prototype.hasOwnProperty.call(w.values, c)));
+      t.ok(rawStageWrites.length === 0,
+        `...and NOT a raw write — no rooms UPDATE touched the stage columns during the janitor window; got ${rawStageWrites.length} (${JSON.stringify(rawStageWrites.map((w) => w.values))})`);
+      const heartbeats = tableLog.slice(beforeTableReset).filter((w) =>
+        w.table === "rooms" && w.action === "update" && w.values &&
+        Object.prototype.hasOwnProperty.call(w.values, "host_seen_at"));
+      t.ok(heartbeats.length >= 1,
+        "fixture sanity: the host_seen_at heartbeat DID ride the same poll — proof the instrument sees raw rooms writes at all, so the assertion above is a real negative and not a blind one");
+
       /* --- reset_to_preshow no-ops once already warm-up (widened check:
          phase='preshow' AND round=0 AND spotlight_target IS NULL) --- */
       D.loginClient("direct_reset", hostU);
       const already = D.rpc("direct_reset", "reset_to_preshow", { room_id: room });
       t.ok(already === null, "a second call against an already-preshow room no-ops cleanly (no throw)");
-
-      /* --- step_down: direct double calls, bypassing the UI (function 4
-         has no client wiring in this branch) --- */
-      const room2 = D.addRoom({ id: "r_step", host_id: hostU, name: "Step Down Night", phase: "spotlight", round: 1 });
-      D.rooms.get(room2).spotlight_target = "u_s1";
-      D.addMember(room2, "u_s1", "chair", { seat_index: 0 });
-      D.addMember(room2, "u_s2", "chair", { seat_index: 1 });
-      D.loginClient("direct_s1", "u_s1");
-      D.loginClient("direct_s2", "u_s2");
-
-      const beforePassed = D.rpcLog.length;
-      const r1 = D.rpc("direct_s1", "step_down", { room_id: room2 });
-      t.ok(r1 && r1.passed === true && r1.role === "gone",
-        `the spotlit target stepping down IS a pass — {passed:true, role:'gone'} (got ${JSON.stringify(r1)})`);
-      t.ok(D.memberRow(room2, "u_s1").role === "gone", "the double's row actually moved to 'gone' (no hard delete)");
-      t.ok(D.events.some((e) => e.room_id === room2 && e.type === "pass" &&
-        e.payload?.target_user === "u_s1" && e.payload?.actor === "self" &&
-        e.payload?.source === "step_down" && e.payload?.was_spotlight === true),
-        "event type 'pass', payload carries target_user/actor:self/source:step_down/was_spotlight:true");
-
-      const r2 = D.rpc("direct_s2", "step_down", { room_id: room2 });
-      t.ok(r2 && r2.passed === false && r2.role === "spectator",
-        `a non-spotlit chair stepping down is NOT a pass — {passed:false, role:'spectator'} (got ${JSON.stringify(r2)})`);
-      t.ok(D.memberRow(room2, "u_s2").role === "spectator", "the double's row moved to 'spectator' (no hard delete)");
-      t.ok(D.events.some((e) => e.room_id === room2 && e.type === "stepdown" &&
-        e.payload?.target_user === "u_s2" && e.payload?.actor === "self" &&
-        e.payload?.source === "step_down" && e.payload?.was_spotlight === false),
-        "event type 'stepdown' for the non-pass case, same payload shape minus was_spotlight");
-
-      const rpcAfter = D.rpcLog.slice(beforePassed);
-      t.ok(rpcAfter.filter((c) => c.name === "decide_pass" || c.name === "pass_member").length === 0,
-        "step_down never touches decide_pass or pass_member — no accidental coupling (per the standing instruction)");
 
       const errs = [host].flatMap((c) => c.errors).filter((e) => !/favicon/.test(e));
       t.ok(errs.length === 0, "zero console errors — " + errs.slice(0, 2).join(" | "));

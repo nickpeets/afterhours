@@ -1,34 +1,30 @@
 /* GATE 62 — server-rpc-swaps-runtime: the RUNTIME half of no-client-room-writes
- * (gate 61 is the static half).  Three of the four swapped call sites are
- * exercised for real, through the actual client code paths, against the
- * PATCHED local double — and each is proven by D.rpcLog, the same
- * "the client called RPC X" instrument used elsewhere (gates 13/14/17/38).
+ * (gate 61 is the static half).  Three swapped call sites are exercised for
+ * real, through the actual client code paths, against the PATCHED local
+ * double — each proven by D.rpcLog, the instrument used in gates 13/14/17/38.
  *
- * WHAT THIS PROVES, PER CALL SITE:
- *   - passPickOpen() (shared by the janitor-adjacent pass flow and, per
- *     gate 61's static proof, recruitOpen — same call shape, same RPC)
- *     really calls set_phase_deadline, with room_id and a future until_ts,
- *     when the bench can refill.
- *   - segmentCollapse's render-time detection (renderRoom(): AMHOST &&
- *     EG_ON && phase==="spotlight" && spotTargetRaw && !spotTarget) really
- *     calls clear_spotlight_target when the spotlighted seat vacates.
- *   - the eg_skip button really calls skip_phase (the PRE-EXISTING,
- *     already-deployed RPC — this call site backs onto no new server
- *     function, per gate 61's note).
+ * SKIP-TRUTH (block 3), REWRITTEN 2026-08-21.  The previous revision asserted
+ * eg_skip fired skip_phase.  That encoded the FIRST ruling, which the
+ * 2026-08-20 ruling overturned once gates 07 and 30 showed that reusing
+ * skip_phase — a single-step phase-order walker with six other production
+ * call sites — would silently retire SPEC wave 5's straight-to-deciding
+ * contract.  eg_skip gets its own function.  index.html and gate 61 both said
+ * end_deliberation while this gate said skip_phase: the two gates contradicted
+ * each other and this one was red.  A gate that asserts the wrong RPC is worse
+ * than no gate, so all three clauses are now stated independently:
+ *     (i)   end_deliberation fires, for the room the host actually holds
+ *     (ii)  NOT a raw rooms write, and NOT skip_phase — the two wrong answers
+ *           this call site has historically had, each excluded by a direct
+ *           observation rather than inferred from (i) succeeding
+ *     (iii) a phase event carrying phase='deciding' lands in the LEDGER
  *
- * WHAT THIS DOES NOT PROVE (by design, left to gate 63):
- *   - reset_to_preshow's janitor trigger needs a real ~8-9s wait on the
- *     confirmed 4000ms HOST_POLL interval — kept out of this gate so a
- *     slow CI box can't flake THIS one; gate 63 owns the timer.
- *   - step_down has no client wiring in this branch (function 4 isn't
- *     called from anywhere yet) — gate 63 drives it directly against the
- *     double, bypassing the UI, same idiom as seat_member/pass_member in
- *     older gates.
+ * Clause (ii)'s raw-write half needs an instrument rpcLog does not provide:
+ * rpcLog only sees op==="rpc".  A raw write is op==="table", so this gate
+ * wraps D.table for the duration and records every table call, letting the
+ * absence of a rooms UPDATE be PROVEN rather than assumed.
  *
- * All three RPCs here are PENDING PRODUCTION DDL (reset_to_preshow,
- * set_phase_deadline, clear_spotlight_target) — this gate runs against the
- * LOCAL double only and says nothing about whether the real functions are
- * live.  skip_phase is the exception: it already exists in production.
+ * All three RPCs are PENDING PRODUCTION DDL — this gate runs against the
+ * LOCAL double only and says nothing about whether the real functions live.
  */
 "use strict";
 const { Harness } = require("../lib/harness");
@@ -49,6 +45,18 @@ module.exports = {
     const h = await Harness.launch();
     try {
       const D = h.double;
+
+      /* clause (ii) instrument: rpcLog records op==="rpc" only, so a raw
+         sb.from("rooms").update(...) — op==="table" — is invisible to it.
+         _dispatch reaches this as this.table(...), so an own-property
+         assignment intercepts. */
+      const tableLog = [];
+      const origTable = D.table.bind(D);
+      D.table = (clientId, spec) => {
+        tableLog.push({ clientId, table: spec.table, action: spec.action, values: spec.values });
+        return origTable(clientId, spec);
+      };
+
       const hostU = D.addUser({ id: "u_host", name: "Hostess", email: "host@fix.test" });
       ["u_s1", "u_s2", "u_b1", "u_ghost"].forEach((id) => D.addUser({ id, name: id }));
       const boot = async (name, uid) => {
@@ -77,19 +85,18 @@ module.exports = {
         "...with a future until_ts (server-side floor/ceiling checked in gate 63's double coverage)");
       t.ok(D.rooms.get(r1).phase_deadline === dlCall.args.until_ts,
         "the double actually applied it — phase_deadline now matches the call");
-      await host.page.evaluate(() => window.__lc.passPickClear());   // PASS_PICK is a client global; clear it
-      // before moving to the next scenario, or its truthiness blocks eg_skip's visibility below.
+      await host.page.evaluate(() => window.__lc.passPickClear());
 
       /* --- 2. clear_spotlight_target, via segmentCollapse's render-time
          detection (a ghost target: CURRENT_ROOM says spotlit, ROOM_STATE
-         disagrees — the exact condition segmentCollapse exists to catch) --- */
+         disagrees) --- */
       const r2 = D.addRoom({ id: "r_col", host_id: hostU, name: "Collapse Night", phase: "openfloor", round: 0 });
       await host.page.evaluate((r) => window.__lc.openRoom(r), { ...D.rooms.get(r2) });
       await host.page.waitForSelector("#room.show", { timeout: 10000 });
       const before2 = D.rpcLog.length;
       await host.page.evaluate((uid) => {
         window.__lc.CURRENT_ROOM.phase = "spotlight";
-        window.__lc.CURRENT_ROOM.spotlight_target = uid;   // a target NOT seated in ROOM_STATE
+        window.__lc.CURRENT_ROOM.spotlight_target = uid;
         window.__lc.renderRoom();
       }, "u_ghost");
       await waitFor(() => D.rpcLog.slice(before2).some((c) => c.name === "clear_spotlight_target"), 5000,
@@ -97,14 +104,9 @@ module.exports = {
       const clearCall = D.rpcLog.slice(before2).find((c) => c.name === "clear_spotlight_target");
       t.ok(clearCall.args.room_id === r2, "...for the right room");
       t.ok(D.rooms.get(r2).spotlight_target === null, "the double actually cleared it");
-      // r2 had an EMPTY bench, so segmentCollapse's own follow-through
-      // (passPickOpen fails -> recruitOpen) leaves PASS_PICK set again
-      // (recruit:true) — clear it or it blocks eg_skip's visibility below,
-      // same client-global gotcha as after test 1.
       await host.page.evaluate(() => window.__lc.passPickClear());
 
-      /* --- 3. skip_phase, via a real tap on the eg_skip button (the
-         pre-existing RPC — proves the client swap, not a new function) --- */
+      /* --- 3. SKIP-TRUTH: end_deliberation, via a real tap on eg_skip --- */
       const r3 = D.addRoom({ id: "r_skip", host_id: hostU, name: "Skip Night", phase: "openfloor", round: 1 });
       D.rooms.get(r3).phase_deadline = D.iso(D.now() + 60_000);
       D.addMember(r3, "u_s1", "chair", { seat_index: 0 });
@@ -112,12 +114,38 @@ module.exports = {
       await host.page.waitForSelector("#room.show", { timeout: 10000 });
       await waitFor(() => host.page.evaluate(() =>
         document.getElementById("eg_skip").style.display !== "none"), 8000, "the skip control is up (host, seated, openfloor)");
+
       const before3 = D.rpcLog.length;
+      const beforeTable3 = tableLog.length;
+      const beforeEvents3 = D.events.length;
       await host.page.click("#eg_skip");
-      await waitFor(() => D.rpcLog.slice(before3).some((c) => c.name === "skip_phase"), 5000,
-        "skip_phase RPC fired by the eg_skip tap");
-      const skipCall = D.rpcLog.slice(before3).find((c) => c.name === "skip_phase");
-      t.ok(skipCall.args.room_id === r3, "...for the right room");
+
+      /* (i) the right RPC, for the right room */
+      await waitFor(() => D.rpcLog.slice(before3).some((c) => c.name === "end_deliberation"), 5000,
+        "clause (i): end_deliberation RPC fired by the eg_skip tap");
+      const endCall = D.rpcLog.slice(before3).find((c) => c.name === "end_deliberation");
+      t.ok(endCall.args.room_id === r3, "clause (i): ...for the room the host actually holds open");
+      t.ok(D.rooms.get(r3).phase === "deciding",
+        "clause (i): the double actually applied it — the room is in deciding");
+
+      /* (ii) neither of the two wrong answers this call site has had */
+      const rawRoomWrites = tableLog.slice(beforeTable3)
+        .filter((w) => w.table === "rooms" && w.action === "update");
+      t.ok(rawRoomWrites.length === 0,
+        `clause (ii): no raw rooms-table write accompanied the tap — got ${rawRoomWrites.length} (${JSON.stringify(rawRoomWrites.map((w) => w.values))})`);
+      const skipCalls = D.rpcLog.slice(before3).filter((c) => c.name === "skip_phase");
+      t.ok(skipCalls.length === 0,
+        `clause (ii): skip_phase was NOT called — reusing it would retire SPEC wave 5's straight-to-deciding contract (gates 07/30 caught this live); got ${skipCalls.length}`);
+
+      /* (iii) the ledger, not just the column */
+      await waitFor(() => D.events.slice(beforeEvents3).some((e) =>
+        e.room_id === r3 && e.type === "phase" && e.payload && e.payload.phase === "deciding"), 5000,
+        "clause (iii): a phase event with phase='deciding' lands in the ledger");
+      const phaseEvt = D.events.slice(beforeEvents3).find((e) =>
+        e.room_id === r3 && e.type === "phase" && e.payload && e.payload.phase === "deciding");
+      t.ok(!!phaseEvt, "clause (iii): the phase='deciding' ledger event exists");
+      t.ok(phaseEvt.payload.reason === "host_skip",
+        `clause (iii): ...and it is attributed to the host's skip, not an ordinary advance (reason=${phaseEvt.payload.reason})`);
 
       const errs = [host].flatMap((c) => c.errors).filter((e) => !/favicon/.test(e));
       t.ok(errs.length === 0, "zero console errors — " + errs.slice(0, 2).join(" | "));

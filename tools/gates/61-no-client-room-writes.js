@@ -74,5 +74,15 @@ module.exports = {
     // three sb.from("rooms").update( call sites should remain in source
     const remaining = (html.match(/sb\.from\("rooms"\)\.update\(/g) || []).length;
     t.ok(remaining === 3, `exactly 3 raw rooms.update( call sites remain (the logged-not-fixed ones) — got ${remaining}`);
+
+    /* AUDIT 2026-08-21: the allowlist was stated only as a COUNT of leftovers.
+       The claim this gate is named for — "no client writes to rooms outside
+       the GO-LIVE insert" — also has a positive half, and it was unasserted:
+       nothing here stopped a second rooms.insert( appearing, which is a raw
+       client write to the same table by another door. */
+    const inserts = (html.match(/sb\.from\("rooms"\)\.insert\(/g) || []).length;
+    t.ok(inserts === 1, `exactly 1 raw rooms.insert( call site — the GO-LIVE insert — got ${inserts}`);
+    t.ok(/sb\.from\("rooms"\)\.insert\(\{host_id:ME\.id,contestant_name:name,tagline:tag,status:"live"\}\)/.test(html),
+      "...and it IS the GO-LIVE insert (host_id/contestant_name/tagline/status:'live'), not some other row creation wearing the allowlist's name");
   },
 };

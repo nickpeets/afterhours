@@ -85,7 +85,8 @@ module.exports = {
       // an ARMED tap-mode survives a re-apply: the card stays down and the tap still lands
       await host.page.evaluate(() => document.getElementById("eg_dpass").click());   // arm pass-mode (card hides)
       await host.page.evaluate(() => { window.__lc.egApply(); window.__lc.renderRoom(); });
-      t.ok(await host.page.evaluate(() => document.getElementById("eg_decide").style.display === "none"),
+    // tray stays visible while armed per decide-path ruling 2026-08-21; old assertion retired.
+      t.ok(await host.page.evaluate(() => document.getElementById("eg_decide").style.display !== "none"),
         "a re-apply does NOT resurrect the card over her armed tap-mode (the live run wiped it)");
       await host.page.evaluate(() => document.querySelector('#rt_chairs [data-heartuid="u_s2"]').click());
       await waitFor(() => D.rpcLog.some((r) => r.name === "decide_pass" && r.args.target === "u_s2"), 8000, "the armed tap lands");

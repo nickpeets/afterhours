@@ -1188,7 +1188,6 @@
               <span class="chair__strip-names"></span>
               <span class="chair__strip-icon">🔇</span>
               <span class="lc-strip__sep"></span>
-              <span class="chair__strip-sub">muted until the answer lands</span>
             </div>
           </div>
         </div>
@@ -1216,7 +1215,6 @@
               <span class="chair__strip-names"></span>
               <span class="chair__strip-icon">🔇</span>
               <span class="lc-strip__sep"></span>
-              <span class="chair__strip-sub">muted until the answer lands</span>
             </div>
           </div>
         </div>
@@ -1244,7 +1242,6 @@
               <span class="chair__strip-names"></span>
               <span class="chair__strip-icon">🔇</span>
               <span class="lc-strip__sep"></span>
-              <span class="chair__strip-sub">muted until the answer lands</span>
             </div>
           </div>
         </div>
@@ -2756,7 +2753,6 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
         r.el.classList.add("is-strip");
         setText(r.el.querySelector(".chair__strip-names"),
                 rivals.map(x=>nameOf(x.c.user_id)).join(" · "));
-        setText(r.el.querySelector(".chair__strip-sub"),"muted until the answer lands");
       }else{
         r.el.classList.add("is-gone");
       }

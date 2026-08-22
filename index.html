@@ -1076,7 +1076,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0821.2336</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0822.0236</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1188,7 +1188,6 @@
               <span class="chair__strip-names"></span>
               <span class="chair__strip-icon">🔇</span>
               <span class="lc-strip__sep"></span>
-              <span class="chair__strip-sub">muted until the answer lands</span>
             </div>
           </div>
         </div>
@@ -1216,7 +1215,6 @@
               <span class="chair__strip-names"></span>
               <span class="chair__strip-icon">🔇</span>
               <span class="lc-strip__sep"></span>
-              <span class="chair__strip-sub">muted until the answer lands</span>
             </div>
           </div>
         </div>
@@ -1244,7 +1242,6 @@
               <span class="chair__strip-names"></span>
               <span class="chair__strip-icon">🔇</span>
               <span class="lc-strip__sep"></span>
-              <span class="chair__strip-sub">muted until the answer lands</span>
             </div>
           </div>
         </div>
@@ -1558,7 +1555,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b0821.2336"); }catch(e){}
+try{ console.log("[lastcall] build b0822.0236"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2756,7 +2753,6 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
         r.el.classList.add("is-strip");
         setText(r.el.querySelector(".chair__strip-names"),
                 rivals.map(x=>nameOf(x.c.user_id)).join(" · "));
-        setText(r.el.querySelector(".chair__strip-sub"),"muted until the answer lands");
       }else{
         r.el.classList.add("is-gone");
       }

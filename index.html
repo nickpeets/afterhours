@@ -1076,7 +1076,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0822.0236</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0822.0408</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1354,6 +1354,7 @@
         <div class="lc-decide__opt lc-decide__opt--pass" id="eg_dpass"><b>✕ PASS ONE</b><span style="font-size:12px;color:var(--dim)">a chair opens · you pick, or the longest wait takes it</span></div>
         <div class="lc-decide__opt lc-decide__opt--clear" id="eg_dclear"><b>CLEAR THE DECK</b><span style="font-size:12px;color:var(--dim)">pass all three · they won't be back</span></div>
         <button class="lc-decide__walk" id="eg_dwalk" style="background:none;border:none;color:var(--dim);cursor:pointer;margin-top:2px">…or end the night alone</button>
+        <button class="lc-decide__walk" id="eg_dcancel" style="background:none;border:none;color:var(--dim);cursor:pointer;margin-top:2px;display:none">cancel</button>
       </div>
       <div class="lc-drumroll" id="eg_drumroll" style="display:none">
         <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.3em;color:#ffd6e9">SHE'S DECIDING</div>
@@ -1555,7 +1556,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b0822.0236"); }catch(e){}
+try{ console.log("[lastcall] build b0822.0408"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -3787,6 +3788,8 @@ function egRoleBits(){
     const sk=$("eg_skip");
     if(sk) sk.style.display = (AMHOST && anySeated && !PASS_PICK &&
       ((ph==="spotlight" && !!rr?.spotlight_target) || ph==="openfloor" || ph==="deliberation")) ? "block" : "none";
+    const dc=$("eg_dcancel");
+    if(dc) dc.style.display = (AMHOST && EG_ON && egRoomPhase(CURRENT_ROOM)==="deciding" && !PASS_PICK && EG_DECIDE_MODE) ? "" : "none";
   }catch(e){}
   // spotlight target marking on chair tiles
   const t=CURRENT_ROOM?.spotlight_target;
@@ -4086,6 +4089,7 @@ function egWireDecision(){
     else { if(typeof beatCleared==="function") beatCleared(); egRefreshRoom(); }
   };
   $("eg_dwalk").onclick=()=>{ $("rt_endshow").click(); };
+  $("eg_dcancel").onclick=()=>{ EG_DECIDE_MODE=null; };
 }
 /* ---------- post-pass bench pick: the segue owns its own clock ----------
    The moment a pass lands, the replacement flow starts — no waiting on the

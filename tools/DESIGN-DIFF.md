@@ -290,3 +290,11 @@ seconds.  Until that fact exists and is written, any card is decoration.
   live behavior on other classes (`is-host`, `is-empty`, `is-strip`, `is-asked`)
   and editing a live selector list to remove a dead token was judged riskier
   than the clutter it leaves behind.
+## EVENT PAYLOAD ACTOR CONVENTION (fix/pass-member-actor, 2026-08-22)
+
+pass_member now emits actor:'host' in its event payload (2026-08-22).
+Convention is now explicit across both pass paths: pass_member emits
+actor:'host', step_down emits actor:'self'.  DDL-only change, no client
+code touched.  (This `actor` is a `jsonb_build_object` payload key on the
+room_events row -- unrelated to the broken `actor` COLUMN name logged above
+under `claim_open_chair`.)

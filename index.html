@@ -3790,6 +3790,8 @@ function egRoleBits(){
       ((ph==="spotlight" && !!rr?.spotlight_target) || ph==="openfloor" || ph==="deliberation")) ? "block" : "none";
     const dc=$("eg_dcancel");
     if(dc) dc.style.display = (AMHOST && EG_ON && egRoomPhase(CURRENT_ROOM)==="deciding" && !PASS_PICK && EG_DECIDE_MODE) ? "" : "none";
+    const ed=$("eg_decide");
+    if(ed && AMHOST && EG_ON && egRoomPhase(CURRENT_ROOM)==="deciding" && !PASS_PICK) ed.style.display="flex";
   }catch(e){}
   // spotlight target marking on chair tiles
   const t=CURRENT_ROOM?.spotlight_target;
@@ -5347,8 +5349,7 @@ function subscribeRoom(roomId){
    ========================================================================= */
 async function takeBenchSeat(){
   if(!CURRENT_ROOM || AMHOST) return {error:null};
-  const onFile=!!(MYPROFILE && MYPROFILE.face_json && MYPROFILE.face_json.photo);
-  if(!onFile){ try{ await benchHeadshot(); }catch(e){} }
+  try{ await benchHeadshot(); }catch(e){}
   const res=await sb.rpc("join_line",{room_id:CURRENT_ROOM.id});
   // wave 8: the accepted row must read FRESH immediately — the live tab b's
   // line row was born against a stale beat and every freshness filter

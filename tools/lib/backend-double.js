@@ -413,47 +413,51 @@ class BackendDouble {
         return null;
       }
       case "start_show": return this.setPhase(a.room_id, "showstart", 20);
-      /* end_deliberation (fix/no-client-room-writes, 2026-08-20 ruling —
-     * OVERTURNS an earlier "one rung, relabelled" ruling once gates 07 and
-     * 30 showed it would retire the jump-to-deciding behaviour SPEC wave 5
-     * explicitly canonised).  skip_phase is untouched and stays a single-step
-     * walker for its six existing call sites — this is a SEPARATE function
-     * for "SHE'S HEARD ENOUGH": one press, straight to her call.
-     * JUDGMENT CALL (flagged per ruling text "your call on which; raise is
-     * safer, say which you chose"): RAISE outside spotlight/openfloor/
-     * deliberation, not a silent no-op — a stray call from the wrong phase
-     * is a client bug worth surfacing, not swallowing.
-     * JUDGMENT CALL #2: the ruling text says "null deadline (waiting on
-     * host)" for the new phase, which supersedes SPEC wave-5's older text
-     * ("fresh 60s clock") for this exact transition — followed literally
-     * here; flagged back to the advisor as a live discrepancy, not resolved
-     * unilaterally. */
-    case "end_deliberation": {
-      const r = this.rooms.get(a.room_id);
-      if (!r) throw new Error("no room");
-      if (uid !== r.host_id) throw new Error("not the host");
-      if (!["spotlight", "openfloor", "deliberation"].includes(r.phase))
-        throw new Error("end_deliberation: only valid in spotlight/openfloor/deliberation");
-      r.phase = "deciding";
-      r.phase_deadline = null;
-      r.spotlight_target = null;   // SPEC wave 5: "spotlight cleared"
-      this.emit("rooms", "UPDATE", { ...r });
-      this.pushEvent(a.room_id, uid, "phase", { reason: "host_skip", phase: "deciding" });
-      return null;
-    }
+      /* end_deliberation REMOVED 2026-08-22 (ruling reversed).  It lived
+     * here from the 2026-08-20 ruling on the theory that skip_phase's
+     * single-step walker would retire SPEC wave 5's jump-to-deciding
+     * behaviour.  A live show on 2026-08-22 proved that theory backwards:
+     * the straight jump WAS the bug.  end_deliberation is dropped from
+     * production (DDL, 2026-08-22, verbatim pg_get_functiondef read and a
+     * pg_proc sweep confirming zero other call sites, both posted to the
+     * advisor before the DROP ran) and eg_skip is back on skip_phase below
+     * — so the double no longer models a function that doesn't exist. */
     case "skip_phase":
       case "advance_phase": {
         const r = this.rooms.get(a.room_id);
         if (!r) throw new Error("no room");
         const order = ["preshow", "showstart", "spotlight", "openfloor", "deliberation", "deciding"];
         const i = order.indexOf(r.phase);
-        if (r.phase === "deciding") { r.round = (r.round || 0) + 1; return this.setPhase(a.room_id, "spotlight", 60); }
-        if (r.phase === "draft") { return this.setPhase(a.room_id, "spotlight", 60); }   // a skipped draft returns to the floor
-        const next = i < 0 ? "showstart" : order[Math.min(i + 1, order.length - 1)];
+        let next, secs;
+        if (r.phase === "deciding") { r.round = (r.round || 0) + 1; next = "spotlight"; secs = 60; }
+        else if (r.phase === "draft") { next = "spotlight"; secs = 60; }   // a skipped draft returns to the floor
+        else if (r.phase === "openfloor") {
+          // production forks HERE (verbatim, advance_phase read from Studio,
+          // 2026-08-22): round>=3 -> deliberation; else back to spotlight,
+          // awaiting a new question, spotlight_target cleared.  Added
+          // alongside the skip_phase/end_deliberation reversal — gates
+          // 07/30 needed the real fork to test the button honestly, not a
+          // flat walk that always landed on deliberation.
+          if ((r.round || 0) >= 3) { next = "deliberation"; secs = 60; }
+          else { r.spotlight_target = null; next = "spotlight"; secs = 60; }
+        }
+        else { next = i < 0 ? "showstart" : order[Math.min(i + 1, order.length - 1)]; secs = next === "deciding" ? null : 60; }
         // wave 8 fidelity: prod enters HER CALL with a NULL phase_deadline —
         // the conductor's live room proved it (deadline:null, clock parked
         // at a lying 0:00).  The double now does what prod does.
-        return this.setPhase(a.room_id, next, next === "deciding" ? null : 60);
+        this.setPhase(a.room_id, next, secs);
+        // LEDGER, added 2026-08-22: production's chain is skip_phase ->
+        // advance_phase -> engine_set_phase -> engine_emit, and engine_emit
+        // inserts a room_events row (read verbatim from Studio) — every
+        // real phase advance is ledgered, this fast walker included.  The
+        // double was silent here before; a gate asserting the ledger side
+        // of eg_skip's new RPC (gate 62 clause iii) needs this to be real,
+        // not assumed.  Note what production's payload does NOT carry: no
+        // "reason" key — skip_phase and an ordinary clock expiry look
+        // identical in the ledger.
+        const rr = this.rooms.get(a.room_id);
+        this.pushEvent(a.room_id, uid, "phase", { phase: rr.phase, deadline: rr.phase_deadline, round: rr.round });
+        return null;
       }
       /* ---- fix/no-client-room-writes (2026-08-20) ----
        * Local doubles for the four server functions this branch adds.

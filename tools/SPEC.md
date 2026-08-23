@@ -200,7 +200,10 @@ The only window where an ask may be placed (gate 14).
 ### DELIBERATION (60s)
 
 - All ask visuals wiped (gate 14).  Hearts/chat/gifts live.
-- HOST: `eg_skip` → HER CALL.
+- HOST: `eg_skip` (`skip_phase`) walks ONE rung forward, same as everywhere
+  else it's visible — deliberation's only next rung happens to be HER CALL,
+  so the observed destination is unchanged, but the mechanism is not a
+  dedicated straight-jump (RULING REVERSED 2026-08-22 — see Q5).
 - Expiry: → HER CALL.
 - Disruptions: chair leaves → the deciding roster shrinks — the decide card
   must re-derive when it opens (audit B).

@@ -1,6 +1,8 @@
 /* GATE 30 — decide-pacing: while the pick window is open, its timer is
  * the ONLY advancing authority; the header counts the ACTIVE window; the
- * skip control fires once, in its spec'd segments, straight to her call.
+ * skip control fires once, in its spec'd segments, ONE rung forward
+ * (RULING REVERSED 2026-08-22 — skip_phase, not a straight jump to her
+ * call; see gate 62's header for the full trail).
  * Ships with fix/decide-pacing.
  *
  * The live killer (branch 2a): the window itself held in-model, but a
@@ -22,7 +24,7 @@
  *     advances;
  *   - the skip control: hidden during choosing and her call, visible in
  *     the answer/open floor/deliberation, a double-tap fires ONE
- *     transition, landing in deciding.
+ *     transition, ONE rung forward (RULING REVERSED 2026-08-22).
  */
 "use strict";
 const { Harness } = require("../lib/harness");
@@ -127,14 +129,22 @@ module.exports = {
       await host.page.evaluate(() => window.__lc.egFireSpotlight());
       await waitFor(() => !!D.rooms.get(roomC).spotlight_target, 8000, "an answer is live");
       await waitFor(skipVisible, 8000, "skip appears during the ANSWER");
-      // double-tap: ONE fire, straight to her call
+      // double-tap: ONE fire, ONE rung forward — RULING REVERSED 2026-08-22:
+      // skip_phase walks spotlight -> openfloor here, it does not jump to
+      // deciding (round is 3 from mk(), but the ANSWER->openfloor hop has
+      // no round-dependent fork — that fork only lives at openfloor itself)
       const rpcMark2 = D.rpcLog.length;
       await host.page.evaluate(() => { document.getElementById("eg_skip").click(); document.getElementById("eg_skip").click(); });
-      await waitFor(() => D.rooms.get(roomC).phase === "deciding", 8000, "she's heard enough → HER CALL directly");
+      await waitFor(() => D.rooms.get(roomC).phase === "openfloor", 8000, "she's heard enough → ONE rung forward, not straight to her call");
       await host.page.waitForTimeout(1200);
-      t.ok(D.rooms.get(roomC).phase === "deciding" && (D.rooms.get(roomC).round || 0) === 4,
-        "a double-tap fired ONE transition (debounced) — still deciding, round untouched");
-      t.ok(!(await skipVisible()), "skip is HIDDEN during her call");
+      // round is 4 here, not the mk()-seeded 3: egFireSpotlight's ask_question
+      // is what bumps round (asking, not the phase walker) — round bumped
+      // 3->4 BEFORE the skip tap; the point under test is that the tap
+      // itself didn't touch it further
+      const roundAtTap = D.rooms.get(roomC).round;
+      t.ok(D.rooms.get(roomC).phase === "openfloor" && roundAtTap === 4,
+        `a double-tap fired ONE transition (debounced) — openfloor, round untouched by the skip itself (round=${roundAtTap})`);
+      t.ok(await skipVisible(), "skip is still VISIBLE on the open floor — she can speed herself along again, rung by rung");
 
       const errs = host.errors.filter((e) => !/favicon/.test(e));
       t.ok(errs.length === 0, "zero console errors — " + errs.slice(0, 2).join(" | "));

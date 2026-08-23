@@ -3,28 +3,62 @@
  * real, through the actual client code paths, against the PATCHED local
  * double — each proven by D.rpcLog, the instrument used in gates 13/14/17/38.
  *
- * SKIP-TRUTH (block 3), REWRITTEN 2026-08-21.  The previous revision asserted
- * eg_skip fired skip_phase.  That encoded the FIRST ruling, which the
- * 2026-08-20 ruling overturned once gates 07 and 30 showed that reusing
+ * SKIP-TRUTH (block 3), REWRITTEN 2026-08-22.  RULING REVERSED.  The
+ * 2026-08-21 revision (kept for the trail, below) asserted end_deliberation
+ * — that encoded the 2026-08-20 ruling, which held that reusing skip_phase
+ * (a single-step phase-order walker with six other production call sites)
+ * would silently retire SPEC wave 5's straight-to-deciding contract, so
+ * eg_skip got its own function.  A live show on 2026-08-22 proved that
+ * reasoning backwards: the straight jump WAS the bug — a host pressing
+ * "she's heard enough" mid-ANSWER or mid-OPEN FLOOR was thrown all the way
+ * to HER CALL, past pacing the crowd was still mid-experiencing.
+ * end_deliberation is now DROPPED from production (DDL, 2026-08-22,
+ * verbatim pg_get_functiondef read and a pg_proc call-site sweep posted to
+ * the advisor before the DROP ran).  eg_skip is back on skip_phase.  All
+ * three clauses are stated independently, same discipline as the last
+ * rewrite — a gate that asserts the wrong RPC is worse than no gate:
+ *     (i)   skip_phase fires, for the room the host actually holds
+ *     (ii)  NOT a raw rooms write, and NOT end_deliberation — the two wrong
+ *           answers this call site has now had, each excluded by a direct
+ *           observation rather than inferred from (i) succeeding
+ *     (iii) a phase event carrying phase='deciding' lands in the LEDGER.
+ *           Traced verbatim from Studio, 2026-08-22: skip_phase ->
+ *           advance_phase -> engine_set_phase -> engine_emit, which inserts
+ *           the room_events row.  Unlike end_deliberation's old payload,
+ *           production's carries NO "reason" key here — skip_phase and an
+ *           ordinary clock expiry are indistinguishable in the ledger, by
+ *           production's own design.  Asserted as an absence, not assumed.
+ *
+ * The test room starts at phase 'deliberation', not 'openfloor'.  That's
+ * the one rung with no round-dependent branching (deliberation -> deciding,
+ * unconditionally) — production's advance_phase forks at openfloor
+ * (-> deliberation at round>=3, else -> spotlight).  The local double's
+ * skip_phase/advance_phase case now models that fork too (added 2026-08-22,
+ * same PR — gates 07 and 30 needed it to test the button honestly at
+ * openfloor), so 'deliberation' here is a choice of the simplest unambiguous
+ * rung to prove clauses (i)-(iii), not a gap being sidestepped.
+ *
+ * 2026-08-21 REVISION TEXT, kept for the trail: "The previous revision
+ * asserted eg_skip fired skip_phase.  That encoded the FIRST ruling, which
+ * the 2026-08-20 ruling overturned once gates 07 and 30 showed that reusing
  * skip_phase — a single-step phase-order walker with six other production
  * call sites — would silently retire SPEC wave 5's straight-to-deciding
- * contract.  eg_skip gets its own function.  index.html and gate 61 both said
- * end_deliberation while this gate said skip_phase: the two gates contradicted
- * each other and this one was red.  A gate that asserts the wrong RPC is worse
- * than no gate, so all three clauses are now stated independently:
- *     (i)   end_deliberation fires, for the room the host actually holds
- *     (ii)  NOT a raw rooms write, and NOT skip_phase — the two wrong answers
- *           this call site has historically had, each excluded by a direct
- *           observation rather than inferred from (i) succeeding
- *     (iii) a phase event carrying phase='deciding' lands in the LEDGER
+ * contract.  eg_skip gets its own function.  index.html and gate 61 both
+ * said end_deliberation while this gate said skip_phase: the two gates
+ * contradicted each other and this one was red."
  *
  * Clause (ii)'s raw-write half needs an instrument rpcLog does not provide:
  * rpcLog only sees op==="rpc".  A raw write is op==="table", so this gate
  * wraps D.table for the duration and records every table call, letting the
  * absence of a rooms UPDATE be PROVEN rather than assumed.
  *
- * All three RPCs are PENDING PRODUCTION DDL — this gate runs against the
- * LOCAL double only and says nothing about whether the real functions live.
+ * Blocks 1 and 2's RPCs (set_phase_deadline, clear_spotlight_target) remain
+ * PENDING PRODUCTION DDL as documented when this gate was first written —
+ * unverified here.  Block 3's skip_phase is different: a live, six-call-site
+ * production function, read verbatim from Studio (2026-08-22) alongside the
+ * chain it calls into — this gate's block 3 is no longer "local double only"
+ * blind about whether the real function lives, though it still runs against
+ * the local double, not production, for the runtime assertions themselves.
  */
 "use strict";
 const { Harness } = require("../lib/harness");
@@ -106,14 +140,17 @@ module.exports = {
       t.ok(D.rooms.get(r2).spotlight_target === null, "the double actually cleared it");
       await host.page.evaluate(() => window.__lc.passPickClear());
 
-      /* --- 3. SKIP-TRUTH: end_deliberation, via a real tap on eg_skip --- */
-      const r3 = D.addRoom({ id: "r_skip", host_id: hostU, name: "Skip Night", phase: "openfloor", round: 1 });
+      /* --- 3. SKIP-TRUTH: skip_phase, via a real tap on eg_skip --- */
+      // deliberation, not openfloor: the one rung skip_phase's production
+      // chain (advance_phase) walks unconditionally, no round>=3 fork to
+      // model — see the header comment for why.
+      const r3 = D.addRoom({ id: "r_skip", host_id: hostU, name: "Skip Night", phase: "deliberation", round: 1 });
       D.rooms.get(r3).phase_deadline = D.iso(D.now() + 60_000);
       D.addMember(r3, "u_s1", "chair", { seat_index: 0 });
       await host.page.evaluate((r) => window.__lc.openRoom(r), { ...D.rooms.get(r3) });
       await host.page.waitForSelector("#room.show", { timeout: 10000 });
       await waitFor(() => host.page.evaluate(() =>
-        document.getElementById("eg_skip").style.display !== "none"), 8000, "the skip control is up (host, seated, openfloor)");
+        document.getElementById("eg_skip").style.display !== "none"), 8000, "the skip control is up (host, seated, deliberation)");
 
       const before3 = D.rpcLog.length;
       const beforeTable3 = tableLog.length;
@@ -121,21 +158,21 @@ module.exports = {
       await host.page.click("#eg_skip");
 
       /* (i) the right RPC, for the right room */
-      await waitFor(() => D.rpcLog.slice(before3).some((c) => c.name === "end_deliberation"), 5000,
-        "clause (i): end_deliberation RPC fired by the eg_skip tap");
-      const endCall = D.rpcLog.slice(before3).find((c) => c.name === "end_deliberation");
-      t.ok(endCall.args.room_id === r3, "clause (i): ...for the room the host actually holds open");
+      await waitFor(() => D.rpcLog.slice(before3).some((c) => c.name === "skip_phase"), 5000,
+        "clause (i): skip_phase RPC fired by the eg_skip tap");
+      const skipCall = D.rpcLog.slice(before3).find((c) => c.name === "skip_phase");
+      t.ok(skipCall.args.room_id === r3, "clause (i): ...for the room the host actually holds open");
       t.ok(D.rooms.get(r3).phase === "deciding",
-        "clause (i): the double actually applied it — the room is in deciding");
+        "clause (i): the double actually applied it — deliberation's only next rung is deciding");
 
       /* (ii) neither of the two wrong answers this call site has had */
       const rawRoomWrites = tableLog.slice(beforeTable3)
         .filter((w) => w.table === "rooms" && w.action === "update");
       t.ok(rawRoomWrites.length === 0,
         `clause (ii): no raw rooms-table write accompanied the tap — got ${rawRoomWrites.length} (${JSON.stringify(rawRoomWrites.map((w) => w.values))})`);
-      const skipCalls = D.rpcLog.slice(before3).filter((c) => c.name === "skip_phase");
-      t.ok(skipCalls.length === 0,
-        `clause (ii): skip_phase was NOT called — reusing it would retire SPEC wave 5's straight-to-deciding contract (gates 07/30 caught this live); got ${skipCalls.length}`);
+      const endCalls = D.rpcLog.slice(before3).filter((c) => c.name === "end_deliberation");
+      t.ok(endCalls.length === 0,
+        `clause (ii): end_deliberation was NOT called — it's retired and dropped from production; got ${endCalls.length}`);
 
       /* (iii) the ledger, not just the column */
       await waitFor(() => D.events.slice(beforeEvents3).some((e) =>
@@ -144,8 +181,8 @@ module.exports = {
       const phaseEvt = D.events.slice(beforeEvents3).find((e) =>
         e.room_id === r3 && e.type === "phase" && e.payload && e.payload.phase === "deciding");
       t.ok(!!phaseEvt, "clause (iii): the phase='deciding' ledger event exists");
-      t.ok(phaseEvt.payload.reason === "host_skip",
-        `clause (iii): ...and it is attributed to the host's skip, not an ordinary advance (reason=${phaseEvt.payload.reason})`);
+      t.ok(phaseEvt.payload.reason === undefined,
+        `clause (iii): ...and it carries NO reason key — skip_phase and an ordinary clock expiry are indistinguishable in the ledger, by production's own design (got reason=${phaseEvt.payload.reason})`);
 
       const errs = [host].flatMap((c) => c.errors).filter((e) => !/favicon/.test(e));
       t.ok(errs.length === 0, "zero console errors — " + errs.slice(0, 2).join(" | "));

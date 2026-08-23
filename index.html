@@ -4344,7 +4344,7 @@ $("eg_skip").onclick=async()=>{
   const sk=$("eg_skip");
   if(sk.dataset.armed==="0") return;
   sk.dataset.armed="0";
-    const {error}=await sb.rpc("end_deliberation",{room_id:CURRENT_ROOM.id});
+    const {error}=await sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id});
   if(error) toast(error.message);
   else egRefreshRoom();
   setTimeout(()=>{ sk.dataset.armed="1"; }, 1500);

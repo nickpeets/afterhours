@@ -1450,6 +1450,10 @@
       <h3>Settings</h3>
       <div class="mlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a><a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a></div>
       <div class="merr" id="st_err"></div>
+      <div class="prefrow" style="margin-top:2px"><span class="preflabel">Your name</span>
+        <input type="text" id="st_name" placeholder="What the room calls you" maxlength="18" style="background:rgba(238,240,255,.07);border:1px solid rgba(238,240,255,.2);border-radius:10px;color:var(--paper);padding:8px 12px;font-size:14px;outline:none;width:100%;flex:1"></div>
+      <div class="prefrow"><span class="preflabel">Your zip</span>
+        <input type="text" id="st_zip" placeholder="Zip code" maxlength="10" inputmode="numeric" style="background:rgba(238,240,255,.07);border:1px solid rgba(238,240,255,.2);border-radius:10px;color:var(--paper);padding:8px 12px;font-size:14px;outline:none;width:100%;flex:1"></div>
       <div class="prefrow" style="margin-top:2px"><span class="preflabel">Here for</span>
         <div class="prefchips" id="st_seeking">
           <button type="button" data-v="women">Women</button><button type="button" data-v="men">Men</button><button type="button" data-v="everyone">Everyone</button>
@@ -2046,6 +2050,19 @@ async function enterApp(){
   try{
     const {data:mine}=await sb.from("rooms").select("*").eq("host_id",user.id).eq("status","live");
     RESUME_ROOM=(mine||[])[0]||null;
+  }catch(e){}
+  // winner session restore: if this user is the winner of an active backstage session, take them back
+  try{
+    const {data:wonRooms}=await sb.from("rooms").select("*").eq("winner_id",user.id).eq("status","live");
+    const wonRoom=(wonRooms||[])[0]||null;
+    if(wonRoom && !RESUME_ROOM){
+      $("auth").classList.add("hide"); $("setup").style.display="none";
+      $("lobby").style.display="block";
+      $("signout").style.display="inline-block"; $("settingsbtn").style.display="inline-block";
+      const wn=prof?.display_name||"Winner";
+      setTimeout(()=>{ try{ enterBackstage(user.id, wn, wonRoom); }catch(e){} }, 400);
+      return;
+    }
   }catch(e){}
   $("auth").classList.add("hide");
   $("setup").style.display="none";            // never leave a gate screen stacked
@@ -4293,6 +4310,8 @@ $("settingsbtn").onclick=async()=>{
       if(p.seek_min) $("st_agemin").value=p.seek_min;
       if(p.seek_max) $("st_agemax").value=p.seek_max;
       if(p.radius_miles) $("st_radius").value=p.radius_miles;
+      if(p.display_name) $("st_name").value=p.display_name;
+      if(p.zip_code) $("st_zip").value=p.zip_code;
     }
   }catch(e){}
 };
@@ -4300,12 +4319,23 @@ $("st_saveprefs").onclick=async()=>{
   const seeking=$("st_seeking").querySelector(".on")?.dataset.v||"everyone";
   const seek_min=parseInt($("st_agemin").value,10)||18, seek_max=parseInt($("st_agemax").value,10)||99;
   const radius=parseInt($("st_radius").value,10)||25;
-  let {error}=await sb.from("profiles").update({seeking,seek_min,seek_max,radius_miles:radius}).eq("id",ME.id);
+  const newName=($("st_name").value||"").trim().slice(0,18);
+  const newZip=($("st_zip").value||"").trim();
+  if(newZip && !/^d{5}(-d{4})?$/.test(newZip)){ toast("Enter a valid zip code."); return; }
+  const upd={seeking,seek_min,seek_max,radius_miles:radius};
+  if(newName) upd.display_name=newName;
+  if(newZip) upd.zip_code=newZip;
+  let {error}=await sb.from("profiles").update(upd).eq("id",ME.id);
   if(error && /column/i.test(error.message||"")){
-    ({error}=await sb.from("profiles").update({radius_miles:radius}).eq("id",ME.id));
+    const fallback={radius_miles:radius};
+    if(newName) fallback.display_name=newName;
+    if(newZip) fallback.zip_code=newZip;
+    ({error}=await sb.from("profiles").update(fallback).eq("id",ME.id));
     toast(error?("Couldn't save: "+error.message):"Saved (matching prefs need the DB migration)");
   } else toast(error?("Couldn't save: "+error.message):"Preferences saved ✦");
   MYPROFILE={...MYPROFILE,seeking,seek_min,seek_max,radius_miles:radius};
+  if(newName){ MYPROFILE.display_name=newName; const w=$("whoami_who"); if(w) w.textContent=newName+"  ·  "+((ME&&ME.email)||""); }
+  if(newZip) MYPROFILE.zip_code=newZip;
 };
 $("st_close").onclick=stClose;
 $("settingsmodal").onclick=(e)=>{ if(e.target.id==="settingsmodal") stClose(); };

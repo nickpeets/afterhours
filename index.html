@@ -1076,7 +1076,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0823.2046</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0823.2109</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1556,7 +1556,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b0823.2046"); }catch(e){}
+try{ console.log("[lastcall] build b0823.2109"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -4013,7 +4013,7 @@ function parseServerTs(s){
 /* QUESTION PROPAGATION (SPEC 8/9, re-pinned wave 8): the spotlight
    room_event carries the question text and answer deadline (prod
    engine_emit ships both) — every role paints the card from THIS event.
-   The conductor run (b0823.2046) found the card painting on the HOST
+   The conductor run (b0823.2109) found the card painting on the HOST
    only: the old fold skipped any event older than deadline+2.5s by the
    CLIENT clock, so a poll-latency fold of a short prod answer window —
    or any clock skew — silently ate the paint for whole roles.  "History"
@@ -4683,7 +4683,7 @@ function handleEvent(ev){
          PR #41 unfenced the TELLING but not the WAITING — outside the deciding
          phase his tile was retired and a line was said, and then her clock went
          on ticking against nobody for the rest of the three minutes.  Caught in
-         the live run at b0823.2046, and gate 44 was structurally blind to it:
+         the live run at b0823.2109, and gate 44 was structurally blind to it:
          gate 44 asserts that she is TOLD, which was the half already right.
          bsGoodnight is now unfenced — same beat, same goodnight, every phase.
          Its own BSD_PHASE==="revealed" guard still stands: once contacts have

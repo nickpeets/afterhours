@@ -5237,7 +5237,8 @@ function bsTrack(ev){
   }
   if(ev.track.kind!=="video") return;
   bsSyncPresence();   // a starting track proves a joined participant — clear the waiting state first
-  const tile = uid===BS_ROOM.host_id ? $("bs_tile_host") : $("bs_tile_winner");
+  const tile = uid===BS_ROOM.host_id ? $("bs_tile_host") : uid===BS_WINNER_UID ? $("bs_tile_winner") : null;
+  if(!tile) return;
   tile.querySelectorAll("video").forEach(v=>v.remove());
   const v=document.createElement("video");
   v.autoplay=true; v.playsInline=true; v.setAttribute("playsinline","");
@@ -5287,8 +5288,9 @@ function bsPeerLeft(uid){
   if(!BS_ROOM || !uid) return;
   BS_GONE[uid]=true;
   const isHost = uid===BS_ROOM.host_id;
-  const tile = isHost ? $("bs_tile_host") : $("bs_tile_winner");
-  const wait = isHost ? $("bs_wait_host") : $("bs_wait_winner");
+  const isWinner = uid===BS_WINNER_UID;
+  const tile = isHost ? $("bs_tile_host") : isWinner ? $("bs_tile_winner") : null;
+  const wait = isHost ? $("bs_wait_host") : isWinner ? $("bs_wait_winner") : null;
   const name = (isHost ? ($("bs_nm_host").textContent) : ($("bs_nm_winner").textContent)) || "them";
   bsEmptyTile(tile);
   if(tile) tile.classList.add("bs-tile--waiting");

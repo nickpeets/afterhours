@@ -83,8 +83,13 @@ module.exports = {
       t.ok(vids.hero === 1, "host's own feed sits in the hero (" + vids.hero + ")");
 
       /* --- the middle segments run server-side; then the host's real SKIP —
-             POLICY (SPEC wave 5): "she's heard enough" = STRAIGHT to her
-             call, one press, one fire (the old one-step walk is retired) --- */
+             POLICY REVERSED 2026-08-22: "she's heard enough" is skip_phase,
+             ONE rung forward — not a straight jump (the old end_deliberation
+             straight-jump function is retired; a live show proved it was
+             the actual bug).  Proven here with the REAL button, once, at
+             round 0 (round < 3, so openfloor's next rung is spotlight, not
+             deliberation); the rest of the walk to her call is simulated
+             server pacing, same style as the answer->openfloor hop below. --- */
       D.rpc("host", "skip_phase", { room_id: roomId });   // answer → open floor (server pacing)
       await waitFor(() => D.rooms.get(roomId).phase === "openfloor", 10000, "phase openfloor");
       t.ok(true, "phase advances to openfloor (server pacing)");
@@ -93,8 +98,19 @@ module.exports = {
         return el && getComputedStyle(el).display !== "none";
       }), 10000, "the skip control shows on the open floor");
       await host.page.click("#eg_skip");
+      await waitFor(() => D.rooms.get(roomId).phase === "spotlight", 10000, "one rung forward");
+      t.ok(D.rooms.get(roomId).spotlight_target == null,
+        "SHE'S HEARD ENOUGH walks ONE rung — openfloor (round 0) lands back on spotlight awaiting a new question, not straight to her call");
+      // fast-forward the rest of the walk to her call — server pacing, not
+      // the button (the button's own mechanism was already proven above)
+      D.rooms.get(roomId).round = 3;
+      D.rpc("host", "skip_phase", { room_id: roomId });   // spotlight → open floor
+      await waitFor(() => D.rooms.get(roomId).phase === "openfloor", 10000, "phase openfloor (round 3)");
+      D.rpc("host", "skip_phase", { room_id: roomId });   // open floor (round>=3) → deliberation
+      await waitFor(() => D.rooms.get(roomId).phase === "deliberation", 10000, "phase deliberation");
+      D.rpc("host", "skip_phase", { room_id: roomId });   // deliberation → deciding
       await waitFor(() => D.rooms.get(roomId).phase === "deciding", 10000, "her call");
-      t.ok(true, "SHE'S HEARD ENOUGH lands straight in her call (wave-5 spec)");
+      t.ok(true, "the walk reaches her call — server pacing carries the rest, the button's mechanism was proven above");
 
       /* --- decision: keep one, pass one — real host actions --- */
       await host.page.evaluate((uid) => window.__lc.hostKeep(uid), suitors[0]);

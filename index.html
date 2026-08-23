@@ -1076,7 +1076,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0822.0408</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0823.1848</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1556,7 +1556,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b0822.0408"); }catch(e){}
+try{ console.log("[lastcall] build b0823.1848"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -4335,11 +4335,19 @@ $("st_delete").onclick=async()=>{
 };
 
 /* ---------- wiring into the existing app ---------- */
-/* "she's heard enough" (SPEC, wave 5): HOST only; visible during the
-   ANSWER (spotlight with a live target), OPEN FLOOR, and DELIBERATION —
-   never choosing, showstart, her call, a pick window, or the draft.  One
-   press = she's done listening: STRAIGHT to her call.  Debounced: the
-   control disarms on press until the phase actually changes. */
+/* "she's heard enough" (SPEC wave 5; RULING REVERSED 2026-08-22): HOST
+   only; visible during the ANSWER (spotlight with a live target), OPEN
+   FLOOR, and DELIBERATION — never choosing, showstart, her call, a pick
+   window, or the draft.  One press = skip_phase: ONE rung forward
+   (spotlight->openfloor, openfloor->next spotlight or deliberation at
+   round>=3, deliberation->deciding) — NOT a straight jump to her call.
+   A live show on 2026-08-22 surfaced end_deliberation's straight jump as
+   the actual bug: pressing "she's heard enough" mid-ANSWER or mid-OPEN
+   FLOOR threw the room all the way to HER CALL, skipping pacing the crowd
+   was still mid-experiencing.  end_deliberation is retired (dropped from
+   production, DDL, 2026-08-22); eg_skip now reuses skip_phase, the same
+   pacer every other phase advance already uses.  Debounced: the control
+   disarms on press until the phase actually changes. */
 $("eg_skip").onclick=async()=>{
   const sk=$("eg_skip");
   if(sk.dataset.armed==="0") return;

@@ -111,11 +111,24 @@ final; recorded here verbatim from the tab:
    written.  This supersedes the 60s/180s thresholds as PRODUCT intent — the
    server-side implementation (chairHold semantics vs today's sweep) is a
    build item, not a ruling item, and does NOT block the host exemption.
-2. **Q5 STANDS.**  HEARD ENOUGH does not appear on the decision tray.  She
-   chooses, or the clock hands it to the crowd — the skip speeds her TOWARD
-   the verdict, never past it.  The design's "host can skip any timed phase"
-   is corrected to "any timed phase EXCEPT the call"; Q5's language in
-   SPEC.md is the ruled contract and this diff cites it.
+2. **Q5 STANDS, MECHANISM REVERSED 2026-08-22.**  HEARD ENOUGH does not
+   appear on the decision tray.  She chooses, or the clock hands it to the
+   crowd — the skip speeds her TOWARD the verdict, never past it.  The
+   design's "host can skip any timed phase" is corrected to "any timed
+   phase EXCEPT the call"; Q5's language in SPEC.md is the ruled contract
+   and this diff cites it.  What changed 2026-08-22: the ORIGINAL ruling
+   (2026-08-13/14, above) was read as licensing a dedicated straight-to-
+   deciding function (`end_deliberation`, added 2026-08-20) so that one
+   press from ANY of ANSWER/OPEN FLOOR/DELIBERATION landed on HER CALL
+   immediately.  A live show that day proved that reading wrong: a host
+   pressing "she's heard enough" mid-ANSWER or mid-OPEN FLOOR was thrown
+   all the way to HER CALL, past pacing the crowd was still
+   mid-experiencing — "speeds her TOWARD the verdict" does not mean
+   "teleports her there from anywhere."  The clause stands; the mechanism
+   is now `skip_phase`, the same one-rung-at-a-time pacer every other phase
+   advance already uses.  `end_deliberation` is dropped from production.
+   See `tools/SPEC.md`'s DELIBERATION section and gate 62's header comment
+   for the full trail.
 3. **A PASS REFILL STARTS A FRESH 3-ROUND CYCLE.**  "New face, fresh 3 rounds
    gives a chair a chance to contrast himself against the other two.  She can
    speed up the process at any time."  The reset is only acceptable BECAUSE

@@ -13,14 +13,25 @@
  *   3. recruitOpen's shared-deadline write -> set_phase_deadline(room_id, until_ts)
  *      (same RPC, same call shape, second call site — hence count >= 2 below)
  *   4. segmentCollapse's spotlight_target clear -> clear_spotlight_target(room_id)
- *   5. eg_skip's phase/deadline/target write -> end_deliberation(room_id) —
- *      REVISED 2026-08-20: an earlier ruling swapped this onto the EXISTING
- *      skip_phase RPC, but skip_phase is a single-step phase-order walker
- *      (verified against all 6 of its real production call sites) and SPEC
- *      wave 5 requires eg_skip to jump STRAIGHT to deciding, one press one
- *      fire.  Gates 07 and 30 caught the contradiction red.  The ruling was
- *      overturned: eg_skip gets its OWN function, end_deliberation — a
- *      FIFTH DDL function this branch adds, alongside the original four.
+ *   5. eg_skip's phase/deadline/target write -> skip_phase(room_id) —
+ *      REVISED AGAIN 2026-08-22, RULING REVERSED.  The 2026-08-20 ruling
+ *      (below, for the record) swapped eg_skip onto its OWN function,
+ *      end_deliberation, reasoning that skip_phase's single-step walker
+ *      would retire SPEC wave 5's straight-to-deciding contract.  A live
+ *      show on 2026-08-22 proved that reasoning wrong: the straight jump
+ *      WAS the bug — a host pressing "she's heard enough" mid-ANSWER or
+ *      mid-OPEN FLOOR was thrown all the way to HER CALL, past pacing the
+ *      crowd was still mid-experiencing.  end_deliberation is DROPPED from
+ *      production (DDL, 2026-08-22).  eg_skip is back on skip_phase, the
+ *      same six-call-site pacer every other phase advance already uses.
+ *      2026-08-20 ruling text, kept for the trail: "an earlier ruling
+ *      swapped this onto the EXISTING skip_phase RPC, but skip_phase is a
+ *      single-step phase-order walker (verified against all 6 of its real
+ *      production call sites) and SPEC wave 5 requires eg_skip to jump
+ *      STRAIGHT to deciding, one press one fire.  Gates 07 and 30 caught
+ *      the contradiction red.  The ruling was overturned: eg_skip gets its
+ *      OWN function, end_deliberation — a FIFTH DDL function this branch
+ *      adds, alongside the original four."
  *
  * WHAT DID NOT MOVE, ON PURPOSE, LOGGED NOT FIXED:
  *   - the two `status:"ended"` janitor/leave writes and the host_seen_at
@@ -59,10 +70,10 @@ module.exports = {
 
     t.ok(!/phase:"deciding",\s*\n\s*phase_deadline:new Date\(Date\.now\(\)/.test(html),
       "eg_skip's raw phase/deadline/target write is gone from source");
-    t.ok(/\$\("eg_skip"\)\.onclick=async\(\)=>\{[\s\S]{0,400}?sb\.rpc\("end_deliberation",\{room_id:CURRENT_ROOM\.id\}\)/.test(html),
-      "...eg_skip now calls end_deliberation — its OWN new RPC, not the shared skip_phase (2026-08-20 ruling overturning the earlier one)");
-    t.ok(!/\$\("eg_skip"\)\.onclick=async\(\)=>\{[\s\S]{0,400}?sb\.rpc\("skip_phase"/.test(html),
-      "...and NOT skip_phase — that would silently retire SPEC wave 5's straight-to-deciding contract (gates 07/30 caught this live)");
+    t.ok(/\$\("eg_skip"\)\.onclick=async\(\)=>\{[\s\S]{0,400}?sb\.rpc\("skip_phase",\{room_id:CURRENT_ROOM\.id\}\)/.test(html),
+      "...eg_skip calls skip_phase — the shared pacer, not a dedicated function (2026-08-22 ruling reversing the 2026-08-20 one: a live show proved the straight-to-deciding jump was the actual bug)");
+    t.ok(!/\$\("eg_skip"\)\.onclick=async\(\)=>\{[\s\S]{0,400}?sb\.rpc\("end_deliberation"/.test(html),
+      "...and NOT end_deliberation — that function is retired and dropped from production (DDL, 2026-08-22)");
 
     // logged, not fixed — same disease, different scope, PR2-style residue note
     t.ok((html.match(/sb\.from\("rooms"\)\.update\(\{status:"ended"\}\)/g) || []).length === 2,

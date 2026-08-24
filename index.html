@@ -4463,11 +4463,21 @@ egWireDecision();
 })();
 
 // 🛡 minimal report flow (reuses the modal styles)
+/* FIRST-PRESS GUARDS (2026-08-24).  The "needs a refresh before it opens
+   the first time" symptom was NOT a wiring race: this handler is bound
+   once at boot, proven on a live page (signed out, never in a room,
+   rt_safebtn.onclick already a function).  It was this body running before
+   the state it reads had landed, failing in the two ways a body can fail
+   silently — a bare `return` that gave the press no feedback whatever, and
+   an unguarded ROOM_STATE read that throws mid-build so the modal is never
+   appended.  A silent no-op is the worst thing a button can do: you cannot
+   tell a dead control from a slow one.  Both now speak. */
 $("rt_safebtn").onclick=()=>{
-  if(!CURRENT_ROOM) return;
+  if(!CURRENT_ROOM){ toast("Step into a room first."); return; }
+  const st=ROOM_STATE||{};
   const people=[{user_id:CURRENT_ROOM.host_id, nm:(CURRENT_ROOM.contestant_name||"Host")}]
-    .concat(ROOM_STATE.members.filter(m=>m.user_id!==ME.id)
-      .map(m=>({user_id:m.user_id, nm:(ROOM_STATE.profs[m.user_id]?.display_name||"someone")})))
+    .concat((st.members||[]).filter(m=>m.user_id!==ME.id)
+      .map(m=>({user_id:m.user_id, nm:(((st.profs||{})[m.user_id])?.display_name||"someone")})))
     .filter(p=>p.user_id!==ME.id);
   document.getElementById("reportmodal")?.remove();   // never stack two
   const overlay=document.createElement("div");

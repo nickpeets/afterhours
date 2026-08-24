@@ -1648,15 +1648,39 @@ sb.auth.onAuthStateChange((event,session)=>{
     if(session) noteSession(session);
   }else if(event==="SIGNED_OUT"){
     if(SIGNING_OUT) vdbg("signed out, as asked",false,"[auth]");
-    else{
+    else if(document.visibilityState!=="visible"){
+      /* a throttled refresh that failed emits this while we are hidden.
+         Running the check here would race startAutoRefresh() on return and
+         declare the session dropped before the refresh had its chance —
+         so we say so and let visibilitychange sequence it. */
+      vdbg("SIGNED_OUT while hidden — deferring the check until we are back",true,"[auth]");
+    }else{
       vdbg("SIGNED_OUT and nobody asked — checking what is left",true,"[auth]");
       checkSessionAlive();
     }
   }
   if(sbAuthEventHook) sbAuthEventHook(event,session);
 });
-document.addEventListener("visibilitychange",()=>{
-  if(document.visibilityState!=="visible") return;
+/* THE THROTTLED REFRESH, CLOSED (2026-08-24).  The comment above diagnosed
+   this; these two calls prevent it.  A hidden tab throttles the timer
+   supabase-js uses to refresh, so the attempt fires late, fails, and the
+   library clears its own key — the 17:56 death, and the reason a report
+   pressed after an idle hour arrived as `anon` and came back
+   "permission denied for function report_user".  stopAutoRefresh() on hide
+   means that doomed attempt never happens; startAutoRefresh() on return
+   forces an immediate one against the refresh token, which outlives the
+   access token by weeks.
+   The await is load-bearing.  checkSessionAlive() reads storage through
+   getSession(), so if it ran first it would see the expired token, find no
+   session AND no error, and take the "dropped" branch — showing the
+   sign-in screen while the refresh that would have saved the session was
+   still in flight.  Sequenced, not raced. */
+document.addEventListener("visibilitychange",async()=>{
+  if(document.visibilityState!=="visible"){
+    try{ await sb.auth.stopAutoRefresh(); }catch(e){}
+    return;
+  }
+  try{ await sb.auth.startAutoRefresh(); }catch(e){}
   const left=secsToExpiry();
   if(left===null||left>SESSION_CHECK_MARGIN) return;   // still comfortably valid
   vdbg("back in front with "+left+"s of token left — checking the session",false,"[auth]");

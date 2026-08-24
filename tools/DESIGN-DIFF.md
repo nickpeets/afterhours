@@ -311,3 +311,32 @@ actor:'host', step_down emits actor:'self'.  DDL-only change, no client
 code touched.  (This `actor` is a `jsonb_build_object` payload key on the
 room_events row -- unrelated to the broken `actor` COLUMN name logged above
 under `claim_open_chair`.)
+
+## SESSION SLOT / TOKEN LIFETIME MISMATCH (logged, not fixed, 2026-08-24)
+
+`?session=NAME` isolates auth storage per tab so several test accounts can
+coexist in one browser.  The two halves of that mechanism live in stores
+with different lifetimes:
+
+  - the SLOT NAME is written to `sessionStorage` (`ah.session.slot`), which
+    is per-tab and dies when the tab closes;
+  - the SESSION TOKEN is written to `localStorage` under
+    `sb-<ref>-auth-token.s-<slot>`, which persists.
+
+So closing a slot tab and reopening the app WITHOUT the `?session=` param
+resolves `ahSessionSlot()` to null, `SUPA_STORAGE_KEY` to the default base
+key, and the tab presents as signed out -- while the real token sits in
+localStorage under the slot key, orphaned and invisible, until
+`ahSweepAuthSlots()` removes it seven days later.  The login was never
+lost; the app simply stopped looking where it was put.
+
+NOT FIXED, deliberately.  This only bites `?session=` tabs, which are a
+development affordance for running several test accounts side by side --
+no end user ever has a slot.  The honest fix (persist the slot name in
+localStorage keyed by something tab-stable, or re-derive it from the
+orphaned keys on boot) costs more than the confusion it saves, and every
+slot user already knows to keep the param in the URL.
+
+Distinct from the throttled-refresh death closed on 2026-08-24 (see
+index.html, the visibilitychange handler): that one hit EVERY user on the
+default slot and is fixed; this one hits only slot tabs and is not.

@@ -47,6 +47,36 @@ costs a strict ordering requirement.  Prefer the single merge.
 no hard reload needed.  The footer build stamp is the confirmation signal:
 if it hasn't changed, the deploy hasn't landed.
 
+## Bumping the build stamp
+
+The stamp has exactly TWO real sites in `index.html`:
+
+  - the footer element, `id="buildstamp"`
+  - the boot log line, `[lastcall] build `
+
+Bump them by matched context, never with a global replace.  A blanket
+`sed -i 's/OLD/NEW/g' index.html` is wrong: the outgoing stamp also appears
+inside comments as a HISTORICAL CITATION — "the conductor run (b0824.0029)
+found the card painting on the HOST", "the live run at b0824.0029, and gate
+44 was structurally blind to it".  Those name the build in which something
+was observed.  Rewriting them forward-dates the evidence and quietly
+destroys the record — the same class of error as the citation drift that
+cost 71 wrong line numbers in an earlier wave.
+
+Caught on 2026-08-24: `grep -c` for the outgoing stamp returned 4, not 2.
+
+The rule:
+
+  1. `grep -c 'OLD' index.html` and CONFIRM THE COUNT IS 2 before writing
+     anything.  If it is not 2, the extra hits are citations — read every
+     one of them and leave them alone.
+  2. Replace by anchored context, not globally:
+     `sed -i 's/id="buildstamp">OLD</id="buildstamp">NEW</' index.html`
+     and the same anchored on the `[lastcall] build ` prefix.
+  3. `git diff --stat` must read exactly
+     `1 file changed, 2 insertions(+), 2 deletions(-)`.
+     Any other number means you hit something you did not mean to.
+
 ## A note on the origin
 
 `nickpeets.github.io` is a **single origin** shared by every GitHub Pages

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Archivo:wght@400;500;600;700;800&family=Azeret+Mono:wght@400;600;700&family=Monoton&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#080b20;}
+  *{box-sizing:border-box;}
+  @keyframes tally{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes beat{0%,100%{transform:scale(1)}18%{transform:scale(1.14)}36%{transform:scale(1)}}
+  @keyframes surge{0%,100%{box-shadow:0 0 14px rgba(var(--lane-soft,255,214,233),.5)}50%{box-shadow:0 0 30px rgba(var(--lane-soft,255,214,233),.95),0 0 60px rgba(var(--lane-soft,255,214,233),.4)}}
+  @keyframes climb{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+  @keyframes ripple{0%{transform:scale(.6);opacity:.8}100%{transform:scale(2.1);opacity:0}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+
+<section style="padding:52px 46px 44px;font-family:Archivo,sans-serif;color:#eef0ff">
+  <div id="7a" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+    <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.3em;color:#ffd6e9">TURN 7 · THE DRAFT STORM · <a href="#7a" style="color:#ff6fb0;text-decoration:none">7a</a></div>
+    <div style="font-family:Monoton,cursive;font-size:42px;line-height:1.14;letter-spacing:.02em;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.5),0 0 26px rgba(255,214,233,.9),0 0 60px rgba(255,214,233,.4)">SHOW HER</div>
+    <div style="font-size:14px;max-width:820px;color:rgba(238,240,255,.74);line-height:1.55;text-wrap:pretty">The line is dark all show, and it moves <strong style='color:#d6cdff'>in order</strong> — the four on deck are simply whoever queued first, never who's most popular. A chair opens and it becomes the loudest fifteen seconds in the room: those four revealed at once, hearts hammered live, tallies climbing — and she picks blind off pure momentum. <strong style="color:#ffd6e9">Gold is the crowd's voice, and this is the goldest moment in the show.</strong> Two indicators, one window: amber for who's ahead, rose for who's accelerating. A single winner is a result; a leader plus a challenger is a race.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:10px;max-width:1020px;margin-bottom:16px">
+    <div style="flex:1;min-width:236px;padding:12px 13px;border-radius:15px;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.35)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.18em;color:#b9a8ff;margin-bottom:5px">DURING PLAY · LINE IS DARK</div>
+      <div style="font-size:11.5px;line-height:1.5;color:rgba(214,205,255,.85)">No faces, no names, no hearts — for anyone, including the room. The queue is a number. Spectator hearts belong to the chairs.</div>
+    </div>
+    <div style="flex:1;min-width:236px;padding:12px 13px;border-radius:15px;background:rgba(255,214,233,.1);border:1px solid rgba(255,214,233,.5)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.18em;color:#ffd6e9;margin-bottom:5px">THE STORM · 15s</div>
+      <div style="font-size:11.5px;line-height:1.5;color:rgba(255,214,233,.9)">Faces revealed to the room only. Rapid-fire multi-tap is the mechanic. She sees shapes and climbing numbers.</div>
+    </div>
+    <div style="flex:1;min-width:236px;padding:12px 13px;border-radius:15px;background:rgba(45,227,208,.1);border:1px solid rgba(45,227,208,.45)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.18em;color:#7ff2e6;margin-bottom:5px">SERVER OWNS IT</div>
+      <div style="font-size:11.5px;line-height:1.5;color:rgba(174,247,238,.85)">The 15s window, the tallies, the fallback seat, and heart rate-limiting. Clients render and send intents. Mingle clock suspends; mutes never touch the draft.</div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;gap:10px;max-width:1020px;margin-bottom:30px;padding:12px 14px;border-radius:15px;background:rgba(255,45,143,.08);border:1px solid rgba(255,45,143,.35)">
+    <span style="font-size:14px;color:#ff8ac2">♥</span>
+    <div style="flex:1;min-width:0;font-size:11.5px;line-height:1.55;color:rgba(255,214,233,.85)"><strong style="color:#fff">Why this replaces scouting.</strong> Pre-scouted counts meant the draft was a read of numbers set minutes earlier — the crowd had already voted and was watching a result. Revealing all at once turns it into an event with a beginning: nobody has an edge at 0:15, everyone piles in, and the winner is decided by the room in real time. It also removes the perverse incentive to camp the queue instead of watching the show.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start">
+    <sc-for list="{{ views }}" as="v" hint-placeholder-count="5">
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:7px;height:7px;border-radius:50%;background:{{ v.dot }}"></span>
+          <span style="font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:{{ v.dot }}">{{ v.pov }}</span>
+        </div>
+        <div style="width:330px;font-family:Archivo,sans-serif;font-size:12px;line-height:1.5;color:rgba(238,240,255,.62);text-wrap:pretty">{{ v.blurb }}</div>
+
+        <div style="position:relative;width:330px;height:714px;border-radius:36px;overflow:hidden;background:#080b20;box-shadow:0 0 0 2.5px {{ v.rim }},0 24px 48px -14px rgba(0,0,0,.85)">
+          <div style="position:absolute;inset:0;background:#141a3a;background-image:radial-gradient(closest-side at 44% 26%, rgba(255,255,255,.15), transparent 62%),radial-gradient(closest-side at 76% 78%, rgba(255,45,143,.18), transparent 72%)">
+            <div style="position:absolute;left:50%;top:23%;transform:translate(-50%,-50%);width:118px;height:146px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.15),transparent 72%)"></div>
+            <div style="position:absolute;left:0;right:0;top:0;height:118px;background:linear-gradient(180deg,rgba(4,6,18,.88),transparent)"></div>
+            <div style="position:absolute;left:0;right:0;bottom:0;height:400px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.56) 42%,rgba(4,6,18,.9))"></div>
+          </div>
+
+          <div style="position:absolute;left:0;right:0;top:0;display:flex;flex-wrap:nowrap;align-items:center;gap:6px;padding:38px 11px 8px;overflow:hidden">
+            <div style="font-family:Monoton,cursive;font-size:11px;letter-spacing:.04em;color:#fff;text-shadow:0 0 10px rgba(255,45,143,.85);flex:none">LAST CALL</div>
+            <div style="flex:1"></div>
+            <div style="display:flex;align-items:center;gap:4px;min-height:24px;padding:0 8px;border-radius:12px;background:{{ v.phasebg }};border:{{ v.phaseborder }};font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:{{ v.phaseink }};white-space:nowrap">{{ v.phase }}</div>
+            <div style="display:flex;align-items:center;gap:3px;min-height:24px;padding:0 8px;border-radius:12px;background:rgba(8,11,32,.62);border:1px solid rgba(185,168,255,.4);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:#eef0ff;white-space:nowrap">👁 {{ v.eyes }}</div>
+          </div>
+
+          <div style="position:absolute;left:11px;top:84px;display:flex;align-items:center;gap:5px">
+            <div style="padding:3px 10px;border-radius:12px;background:rgba(6,8,24,.6);border:1px solid rgba(255,45,143,.75);backdrop-filter:blur(8px);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:12.5px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">MARLA V.</div>
+            <sc-if value="{{ v.youTag }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:2px 7px;border-radius:10px;background:linear-gradient(180deg,#ffb4d9,#ff2d8f);font-family:'Azeret Mono',monospace;font-size:7px;font-weight:700;letter-spacing:.12em;color:#5c0230">{{ v.youTag }}</div>
+            </sc-if>
+          </div>
+
+          <div style="position:absolute;right:11px;top:86px;display:flex;flex-direction:column;align-items:center;gap:8px">
+            <div style="width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.55);backdrop-filter:blur(8px);color:#b9a8ff;font-size:15px">🛡</div>
+            <div style="width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.4);border:1px dashed rgba(185,168,255,.3);backdrop-filter:blur(8px);font-size:16px;opacity:.36">🎁</div>
+          </div>
+
+          <div style="position:absolute;left:11px;right:11px;top:{{ v.bannerTop }};padding:11px 13px;border-radius:16px;background:rgba(6,8,24,.34);border:1px solid {{ v.bannerEdge }};border-left:3px solid {{ v.bannerEdge }};backdrop-filter:blur(16px) saturate(1.1)">
+            <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:{{ v.bannerSize }};line-height:1.2;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,1)">{{ v.banner }}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px">
+              <span style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.14em;color:{{ v.kickInk }}">{{ v.kick }}</span>
+              <span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:15px;color:{{ v.clockInk }};text-shadow:0 0 12px {{ v.clockGlow }}">{{ v.clock }}</span>
+            </div>
+          </div>
+
+          <div style="position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:8px;padding:0 11px 18px">
+
+            <div style="display:flex;gap:6px;align-items:flex-end">
+              <sc-for list="{{ v.chairs }}" as="h" hint-placeholder-count="3">
+                <div style="flex:1;padding:2.5px;border-radius:14px;background:{{ h.rimbg }};border:{{ h.rim }};box-shadow:{{ h.glow }};opacity:{{ h.op }}">
+                  <div style="position:relative;height:{{ h.h }};border-radius:11px;overflow:hidden;background:#141a3a;background-image:{{ h.wash }}">
+                    <div style="position:absolute;left:0;right:0;bottom:0;height:34px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.8))"></div>
+                    <sc-if value="{{ h.name }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;top:3px;left:3px;padding:1px 6px;border-radius:9px;background:rgba(6,8,24,.6);font-family:Archivo,sans-serif;font-weight:800;font-size:8px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">{{ h.name }}</div>
+                    </sc-if>
+                    <sc-if value="{{ h.slot }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.1em;color:#fff;text-align:center;line-height:1.6">{{ h.slot }}</div>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+
+            <sc-if value="{{ v.storm }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:7px;padding:10px;border-radius:18px;background:rgba(255,214,233,.1);border:1.5px solid rgba(255,214,233,.55);backdrop-filter:blur(10px)">
+                <div style="display:flex;align-items:center;gap:7px">
+                  <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.16em;color:#ffd6e9;white-space:nowrap">{{ v.stormLabel }}</span>
+                  <span style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:10px;color:rgba(255,214,233,.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ v.stormNote }}</span>
+                  <span style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.1em;color:rgba(214,205,255,.7);white-space:nowrap">{{ v.queueNote }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:11px;background:rgba(6,8,24,.42);border:1px solid rgba(185,168,255,.28)">
+                  <span style="font-family:'Azeret Mono',monospace;font-size:7.5px;font-weight:700;letter-spacing:.12em;color:#b9a8ff;white-space:nowrap">IN ORDER</span>
+                  <span style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:9.5px;line-height:1.35;color:rgba(214,205,255,.78)">{{ v.orderNote }}</span>
+                </div>
+                <div style="display:flex;gap:6px">
+                  <sc-for list="{{ v.cands }}" as="c" hint-placeholder-count="4">
+                    <div style="--lane-soft:{{ c.laneSoft }};flex:1;position:relative;padding:2.5px;border-radius:15px;background:{{ c.cardbg }};border:{{ c.cardborder }};box-shadow:{{ c.cardglow }};animation:{{ c.cardanim }}">
+                      <sc-if value="{{ c.lead }}" hint-placeholder-val="{{ true }}">
+                        <div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%);padding:1px 6px;border-radius:8px;background:{{ c.laneHue }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:6px;letter-spacing:.08em;color:{{ c.laneInk }};white-space:nowrap;z-index:2">{{ c.lead }}</div>
+                      </sc-if>
+                      <div style="position:relative;height:92px;border-radius:12px;overflow:hidden;background:{{ c.facebg }}">
+                        <sc-if value="{{ c.face }}" hint-placeholder-val="{{ true }}">
+                          <div style="position:absolute;inset:0;background-image:radial-gradient(closest-side at 46% 34%, rgba(255,255,255,.22), transparent 72%)"></div>
+                          <div style="position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.85))"></div>
+                          <div style="position:absolute;left:0;right:0;bottom:3px;text-align:center;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:11px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.95)">{{ c.name }}</div>
+                        </sc-if>
+                        <sc-if value="{{ c.sil }}" hint-placeholder-val="{{ true }}">
+                          <div style="position:absolute;left:50%;top:28%;transform:translate(-50%,-50%);width:21px;height:21px;border-radius:50%;background:rgba(185,168,255,.36)"></div>
+                          <div style="position:absolute;left:50%;top:62%;transform:translate(-50%,-50%);width:33px;height:39px;border-radius:17px 17px 11px 11px;background:linear-gradient(180deg,rgba(185,168,255,.36),rgba(185,168,255,.12))"></div>
+                        </sc-if>
+                      </div>
+                      <div style="display:flex;align-items:center;justify-content:center;gap:3px;padding:3px 0 1px">
+                        <sc-for list="{{ c.pips }}" as="p" hint-placeholder-count="3">
+                          <span style="width:5px;height:5px;border-radius:50%;background:{{ p.bg }};box-shadow:{{ p.glow }}"></span>
+                        </sc-for>
+                      </div>
+                      <div style="position:relative;min-height:38px;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:12px;background:{{ c.tapbg }};border:{{ c.tapborder }};cursor:{{ c.cursor }}">
+                        <sc-if value="{{ c.ripple }}" hint-placeholder-val="{{ true }}">
+                          <span style="position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:2px solid rgba(255,214,233,.85);animation:ripple .9s ease-out infinite"></span>
+                        </sc-if>
+                        <span style="font-size:{{ c.heartsize }};line-height:1;color:{{ c.heartink }};text-shadow:0 0 10px {{ c.heartglow }};animation:{{ c.heartanim }}">♥</span>
+                        <span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:{{ c.numsize }};color:{{ c.numink }};animation:{{ c.numanim }}">{{ c.n }}</span>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                  <span style="font-family:Archivo,sans-serif;font-size:10px;color:rgba(255,214,233,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ v.stormFoot }}</span>
+                  <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:rgba(238,240,255,.5);white-space:nowrap">{{ v.stormMeta }}</span>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ v.plain }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;align-items:center;gap:8px;min-height:38px;padding:9px 11px;border-radius:14px;background:rgba(6,8,24,.5);border:1px solid rgba(185,168,255,.35);backdrop-filter:blur(8px)">
+                <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.12em;color:#b9a8ff;white-space:nowrap">{{ v.plainLabel }}</span>
+                <span style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:10.5px;color:rgba(214,205,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">{{ v.plain }}</span>
+              </div>
+            </sc-if>
+
+            <div style="max-height:52px;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;overflow:hidden;-webkit-mask-image:linear-gradient(to top,#000 60%,transparent);mask-image:linear-gradient(to top,#000 60%,transparent)">
+              <sc-for list="{{ v.chat }}" as="m" hint-placeholder-count="2">
+                <div style="display:flex;gap:5px;align-items:baseline;text-shadow:0 1px 4px rgba(0,0,0,.98)">
+                  <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:10.5px;color:{{ m.color }};white-space:nowrap">{{ m.who }}</span>
+                  <span style="font-family:Archivo,sans-serif;font-size:11.5px;line-height:1.35;color:#fff">{{ m.text }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="display:flex;gap:6px;align-items:center">
+              <div style="flex:1;min-width:0;min-height:42px;display:flex;align-items:center;padding:0 13px;border-radius:21px;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.4);backdrop-filter:blur(10px);font-family:Archivo,sans-serif;font-size:12.5px;color:rgba(238,240,255,.5)">Say something…</div>
+              <div style="flex:none;min-height:42px;padding:0 15px;display:flex;align-items:center;gap:5px;border-radius:21px;cursor:pointer;background:{{ v.ctabg }};border:{{ v.ctaborder }};backdrop-filter:blur(10px);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:12.5px;color:{{ v.ctaink }};text-shadow:0 1px 4px rgba(0,0,0,.9);box-shadow:{{ v.ctaglow }};white-space:nowrap">{{ v.cta }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="margin-top:44px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:baseline;gap:12px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.1)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.2em;color:#b9a8ff;white-space:nowrap">EDGE STATES</div>
+      <div style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:12.5px;color:rgba(238,240,255,.65)">A storm needs a crowd and a queue. When it has neither, the show still has to move.</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px">
+      <sc-for list="{{ edges }}" as="e" hint-placeholder-count="3">
+        <div style="width:330px;padding:16px;border-radius:20px;background:{{ e.bg }};border:1.5px solid {{ e.edge }};display:flex;flex-direction:column;gap:10px">
+          <div style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.18em;color:{{ e.ink }}">{{ e.tag }}</div>
+          <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:21px;line-height:1.12;color:#fff">{{ e.title }}</div>
+          <div style="min-height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:12px;border-radius:15px;background:rgba(6,8,24,.55);border:1px dashed {{ e.edge }};text-align:center">
+            <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;color:{{ e.ink }}">{{ e.screen }}</div>
+            <div style="font-family:Archivo,sans-serif;font-size:11px;line-height:1.4;color:rgba(238,240,255,.65)">{{ e.screenSub }}</div>
+          </div>
+          <div style="font-family:Archivo,sans-serif;font-size:11.5px;line-height:1.55;color:rgba(238,240,255,.7);text-wrap:pretty">{{ e.body }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:1000}}">
+const WASH_T = "radial-gradient(closest-side at 46% 32%, rgba(45,227,208,.2), transparent 70%)";
+const RIM = "rgba(6,8,24,.45)";
+
+function chair(o) {
+  return Object.assign({
+    h: "92px", rim: "1.5px solid rgba(45,227,208,.7)", rimbg: RIM,
+    glow: "0 0 10px rgba(45,227,208,.35)", op: "1", wash: WASH_T, name: "", slot: ""
+  }, o);
+}
+/* the open seat during a storm — gold, because the crowd is filling it */
+const DRAFTING = (label) => chair({ rim: "2px solid #ffd6e9", rimbg: "rgba(255,214,233,.14)",
+  glow: "0 0 20px rgba(255,214,233,.6)", wash: "none", slot: label });
+
+const CHAIRS_STORM = [
+  chair({ op: ".5", name: "RAVI" }),
+  DRAFTING("0:15<br>DRAFTING"),
+  chair({ op: ".5", name: "SAM" })
+];
+
+/* THREE STRIKES. The line is FIFO — the four on deck are simply whoever queued
+   first, and a draft never reorders them. Lose a storm and you keep your place
+   and take a strike; on the third you're removed from the line and can't rejoin
+   tonight. That's what stops a permanent loser from clogging the front of the
+   queue, and it gives the crowd a reason to save someone on their last life. */
+function pips(n) {
+  return [0, 1, 2].map(i => i < n
+    ? { bg: "#ff7ab8", glow: "0 0 6px rgba(255,122,184,.85)" }
+    : { bg: "rgba(255,255,255,.22)", glow: "none" });
+}
+
+/* candidate card presets ---------------------------------------------------- */
+function cand(o) {
+  return Object.assign({
+    face: false, sil: false, name: "", n: "0", lead: "",
+    facebg: "linear-gradient(180deg,#232045,#101227)",
+    cardbg: "rgba(6,8,24,.5)", cardborder: "1px solid rgba(185,168,255,.4)",
+    cardglow: "none", cardanim: "none",
+    tapbg: "rgba(255,214,233,.12)", tapborder: "1px solid rgba(255,214,233,.4)",
+    cursor: "default", ripple: false,
+    heartsize: "15px", heartink: "#ffd6e9", heartglow: "rgba(255,214,233,.6)", heartanim: "none",
+    numsize: "12px", numink: "#fff", numanim: "none",
+    laneSoft: "255,224,236", laneHue: "#ffe0ec", laneInk: "#4a0724", pips: pips(0)
+  }, o);
+}
+/* Leader hues. Only the front-runner is coloured, and which hue depends on the
+   badge state, so the two audiences read two different races: the room sees
+   LEADING (amber, a standing), she sees SURGING (rose, a rate of change).
+   All hues sit in the crowd gold-to-rose ramp so teal stays show machinery and
+   lilac stays safety. Card position never reorders; only glow and badge move. */
+/* `rgb` is the bare triplet, exposed on the card as --lane-soft so the surge
+   KEYFRAME can read it. An animated box-shadow overrides the element's own
+   box-shadow for the whole cycle, so a hardcoded hue in the keyframe silently
+   repaints every card the same colour — the hue has to travel as a variable. */
+const LANES = [
+  { key: "BLUSH",  hue: "#ffe0ec", rgb: "255,224,236", soft: "rgba(255,224,236,", ink: "#4a0724" },
+  { key: "AMBER",  hue: "#ffc24d", rgb: "255,194,77",  soft: "rgba(255,194,77,",  ink: "#3d2600" },
+  { key: "ROSE",   hue: "#ff7ab8", rgb: "255,122,184", soft: "rgba(255,122,184,", ink: "#4a0724" },
+  { key: "ORCHID", hue: "#e05cff", rgb: "224,92,255",  soft: "rgba(224,92,255,",  ink: "#2e0038" }
+];
+
+/* TWO LIT CARDS, ONE RACE. The point isn't a winner — it's a contest visible in
+   a single glance: the front-runner holds AMBER (a standing, steady glow) while
+   whoever's climbing fastest holds ROSE (a rate of change, faster pulse). Amber
+   is ahead; rose is coming. That gap is the tension, and it's why both badges
+   live in the same window instead of one per POV.
+   state: "lead" → amber · "surge" → rose · anything else → neutral blush, banked. */
+function laneCard(state, o) {
+  const lead = state === "lead", surge = state === "surge", lit = lead || surge;
+  const L = lead ? LANES[1] : surge ? LANES[2] : LANES[0];
+  return cand(Object.assign({
+    cardbg: L.soft + (lit ? ".18)" : ".07)"),
+    cardborder: (lit ? "1.5px solid " : "1px solid ") + (lit ? L.hue : L.soft + ".45)"),
+    cardglow: lit ? "0 0 22px " + L.soft + ".7)" : "0 0 10px " + L.soft + ".28)",
+    /* rose pulses faster than amber — a surge should feel like acceleration */
+    cardanim: lead ? "surge 1.4s ease-in-out infinite" : surge ? "surge .62s ease-in-out infinite" : "none",
+    tapbg: L.soft + (lit ? ".3)" : ".12)"),
+    tapborder: (lit ? "1.5px solid " : "1px solid ") + L.soft + (lit ? ".9)" : ".5)"),
+    heartink: lit ? "#fff" : L.hue,
+    heartglow: L.soft + (lit ? "1)" : ".55)"),
+    numink: lit ? "#fff" : L.hue,
+    laneSoft: L.rgb, laneHue: L.hue, laneInk: L.ink,
+    lead: lit ? o.leadLabel : ""
+  }, o));
+}
+
+/* ROOM: real faces, fat tappable hearts, lane glow per card */
+const roomCands = [
+  laneCard("lead", { pips: pips(0), leadLabel: "LEADING", face: true, name: "DOCK", n: "412",
+    facebg: "#141a3a", cursor: "pointer", ripple: true, heartsize: "18px",
+    heartanim: "beat 1.4s ease-in-out infinite", numsize: "14px",
+    numanim: "climb 1.4s ease-in-out infinite" }),
+  laneCard("surge", { pips: pips(1), leadLabel: "+94 SURGING", face: true, name: "MARISOL", n: "268",
+    facebg: "#141a3a", cursor: "pointer", ripple: true, heartsize: "18px",
+    heartanim: "beat .62s ease-in-out infinite", numsize: "14px",
+    numanim: "climb .62s ease-in-out infinite" }),
+  laneCard("", { pips: pips(2), face: true, name: "THEO", n: "97", facebg: "#141a3a", cursor: "pointer" }),
+  laneCard("", { pips: pips(0), face: true, name: "ADE", n: "41", facebg: "#141a3a", cursor: "pointer" })
+];
+/* HOST: same four lanes, shapes instead of faces — she tracks colour + momentum */
+const hostCands = [
+  laneCard("lead", { pips: pips(0), leadLabel: "AHEAD", sil: true, n: "412", cursor: "pointer",
+    heartsize: "17px", numsize: "15px", numanim: "climb 1.4s ease-in-out infinite" }),
+  laneCard("surge", { pips: pips(1), leadLabel: "CLOSING", sil: true, n: "268", cursor: "pointer",
+    heartsize: "17px", numsize: "15px", numanim: "climb .62s ease-in-out infinite" }),
+  laneCard("", { pips: pips(2), sil: true, n: "97", cursor: "pointer" }),
+  laneCard("", { pips: pips(0), sil: true, n: "41", cursor: "pointer" })
+];
+/* CHAIRS: read-only, no hearts of their own */
+const chairCands = hostCands.map(c => Object.assign({}, c, {
+  cursor: "default", ripple: false, cardanim: "none", cardglow: "none",
+  cardborder: "1px solid rgba(185,168,255,.3)", cardbg: "rgba(6,8,24,.4)",
+  tapbg: "rgba(6,8,24,.4)", tapborder: "1px dashed rgba(185,168,255,.3)",
+  heartink: "rgba(255,214,233,.6)", heartanim: "none", numanim: "none", lead: ""
+}));
+/* CANDIDATE: only their own card, huge, in neutral blush. */
+const meCands = [
+  laneCard("surge", { pips: pips(1), leadLabel: "YOU · CLOSING", face: true, name: "YOU", n: "268",
+    facebg: "#141a3a", heartsize: "19px",
+    heartanim: "beat .7s ease-in-out infinite", numsize: "16px",
+    numanim: "climb .7s ease-in-out infinite" })
+];
+
+const CHAT_STORM = [
+  { who: "THE HOUSE", text: "chair 3 open · 4 up", color: "#ffd6e9" },
+  { who: "Marisol", text: "rose is CLOSING keep going", color: "#b9a8ff" }
+];
+
+const PHASE_GOLD = { phasebg: "rgba(255,214,233,.2)", phaseborder: "1px solid rgba(255,214,233,.7)", phaseink: "#ffd6e9" };
+const GOLD_EDGE = "rgba(255,214,233,.6)";
+
+class Component extends DCLogic {
+  renderVals() {
+    const base = {
+      eyes: "312", chairs: CHAIRS_STORM, chat: CHAT_STORM, storm: true, plain: "",
+      bannerTop: "168px", bannerSize: "16px", bannerEdge: GOLD_EDGE, kickInk: "#ffd6e9",
+      clock: "0:15", clockInk: "#fff", clockGlow: "rgba(255,214,233,.9)",
+      stormLabel: "4 UP", youTag: "", cands: roomCands,
+      stormNote: "", stormFoot: "", stormMeta: "", queueNote: "5 MORE IN LINE", orderNote: "First four in the queue. Lose and you keep your place — three strikes and you're out of the line for good.", ...PHASE_GOLD
+    };
+    return {
+      views: [
+        Object.assign({}, base, {
+          pov: "ROOM · SPECTATOR", dot: "#ffd6e9", rim: "#5a4a2e",
+          blurb: "The crowd's power moment. Faces land all at once and every card is a fat, rapid-fire heart — multi-tap is the mechanic, not a rate limit to beat. Two cards are lit at once: amber LEADING and rose +94 SURGING. Amber is ahead, rose is coming — and the gap between them is the whole reason to keep tapping.",
+          phase: "0:15 LEFT", banner: "SHE CAN'T SEE THEM — SHOW HER",
+          kick: "TAP AS MANY TIMES AS YOU LIKE",
+          stormNote: "revealed just now", stormFoot: "Amber's ahead — rose is closing",
+          stormMeta: "+15 ✦ IF YOURS SITS",
+          cta: "♥♥♥ TAP FAST", ctabg: "rgba(255,214,233,.34)",
+          ctaborder: "1.5px solid rgba(255,255,255,.95)", ctaink: "#3f0119",
+          ctaglow: "0 0 30px rgba(255,214,233,.85)"
+        }),
+        Object.assign({}, base, {
+          pov: "HOST", dot: "#ff8ac2", rim: "#5a2e46", youTag: "YOU", cands: hostCands,
+          blurb: "She never sees a face — she sees a two-horse race. AHEAD glows steady amber; CLOSING pulses rose at more than double the rate. She can seat the safe pick or gamble on the one the room just fell for; tapping is instant either way.",
+          phase: "0:15 BLIND", banner: "THE CROWD IS TELLING YOU",
+          kick: "SHAPES ONLY · TALLIES LIVE",
+          stormLabel: "4 UP", stormNote: "she's picking blind",
+          stormFoot: "Take the lead, or gamble on the surge", stormMeta: "NO PICK → LEADER SITS",
+          cta: "ASK", ctabg: "rgba(255,45,143,.34)",
+          ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff",
+          ctaglow: "0 0 26px rgba(255,45,143,.6)"
+        }),
+        Object.assign({}, base, {
+          pov: "CANDIDATE · IN LINE", dot: "#fff", rim: "#5a4a2e", cands: meCands,
+          blurb: "Fifteen seconds that decide his night. He sees his own card lit rose and CLOSING — he knows he's gaining on someone, never who or by how much. No rivals, no rival numbers. If he wins, the camera-flip fires straight into the chair.",
+          phase: "YOU'RE UP", banner: "YOU'RE UP — THE ROOM IS VOTING",
+          kick: "YOUR TALLY, LIVE", stormLabel: "YOU",
+          stormNote: "#3 in line", stormFoot: "Camera flips in if you're picked",
+          stormMeta: "CHAIR 3",
+          cta: "WATCHING", ctabg: "rgba(6,8,24,.6)",
+          ctaborder: "1.5px solid rgba(185,168,255,.5)", ctaink: "rgba(214,205,255,.85)",
+          ctaglow: "none"
+        }),
+        Object.assign({}, base, {
+          pov: "CHAIR · COMPETITOR", dot: "#7ff2e6", rim: "#2e4a52", cands: chairCands,
+          blurb: "Competitors get no vote. His view dims to read-only for the whole window — cards still legible, hearts inert — and he watches a rival be chosen by the room, having never seen them coming.",
+          phase: "DRAFT · 0:15", banner: "THE ROOM IS VOTING",
+          kick: "READ-ONLY FOR CHAIRS", stormLabel: "4 UP",
+          stormNote: "not your call", stormFoot: "No hearts from the chairs",
+          stormMeta: "YOUR CLOCK HELD",
+          cta: "↩ LEAVE", ctabg: "rgba(185,168,255,.14)",
+          ctaborder: "1.5px solid rgba(185,168,255,.6)", ctaink: "#d6cdff", ctaglow: "none"
+        }),
+        Object.assign({}, base, {
+          pov: "DURING PLAY · LINE DARK", dot: "#b9a8ff", rim: "#3b2a72",
+          blurb: "For contrast: the other 95% of the show. The strip shell is identical in every role and carries a number only — no faces, no names, no hearts. Spectator hearts belong to the chairs until a seat opens.",
+          phase: "R2 ●●○", ...{ phasebg: "rgba(45,227,208,.16)", phaseborder: "1px solid rgba(45,227,208,.6)", phaseink: "#aef7ee" },
+          banner: "Open floor — everyone's mic is live", bannerSize: "15px",
+          bannerEdge: "rgba(45,227,208,.5)", kick: "OPEN FLOOR", kickInk: "#7ff2e6",
+          clock: "0:31", clockInk: "#aef7ee", clockGlow: "rgba(45,227,208,.8)",
+          chairs: [chair({ name: "DEV" }), chair({ name: "JUNE" }), chair({ name: "SAM" })],
+          storm: false, plain: "revealed when a chair opens", plainLabel: "5 IN LINE",
+          chat: [
+            { who: "Marisol", text: "chair two is charming", color: "#b9a8ff" },
+            { who: "Dock", text: "hearts on june", color: "#b9a8ff" }
+          ],
+          cta: "♥ JOIN THE LINE", ctabg: "rgba(255,45,143,.34)",
+          ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff",
+          ctaglow: "0 0 26px rgba(255,45,143,.65)"
+        })
+      ],
+      edges: [
+        { tag: "0 IN LINE", title: "Nobody to draft", bg: "rgba(45,227,208,.08)", edge: "rgba(45,227,208,.5)", ink: "#aef7ee",
+          screen: "SEAT OPEN — WHO'S NEXT?", screenSub: "the chair stays lit and empty",
+          body: "No storm, no stall. The show continues two-up and the open chair becomes a standing recruiting slot: the room gets a JOIN pulse, the empty tile holds a lit dashed frame, and the next person to queue is seated immediately with a mini-reveal. Her rounds carry on with two chairs — the format doesn't require three." },
+        { tag: "EXACTLY 1", title: "No contest", bg: "rgba(255,214,233,.08)", edge: GOLD_EDGE, ink: "#ffd6e9",
+          screen: "ONE UP — IN YOU GO", screenSub: "2s mini-reveal, no window",
+          body: "A storm needs a choice. With one candidate the 15s window is skipped entirely and they're seated on a 2-second mini-reveal — same camera-flip, no tallies, no tapping. Faking a vote with one option would teach the crowd their hearts don't matter." },
+        { tag: "TIE AT 0:00", title: "Dead heat", bg: "rgba(185,168,255,.08)", edge: "rgba(185,168,255,.5)", ink: "#d6cdff",
+          screen: "DEAD HEAT — HOUSE PICKS", screenSub: "tied cards flare together, one flips in",
+          body: "If the leaders are level when the clock hits zero the server picks randomly among them — and says so on screen, in the room's own voice. Tied cards flare together for a beat before one flips into the chair. Never silently resolve it; a crowd that can't see the tiebreak assumes the house cheated." }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

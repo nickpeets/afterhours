@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Archivo:wght@400;500;600;700;800&family=Azeret+Mono:wght@400;600;700&family=Monoton&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#080b20;}
+  *{box-sizing:border-box;}
+  @keyframes tally{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes beat{0%,100%{transform:scale(1)}18%{transform:scale(1.14)}36%{transform:scale(1)}}
+  @keyframes mic{0%,100%{opacity:1;transform:scaleY(1)}50%{opacity:.55;transform:scaleY(.5)}}
+  @keyframes surge{0%,100%{box-shadow:0 0 12px rgba(var(--ls,255,214,233),.45)}50%{box-shadow:0 0 26px rgba(var(--ls,255,214,233),.9),0 0 52px rgba(var(--ls,255,214,233),.35)}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+
+<section style="padding:52px 46px 44px;font-family:Archivo,sans-serif;color:#eef0ff">
+  <div id="9a" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+    <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.3em;color:#2de3d0">TURN 9 · PANEL + BENCH · NEW DEFAULT · <a href="#9a" style="color:#ff6fb0;text-decoration:none">9a</a></div>
+    <div style="font-family:Monoton,cursive;font-size:42px;line-height:1.14;letter-spacing:.02em;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.5),0 0 26px rgba(255,45,143,.9),0 0 60px rgba(255,45,143,.4)">THE BENCH</div>
+    <div style="font-size:14px;max-width:850px;color:rgba(238,240,255,.74);line-height:1.55;text-wrap:pretty">2×2 playing surface, and directly beneath it <strong style="color:#ffd6e9">three bench cells earning hearts all show long</strong>. The crowd now has a job every second instead of once per draft — and because the bench is scored continuously, <strong style="color:#ff8ac2">the 15-second reveal storm goes away entirely</strong>. Full argument for killing it at the bottom.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:10px;max-width:1060px;margin-bottom:16px">
+    <div style="flex:1;min-width:228px;padding:12px 13px;border-radius:15px;background:rgba(255,45,143,.1);border:1px solid rgba(255,45,143,.45)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.18em;color:#ff8ac2;margin-bottom:5px">PLAYING SURFACE · 4 MAX</div>
+      <div style="font-size:11.5px;line-height:1.5;color:rgba(255,214,233,.85)">Host warm-lit top-left + three cool-lit chairs. Never a fifth cell — past four, a grid becomes wallpaper.</div>
+    </div>
+    <div style="flex:1;min-width:228px;padding:12px 13px;border-radius:15px;background:rgba(255,214,233,.1);border:1px solid rgba(255,214,233,.5)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.18em;color:#ffd6e9;margin-bottom:5px">BENCH · EXACTLY 3</div>
+      <div style="font-size:11.5px;line-height:1.5;color:rgba(255,214,233,.9)">Square 116px portraits against 168px playing cells — scored, always visible. Front three of the queue in join order; everyone behind them is a number.</div>
+    </div>
+    <div style="flex:1;min-width:228px;padding:12px 13px;border-radius:15px;background:rgba(45,227,208,.1);border:1px solid rgba(45,227,208,.45)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.18em;color:#7ff2e6;margin-bottom:5px">7 FACES, TWO TIERS</div>
+      <div style="font-size:11.5px;line-height:1.5;color:rgba(174,247,238,.85)">Crowded is fine — <em>flat</em> is the killer. Two clearly-ranked tiers read instantly; nine equal tiles read as nothing.</div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;gap:10px;max-width:1060px;margin-bottom:30px;padding:13px 15px;border-radius:16px;background:rgba(185,168,255,.09);border:1px solid rgba(185,168,255,.4)">
+    <span style="font-size:14px;color:#b9a8ff">◈</span>
+    <div style="flex:1;min-width:0;font-size:12px;line-height:1.55;color:rgba(214,205,255,.86)"><strong style="color:#fff">Lifted from the reference, unchanged:</strong> heart chips in each cell's upper-left (the crowd already reads a grid as a leaderboard) · name plaques as bottom-edge pills with inline status icons · empty seat renders as the join CTA itself, not a dashed apology · host tag + ring on the top-left cell · grid density adapts to occupancy. <strong style="color:#fff">Dodged:</strong> camera-off never becomes a hollow avatar bubble — it's our styled silhouette, still in the game.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start">
+    <sc-for list="{{ frames }}" as="f" hint-placeholder-count="6">
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:7px;height:7px;border-radius:50%;background:{{ f.dot }}"></span>
+          <span style="font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:{{ f.dot }}">{{ f.tag }}</span>
+        </div>
+        <div style="width:390px;font-family:Archivo,sans-serif;font-size:12px;line-height:1.5;color:rgba(238,240,255,.62);text-wrap:pretty">{{ f.blurb }}</div>
+
+        <div data-view="panel" style="position:relative;width:390px;height:844px;border-radius:42px;overflow:hidden;background:#080b20;box-shadow:0 0 0 2.5px {{ f.rim }},0 26px 52px -16px rgba(0,0,0,.85);display:flex;flex-direction:column">
+          <div style="position:absolute;inset:0;background:radial-gradient(100% 30% at 26% 0%, rgba(255,45,143,.18), transparent 60%)"></div>
+
+          <div style="position:relative;display:flex;flex-wrap:nowrap;align-items:center;gap:7px;padding:52px 12px 8px;overflow:hidden">
+            <div style="font-family:Monoton,cursive;font-size:12px;letter-spacing:.04em;color:#fff;text-shadow:0 0 12px rgba(255,45,143,.85);flex:none">LAST CALL</div>
+            <div style="flex:1"></div>
+            <div style="display:flex;align-items:center;gap:4px;min-height:25px;padding:0 8px;border-radius:13px;background:{{ f.phasebg }};border:{{ f.phaseborder }};font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:{{ f.phaseink }};white-space:nowrap">{{ f.phase }}</div>
+            <div style="display:flex;align-items:center;gap:3px;min-height:25px;padding:0 8px;border-radius:13px;background:rgba(8,11,32,.62);border:1px solid rgba(185,168,255,.4);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:#eef0ff;white-space:nowrap">👁 312</div>
+            <div style="display:flex;align-items:center;gap:2px;min-height:25px;padding:0 8px;border-radius:13px;background:linear-gradient(180deg,#ffd6e9,#ff8ac2);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:#4a0724;white-space:nowrap">✦135</div>
+          </div>
+
+          <div id="rt_chairs" style="position:relative;display:grid;grid-template-columns:{{ f.cols }};gap:5px;padding:0 9px">
+            <sc-for list="{{ f.cells }}" as="c" hint-placeholder-count="4">
+              <div class="chair" style="position:relative;grid-column:{{ c.span }};padding:2.5px;border-radius:17px;background:{{ c.rimbg }};border:{{ c.rim }};box-shadow:{{ c.glow }};opacity:{{ c.op }}">
+                <div style="position:relative;height:{{ c.h }};border-radius:14px;overflow:hidden;background:{{ c.well }};background-image:{{ c.wash }}">
+                  <sc-if value="{{ c.faceGlow }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);width:{{ c.faceW }};height:{{ c.faceH }};border-radius:50%;background:radial-gradient(closest-side,{{ c.faceLight }},transparent 72%);filter:{{ c.blur }}"></div>
+                  </sc-if>
+                  <sc-if value="{{ c.sil }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:rgba(185,168,255,.32)"></div>
+                    <div style="position:absolute;left:50%;top:70%;transform:translate(-50%,-50%);width:56px;height:62px;border-radius:28px 28px 16px 16px;background:linear-gradient(180deg,rgba(185,168,255,.32),rgba(185,168,255,.1))"></div>
+                  </sc-if>
+
+                  <sc-if value="{{ c.hearts }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:absolute;top:6px;left:6px;display:flex;align-items:center;gap:3px;padding:2px 8px;border-radius:11px;background:rgba(6,8,24,.62);backdrop-filter:blur(6px)"><span style="font-size:11px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,45,143,.95)">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:11px;color:#ffd6e9">{{ c.hearts }}</span></div>
+                  </sc-if>
+                  <sc-if value="{{ c.tag }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:absolute;top:6px;right:6px;padding:2px 8px;border-radius:10px;background:{{ c.tagbg }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:7.5px;letter-spacing:.12em;color:{{ c.tagink }}">{{ c.tag }}</div>
+                  </sc-if>
+                  <sc-if value="{{ c.clock }}" hint-placeholder-val="{{ true }}">
+                    <div class="cclock" style="position:absolute;top:{{ c.clockTop }};right:6px;padding:{{ c.clockPad }};border-radius:8px;background:{{ c.clockbg }};border:{{ c.clockborder }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:{{ c.clockSize }};color:{{ c.clockink }}">{{ c.clock }}</div>
+                  </sc-if>
+
+                  <sc-if value="{{ c.name }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:absolute;left:6px;bottom:{{ c.plaqueBottom }};display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:11px;background:{{ c.namebg }};backdrop-filter:blur(8px);font-family:Archivo,sans-serif;font-weight:800;font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">
+                      <sc-if value="{{ c.mic }}" hint-placeholder-val="{{ true }}">
+                        <span style="display:flex;align-items:flex-end;gap:1px;height:8px"><span style="width:2px;height:5px;background:#fff;animation:mic .9s ease-in-out infinite"></span><span style="width:2px;height:8px;background:#fff;animation:mic .9s ease-in-out .15s infinite"></span><span style="width:2px;height:6px;background:#fff;animation:mic .9s ease-in-out .3s infinite"></span></span>
+                      </sc-if>
+                      {{ c.name }}
+                      <sc-if value="{{ c.statusIcon }}" hint-placeholder-val="{{ true }}">
+                        <span style="font-size:10px;opacity:.85">{{ c.statusIcon }}</span>
+                      </sc-if>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ c.verdict }}" hint-placeholder-val="{{ true }}">
+                    <div class="hostctl" style="position:absolute;right:6px;bottom:6px;min-height:44px;padding:0 15px;display:flex;align-items:center;justify-content:center;border-radius:13px;background:rgba(255,45,143,.14);border:1px dashed rgba(255,45,143,.5);backdrop-filter:blur(6px);font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.14em;color:#ffd6e9;text-shadow:0 1px 4px rgba(0,0,0,.95);cursor:pointer" style-active="background:rgba(255,45,143,.3)">TAP TO ASK</div>
+                  </sc-if>
+                  <sc-if value="{{ c.tapHeart }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:absolute;right:6px;bottom:6px;width:48px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-active="transform:scale(1.06)">
+                      <span style="display:block;transform:scaleY(.82);font-size:30px;line-height:1;color:{{ c.tapInk }};-webkit-text-stroke:1.5px {{ c.tapStroke }};text-shadow:{{ c.tapGlow }}">♥</span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ c.foot }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:absolute;left:0;right:0;top:{{ c.footTop }};text-align:center;font-family:'Azeret Mono',monospace;font-size:7.5px;font-weight:700;letter-spacing:.14em;color:{{ c.footInk }};text-shadow:0 1px 4px rgba(0,0,0,.95)">{{ c.foot }}</div>
+                  </sc-if>
+                  <sc-if value="{{ c.promo }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0 12px">
+                      <div style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:30px;line-height:1;color:#fff;text-shadow:0 0 16px rgba(255,194,77,.9)">{{ c.promo }}</div>
+                      <div style="display:flex;align-items:center;gap:5px;padding:2px 9px;border-radius:11px;background:rgba(255,194,77,.9);font-family:'Azeret Mono',monospace;font-weight:700;font-size:8px;letter-spacing:.12em;color:#3d2600;white-space:nowrap">{{ c.promoWho }}</div>
+                      <div style="font-family:Archivo,sans-serif;font-size:10px;line-height:1.35;color:rgba(255,224,190,.85);text-align:center">{{ c.promoSub }}</div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ c.strip }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 12px">
+                      <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:10px;color:rgba(255,255,255,.82);white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.9)">{{ c.strip }}</span>
+                      <span style="font-size:10px;opacity:.75">🔇</span>
+                      <span style="width:1px;height:10px;background:rgba(255,255,255,.2)"></span>
+                      <span style="flex:none;font-family:Archivo,sans-serif;font-size:9.5px;color:rgba(214,205,255,.75);white-space:nowrap">{{ c.stripSub }}</span>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ c.empty }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;cursor:pointer" style-active="transform:scale(.98)">
+                      <div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(45,227,208,.2);border:1.5px solid rgba(45,227,208,.75);font-size:17px;color:#aef7ee">+</div>
+                      <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;color:#aef7ee;text-align:center;line-height:1.15">{{ c.empty }}</div>
+                      <div style="font-family:Archivo,sans-serif;font-size:9.5px;line-height:1.35;color:rgba(174,247,238,.7);text-align:center;padding:0 10px">{{ c.emptySub }}</div>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ f.bench }}" hint-placeholder-val="{{ true }}">
+            <div id="rt_line" style="position:relative;margin-top:8px;padding:0 9px;display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex;align-items:center;gap:7px;padding:0 2px">
+                <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.18em;color:{{ f.benchInk }};white-space:nowrap">{{ f.benchLabel }}</span>
+                <span style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:10px;color:rgba(214,205,255,.72);white-space:nowrap">{{ f.benchNote }}</span>
+                <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:rgba(214,205,255,.6);white-space:nowrap">{{ f.benchMeta }}</span>
+              </div>
+              <div id="lineitems" style="display:flex;gap:5px">
+                <sc-for list="{{ f.bench }}" as="b" hint-placeholder-count="3">
+                  <div style="--ls:{{ b.ls }};flex:1;position:relative;padding:2px;border-radius:14px;background:{{ b.bg }};border:{{ b.border }};box-shadow:{{ b.glow }};animation:{{ b.anim }};cursor:pointer">
+                    <sc-if value="{{ b.badge }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;z-index:2;top:-7px;left:50%;transform:translateX(-50%);padding:1px 7px;border-radius:8px;background:{{ b.hue }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:6.5px;letter-spacing:.08em;color:{{ b.ink }};white-space:nowrap">{{ b.badge }}</div>
+                    </sc-if>
+                    <div style="position:relative;height:{{ b.h }};border-radius:11px;overflow:hidden;background:{{ b.well }};background-image:{{ b.wash }}">
+                      <sc-if value="{{ b.sil }}" hint-placeholder-val="{{ true }}">
+                        <div style="position:absolute;left:50%;top:32%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;background:rgba(185,168,255,.34)"></div>
+                        <div style="position:absolute;left:50%;top:76%;transform:translate(-50%,-50%);width:48px;height:54px;border-radius:24px 24px 14px 14px;background:linear-gradient(180deg,rgba(185,168,255,.34),rgba(185,168,255,.1))"></div>
+                      </sc-if>
+                      <div style="position:absolute;left:0;right:0;bottom:0;height:42px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.9))"></div>
+                      <div style="position:absolute;top:4px;left:4px;display:flex;align-items:center;gap:2px;padding:1px 6px;border-radius:9px;background:rgba(6,8,24,.62);backdrop-filter:blur(6px)"><span style="font-size:10px;line-height:1;color:#ff2d8f;text-shadow:0 0 7px rgba(255,45,143,.9)">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:10.5px;color:{{ b.heartink }}">{{ b.n }}</span></div>
+                      <sc-if value="{{ b.name }}" hint-placeholder-val="{{ true }}">
+                        <div style="position:absolute;left:4px;right:4px;bottom:4px;text-align:center;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:12px;line-height:1.35;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.95)">{{ b.name }}</div>
+                      </sc-if>
+                      <sc-if value="{{ b.pips }}" hint-placeholder-val="{{ true }}">
+                        <div style="position:absolute;top:5px;right:5px;display:flex;gap:2.5px">
+                          <sc-for list="{{ b.pips }}" as="p" hint-placeholder-count="3">
+                            <span style="width:5px;height:5px;border-radius:50%;background:{{ p.bg }}"></span>
+                          </sc-for>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="position:relative;flex:1;min-height:0;display:flex;flex-direction:column;gap:7px;padding:8px 11px 20px">
+            <div id="chatstrip" style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;overflow:hidden;-webkit-mask-image:linear-gradient(to top,#000 60%,transparent);mask-image:linear-gradient(to top,#000 60%,transparent)">
+              <sc-for list="{{ f.chat }}" as="m" hint-placeholder-count="6">
+                <div style="display:flex;gap:6px;align-items:baseline;text-shadow:0 1px 4px rgba(0,0,0,.98)">
+                  <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:11.5px;color:{{ m.color }};white-space:nowrap">{{ m.who }}</span>
+                  <span style="font-family:Archivo,sans-serif;font-size:12.5px;line-height:1.35;color:#fff">{{ m.text }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div id="inputbar" style="display:flex;gap:8px;align-items:center">
+              <div style="flex:1;min-width:0;min-height:46px;display:flex;align-items:center;padding:0 14px;border-radius:23px;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.4);font-family:Archivo,sans-serif;font-size:13.5px;color:rgba(238,240,255,.5)">Say something…</div>
+              <div style="flex:none;min-height:46px;padding:0 17px;display:flex;align-items:center;gap:6px;border-radius:23px;cursor:pointer;background:{{ f.ctabg }};border:{{ f.ctaborder }};font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;color:{{ f.ctaink }};text-shadow:0 1px 4px rgba(0,0,0,.9);box-shadow:{{ f.ctaglow }};white-space:nowrap">{{ f.cta }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="margin-top:46px;max-width:1060px;display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:12px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.1)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.2em;color:#ff8ac2;white-space:nowrap">KILLING THE STORM</div>
+      <div style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:12.5px;color:rgba(238,240,255,.65)">Your instinct about the reveal was right, and the bench is what makes it removable.</div>
+    </div>
+
+    <div style="padding:18px;border-radius:20px;background:rgba(255,45,143,.09);border:1.5px solid rgba(255,45,143,.45);display:flex;flex-direction:column;gap:10px">
+      <div style="font-family:Archivo,sans-serif;font-size:13px;line-height:1.6;color:rgba(238,240,255,.8);text-wrap:pretty">The 15-second storm existed to solve a problem the bench doesn't have. When the line was dark, the crowd had no stake in who sat down, so we manufactured one: reveal four strangers, panic-tap for fifteen seconds, done. It was loud, but it was a <em>burst</em> — and bursts are exactly what makes a hangout feel busy and empty at the same time. Ninety seconds of nothing, fifteen seconds of noise, repeat.</div>
+      <div style="font-family:Archivo,sans-serif;font-size:13px;line-height:1.6;color:rgba(238,240,255,.8);text-wrap:pretty">A permanently scored bench replaces the burst with a slow build. Someone joins the line, takes a bench seat, and starts earning immediately — so by the time a chair actually opens the crowd has been invested in that person for four minutes. <strong style="color:#ffd6e9">The promotion becomes a payoff instead of an event.</strong> No modal, no countdown, no interruption to the show: a chair opens, the bench leader rises into it on the camera-flip, and the next in line drops onto the bench. Five seconds, not fifteen.</div>
+      <div style="font-family:Archivo,sans-serif;font-size:13px;line-height:1.6;color:rgba(238,240,255,.8);text-wrap:pretty">It also fixes the thing that made TikTok's crowded rooms boring, which is not the headcount — it's that nothing on screen is <em>ranked</em>. Nine equal tiles are wallpaper. Four big scored cells over three small scored cells is a hierarchy you read in one glance, and every face on it has a number that's moving.</div>
+      <div style="font-family:Archivo,sans-serif;font-size:13px;line-height:1.6;color:rgba(238,240,255,.8);text-wrap:pretty"><strong style="color:#ffd6e9">What survives from the storm:</strong> she still picks blind — the bench renders to her as silhouettes with live counts, never faces. Hearts are still the crowd's only signal that reaches her. Strike pips still ride on each bench card. The mechanic is intact; only the modal is gone.</div>
+      <div style="display:flex;align-items:flex-start;gap:9px;margin-top:2px;padding:12px 13px;border-radius:14px;background:rgba(185,168,255,.1);border:1px solid rgba(185,168,255,.4)">
+        <span style="font-size:14px;color:#b9a8ff">◔</span>
+        <div style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:11.5px;line-height:1.55;color:rgba(214,205,255,.88)"><strong style="color:#fff">One thing to watch.</strong> A permanent bench means three people are on camera for a long time without a turn, and that's a worse seat than the old invisible queue — you can be publicly ignored. Two guards: the strike rule already caps how long anyone rots there, and bench cells should show a <code style="font-family:'Azeret Mono',monospace;font-size:10.5px;color:#fff">NEXT UP</code> tag on the leader so waiting reads as progress. If retention on the bench turns out bad, rotate it every round instead of on promotion.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1300,&quot;height&quot;:1000}}">
+/* TWO LAMPS: her cell is warm-lit (rose-gold key, spill past the frame), the
+   chairs cool-lit (flat teal key, contained). At equal size a ring is a label
+   and light is a place — the spill is the tell, no chair lights outside itself. */
+const WARM = { well: "#1a1230", wash: "radial-gradient(120% 88% at 24% 12%, rgba(255,168,200,.34), transparent 62%), radial-gradient(90% 60% at 62% 108%, rgba(255,110,170,.22), transparent 66%)", faceLight: "rgba(255,226,236,.3)" };
+const COOL = { well: "#101a30", wash: "radial-gradient(closest-side at 46% 32%, rgba(45,227,208,.19), transparent 68%)", faceLight: "rgba(214,244,255,.16)" };
+const H = "168px";
+
+function cell(o) {
+  return Object.assign({
+    h: H, span: "auto", rim: "1.5px solid rgba(45,227,208,.55)", rimbg: "rgba(6,8,24,.45)",
+    glow: "0 0 10px rgba(45,227,208,.22)", op: "1", faceGlow: true, sil: false,
+    faceW: "78px", faceH: "94px", blur: "none",
+    name: "", namebg: "rgba(6,8,24,.66)", mic: false, statusIcon: "", plaqueBottom: "6px",
+    hearts: "", tag: "", tagbg: "rgba(6,8,24,.66)", tagink: "#aef7ee",
+    clock: "", clockTop: "6px", clockPad: "2px 7px", clockbg: "rgba(4,33,31,.74)",
+    clockborder: "1px solid rgba(45,227,208,.8)", clockSize: "10px", clockink: "#7ff2e6",
+    verdict: false, tapHeart: false, tapInk: "transparent",
+    tapStroke: "rgba(255,214,233,.85)", tapGlow: "0 1px 4px rgba(0,0,0,.9)",
+    /* foot sits ABOVE the cell (under the clock), never at the bottom edge —
+       the name plaque owns bottom-left and the two collide there. */
+    foot: "", footTop: "34px", footInk: "#ffd6e9",
+    /* `empty` = the join CTA (+ circle, title, sub). NEVER reuse it for an
+       occupied cell: the teal + means "TAKE THE CHAIR" everywhere else, and it
+       needs ~78px it won't get in a short strip. `strip` is the one-line
+       treatment for occupied-but-collapsed cells. */
+    /* `promo` = a chair mid-promotion. Reserved, NOT joinable — it gets a gold
+       countdown and never the teal "+", which is reserved for open seats. */
+    empty: "", emptySub: "", strip: "", stripSub: "", promo: "", promoWho: "", promoSub: ""
+  }, COOL, o);
+}
+const host = (o) => cell(Object.assign({
+  rim: "2px solid #ff2d8f", rimbg: "rgba(255,45,143,.14)",
+  glow: "0 0 26px rgba(255,45,143,.6), 0 0 60px rgba(255,138,194,.28)",
+  name: "MARLA V.", namebg: "rgba(255,45,143,.85)", tag: "HOST",
+  tagbg: "linear-gradient(180deg,#ffb4d9,#ff2d8f)", tagink: "#5c0230"
+}, WARM, o));
+/* empty seat IS the CTA — an invitation, not a dashed apology */
+const openSeat = (sub) => cell({
+  faceGlow: false, well: "rgba(16,26,48,.5)", wash: "none",
+  rim: "1.5px dashed rgba(45,227,208,.65)", rimbg: "rgba(45,227,208,.08)",
+  glow: "0 0 16px rgba(45,227,208,.26)", empty: "TAKE THE CHAIR", emptySub: sub
+});
+
+const pips = (n) => [0, 1, 2].map(i => ({ bg: i < n ? "#ff7ab8" : "rgba(255,255,255,.2)" }));
+/* BENCH: exactly three, half-height, always scored. Front of the queue in join
+   order — hearts decide who gets promoted, never who stands where. */
+/* Bench cells are SQUARE — 116px, matching the 3-up column width at 390. A
+   square reads as a portrait; the old 120x78 letterbox read as a thumbnail
+   strip, which is exactly the "wallpaper" failure. Squares also give the name
+   plaque and heart chip room to sit without cropping the face. */
+function bench(o) {
+  return Object.assign({
+    h: "116px", ls: "255,224,236", hue: "#ffe0ec", ink: "#4a0724", badge: "",
+    bg: "rgba(6,8,24,.5)", border: "1px solid rgba(185,168,255,.35)",
+    glow: "none", anim: "none", well: "#141a3a",
+    wash: "radial-gradient(closest-side at 46% 36%, rgba(255,255,255,.2), transparent 72%)",
+    sil: false, name: "", n: "0", heartink: "#ffd6e9", pips: null
+  }, o);
+}
+const NEXTUP = { badge: "NEXT UP", ls: "255,194,77", hue: "#ffc24d", ink: "#3d2600",
+  bg: "rgba(255,194,77,.16)", border: "1.5px solid #ffc24d",
+  glow: "0 0 18px rgba(255,194,77,.55)", anim: "surge 1.4s ease-in-out infinite", heartink: "#fff" };
+
+const CHAT = [
+  { who: "Theo", text: "he did NOT just say that", color: "#b9a8ff" },
+  { who: "THE HOUSE", text: "Marisol joined the bench", color: "#7ff2e6" },
+  { who: "Ade", text: "chair one has no shot lol", color: "#b9a8ff" },
+  { who: "Wren", text: "ok the boat story is working", color: "#b9a8ff" },
+  { who: "Dock", text: "chair two is actually funny", color: "#b9a8ff" },
+  { who: "THE HOUSE", text: "round 2 · open floor", color: "#7ff2e6" },
+  { who: "Marisol", text: "hearts on the bench, second one", color: "#b9a8ff" }
+];
+const PH_TEAL = { phasebg: "rgba(45,227,208,.16)", phaseborder: "1px solid rgba(45,227,208,.6)", phaseink: "#aef7ee" };
+const PH_GOLD = { phasebg: "rgba(255,214,233,.2)", phaseborder: "1px solid rgba(255,214,233,.7)", phaseink: "#ffd6e9" };
+const PH_PINK = { phasebg: "rgba(255,45,143,.24)", phaseborder: "1px solid rgba(255,45,143,.8)", phaseink: "#fff" };
+const CTA_ASK = { cta: "ASK", ctabg: "rgba(255,45,143,.34)", ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff", ctaglow: "0 0 26px rgba(255,45,143,.6)" };
+const CTA_JOIN = { cta: "♥ TAKE A BENCH SEAT", ctabg: "rgba(255,45,143,.34)", ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff", ctaglow: "0 0 26px rgba(255,45,143,.65)" };
+
+class Component extends DCLogic {
+  renderVals() {
+    const base = {
+      cols: "1fr 1fr", chat: CHAT,
+      benchLabel: "THE BENCH", benchInk: "#ffd6e9",
+      benchNote: "earning hearts until a chair opens", benchMeta: "+5 IN LINE",
+      ...PH_TEAL, ...CTA_JOIN
+    };
+    /* crowd sees bench faces; SHE sees the same three as silhouettes + counts */
+    const benchFaces = [
+      bench(Object.assign({ name: "DOCK", n: "412", pips: pips(0) }, NEXTUP)),
+      bench({ name: "MARISOL", n: "268", pips: pips(1) }),
+      bench({ name: "THEO", n: "97", pips: pips(2) })
+    ];
+    const benchSils = [
+      bench(Object.assign({ sil: true, well: "linear-gradient(180deg,#2a2450,#12142e)", wash: "none", n: "412", pips: pips(0) }, NEXTUP)),
+      bench({ sil: true, well: "linear-gradient(180deg,#232045,#101227)", wash: "none", n: "268", pips: pips(1) }),
+      bench({ sil: true, well: "linear-gradient(180deg,#232045,#101227)", wash: "none", n: "97", pips: pips(2) })
+    ];
+    const trio = (extra) => [
+      cell(Object.assign({ name: "DEV", hearts: "88", clock: "0:42" }, extra)),
+      cell(Object.assign({ name: "JUNE", hearts: "240", clock: "0:38" }, extra)),
+      cell(Object.assign({ name: "SAM", hearts: "156", clock: "1:04" }, extra))
+    ];
+
+    return {
+      frames: [
+        Object.assign({}, base, {
+          tag: "D1 · DEFAULT · SPECTATOR", dot: "#7ff2e6", rim: "#2e4a52", phase: "R2 ●●○",
+          blurb: "The new default. Four playing cells over three bench cells — seven faces, two tiers, everything scored. Heart chips upper-left like the reference, name plaques as bottom-edge pills, and the whole bench is tappable so the crowd can back someone before he ever sits down.",
+          cells: [
+            host({}),
+            cell({ name: "DEV", hearts: "88", clock: "0:42", tapHeart: true }),
+            cell({ name: "JUNE", hearts: "240", clock: "0:38", tapHeart: true, tapInk: "rgba(255,45,143,.55)", tapStroke: "rgba(255,145,190,.9)", tapGlow: "0 0 12px rgba(255,45,143,.75)" }),
+            cell({ name: "SAM", hearts: "156", clock: "1:04", tapHeart: true })
+          ],
+          bench: benchFaces
+        }),
+        Object.assign({}, base, {
+          tag: "D2 · HOST · BENCH IS BLIND", dot: "#ff8ac2", rim: "#5a2e46", phase: "R2 ●●○", ...CTA_ASK,
+          blurb: "Her view keeps the blind pick: the same three bench seats render as silhouettes with live counts, never faces. Hearts remain the crowd's only signal that reaches her. Her per-chair verb is ASK, not a verdict — keep/pass happens once in the decision tray after round 3, so bigger cells don't get to reinstate it. The affordance sits bottom-right so the name plaque keeps the left edge.",
+          cells: [host({}), ...trio({ verdict: true })],
+          bench: benchSils, benchNote: "you see hearts, not faces", benchLabel: "THE BENCH · BLIND"
+        }),
+        Object.assign({}, base, {
+          tag: "D3 · SPOTLIGHT · SPLIT SCREEN", dot: "#ffd6e9", rim: "#5a4a2e", phase: "0:22 · SPOTLIGHT", ...PH_GOLD, ...CTA_ASK,
+          blurb: "During a direct question the quad breaks to a two-up — her left, him right, both 305px, the interview shot. The other two chairs collapse to a muted 46px strip; the bench stays exactly where it was, still earning. One grid-template interpolation, so the video never pops.",
+          cells: [
+            host({ h: "305px", faceW: "104px", faceH: "128px" }),
+            cell({ h: "305px", name: "JUNE", mic: true, hearts: "240", faceW: "104px", faceH: "128px",
+              rim: "2px solid #ff2d8f", rimbg: "rgba(255,45,143,.14)", glow: "0 0 26px rgba(255,45,143,.8)",
+              namebg: "rgba(255,45,143,.85)", clock: "0:22", clockPad: "4px 11px", clockSize: "21px",
+              clockborder: "1.5px solid #2de3d0", foot: "HIS CLOCK HELD", footTop: "40px" }),
+            cell({ h: "46px", span: "1 / -1", op: ".55", faceGlow: false, blur: "blur(3px)",
+              rim: "1px solid rgba(45,227,208,.26)", glow: "none", well: "rgba(16,26,48,.7)", wash: "none",
+              strip: "DEV · SAM", stripSub: "muted until the answer lands" })
+          ],
+          bench: benchFaces
+        }),
+        Object.assign({}, base, {
+          tag: "D4 · CHAIR OPENS · PROMOTION", dot: "#ffd6e9", rim: "#5a4a2e", phase: "0:05 · PROMOTING", ...PH_GOLD, ...CTA_ASK,
+          blurb: "What replaces the storm. No modal, no fifteen seconds — the chair opens, the bench leader is already known, and she has five seconds to override before he rises on the camera-flip. The crowd has been backing him for four minutes, so this is a payoff, not an event.",
+          cells: [
+            host({}),
+            cell({ name: "DEV", hearts: "88", clock: "0:42" }),
+            cell({ faceGlow: false, well: "rgba(26,18,38,.72)", wash: "none",
+              rim: "2px solid #ffc24d", rimbg: "rgba(255,194,77,.14)", glow: "0 0 24px rgba(255,194,77,.6)",
+              promo: "0:05", promoWho: "DOCK RISING", promoSub: "tap a bench seat to override" }),
+            cell({ name: "SAM", hearts: "156", clock: "1:04" })
+          ],
+          bench: [
+            bench(Object.assign({ sil: true, well: "linear-gradient(180deg,#3a2f18,#1a1508)", wash: "none", n: "412", badge: "RISING", pips: pips(0) }, NEXTUP)),
+            bench({ sil: true, well: "linear-gradient(180deg,#232045,#101227)", wash: "none", n: "268", pips: pips(1) }),
+            bench({ sil: true, well: "linear-gradient(180deg,#232045,#101227)", wash: "none", n: "97", pips: pips(2) })
+          ],
+          benchLabel: "THE BENCH · BLIND", benchNote: "tap another to override", benchMeta: "NEXT DROPS IN",
+          chat: [
+            { who: "Wren", text: "he's been on that bench all night", color: "#b9a8ff" },
+            { who: "Ade", text: "412 is not close", color: "#b9a8ff" },
+            { who: "Theo", text: "let him up already", color: "#b9a8ff" },
+            { who: "THE HOUSE", text: "chair 3 open · Dock leads the bench", color: "#ffd6e9" },
+            { who: "Marisol", text: "FINALLY", color: "#b9a8ff" }
+          ]
+        }),
+        Object.assign({}, base, {
+          tag: "D5 · EMPTY SEATS · RECRUITING", dot: "#7ff2e6", rim: "#2e4a52", phase: "WARMING UP",
+          blurb: "The reference's best idea: an empty seat is the join button, not a placeholder. Two open quadrants read as an invitation with a real tap target, and the copy names the actual mechanic — you join the bench, she picks from it.",
+          cells: [
+            host({}),
+            cell({ name: "DEV", hearts: "88", clock: "0:42" }),
+            openSeat("she picks from the bench"),
+            openSeat("she picks from the bench")
+          ],
+          bench: [
+            bench({ name: "MARISOL", n: "12", pips: pips(0) }),
+            bench({ faceGlow: false, well: "rgba(16,26,48,.5)", wash: "none", border: "1px dashed rgba(185,168,255,.35)", n: "0" }),
+            bench({ faceGlow: false, well: "rgba(16,26,48,.5)", wash: "none", border: "1px dashed rgba(185,168,255,.35)", n: "0" })
+          ],
+          benchNote: "two bench seats free too", benchMeta: "0 IN LINE"
+        }),
+        Object.assign({}, base, {
+          tag: "D6 · ADAPTIVE DENSITY · 2-UP", dot: "#b9a8ff", rim: "#3b2a72", phase: "R1 ●○○", ...PH_PINK, ...CTA_ASK,
+          blurb: "Early in the night with one suitor, the grid collapses to a single tall row rather than reserving two dead quadrants. Density follows occupancy — the room never shows a hole it can't fill, and the bench below is where the pressure to fill it lives.",
+          cols: "1fr 1fr",
+          cells: [
+            host({ h: "252px", faceW: "96px", faceH: "116px" }),
+            cell({ h: "252px", name: "DEV", hearts: "88", clock: "0:42", faceW: "96px", faceH: "116px", verdict: true })
+          ],
+          bench: benchSils, benchLabel: "THE BENCH · BLIND",
+          benchNote: "two chairs open — promote any time", benchMeta: "+5 IN LINE"
+        })
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

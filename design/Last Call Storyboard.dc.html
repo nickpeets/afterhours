@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Archivo:wght@400;500;600;700;800&family=Azeret+Mono:wght@400;600;700&family=Monoton&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#080b20;}
+  *{box-sizing:border-box;}
+  @keyframes tally{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes beat{0%,100%{transform:scale(1)}18%{transform:scale(1.12)}36%{transform:scale(1)}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+
+<section style="padding:52px 46px 44px;font-family:Archivo,sans-serif;color:#eef0ff">
+  <div id="6a" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+    <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.3em;color:#2de3d0">TURN 6 · ONE EPISODE, THREE POINTS OF VIEW · <a href="#6a" style="color:#ff6fb0;text-decoration:none">6a</a></div>
+    <div style="font-family:Monoton,cursive;font-size:42px;line-height:1.14;letter-spacing:.02em;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.5),0 0 26px rgba(255,45,143,.95),0 0 60px rgba(255,45,143,.45)">THE STORYBOARD</div>
+    <div style="font-size:14px;max-width:800px;color:rgba(238,240,255,.74);line-height:1.55;text-wrap:pretty">Six beats down, three columns across. Same room, same second — what changes is what you're allowed to see and what you're allowed to do. The line is dark for everyone until a chair opens; then it's a fifteen-second storm. Read a row to compare; read a column to live one night as one person.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:10px;max-width:1000px;margin-bottom:30px">
+    <div style="flex:1;min-width:230px;padding:12px 13px;border-radius:15px;background:rgba(255,45,143,.1);border:1px solid rgba(255,45,143,.4)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.18em;color:#ff8ac2;margin-bottom:5px">HOST · SHE RUNS IT</div>
+      <div style="font-size:11.5px;line-height:1.5;color:rgba(255,214,233,.85)">Sees the chairs in full, the line only as a number. Asks, skips, decides once at the end.</div>
+    </div>
+    <div style="flex:1;min-width:230px;padding:12px 13px;border-radius:15px;background:rgba(45,227,208,.1);border:1px solid rgba(45,227,208,.45)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.18em;color:#7ff2e6;margin-bottom:5px">CHAIR · HE'S AUDITIONING</div>
+      <div style="font-size:11.5px;line-height:1.5;color:rgba(174,247,238,.85)">Sees her and his rivals. Can't see the queue behind him — only how deep it is.</div>
+    </div>
+    <div style="flex:1;min-width:230px;padding:12px 13px;border-radius:15px;background:rgba(185,168,255,.1);border:1px solid rgba(185,168,255,.45)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.18em;color:#d6cdff;margin-bottom:5px">ROOM · THEY CAST IT</div>
+      <div style="font-size:11.5px;line-height:1.5;color:rgba(214,205,255,.85)">Sees her and the chairs. The line is dark during play — but when a chair opens, the crowd's hearts pick who fills it.</div>
+    </div>
+  </div>
+
+  <sc-for list="{{ beats }}" as="b" hint-placeholder-count="6">
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:38px">
+      <div style="display:flex;align-items:baseline;gap:12px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.1)">
+        <div style="font-family:'Azeret Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.2em;color:#2de3d0;white-space:nowrap">{{ b.no }}</div>
+        <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:24px;color:#fff;white-space:nowrap">{{ b.title }}</div>
+        <div style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:12.5px;line-height:1.5;color:rgba(238,240,255,.65)">{{ b.note }}</div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:22px">
+        <sc-for list="{{ b.cells }}" as="c" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="width:7px;height:7px;border-radius:50%;background:{{ c.dot }}"></span>
+              <span style="font-family:'Azeret Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.16em;color:{{ c.dot }}">{{ c.pov }}</span>
+            </div>
+
+            <div style="position:relative;width:300px;height:650px;border-radius:34px;overflow:hidden;background:#080b20;box-shadow:0 0 0 2.5px #241a52,0 22px 44px -14px rgba(0,0,0,.85)">
+              <div style="position:absolute;inset:0;background:#141a3a;background-image:radial-gradient(closest-side at 44% 27%, rgba(255,255,255,.16), transparent 64%),radial-gradient(closest-side at 76% 76%, rgba(255,45,143,.2), transparent 72%)">
+                <div style="position:absolute;left:50%;top:24%;transform:translate(-50%,-50%);width:112px;height:140px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.15),transparent 72%)"></div>
+                <div style="position:absolute;left:0;right:0;top:0;height:112px;background:linear-gradient(180deg,rgba(4,6,18,.88),transparent)"></div>
+                <div style="position:absolute;left:0;right:0;bottom:0;height:330px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.5) 44%,rgba(4,6,18,.84))"></div>
+              </div>
+
+              <div style="position:absolute;left:0;right:0;top:0;display:flex;flex-wrap:nowrap;align-items:center;gap:6px;padding:34px 10px 8px;overflow:hidden">
+                <div style="font-family:Monoton,cursive;font-size:10px;letter-spacing:.04em;color:#fff;text-shadow:0 0 10px rgba(255,45,143,.85);flex:none">LAST CALL</div>
+                <div style="flex:1"></div>
+                <div style="display:flex;align-items:center;gap:4px;min-height:22px;padding:0 7px;border-radius:11px;background:{{ c.phasebg }};border:{{ c.phaseborder }};font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.08em;color:{{ c.phaseink }};white-space:nowrap">{{ c.phase }}</div>
+                <div style="display:flex;align-items:center;gap:3px;min-height:22px;padding:0 7px;border-radius:11px;background:rgba(8,11,32,.62);border:1px solid rgba(185,168,255,.4);font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;color:#eef0ff;white-space:nowrap">👁 {{ c.eyes }}</div>
+              </div>
+
+              <div style="position:absolute;left:10px;top:78px;display:flex;align-items:center;gap:5px">
+                <div style="padding:3px 9px;border-radius:11px;background:rgba(6,8,24,.6);border:1px solid rgba(255,45,143,.75);backdrop-filter:blur(8px);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:12px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">MARLA V.</div>
+                <sc-if value="{{ c.isHost }}" hint-placeholder-val="{{ true }}">
+                  <div style="padding:2px 7px;border-radius:10px;background:linear-gradient(180deg,#ffb4d9,#ff2d8f);font-family:'Azeret Mono',monospace;font-size:7px;font-weight:700;letter-spacing:.12em;color:#5c0230">YOU</div>
+                </sc-if>
+              </div>
+
+              <div style="position:absolute;right:10px;top:80px;display:flex;flex-direction:column;align-items:center;gap:8px">
+                <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.55);backdrop-filter:blur(8px);color:#b9a8ff;font-size:14px">🛡</div>
+                <sc-if value="{{ c.showGift }}" hint-placeholder-val="{{ true }}">
+                  <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:{{ c.giftbg }};border:{{ c.giftborder }};backdrop-filter:blur(8px);font-size:16px;opacity:{{ c.giftop }}">🎁</div>
+                </sc-if>
+                <div style="width:36px;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;border-radius:50%;background:rgba(255,45,143,.14);border:1px solid rgba(255,45,143,.45);backdrop-filter:blur(8px)">
+                  <span style="font-size:14px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,45,143,1);animation:beat 2.2s ease-in-out infinite">♥</span>
+                  <span style="font-family:'Azeret Mono',monospace;font-size:7px;font-weight:700;color:#ffd6e9">{{ c.hearts }}</span>
+                </div>
+              </div>
+
+              <sc-if value="{{ c.banner }}" hint-placeholder-val="{{ true }}">
+                <div style="position:absolute;left:10px;right:10px;top:{{ c.bannerTop }};padding:10px 12px;border-radius:15px;background:rgba(6,8,24,.32);border:1px solid {{ c.bannerEdge }};border-left:3px solid {{ c.bannerEdge }};backdrop-filter:blur(16px) saturate(1.1)">
+                  <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:{{ c.bannerSize }};line-height:1.24;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,1)">{{ c.banner }}</div>
+                  <div style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.14em;color:{{ c.bannerKickInk }};margin-top:5px">{{ c.bannerKick }}</div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ c.centre }}" hint-placeholder-val="{{ true }}">
+                <div style="position:absolute;left:0;right:0;top:180px;display:flex;flex-direction:column;align-items:center;gap:9px;padding:0 24px;text-align:center">
+                  <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:{{ c.centreSize }};line-height:1.08;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.45),0 0 22px rgba(255,45,143,.85)">{{ c.centre }}</div>
+                  <div style="font-family:Archivo,sans-serif;font-size:11.5px;line-height:1.45;color:rgba(238,240,255,.72);text-shadow:0 1px 4px rgba(0,0,0,.95)">{{ c.centreSub }}</div>
+                </div>
+              </sc-if>
+
+              <div style="position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:7px;padding:0 10px 16px">
+                <div style="display:flex;gap:6px;align-items:flex-end">
+                  <sc-for list="{{ c.chairs }}" as="h" hint-placeholder-count="3">
+                    <div style="flex:{{ h.flex }};padding:2.5px;border-radius:13px;background:{{ h.rimbg }};border:{{ h.rim }};box-shadow:{{ h.glow }};opacity:{{ h.op }}">
+                      <div style="position:relative;height:{{ h.h }};border-radius:10px;overflow:hidden;background:#141a3a;background-image:{{ h.wash }}">
+                        <sc-if value="{{ h.blur }}" hint-placeholder-val="{{ true }}">
+                          <div style="position:absolute;inset:0;background:rgba(6,10,30,.3);backdrop-filter:blur(6px)"></div>
+                        </sc-if>
+                        <div style="position:absolute;left:0;right:0;bottom:0;height:38px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.8))"></div>
+                        <sc-if value="{{ h.name }}" hint-placeholder-val="{{ true }}">
+                          <div style="position:absolute;top:3px;left:3px;padding:1px 6px;border-radius:9px;background:{{ h.namebg }};font-family:Archivo,sans-serif;font-weight:800;font-size:8px;color:{{ h.nameink }};text-shadow:0 1px 3px rgba(0,0,0,.9)">{{ h.name }}</div>
+                        </sc-if>
+                        <sc-if value="{{ h.clock }}" hint-placeholder-val="{{ true }}">
+                          <div style="position:absolute;top:3px;right:3px;padding:1px 5px;border-radius:6px;background:{{ h.clockbg }};border:{{ h.clockborder }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:{{ h.clocksize }};color:{{ h.clockink }}">{{ h.clock }}</div>
+                        </sc-if>
+                        <sc-if value="{{ h.hearts }}" hint-placeholder-val="{{ true }}">
+                          <div style="position:absolute;top:20px;left:3px;display:flex;align-items:center;gap:2px;padding:1px 5px;border-radius:8px;background:rgba(6,8,24,.5)"><span style="font-size:8px;line-height:1;color:#ff2d8f">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:8px;color:#ffd6e9">{{ h.hearts }}</span></div>
+                        </sc-if>
+                        <sc-if value="{{ h.foot }}" hint-placeholder-val="{{ true }}">
+                          <div style="position:absolute;left:3px;right:3px;bottom:3px;min-height:26px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:{{ h.footbg }};border:{{ h.footborder }};font-family:'Azeret Mono',monospace;font-size:7px;font-weight:700;letter-spacing:.1em;color:{{ h.footink }};text-shadow:0 1px 4px rgba(0,0,0,.95)">{{ h.foot }}</div>
+                        </sc-if>
+                        <sc-if value="{{ h.empty }}" hint-placeholder-val="{{ true }}">
+                          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:'Azeret Mono',monospace;font-size:7px;font-weight:700;letter-spacing:.12em;color:{{ h.emptyink }};text-align:center;line-height:1.6">{{ h.empty }}</div>
+                        </sc-if>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <div style="display:flex;align-items:center;gap:6px;min-height:34px;padding:6px 9px;border-radius:12px;background:{{ c.linebg }};border:{{ c.lineborder }};backdrop-filter:blur(8px)">
+                  <span style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.12em;color:{{ c.lineink }};white-space:nowrap">{{ c.lineLabel }}</span>
+                  <sc-if value="{{ c.lineFaces }}" hint-placeholder-val="{{ true }}">
+                    <div style="flex:1;display:flex;gap:4px;justify-content:flex-end">
+                      <sc-for list="{{ c.deck }}" as="d" hint-placeholder-count="4">
+                        <div style="width:26px;display:flex;flex-direction:column;align-items:center;gap:2px">
+                          <div style="position:relative;width:26px;height:24px;border-radius:8px;overflow:hidden;background:{{ d.bg }};border:{{ d.border }}">
+                            <sc-if value="{{ d.face }}" hint-placeholder-val="{{ true }}">
+                              <div style="position:absolute;inset:0;background-image:radial-gradient(closest-side at 48% 36%, rgba(255,255,255,.24), transparent 74%)"></div>
+                            </sc-if>
+                            <sc-if value="{{ d.sil }}" hint-placeholder-val="{{ true }}">
+                              <div style="position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:rgba(185,168,255,.36)"></div>
+                              <div style="position:absolute;left:50%;top:66%;transform:translate(-50%,-50%);width:13px;height:14px;border-radius:7px 7px 4px 4px;background:rgba(185,168,255,.3)"></div>
+                            </sc-if>
+                          </div>
+                          <span style="font-family:'Azeret Mono',monospace;font-size:6.5px;font-weight:700;color:{{ d.ink }}">{{ d.h }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ c.lineNote }}" hint-placeholder-val="{{ true }}">
+                    <span style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:10px;color:{{ c.lineNoteInk }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">{{ c.lineNote }}</span>
+                  </sc-if>
+                </div>
+
+                <div style="max-height:56px;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;overflow:hidden;-webkit-mask-image:linear-gradient(to top,#000 60%,transparent);mask-image:linear-gradient(to top,#000 60%,transparent)">
+                  <sc-for list="{{ c.chat }}" as="m" hint-placeholder-count="2">
+                    <div style="display:flex;gap:5px;align-items:baseline;text-shadow:0 1px 4px rgba(0,0,0,.98)">
+                      <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:10.5px;color:{{ m.color }};white-space:nowrap">{{ m.who }}</span>
+                      <span style="font-family:Archivo,sans-serif;font-size:11.5px;line-height:1.35;color:#fff">{{ m.text }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <div style="display:flex;gap:6px;align-items:center">
+                  <div style="flex:1;min-width:0;min-height:40px;display:flex;align-items:center;padding:0 12px;border-radius:20px;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.4);backdrop-filter:blur(10px);font-family:Archivo,sans-serif;font-size:12px;color:rgba(238,240,255,.5)">Say something…</div>
+                  <div style="flex:none;min-height:40px;padding:0 14px;display:flex;align-items:center;gap:5px;border-radius:20px;cursor:pointer;background:{{ c.ctabg }};border:{{ c.ctaborder }};backdrop-filter:blur(10px);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:12px;color:{{ c.ctaink }};text-shadow:0 1px 4px rgba(0,0,0,.9);box-shadow:{{ c.ctaglow }};white-space:nowrap">{{ c.cta }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="width:300px;font-family:Archivo,sans-serif;font-size:11.5px;line-height:1.5;color:rgba(238,240,255,.6);text-wrap:pretty">{{ c.caption }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:1000}}">
+/* ---------- shared cell primitives ---------- */
+const PINK = "1.5px solid #ff2d8f", TEAL = "1.5px solid rgba(45,227,208,.75)";
+const DIM = "1px solid rgba(45,227,208,.3)", DASH = "1.5px dashed rgba(45,227,208,.5)";
+const WASH_T = "radial-gradient(closest-side at 46% 32%, rgba(45,227,208,.2), transparent 70%)";
+const WASH_P = "radial-gradient(closest-side at 48% 32%, rgba(255,45,143,.26), transparent 70%)";
+const RIM = "rgba(6,8,24,.45)";
+
+function chair(o) {
+  return Object.assign({
+    flex: "1", h: "104px", rim: TEAL, rimbg: RIM, glow: "0 0 10px rgba(45,227,208,.4)",
+    op: "1", wash: WASH_T, blur: false, name: "", namebg: "rgba(6,8,24,.6)", nameink: "#fff",
+    clock: "", clockbg: "rgba(4,33,31,.7)", clockborder: "1px solid rgba(45,227,208,.8)",
+    clockink: "#7ff2e6", clocksize: "8px", hearts: "", foot: "", footbg: "transparent",
+    footborder: "none", footink: "#ffd6e9", empty: "", emptyink: "rgba(45,227,208,.7)"
+  }, o);
+}
+const OPEN = (n) => chair({ rim: DASH, rimbg: "rgba(6,8,24,.3)", glow: "none", wash: "none", empty: n, });
+const face = (h) => ({ bg: "#141a3a", border: "1px solid rgba(255,255,255,.35)", face: true, sil: false, h, ink: "#ffd6e9" });
+const sil = (h) => ({ bg: "linear-gradient(180deg,#232045,#101227)", border: "1px solid rgba(185,168,255,.4)", face: false, sil: true, h, ink: "rgba(214,205,255,.8)" });
+
+const DECK_FACES = [face("412"), face("268"), face("97"), face("41")];
+const DECK_SILS = [sil("412"), sil("268"), sil("97"), sil("41")];
+/* THE STORM: only place line faces ever appear. Tallies are mid-climb, and the
+   leader is flagged — gold, because this is the crowd's voice at full volume. */
+const surge = (o) => Object.assign(o, { border: "1.5px solid #ffd6e9", ink: "#fff" });
+const STORM_FACES = [surge(face("412")), face("268"), face("97"), face("41")];
+const STORM_SILS = [surge(sil("412")), sil("268"), sil("97"), sil("41")];
+const CHAT_STORM = [
+  { who: "THE HOUSE", text: "chair 3 open — 4 up", color: "#ffd6e9" },
+  { who: "Marisol", text: "the one on the left GO", color: "#b9a8ff" }
+];
+
+const CHAT_A = [
+  { who: "Marisol", text: "one seat left, somebody go", color: "#b9a8ff" },
+  { who: "Dock", text: "I'm in line I'm in line", color: "#b9a8ff" }
+];
+const CHAT_B = [
+  { who: "THE HOUSE", text: "Marla asked June", color: "#7ff2e6" },
+  { who: "Theo", text: "good question tbh", color: "#b9a8ff" }
+];
+const CHAT_C = [
+  { who: "Marisol", text: "chair two is charming", color: "#b9a8ff" },
+  { who: "Dock", text: "hearts on the new guy", color: "#b9a8ff" }
+];
+const CHAT_D = [
+  { who: "Marisol", text: "I can't watch", color: "#b9a8ff" },
+  { who: "Dock", text: "chair two chair two", color: "#b9a8ff" }
+];
+
+/* CTAs by role */
+const CTA_ASK = { cta: "ASK", ctabg: "rgba(255,45,143,.34)", ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff", ctaglow: "0 0 24px rgba(255,45,143,.6)" };
+const CTA_LEAVE = { cta: "↩ LEAVE", ctabg: "rgba(185,168,255,.14)", ctaborder: "1.5px solid rgba(185,168,255,.6)", ctaink: "#d6cdff", ctaglow: "none" };
+const CTA_JOIN = { cta: "♥ JOIN THE LINE", ctabg: "rgba(255,45,143,.34)", ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff", ctaglow: "0 0 24px rgba(255,45,143,.65)" };
+const CTA_SEAT = { cta: "♥ TAKE SEAT", ctabg: "rgba(255,45,143,.34)", ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff", ctaglow: "0 0 24px rgba(255,45,143,.65)" };
+const CTA_SKIP = { cta: "⏭ HEARD ENOUGH", ctabg: "rgba(45,227,208,.24)", ctaborder: "1.5px solid rgba(45,227,208,.85)", ctaink: "#aef7ee", ctaglow: "0 0 18px rgba(45,227,208,.35)" };
+const CTA_WAIT = { cta: "WATCHING", ctabg: "rgba(6,8,24,.6)", ctaborder: "1.5px solid rgba(185,168,255,.5)", ctaink: "rgba(214,205,255,.85)", ctaglow: "none" };
+
+const PHASE_TEAL = { phasebg: "rgba(45,227,208,.16)", phaseborder: "1px solid rgba(45,227,208,.6)", phaseink: "#aef7ee" };
+const PHASE_PINK = { phasebg: "rgba(255,45,143,.24)", phaseborder: "1px solid rgba(255,45,143,.8)", phaseink: "#fff" };
+const PHASE_GOLD = { phasebg: "rgba(255,214,233,.2)", phaseborder: "1px solid rgba(255,214,233,.7)", phaseink: "#ffd6e9" };
+
+/* line strip presets per POV */
+/* ONE strip, three amounts of information. The container is identical in every
+   POV — same fill, same border, same label treatment — because it IS the same
+   component; only what it can show you changes. Differing chrome made it read
+   as three unrelated widgets and hid the actual point. */
+/* DURING PLAY THE LINE IS DARK — for everyone. No faces, no names, no hearts,
+   in any role. The queue exists only as depth. Candidates are revealed once, to
+   the whole room at once, inside the draft event; that's where the crowd's
+   hearts go. During play their hearts belong to the CHAIRS. */
+const LINE_SHELL = { linebg: "rgba(6,8,24,.5)", lineborder: "1px solid rgba(185,168,255,.35)", lineink: "#b9a8ff", lineFaces: false, deck: [], lineNoteInk: "rgba(214,205,255,.75)" };
+const LINE_HOST = Object.assign({}, LINE_SHELL, { lineLabel: "5 IN LINE", lineNote: "revealed when a chair opens" });
+const LINE_CHAIR = Object.assign({}, LINE_SHELL, { lineLabel: "5 BEHIND YOU", lineNote: "you can't see who" });
+const LINE_ROOM = Object.assign({}, LINE_SHELL, { lineLabel: "5 IN LINE", lineNote: "revealed when a chair opens" });
+
+function cell(pov, extra) {
+  const base = { eyes: "312", hearts: "1.2K", showGift: true, giftbg: "rgba(6,8,24,.6)",
+    giftborder: "1px solid rgba(185,168,255,.45)", giftop: "1", isHost: false,
+    banner: "", bannerTop: "196px", bannerSize: "15px", bannerEdge: "rgba(45,227,208,.5)",
+    bannerKick: "", bannerKickInk: "#7ff2e6", centre: "", centreSub: "", centreSize: "24px",
+    chat: CHAT_C };
+  const pov_ = pov === "HOST" ? Object.assign({ pov: "HOST", dot: "#ff8ac2", isHost: true }, LINE_HOST, CTA_ASK)
+    : pov === "CHAIR" ? Object.assign({ pov: "CHAIR 2", dot: "#7ff2e6" }, LINE_CHAIR, CTA_LEAVE)
+    : Object.assign({ pov: "ROOM", dot: "#d6cdff" }, LINE_ROOM, CTA_JOIN);
+  return Object.assign(base, PHASE_TEAL, pov_, extra);
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    const seated2 = [
+      chair({ name: "DEV", hearts: "88", clock: "0:42" }),
+      chair({ name: "JUNE", hearts: "240", clock: "0:38" }),
+      OPEN("LAST SEAT<br>OPEN")
+    ];
+    const seated3 = [
+      chair({ name: "DEV", hearts: "88", clock: "0:42" }),
+      chair({ name: "JUNE", hearts: "240", clock: "0:38" }),
+      chair({ name: "SAM", hearts: "156", clock: "1:04" })
+    ];
+    const spotlight = (mine) => [
+      chair({ flex: ".72", h: "84px", rim: DIM, glow: "none", op: ".5", blur: true, name: "DEV", clock: "❙❙", clockbg: "rgba(6,8,24,.6)", clockborder: "1px dashed rgba(45,227,208,.5)", clockink: "rgba(127,242,230,.7)" }),
+      chair({ flex: "1.5", h: "116px", rim: PINK, rimbg: "rgba(255,45,143,.14)", glow: "0 0 20px rgba(255,45,143,.8)", wash: WASH_P, name: mine ? "YOU" : "JUNE", namebg: "rgba(255,45,143,.85)", hearts: "240", clock: "0:22", clockbg: "rgba(4,33,31,.78)", clockborder: "1.5px solid #2de3d0", clocksize: "13px", foot: mine ? "YOUR CLOCK HELD" : "ANSWERING", footbg: "transparent" }),
+      chair({ flex: ".72", h: "84px", rim: DIM, glow: "none", op: ".5", blur: true, name: "SAM", clock: "❙❙", clockbg: "rgba(6,8,24,.6)", clockborder: "1px dashed rgba(45,227,208,.5)", clockink: "rgba(127,242,230,.7)" })
+    ];
+    const deciding = [
+      chair({ rim: "1px solid rgba(185,168,255,.45)", glow: "none", wash: "radial-gradient(closest-side at 46% 32%, rgba(255,255,255,.12), transparent 70%)", name: "DEV", hearts: "88" }),
+      chair({ rim: "1px solid rgba(185,168,255,.45)", glow: "none", wash: "radial-gradient(closest-side at 46% 32%, rgba(255,255,255,.12), transparent 70%)", name: "JUNE", hearts: "240" }),
+      chair({ rim: "1px solid rgba(185,168,255,.45)", glow: "none", wash: "radial-gradient(closest-side at 46% 32%, rgba(255,255,255,.12), transparent 70%)", name: "SAM", hearts: "156" })
+    ];
+    const refillDim = [
+      chair({ op: ".55", name: "RAVI", hearts: "412" }),
+      chair({ rim: "2px solid #ffd6e9", rimbg: "rgba(255,214,233,.14)", glow: "0 0 18px rgba(255,214,233,.55)", wash: "none", empty: "0:15<br>DRAFTING", emptyink: "#fff" }),
+      chair({ op: ".55", name: "SAM", hearts: "156" })
+    ];
+    const refill = [
+      chair({ name: "RAVI", hearts: "412", foot: "SEATED", footbg: "rgba(255,45,143,.85)", footink: "#3f0119" }),
+      chair({ rim: "2px solid #ffd6e9", rimbg: "rgba(255,214,233,.14)", glow: "0 0 18px rgba(255,214,233,.55)", wash: "none", empty: "0:15<br>DRAFTING", emptyink: "#fff" }),
+      chair({ name: "SAM", hearts: "156", clock: "1:04" })
+    ];
+
+    return {
+      beats: [
+        { no: "BEAT 1", title: "Pre-show", note: "Two chairs filled, one seat left. She's queueing her opener; nobody watching knows that.",
+          cells: [
+            cell("HOST", { phase: "WARMING UP", eyes: "96", chairs: seated2, chat: CHAT_A,
+              banner: "What's the last thing you made with your hands?", bannerKick: "QUEUED FOR ROUND 1", bannerTop: "196px",
+              caption: "Her drawer is open and an opener is locked. She sees two faces and three silhouettes — she has no idea who's about to take chair 3." }),
+            cell("CHAIR", { phase: "WARMING UP", eyes: "96", chairs: seated2, chat: CHAT_A,
+              centre: "", caption: "He's in. He can see Marla and Dev, and that nine people are behind him — not who, not how hot they are. Just depth." }),
+            cell("ROOM", { phase: "WARMING UP", eyes: "96", chairs: seated2, chat: CHAT_A, ...CTA_SEAT,
+              caption: "During play their hearts belong to the chairs, not the queue — the line is dark for everyone. Their power moment comes at the draft, when the candidates are finally revealed." })
+          ] },
+
+        { no: "BEAT 2", title: "Show start", note: "Third chair fills. Three seconds of lights-down, identical for everyone — the one moment all three views agree.",
+          cells: [
+            cell("HOST", { phase: "SHOW START", eyes: "312", chairs: seated3, chat: CHAT_B, ...PHASE_PINK,
+              centre: "LAST CALL", centreSub: "Round 1 in 3…", centreSize: "26px",
+              caption: "Her queued question fires the instant this clears, so round 1 opens on a question instead of silence." }),
+            cell("CHAIR", { phase: "SHOW START", eyes: "312", chairs: seated3, chat: CHAT_B, ...PHASE_PINK,
+              centre: "YOU'RE ON", centreSub: "Three chairs. Her call.", centreSize: "26px",
+              caption: "Chatting time is over and he feels it. Same beat, different copy — his says the spotlight is coming." }),
+            cell("ROOM", { phase: "SHOW START", eyes: "312", chairs: seated3, chat: CHAT_B, ...PHASE_PINK, ...CTA_JOIN,
+              centre: "IT'S ON", centreSub: "Dev · June · Sam", centreSize: "26px",
+              caption: "The cast lands as three names. Everyone they scouted either made it or is still in line — and they can keep pushing hearts either way." })
+          ] },
+
+        { no: "BEAT 3", title: "Spotlight", note: "She asks June. His tile grows and rings pink; the others blur and their clocks freeze. Gifts and paid mutes are off — money never eats an answer.",
+          cells: [
+            cell("HOST", { phase: "R1 ●○○", chairs: spotlight(false), chat: CHAT_B, ...CTA_SKIP,
+              giftbg: "rgba(6,8,24,.4)", giftborder: "1px dashed rgba(185,168,255,.3)", giftop: ".38",
+              banner: "What's the last thing you made with your hands?", bannerKick: "— FOR JUNE · REAL TALK", bannerTop: "196px",
+              caption: "Her banner sits below her own face zone. She can end it early with HEARD ENOUGH — she's never trapped by a clock she's done with." }),
+            cell("CHAIR", { phase: "YOU'RE UP", chairs: spotlight(true), chat: CHAT_B, ...PHASE_PINK,
+              giftbg: "rgba(6,8,24,.4)", giftborder: "1px dashed rgba(185,168,255,.3)", giftop: ".38",
+              banner: "What's the last thing you made with your hands?", bannerKick: "MARLA ASKED YOU · 0:22", bannerSize: "17px", bannerEdge: "rgba(255,45,143,.55)", bannerKickInk: "#ff8ac2", bannerTop: "180px",
+              caption: "Loudest thing on his screen is the question. His audition clock is visibly held — answering never eats the time he's judged on." }),
+            cell("ROOM", { phase: "R1 ●○○", chairs: spotlight(false), chat: CHAT_B, ...CTA_JOIN,
+              giftbg: "rgba(6,8,24,.4)", giftborder: "1px dashed rgba(185,168,255,.3)", giftop: ".38",
+              banner: "What's the last thing you made with your hands?", bannerKick: "SHE ASKED JUNE", bannerTop: "196px",
+              caption: "Audio is directed but chat stays rowdy — the crowd talks over the answer in text. Blurred chairs hide their heart counts: you can't back who you can't see." })
+          ] },
+
+        { no: "BEAT 4", title: "Open floor", note: "Mics back on for 45s. The only phase the paid 15s floor hold works in — buying attention can't interrupt an answer.",
+          cells: [
+            cell("HOST", { phase: "R2 ●●○", chairs: seated3, chat: CHAT_C,
+              caption: "Everyone's live at once. She listens, then taps a chair or ASK to fire the next spotlight — two taps, either order." }),
+            cell("CHAIR", { phase: "R2 ●●○", chairs: seated3, chat: CHAT_C,
+              caption: "His window to be interesting unprompted. This is where 🔇 TAKE THE FLOOR is available: 15s for 10 ✦, rivals blurred, their clocks frozen." }),
+            cell("ROOM", { phase: "R2 ●●○", chairs: seated3, chat: CHAT_C, ...CTA_JOIN,
+              caption: "Gifts and hearts flow freely. A gift can be aimed at a specific chair, so the room can reward a good answer in real time." })
+          ] },
+
+        { no: "BEAT 5", title: "She decides", note: "Deliberation's over. Keep one and the show ends in a win; pass one and a seat opens; clear the deck and all three go.",
+          cells: [
+            cell("HOST", { phase: "YOUR CALL", chairs: deciding, chat: CHAT_D, ...PHASE_PINK,
+              banner: "Keep one · Pass one · Clear the deck", bannerKick: "NOTHING HERE IS TIMED", bannerEdge: "rgba(255,45,143,.5)", bannerKickInk: "#ff8ac2", bannerTop: "196px",
+              caption: "Three moves, ranked by consequence. KEEP is the win and gets the shine; clearing the deck needs a confirm. Walk away lives here too." }),
+            cell("CHAIR", { phase: "SHE'S DECIDING", chairs: deciding, chat: CHAT_D, ...PHASE_PINK, ...CTA_WAIT,
+              centre: "SHE'S DECIDING", centreSub: "Nothing you can do now.", centreSize: "22px",
+              caption: "Chairs go neutral and equal — no tell, no way to lobby. The worst thirty seconds of his night, by design." }),
+            cell("ROOM", { phase: "SHE'S DECIDING", chairs: deciding, chat: CHAT_D, ...PHASE_PINK, ...CTA_JOIN,
+              centre: "SHE'S DECIDING", centreSub: "Hearts still count.", centreSize: "22px",
+              caption: "The drum roll. Backers of whoever gets kept earn +40 ✦, so the room has money on this — and they can still heart the line for whatever comes next." })
+          ] },
+
+        { no: "BEAT 6", title: "The storm", note: "A chair opened. Candidates are revealed to the crowd all at once for 15s, hearts are hammered live, and she picks blind off climbing tallies. The applause meter decides.",
+          cells: [
+            cell("HOST", { phase: "0:15 BLIND", chairs: refill, chat: CHAT_STORM, ...PHASE_GOLD, ...CTA_ASK,
+              banner: "THE CROWD IS TELLING YOU", bannerKick: "SILHOUETTES · TALLIES CLIMBING LIVE", bannerEdge: "rgba(255,214,233,.6)", bannerKickInk: "#ffd6e9", bannerTop: "186px",
+              lineLabel: "4 UP", lineFaces: true, deck: STORM_SILS, lineNote: "",
+              caption: "Four shapes and four numbers moving. Surging counts flare, so she feels momentum instead of reading a total — tap one on impulse, or the leader is seated at 0:00." }),
+            cell("CHAIR", { phase: "DRAFT · 0:15", chairs: refillDim, chat: CHAT_STORM, ...PHASE_GOLD, ...CTA_WAIT,
+              centre: "THE ROOM IS VOTING", centreSub: "Not your call. Not your hearts.", centreSize: "20px",
+              lineLabel: "DRAFT IN PROGRESS", lineNote: "read-only for chairs",
+              caption: "Competitors don't get a vote. His view dims to read-only — he watches a rival get chosen by the crowd and never sees it coming." }),
+            cell("ROOM", { phase: "0:15 LEFT", chairs: refillDim, chat: CHAT_STORM, ...PHASE_GOLD,
+              cta: "♥♥♥ TAP FAST", ctabg: "rgba(255,214,233,.34)", ctaborder: "1.5px solid rgba(255,255,255,.95)", ctaink: "#3f0119", ctaglow: "0 0 30px rgba(255,214,233,.8)",
+              banner: "SHE CAN'T SEE THEM — SHOW HER", bannerKick: "TAP AS MANY TIMES AS YOU LIKE", bannerEdge: "rgba(255,214,233,.6)", bannerKickInk: "#ffd6e9", bannerTop: "186px",
+              lineLabel: "4 UP", lineFaces: true, deck: STORM_FACES, lineNote: "",
+              caption: "The crowd's power moment: faces revealed now, hearts hammered rapid-fire, tallies racing. Their applause is the only thing she can read." })
+          ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

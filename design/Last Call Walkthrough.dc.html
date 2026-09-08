@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Archivo:wght@400;500;600;700;800&family=Azeret+Mono:wght@400;600;700&family=Monoton&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#080b20;}
+  *{box-sizing:border-box;}
+  @keyframes tally{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes beat{0%,100%{transform:scale(1)}18%{transform:scale(1.14)}36%{transform:scale(1)}}
+  @keyframes mic{0%,100%{opacity:1;transform:scaleY(1)}50%{opacity:.55;transform:scaleY(.5)}}
+  @keyframes surge{0%,100%{box-shadow:0 0 12px rgba(var(--ls,255,214,233),.45)}50%{box-shadow:0 0 26px rgba(var(--ls,255,214,233),.9)}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+
+<section style="padding:52px 46px 46px;font-family:Archivo,sans-serif;color:#eef0ff">
+  <div id="10a" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+    <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.3em;color:#2de3d0">TURN 10 · WALKTHROUGH · <a href="#10a" style="color:#ff6fb0;text-decoration:none">10a</a></div>
+    <div style="font-family:Monoton,cursive;font-size:42px;line-height:1.14;letter-spacing:.02em;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.5),0 0 26px rgba(255,45,143,.9),0 0 60px rgba(255,45,143,.4)">ONE NIGHT, SCREEN BY SCREEN</div>
+    <div style="font-size:14px;max-width:860px;color:rgba(238,240,255,.74);line-height:1.55;text-wrap:pretty">Ten real screens in order, weighted to the two things the boxes-and-arrows version couldn't show: <strong style="color:#ffc24d">what happens when a suitor walks out mid-round</strong>, and <strong style="color:#ffd6e9">where the draft actually lives now</strong> — steps 5 through 8.</div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;gap:11px;max-width:880px;margin-bottom:34px;padding:14px 16px;border-radius:18px;background:rgba(255,214,233,.09);border:1px solid rgba(255,214,233,.45)">
+    <span style="font-size:15px;color:#ffd6e9">◈</span>
+    <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.6;color:rgba(255,214,233,.9);text-wrap:pretty"><strong style="color:#fff">Short answer on the draft:</strong> there is no draft screen any more. It dissolved into the bench. Candidates are already on camera and already scored, so when a chair opens there's nothing to reveal — she gets a 5-second override window and the leader rises. The old 15-second modal is gone; steps 6–8 are what replaced it.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+    <sc-for list="{{ shots }}" as="f" hint-placeholder-count="10">
+      <div style="display:flex;flex-direction:column;gap:10px;width:390px">
+        <div style="display:flex;align-items:center;gap:9px">
+          <span style="width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:9px;background:{{ f.numbg }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:11px;color:{{ f.numink }}">{{ f.num }}</span>
+          <span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:19px;line-height:1.1;color:#fff">{{ f.title }}</span>
+        </div>
+        <div style="font-size:12px;line-height:1.5;color:rgba(238,240,255,.66);text-wrap:pretty;min-height:54px">{{ f.blurb }}</div>
+        <sc-if value="{{ f.rule }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:13px;background:{{ f.rulebg }};border:1px solid {{ f.ruleedge }}">
+            <span style="font-size:12px;color:{{ f.ruleink }}">{{ f.ruleIcon }}</span>
+            <span style="flex:1;min-width:0;font-size:11px;line-height:1.5;color:{{ f.ruleink }}">{{ f.rule }}</span>
+          </div>
+        </sc-if>
+
+        <div style="position:relative;width:390px;height:844px;border-radius:42px;overflow:hidden;background:#080b20;box-shadow:0 0 0 2.5px {{ f.rim }},0 26px 52px -16px rgba(0,0,0,.85);display:flex;flex-direction:column">
+          <div style="position:absolute;inset:0;background:radial-gradient(100% 30% at 26% 0%, rgba(255,45,143,.18), transparent 60%)"></div>
+
+          <div style="position:relative;display:flex;flex-wrap:nowrap;align-items:center;gap:7px;padding:52px 12px 8px;overflow:hidden">
+            <div style="font-family:Monoton,cursive;font-size:12px;letter-spacing:.04em;color:#fff;text-shadow:0 0 12px rgba(255,45,143,.85);flex:none">LAST CALL</div>
+            <div style="flex:1"></div>
+            <div style="display:flex;align-items:center;gap:4px;min-height:25px;padding:0 8px;border-radius:13px;background:{{ f.phasebg }};border:{{ f.phaseborder }};font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:{{ f.phaseink }};white-space:nowrap">{{ f.phase }}</div>
+            <div style="display:flex;align-items:center;gap:3px;min-height:25px;padding:0 8px;border-radius:13px;background:rgba(8,11,32,.62);border:1px solid rgba(185,168,255,.4);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:#eef0ff;white-space:nowrap">👁 {{ f.eyes }}</div>
+            <div style="display:flex;align-items:center;gap:2px;min-height:25px;padding:0 8px;border-radius:13px;background:linear-gradient(180deg,#ffd6e9,#ff8ac2);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:#4a0724;white-space:nowrap">✦135</div>
+          </div>
+
+          <sc-if value="{{ f.lobby }}" hint-placeholder-val="{{ true }}">
+            <div style="position:relative;flex:1;min-height:0;display:flex;flex-direction:column;gap:11px;padding:6px 12px 20px">
+              <sc-for list="{{ f.lobby }}" as="r" hint-placeholder-count="3">
+                <div style="flex:none;padding:3px;border-radius:22px;background:rgba(6,8,24,.5);border:{{ r.frame }};box-shadow:{{ r.glow }}">
+                  <div style="position:relative;height:196px;border-radius:19px;overflow:hidden;background:{{ r.well }};background-image:{{ r.wash }}">
+                    <div style="position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);width:104px;height:130px;border-radius:50%;background:radial-gradient(closest-side,{{ r.faceLight }},transparent 72%)"></div>
+                    <div style="position:absolute;left:0;right:0;bottom:0;height:112px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.92))"></div>
+                    <div style="position:absolute;top:9px;left:9px;display:flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;background:{{ r.phasebg }};border:{{ r.phaseborder }};backdrop-filter:blur(8px);font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.1em;color:{{ r.phaseink }};white-space:nowrap">{{ r.phase }}</div>
+                    <div style="position:absolute;top:9px;right:9px;display:flex;align-items:center;gap:3px;padding:3px 9px;border-radius:12px;background:rgba(6,8,24,.6);backdrop-filter:blur(8px)"><span style="font-size:9px;line-height:1;color:#ff2d8f">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:9px;color:#ffd6e9">{{ r.hearts }}</span></div>
+                    <div style="position:absolute;left:10px;right:10px;bottom:10px;display:flex;flex-direction:column;gap:7px">
+                      <div style="display:flex;align-items:flex-end;gap:8px">
+                        <div style="flex:1;min-width:0">
+                          <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:21px;line-height:1.4;color:#fff;text-shadow:0 1px 5px rgba(0,0,0,.95)">{{ r.host }}</div>
+                          <div style="font-family:Archivo,sans-serif;font-size:11.5px;color:rgba(255,255,255,.8);text-shadow:0 1px 4px rgba(0,0,0,.95)">{{ r.deck }}</div>
+                        </div>
+                        <div style="flex:none;min-height:44px;padding:0 15px;display:flex;align-items:center;border-radius:22px;background:{{ r.ctabg }};border:{{ r.ctaborder }};backdrop-filter:blur(10px);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:{{ r.ctaink }};text-shadow:0 1px 4px rgba(0,0,0,.9);box-shadow:{{ r.ctaglow }};white-space:nowrap">{{ r.cta }}</div>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:7px">
+                        <div style="display:flex;gap:4px">
+                          <sc-for list="{{ r.seats }}" as="s" hint-placeholder-count="3">
+                            <span style="width:26px;height:5px;border-radius:3px;background:{{ s.bg }}"></span>
+                          </sc-for>
+                        </div>
+                        <span style="flex:1;min-width:0;font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:{{ r.seatink }};white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,.95)">{{ r.seatnote }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+              <div style="margin-top:auto;min-height:60px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:30px;background:rgba(255,45,143,.34);border:1.5px solid rgba(255,255,255,.9);color:#fff;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:18px;letter-spacing:.04em;box-shadow:0 0 38px rgba(255,45,143,.7)"><span style="font-size:18px">♥</span>GO LIVE — HOST YOUR ROOM</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.cells }}" hint-placeholder-val="{{ true }}">
+            <div id="rt_chairs" style="position:relative;display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:0 9px">
+              <sc-for list="{{ f.cells }}" as="c" hint-placeholder-count="4">
+                <div class="chair" style="position:relative;grid-column:{{ c.span }};padding:2.5px;border-radius:17px;background:{{ c.rimbg }};border:{{ c.rim }};box-shadow:{{ c.glow }};opacity:{{ c.op }}">
+                  <div style="position:relative;height:{{ c.h }};border-radius:14px;overflow:hidden;background:{{ c.well }};background-image:{{ c.wash }}">
+                    <sc-if value="{{ c.faceGlow }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);width:{{ c.faceW }};height:{{ c.faceH }};border-radius:50%;background:radial-gradient(closest-side,{{ c.faceLight }},transparent 72%);filter:{{ c.blur }}"></div>
+                    </sc-if>
+                    <div style="position:absolute;left:0;right:0;bottom:0;height:{{ c.scrim }};background:linear-gradient(180deg,transparent,rgba(4,6,18,.88))"></div>
+
+                    <sc-if value="{{ c.hearts }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;top:6px;left:6px;display:flex;align-items:center;gap:3px;padding:2px 8px;border-radius:11px;background:rgba(6,8,24,.62);backdrop-filter:blur(6px)"><span style="font-size:11px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,45,143,.95)">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:11px;color:#ffd6e9">{{ c.hearts }}</span></div>
+                    </sc-if>
+                    <sc-if value="{{ c.tag }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;top:6px;right:6px;padding:2px 8px;border-radius:10px;background:{{ c.tagbg }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:7.5px;letter-spacing:.12em;color:{{ c.tagink }};white-space:nowrap">{{ c.tag }}</div>
+                    </sc-if>
+                    <sc-if value="{{ c.clock }}" hint-placeholder-val="{{ true }}">
+                      <div class="cclock" style="position:absolute;top:{{ c.clockTop }};right:6px;padding:{{ c.clockPad }};border-radius:8px;background:{{ c.clockbg }};border:{{ c.clockborder }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:{{ c.clockSize }};color:{{ c.clockink }};white-space:nowrap">{{ c.clock }}</div>
+                    </sc-if>
+                    <sc-if value="{{ c.name }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;left:6px;bottom:6px;display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:11px;background:{{ c.namebg }};backdrop-filter:blur(8px);font-family:Archivo,sans-serif;font-weight:800;font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">
+                        <sc-if value="{{ c.mic }}" hint-placeholder-val="{{ true }}">
+                          <span style="display:flex;align-items:flex-end;gap:1px;height:8px"><span style="width:2px;height:5px;background:#fff;animation:mic .9s ease-in-out infinite"></span><span style="width:2px;height:8px;background:#fff;animation:mic .9s ease-in-out .15s infinite"></span><span style="width:2px;height:6px;background:#fff;animation:mic .9s ease-in-out .3s infinite"></span></span>
+                        </sc-if>
+                        {{ c.name }}
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ c.verdict }}" hint-placeholder-val="{{ true }}">
+                      <div class="hostctl" style="position:absolute;right:6px;bottom:6px;display:flex;align-items:center;gap:5px">
+                        <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:13px;background:rgba(90,30,64,.36);border:1px solid rgba(255,145,180,.6);backdrop-filter:blur(6px);color:#ffc2d6;font-size:19px">✕</div>
+                        <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:13px;background:rgba(255,45,143,.3);border:1px solid rgba(255,45,143,.8);backdrop-filter:blur(6px);color:#fff;font-size:19px">✓</div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ c.tapHeart }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;right:6px;bottom:6px;width:48px;height:44px;display:flex;align-items:center;justify-content:center">
+                        <span style="display:block;transform:scaleY(.82);font-size:30px;line-height:1;color:{{ c.tapInk }};-webkit-text-stroke:1.5px {{ c.tapStroke }};text-shadow:0 1px 4px rgba(0,0,0,.9)">♥</span>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ c.foot }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;left:0;right:0;top:{{ c.footTop }};text-align:center;font-family:'Azeret Mono',monospace;font-size:7.5px;font-weight:700;letter-spacing:.14em;color:{{ c.footInk }};text-shadow:0 1px 4px rgba(0,0,0,.95)">{{ c.foot }}</div>
+                    </sc-if>
+
+                    <sc-if value="{{ c.gone }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:0 12px;background:rgba(8,6,18,.55)">
+                        <div style="font-size:20px;color:{{ c.goneHue }}">{{ c.goneIcon }}</div>
+                        <div style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:{{ c.goneSize }};line-height:1;color:#fff;text-shadow:0 0 14px {{ c.goneHue }}">{{ c.gone }}</div>
+                        <div style="padding:2px 9px;border-radius:11px;background:{{ c.goneHue }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:8px;letter-spacing:.12em;color:{{ c.goneInk }};white-space:nowrap">{{ c.goneWho }}</div>
+                        <div style="font-family:Archivo,sans-serif;font-size:10px;line-height:1.4;color:rgba(255,255,255,.78);text-align:center">{{ c.goneSub }}</div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ c.empty }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:0 12px">
+                        <div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(45,227,208,.2);border:1.5px solid rgba(45,227,208,.75);font-size:17px;color:#aef7ee">+</div>
+                        <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;color:#aef7ee;text-align:center;line-height:1.15">{{ c.empty }}</div>
+                        <div style="font-family:Archivo,sans-serif;font-size:9.5px;line-height:1.35;color:rgba(174,247,238,.7);text-align:center">{{ c.emptySub }}</div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ c.strip }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 12px">
+                        <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:10px;color:rgba(255,255,255,.82);white-space:nowrap">{{ c.strip }}</span>
+                        <span style="font-size:10px;opacity:.75">🔇</span>
+                        <span style="width:1px;height:10px;background:rgba(255,255,255,.2)"></span>
+                        <span style="flex:none;font-family:Archivo,sans-serif;font-size:9.5px;color:rgba(214,205,255,.75);white-space:nowrap">{{ c.stripSub }}</span>
+                      </div>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.bench }}" hint-placeholder-val="{{ true }}">
+            <div id="rt_line" style="position:relative;margin-top:8px;padding:0 9px;display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex;align-items:center;gap:7px;padding:0 2px">
+                <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.18em;color:{{ f.benchInk }};white-space:nowrap">{{ f.benchLabel }}</span>
+                <span style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:10px;color:rgba(214,205,255,.72);white-space:nowrap">{{ f.benchNote }}</span>
+                <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:rgba(214,205,255,.6);white-space:nowrap">{{ f.benchMeta }}</span>
+              </div>
+              <div id="lineitems" style="display:flex;gap:5px">
+                <sc-for list="{{ f.bench }}" as="b" hint-placeholder-count="3">
+                  <div style="--ls:{{ b.ls }};flex:1;position:relative;padding:2px;border-radius:14px;background:{{ b.bg }};border:{{ b.border }};box-shadow:{{ b.glow }};animation:{{ b.anim }}">
+                    <sc-if value="{{ b.badge }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;z-index:2;top:-7px;left:50%;transform:translateX(-50%);padding:1px 7px;border-radius:8px;background:{{ b.hue }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:6.5px;letter-spacing:.08em;color:{{ b.ink }};white-space:nowrap">{{ b.badge }}</div>
+                    </sc-if>
+                    <div style="position:relative;height:116px;border-radius:11px;overflow:hidden;background:{{ b.well }};background-image:{{ b.wash }}">
+                      <sc-if value="{{ b.sil }}" hint-placeholder-val="{{ true }}">
+                        <div style="position:absolute;left:50%;top:32%;transform:translate(-50%,-50%);width:30px;height:30px;border-radius:50%;background:rgba(185,168,255,.34)"></div>
+                        <div style="position:absolute;left:50%;top:76%;transform:translate(-50%,-50%);width:48px;height:54px;border-radius:24px 24px 14px 14px;background:linear-gradient(180deg,rgba(185,168,255,.34),rgba(185,168,255,.1))"></div>
+                      </sc-if>
+                      <div style="position:absolute;left:0;right:0;bottom:0;height:42px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.9))"></div>
+                      <div style="position:absolute;top:4px;left:4px;display:flex;align-items:center;gap:2px;padding:1px 6px;border-radius:9px;background:rgba(6,8,24,.62);backdrop-filter:blur(6px)"><span style="font-size:10px;line-height:1;color:#ff2d8f;text-shadow:0 0 7px rgba(255,45,143,.9)">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:10.5px;color:{{ b.heartink }}">{{ b.n }}</span></div>
+                      <sc-if value="{{ b.name }}" hint-placeholder-val="{{ true }}">
+                        <div style="position:absolute;left:4px;right:4px;bottom:4px;text-align:center;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:12px;line-height:1.35;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.95)">{{ b.name }}</div>
+                      </sc-if>
+                      <sc-if value="{{ b.pips }}" hint-placeholder-val="{{ true }}">
+                        <div style="position:absolute;top:5px;right:5px;display:flex;gap:2.5px">
+                          <sc-for list="{{ b.pips }}" as="p" hint-placeholder-count="3">
+                            <span style="width:5px;height:5px;border-radius:50%;background:{{ p.bg }}"></span>
+                          </sc-for>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.overlay }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute;z-index:5;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;padding:0 32px;text-align:center;background:{{ f.overlayBg }}">
+              <div style="font-family:'Azeret Mono',monospace;font-size:10px;letter-spacing:.32em;color:{{ f.overlayKick }}">{{ f.overlayKicker }}</div>
+              <div style="display:flex;flex-direction:column;align-items:center;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:34px;line-height:1.14;color:#fff;text-shadow:0 0 12px rgba(255,255,255,.5),0 0 28px {{ f.overlayGlow }}">
+                <span>{{ f.overlay }}</span>
+                <sc-if value="{{ f.overlay2 }}" hint-placeholder-val="{{ true }}">
+                  <span>{{ f.overlay2 }}</span>
+                </sc-if>
+              </div>
+              <div style="font-family:Archivo,sans-serif;font-size:13px;line-height:1.55;color:rgba(238,240,255,.78);text-wrap:pretty">{{ f.overlaySub }}</div>
+              <sc-if value="{{ f.overlayCta }}" hint-placeholder-val="{{ true }}">
+                <div style="min-height:52px;margin-top:4px;padding:0 24px;display:flex;align-items:center;gap:8px;border-radius:26px;background:rgba(255,45,143,.34);border:1.5px solid rgba(255,255,255,.9);color:#fff;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:16px;box-shadow:0 0 32px rgba(255,45,143,.75)">{{ f.overlayCta }}</div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.tray }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute;z-index:5;left:0;right:0;bottom:0;padding:16px 14px 24px;border-radius:26px 26px 42px 42px;background:rgba(9,12,34,.95);border-top:1.5px solid rgba(255,45,143,.5);backdrop-filter:blur(20px);display:flex;flex-direction:column;gap:10px">
+              <div style="width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);align-self:center"></div>
+              <div style="text-align:center">
+                <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.26em;color:#ff8ac2">THREE ROUNDS DONE</div>
+                <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:26px;line-height:1.1;color:#fff;margin-top:5px">How'd they do?</div>
+              </div>
+              <sc-for list="{{ f.tray }}" as="t" hint-placeholder-count="3">
+                <div style="display:flex;flex-direction:column;gap:4px;padding:13px 14px;border-radius:18px;background:{{ t.bg }};border:{{ t.border }};box-shadow:{{ t.glow }}">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:16px;color:{{ t.hue }}">{{ t.icon }}</span>
+                    <span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:17px;color:{{ t.ink }}">{{ t.n }}</span>
+                    <span style="margin-left:auto;font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.1em;color:{{ t.meta }};white-space:nowrap">{{ t.tapnote }}</span>
+                  </div>
+                  <div style="font-family:Archivo,sans-serif;font-size:11.5px;line-height:1.45;color:{{ t.bodyink }}">{{ t.body }}</div>
+                </div>
+              </sc-for>
+              <div style="align-self:center;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:rgba(174,247,238,.9);border-bottom:1px solid rgba(174,247,238,.4)">🎬 or walk away alone</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.bottom }}" hint-placeholder-val="{{ true }}">
+            <div style="position:relative;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;padding:8px 11px 20px">
+              <div id="chatstrip" style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;overflow:hidden;-webkit-mask-image:linear-gradient(to top,#000 60%,transparent);mask-image:linear-gradient(to top,#000 60%,transparent)">
+                <sc-for list="{{ f.chat }}" as="m" hint-placeholder-count="3">
+                  <div style="display:flex;gap:6px;align-items:baseline;text-shadow:0 1px 4px rgba(0,0,0,.98)">
+                    <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:11.5px;color:{{ m.color }};white-space:nowrap">{{ m.who }}</span>
+                    <span style="font-family:Archivo,sans-serif;font-size:12.5px;line-height:1.35;color:#fff">{{ m.text }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div id="inputbar" style="display:flex;gap:8px;align-items:center">
+                <div style="flex:1;min-width:0;min-height:46px;display:flex;align-items:center;padding:0 14px;border-radius:23px;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.4);font-family:Archivo,sans-serif;font-size:13.5px;color:rgba(238,240,255,.5)">Say something…</div>
+                <div style="flex:none;min-height:46px;padding:0 17px;display:flex;align-items:center;gap:6px;border-radius:23px;background:{{ f.ctabg }};border:{{ f.ctaborder }};font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;color:{{ f.ctaink }};text-shadow:0 1px 4px rgba(0,0,0,.9);box-shadow:{{ f.ctaglow }};white-space:nowrap">{{ f.cta }}</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="margin-top:44px;max-width:1080px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:baseline;gap:12px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.1)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.2em;color:#ffc24d;white-space:nowrap">WALKING OUT · THE FULL RULE</div>
+      <div style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:12.5px;color:rgba(238,240,255,.65)">Every way a chair can empty itself, and what each one costs.</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px">
+      <sc-for list="{{ leaveRules }}" as="r" hint-placeholder-count="4">
+        <div style="flex:1;min-width:320px;padding:15px 16px;border-radius:18px;background:{{ r.bg }};border:1px solid {{ r.edge }};display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:baseline;gap:9px">
+            <span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:16px;color:#fff">{{ r.n }}</span>
+            <span style="margin-left:auto;font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.12em;color:{{ r.hue }};white-space:nowrap">{{ r.cost }}</span>
+          </div>
+          <div style="font-size:11.5px;line-height:1.55;color:rgba(238,240,255,.74);text-wrap:pretty">{{ r.body }}</div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-radius:18px;background:rgba(255,194,77,.09);border:1px solid rgba(255,194,77,.45)">
+      <span style="font-size:15px;color:#ffc24d">◔</span>
+      <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.6;color:rgba(255,224,190,.9);text-wrap:pretty"><strong style="color:#fff">Why a reconnect grace exists at all.</strong> A dropped signal and a rage-quit look identical to the server for the first few seconds, and punishing the first as if it were the second is how you lose good suitors to a subway tunnel. Fifteen seconds is long enough to survive a lift or a tunnel, short enough that the room doesn't stall — and because the show carries on around the held cell, nobody is waiting on him either way.</div>
+    </div>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1300,&quot;height&quot;:1000}}">
+const WARM = { well: "#1a1230", wash: "radial-gradient(120% 88% at 24% 12%, rgba(255,168,200,.34), transparent 62%), radial-gradient(90% 60% at 62% 108%, rgba(255,110,170,.22), transparent 66%)", faceLight: "rgba(255,226,236,.3)" };
+const COOL = { well: "#101a30", wash: "radial-gradient(closest-side at 46% 32%, rgba(45,227,208,.19), transparent 68%)", faceLight: "rgba(214,244,255,.16)" };
+
+function cell(o) {
+  return Object.assign({
+    h: "168px", span: "auto", rim: "1.5px solid rgba(45,227,208,.55)", rimbg: "rgba(6,8,24,.45)",
+    glow: "0 0 10px rgba(45,227,208,.22)", op: "1", faceGlow: true,
+    faceW: "78px", faceH: "94px", blur: "none", scrim: "58px",
+    name: "", namebg: "rgba(6,8,24,.66)", mic: false, hearts: "",
+    tag: "", tagbg: "rgba(6,8,24,.66)", tagink: "#aef7ee",
+    clock: "", clockTop: "6px", clockPad: "2px 7px", clockbg: "rgba(4,33,31,.74)",
+    clockborder: "1px solid rgba(45,227,208,.8)", clockSize: "10px", clockink: "#7ff2e6",
+    verdict: false, tapHeart: false, tapInk: "transparent", tapStroke: "rgba(255,214,233,.85)",
+    foot: "", footTop: "34px", footInk: "#ffd6e9",
+    empty: "", emptySub: "", strip: "", stripSub: "",
+    gone: "", goneIcon: "", goneWho: "", goneSub: "", goneHue: "#ffc24d", goneInk: "#3d2600", goneSize: "30px"
+  }, COOL, o);
+}
+const host = (o) => cell(Object.assign({
+  rim: "2px solid #ff2d8f", rimbg: "rgba(255,45,143,.14)",
+  glow: "0 0 26px rgba(255,45,143,.6), 0 0 60px rgba(255,138,194,.28)",
+  name: "MARLA V.", namebg: "rgba(255,45,143,.85)", tag: "HOST",
+  tagbg: "linear-gradient(180deg,#ffb4d9,#ff2d8f)", tagink: "#5c0230"
+}, WARM, o));
+const openSeat = (sub) => cell({
+  faceGlow: false, well: "rgba(16,26,48,.5)", wash: "none",
+  rim: "1.5px dashed rgba(45,227,208,.65)", rimbg: "rgba(45,227,208,.08)",
+  glow: "0 0 16px rgba(45,227,208,.26)", empty: "TAKE THE CHAIR", emptySub: sub
+});
+
+const pips = (n) => [0, 1, 2].map(i => ({ bg: i < n ? "#ff7ab8" : "rgba(255,255,255,.2)" }));
+function bench(o) {
+  return Object.assign({
+    ls: "255,224,236", hue: "#ffe0ec", ink: "#4a0724", badge: "",
+    bg: "rgba(6,8,24,.5)", border: "1px solid rgba(185,168,255,.35)", glow: "none", anim: "none",
+    well: "#141a3a", wash: "radial-gradient(closest-side at 46% 36%, rgba(255,255,255,.2), transparent 72%)",
+    sil: false, name: "", n: "0", heartink: "#ffd6e9", pips: null
+  }, o);
+}
+const NEXTUP = { badge: "NEXT UP", ls: "255,194,77", hue: "#ffc24d", ink: "#3d2600",
+  bg: "rgba(255,194,77,.16)", border: "1.5px solid #ffc24d",
+  glow: "0 0 18px rgba(255,194,77,.55)", anim: "surge 1.4s ease-in-out infinite", heartink: "#fff" };
+const SIL = { sil: true, well: "linear-gradient(180deg,#232045,#101227)", wash: "none" };
+const SIL_LEAD = Object.assign({}, SIL, { well: "linear-gradient(180deg,#2a2450,#12142e)" });
+
+const PH_TEAL = { phasebg: "rgba(45,227,208,.16)", phaseborder: "1px solid rgba(45,227,208,.6)", phaseink: "#aef7ee" };
+const PH_GOLD = { phasebg: "rgba(255,214,233,.2)", phaseborder: "1px solid rgba(255,214,233,.7)", phaseink: "#ffd6e9" };
+const PH_AMBER = { phasebg: "rgba(255,194,77,.2)", phaseborder: "1px solid rgba(255,194,77,.75)", phaseink: "#ffe0b4" };
+const PH_PINK = { phasebg: "rgba(255,45,143,.24)", phaseborder: "1px solid rgba(255,45,143,.8)", phaseink: "#fff" };
+
+const CTA_ASK = { cta: "ASK", ctabg: "rgba(255,45,143,.34)", ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff", ctaglow: "0 0 26px rgba(255,45,143,.6)" };
+const CTA_JOIN = { cta: "♥ TAKE A BENCH SEAT", ctabg: "rgba(255,45,143,.34)", ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff", ctaglow: "0 0 26px rgba(255,45,143,.65)" };
+
+const N_PINK = { numbg: "rgba(255,45,143,.28)", numink: "#ffd6e9" };
+const N_TEAL = { numbg: "rgba(45,227,208,.22)", numink: "#aef7ee" };
+const N_GOLD = { numbg: "rgba(255,214,233,.22)", numink: "#ffd6e9" };
+const N_AMBER = { numbg: "rgba(255,194,77,.26)", numink: "#ffe0b4" };
+
+const R_AMBER = { rulebg: "rgba(255,194,77,.1)", ruleedge: "rgba(255,194,77,.45)", ruleink: "rgba(255,224,190,.92)", ruleIcon: "◔" };
+const R_GOLD = { rulebg: "rgba(255,214,233,.09)", ruleedge: "rgba(255,214,233,.45)", ruleink: "rgba(255,214,233,.9)", ruleIcon: "♥" };
+const R_LILAC = { rulebg: "rgba(185,168,255,.1)", ruleedge: "rgba(185,168,255,.4)", ruleink: "rgba(214,205,255,.9)", ruleIcon: "🛡" };
+const R_TEAL = { rulebg: "rgba(45,227,208,.09)", ruleedge: "rgba(45,227,208,.45)", ruleink: "rgba(174,247,238,.9)", ruleIcon: "◈" };
+
+class Component extends DCLogic {
+  renderVals() {
+    const base = { eyes: "312", bottom: true, ...PH_TEAL, ...CTA_JOIN,
+      benchLabel: "THE BENCH", benchInk: "#ffd6e9",
+      benchNote: "earning hearts until a chair opens", benchMeta: "+5 IN LINE",
+      chat: [
+        { who: "Dock", text: "chair two is actually funny", color: "#b9a8ff" },
+        { who: "Marisol", text: "hearts on the bench, second one", color: "#b9a8ff" }
+      ] };
+    const benchFaces = [
+      bench(Object.assign({ name: "DOCK", n: "412", pips: pips(0) }, NEXTUP)),
+      bench({ name: "MARISOL", n: "268", pips: pips(1) }),
+      bench({ name: "THEO", n: "97", pips: pips(2) })
+    ];
+    const benchSils = [
+      bench(Object.assign({ n: "412", pips: pips(0) }, SIL_LEAD, NEXTUP)),
+      bench(Object.assign({ n: "268", pips: pips(1) }, SIL)),
+      bench(Object.assign({ n: "97", pips: pips(2) }, SIL))
+    ];
+
+    return {
+      shots: [
+        Object.assign({}, base, {
+          num: "1", ...N_TEAL, title: "Pick a room", rim: "#2e4a52", phase: "14 LIVE",
+          blurb: "The lobby after login. Live feeds, not thumbnails — phase, hearts and a seat strip so \"can I get on?\" answers itself before you tap.",
+          bottom: false, bench: null, cells: null,
+          lobby: [
+            { host: "Marla V.", deck: "Real Talk · round 2 of 3", hearts: "1.2K",
+              phase: "◉ ROUND 2", phasebg: "rgba(45,227,208,.24)", phaseborder: "1px solid rgba(45,227,208,.75)", phaseink: "#aef7ee",
+              frame: "1.5px solid rgba(255,45,143,.6)", glow: "0 0 24px rgba(255,45,143,.3)", ...WARM,
+              seats: [{ bg: "rgba(255,45,143,.8)" }, { bg: "rgba(255,45,143,.8)" }, { bg: "rgba(45,227,208,.85)" }],
+              seatink: "#aef7ee", seatnote: "1 SEAT OPEN · 5 ON THE BENCH",
+              cta: "TAKE THE SEAT", ctabg: "rgba(255,45,143,.34)", ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff", ctaglow: "0 0 26px rgba(255,45,143,.6)" },
+            { host: "Priya K.", deck: "Spicy 🍸 · she's deciding", hearts: "2.4K",
+              phase: "◉ DECIDING", phasebg: "rgba(255,45,143,.28)", phaseborder: "1px solid rgba(255,45,143,.8)", phaseink: "#fff",
+              frame: "1.5px solid rgba(255,45,143,.45)", glow: "none", ...COOL,
+              seats: [{ bg: "rgba(255,45,143,.8)" }, { bg: "rgba(255,45,143,.8)" }, { bg: "rgba(255,45,143,.8)" }],
+              seatink: "rgba(255,255,255,.6)", seatnote: "CHAIRS FULL · WATCH THE FINISH",
+              cta: "WATCH", ctabg: "rgba(6,8,24,.62)", ctaborder: "1.5px solid rgba(185,168,255,.6)", ctaink: "#d6cdff", ctaglow: "none" },
+            { host: "Toni B.", deck: "Icebreakers · warming up", hearts: "310",
+              phase: "◉ WARMING UP", phasebg: "rgba(45,227,208,.18)", phaseborder: "1px solid rgba(45,227,208,.6)", phaseink: "#7ff2e6",
+              frame: "1.5px solid rgba(45,227,208,.5)", glow: "none", ...COOL,
+              seats: [{ bg: "rgba(255,45,143,.8)" }, { bg: "rgba(45,227,208,.85)" }, { bg: "rgba(45,227,208,.85)" }],
+              seatink: "#aef7ee", seatnote: "2 SEATS OPEN · NO BENCH",
+              cta: "TAKE THE SEAT", ctabg: "rgba(255,45,143,.34)", ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff", ctaglow: "0 0 26px rgba(255,45,143,.6)" }
+          ]
+        }),
+        Object.assign({}, base, {
+          num: "2", ...N_TEAL, title: "Take a chair", rim: "#2e4a52", phase: "WARMING UP", eyes: "96",
+          blurb: "Pre-show. Empty quadrants are the join button — tapping one puts you on the bench, because seating stays hers. The bench starts scoring immediately.",
+          ...Object.assign({}, R_TEAL, { rule: "You never seat yourself. Tap an empty cell and you join the bench; she picks from it." }),
+          cells: [host({}), cell({ name: "DEV", hearts: "88", clock: "0:42" }), openSeat("she picks from the bench"), openSeat("she picks from the bench")],
+          bench: [bench({ name: "MARISOL", n: "12", pips: pips(0) }),
+            bench({ faceGlow: false, well: "rgba(16,26,48,.5)", wash: "none", border: "1px dashed rgba(185,168,255,.35)", n: "0" }),
+            bench({ faceGlow: false, well: "rgba(16,26,48,.5)", wash: "none", border: "1px dashed rgba(185,168,255,.35)", n: "0" })],
+          benchNote: "two bench seats free too", benchMeta: "0 IN LINE",
+          chat: [{ who: "THE HOUSE", text: "Marla is live · 2 chairs open", color: "#7ff2e6" }]
+        }),
+        Object.assign({}, base, {
+          num: "3", ...N_GOLD, title: "Show start", rim: "#5a4a2e", phase: "GOING LIVE", ...PH_GOLD,
+          blurb: "Third chair fills and a 3-second lights-down beat fires for everyone. Chatting time is over — the game has begun.",
+          /* Frame behind an overlay must be dimmed to ~.2 like shot 10 — the scrim
+             is only ~34% opaque at centre, so full-opacity plaques and heart chips
+             read straight through the headline. */
+          cells: [host({ op: ".2" }), cell({ op: ".14", name: "DEV", hearts: "88" }), cell({ op: ".14", name: "JUNE", hearts: "240" }), cell({ op: ".14", name: "SAM", hearts: "156" })],
+          bench: null,
+          /* Two spans, never a <br> — holes insert text, so markup prints literally. */
+          overlay: "THREE CHAIRS.", overlay2: "HER CALL.", overlayKicker: "🎬 SHOW STARTING", overlayKick: "#7ff2e6",
+          overlaySub: "Dev, June and Sam are seated. Round 1 in 3…",
+          overlayBg: "radial-gradient(120% 70% at 50% 42%, rgba(255,45,143,.5), rgba(4,6,18,.97) 70%)",
+          overlayGlow: "rgba(255,45,143,.9)", overlayCta: ""
+        }),
+        Object.assign({}, base, {
+          num: "4", ...N_PINK, title: "She asks", rim: "#5a2e46", phase: "0:22 · SPOTLIGHT", ...PH_GOLD, ...CTA_ASK,
+          blurb: "The quad breaks to a two-up for the 30 seconds of a direct question — the interview shot. The other two mute and collapse to a strip, still present.",
+          ...Object.assign({}, R_TEAL, { rule: "His audition clock pauses while he answers. Answering must never cost him the time he's judged on." }),
+          cells: [
+            host({ h: "292px", faceW: "100px", faceH: "122px", scrim: "72px" }),
+            cell({ h: "292px", name: "JUNE", mic: true, hearts: "240", faceW: "100px", faceH: "122px", scrim: "72px",
+              rim: "2px solid #ff2d8f", rimbg: "rgba(255,45,143,.14)", glow: "0 0 26px rgba(255,45,143,.8)",
+              namebg: "rgba(255,45,143,.85)", clock: "0:22", clockPad: "4px 11px", clockSize: "21px",
+              clockborder: "1.5px solid #2de3d0", foot: "HIS CLOCK HELD", footTop: "44px" }),
+            cell({ h: "46px", span: "1 / -1", op: ".55", faceGlow: false, blur: "blur(3px)", scrim: "0px",
+              rim: "1px solid rgba(45,227,208,.26)", glow: "none", well: "rgba(16,26,48,.7)", wash: "none",
+              strip: "DEV · SAM", stripSub: "muted until the answer lands" })
+          ],
+          bench: benchFaces,
+          chat: [{ who: "Marisol", text: "good question honestly", color: "#b9a8ff" }]
+        }),
+        Object.assign({}, base, {
+          num: "5", ...N_AMBER, title: "He walks out", rim: "#5a4a2e", phase: "HOLDING SEAT", ...PH_AMBER, ...CTA_ASK,
+          blurb: "Sam closes the app mid-round. His cell converts to a 15-second hold — not an open seat, because she didn't pass him and the room shouldn't be told she did.",
+          ...Object.assign({}, R_AMBER, { rule: "The show does not stop. Her round continues around the held cell; stopping it would punish everyone for one person's exit." }),
+          cells: [
+            host({}),
+            cell({ name: "DEV", hearts: "88", clock: "0:42" }),
+            cell({ name: "JUNE", hearts: "240", clock: "0:38" }),
+            cell({ faceGlow: false, well: "rgba(30,22,10,.7)", wash: "none", scrim: "0px",
+              rim: "1.5px dashed #ffc24d", rimbg: "rgba(255,194,77,.12)", glow: "0 0 20px rgba(255,194,77,.45)",
+              gone: "0:15", goneIcon: "◔", goneWho: "SAM · RECONNECTING", goneSub: "seat held — his clock is frozen" })
+          ],
+          bench: benchFaces,
+          benchNote: "standing by for a promotion", benchMeta: "+5 IN LINE",
+          chat: [{ who: "THE HOUSE", text: "Sam dropped · holding his seat 15s", color: "#ffe0b4" },
+            { who: "Dock", text: "lol he choked", color: "#b9a8ff" }]
+        }),
+        Object.assign({}, base, {
+          num: "6", ...N_AMBER, title: "The seat converts", rim: "#5a4a2e", phase: "0:05 · PROMOTING", ...PH_AMBER, ...CTA_ASK,
+          blurb: "The hold expires. Only now does the chair open — and this is the draft: no modal, no reveal, because the bench has been on camera and scored the whole time.",
+          ...Object.assign({}, R_GOLD, { rule: "Her view stays blind: the same three bench seats render as silhouettes with live counts. Hearts are the crowd's only signal that reaches her." }),
+          cells: [
+            host({}),
+            cell({ name: "DEV", hearts: "88", clock: "0:42" }),
+            cell({ name: "JUNE", hearts: "240", clock: "0:38" }),
+            cell({ faceGlow: false, well: "rgba(26,18,38,.72)", wash: "none", scrim: "0px",
+              rim: "2px solid #ffc24d", rimbg: "rgba(255,194,77,.14)", glow: "0 0 24px rgba(255,194,77,.6)",
+              gone: "0:05", goneIcon: "↑", goneWho: "DOCK RISING", goneSub: "tap a bench seat to override" })
+          ],
+          bench: benchSils, benchLabel: "THE BENCH · BLIND", benchNote: "tap another to override", benchMeta: "NEXT DROPS IN",
+          chat: [{ who: "THE HOUSE", text: "chair 3 open · Dock leads the bench", color: "#ffd6e9" },
+            { who: "Marisol", text: "FINALLY", color: "#b9a8ff" }]
+        }),
+        Object.assign({}, base, {
+          num: "7", ...N_GOLD, title: "The crowd's view of it", rim: "#5a4a2e", phase: "0:05 · PROMOTING", ...PH_AMBER,
+          blurb: "Same five seconds, from the floor. They see the faces she can't, they've been backing Dock for four minutes, and the amber NEXT UP is a payoff rather than a surprise.",
+          ...Object.assign({}, R_GOLD, { rule: "This is why the storm went away. A burst of panic-tapping made a busy room feel empty; a slow build makes the promotion land." }),
+          cells: [
+            host({}),
+            cell({ name: "DEV", hearts: "88", clock: "0:42", tapHeart: true }),
+            cell({ name: "JUNE", hearts: "240", clock: "0:38", tapHeart: true, tapInk: "rgba(255,45,143,.55)", tapStroke: "rgba(255,145,190,.9)" }),
+            cell({ faceGlow: false, well: "rgba(26,18,38,.72)", wash: "none", scrim: "0px",
+              rim: "2px solid #ffc24d", rimbg: "rgba(255,194,77,.14)", glow: "0 0 24px rgba(255,194,77,.6)",
+              gone: "0:05", goneIcon: "↑", goneWho: "DOCK RISING", goneSub: "Marla can still override" })
+          ],
+          bench: benchFaces, benchNote: "Dock leads on hearts", benchMeta: "+5 IN LINE",
+          chat: [{ who: "Dock", text: "wait is that me", color: "#ffd6e9" },
+            { who: "Marisol", text: "GO GO GO", color: "#b9a8ff" }]
+        }),
+        Object.assign({}, base, {
+          num: "8", ...N_TEAL, title: "He rises", rim: "#2e4a52", phase: "R2 ●●○", ...CTA_ASK,
+          blurb: "Camera-flip into the chair, and Marisol slides left as Ade drops onto the bench. Back to a full quad in about five seconds — the round never broke stride.",
+          ...Object.assign({}, R_TEAL, { rule: "Bench order is FIFO. Hearts decide who gets promoted, never who stands where — the rest shift left, they don't re-sort." }),
+          cells: [
+            host({}),
+            cell({ name: "DEV", hearts: "88", clock: "0:42", verdict: true }),
+            cell({ name: "JUNE", hearts: "240", clock: "0:38", verdict: true }),
+            cell({ name: "DOCK", hearts: "412", clock: "1:00", verdict: true,
+              rim: "1.5px solid rgba(255,194,77,.7)", glow: "0 0 16px rgba(255,194,77,.4)",
+              tag: "NEW", tagbg: "rgba(255,194,77,.9)", tagink: "#3d2600" })
+          ],
+          bench: [bench({ name: "MARISOL", n: "268", pips: pips(1) }),
+            bench({ name: "THEO", n: "97", pips: pips(2) }),
+            bench(Object.assign({ name: "ADE", n: "8", pips: pips(0), badge: "JUST ON" }, { hue: "#ffe0ec", ink: "#4a0724" }))],
+          benchNote: "Ade stepped up from the line", benchMeta: "+4 IN LINE",
+          chat: [{ who: "THE HOUSE", text: "Dock takes chair 3 · Sam is out for the night", color: "#ffd6e9" }]
+        }),
+        Object.assign({}, base, {
+          num: "9", ...N_PINK, title: "She decides", rim: "#5a2e46", phase: "YOUR CALL", ...PH_PINK, ...CTA_ASK,
+          blurb: "After round three, deliberation ends and she must act. Three moves ranked by consequence — keep is the win and gets the shine; clearing the deck needs a confirm.",
+          cells: [
+            host({ h: "104px", faceW: "52px", faceH: "62px", scrim: "36px" }),
+            cell({ h: "104px", name: "DEV", hearts: "88", scrim: "36px" }),
+            cell({ h: "104px", name: "JUNE", hearts: "240", scrim: "36px" }),
+            cell({ h: "104px", name: "DOCK", hearts: "412", scrim: "36px" })
+          ],
+          bench: null, bottom: false,
+          tray: [
+            { icon: "♥", n: "KEEP ONE", hue: "#fff", ink: "#fff", bodyink: "rgba(255,255,255,.85)", meta: "rgba(255,255,255,.7)",
+              bg: "rgba(255,45,143,.22)", border: "1.5px solid rgba(255,255,255,.85)", glow: "0 0 30px rgba(255,45,143,.5)",
+              tapnote: "TAP A CHAIR", body: "That's the win — the show ends and you two go backstage." },
+            { icon: "✕", n: "PASS ONE", hue: "#ffc2d6", ink: "#eef0ff", bodyink: "rgba(238,240,255,.68)", meta: "rgba(238,240,255,.5)",
+              bg: "rgba(6,8,24,.6)", border: "1.5px solid rgba(185,168,255,.45)", glow: "none",
+              tapnote: "TAP A CHAIR", body: "One seat opens, the bench fills it, three fresh rounds." },
+            { icon: "⟳", n: "CLEAR THE DECK", hue: "rgba(214,205,255,.8)", ink: "rgba(238,240,255,.88)", bodyink: "rgba(238,240,255,.6)", meta: "rgba(238,240,255,.4)",
+              bg: "rgba(6,8,24,.5)", border: "1px dashed rgba(185,168,255,.4)", glow: "none",
+              tapnote: "CONFIRM", body: "Pass on all three. New cast, seated one at a time." }
+          ]
+        }),
+        Object.assign({}, base, {
+          num: "10", ...N_PINK, title: "Show end", rim: "#5a2e46", phase: "SHE CHOSE", ...PH_PINK,
+          blurb: "The two rejected cells go cold and dark; his cool key warms to match hers. Then backstage, the feed cut, and the contact exchange if they both want it.",
+          ...Object.assign({}, R_LILAC, { rule: "Cut the Feed is final on camera but not on contact — the exchange screen exists so nobody loses a good night to a hung-up call." }),
+          cells: [host({ op: ".2" }), cell({ op: ".12", name: "DEV" }), cell({ op: ".12", name: "JUNE" }), cell({ op: ".12", name: "DOCK" })],
+          bench: null, bottom: false,
+          overlay: "KEPT", overlay2: "", overlayKicker: "SHE MADE HER CHOICE", overlayKick: "#ffd6e9",
+          overlaySub: "Three rounds, 1.2K hearts, and Marla picked June.",
+          overlayBg: "radial-gradient(120% 62% at 50% 42%, rgba(255,45,143,.42), rgba(4,6,18,.94) 72%)",
+          overlayGlow: "rgba(255,45,143,1)", overlayCta: "GO BACKSTAGE"
+        })
+      ],
+
+      leaveRules: [
+        { n: "Connection drops", cost: "NO PENALTY", hue: "#7ff2e6",
+          bg: "rgba(45,227,208,.08)", edge: "rgba(45,227,208,.42)",
+          body: "Seat held 15 seconds, his shot clock frozen. Back inside the window and he resumes exactly where he was, hearts intact. A tunnel is not a forfeit." },
+        { n: "He closes the app", cost: "OUT FOR THE NIGHT", hue: "#ffc24d",
+          bg: "rgba(255,194,77,.09)", edge: "rgba(255,194,77,.45)",
+          body: "Same 15-second hold, since the server can't tell the two apart at first. If he doesn't return, it's a forfeit: removed from the line, can't rejoin tonight. Harsher than losing a promotion on purpose — bailing mid-round costs her a round." },
+        { n: "He was the one answering", cost: "QUESTION RETURNED", hue: "#ffd6e9",
+          bg: "rgba(255,214,233,.09)", edge: "rgba(255,214,233,.45)",
+          body: "The spotlight cancels immediately rather than running out the clock on an empty cell, and her question goes back to the deck unused. Open floor resumes early; she shouldn't burn material on someone who left." },
+        { n: "He taps LEAVE CHAIR", cost: "ONE STRIKE", hue: "#ff7ab8",
+          bg: "rgba(255,122,184,.09)", edge: "rgba(255,122,184,.45)",
+          body: "Leaving deliberately and cleanly is the honest exit, so it's only a strike — he keeps his place in line. The chair converts straight away with no hold, because he told us he's gone." }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

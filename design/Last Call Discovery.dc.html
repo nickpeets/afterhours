@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Archivo:wght@400;500;600;700;800&family=Azeret+Mono:wght@400;600;700&family=Monoton&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#080b20;}
+  *{box-sizing:border-box;}
+  a{color:#ff6fb0;text-decoration:none;}
+  a:hover{color:#fff;}
+  @keyframes tally{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes emberpulse{0%,100%{box-shadow:0 0 18px rgba(255,194,77,.4)}50%{box-shadow:0 0 32px rgba(255,194,77,.75),0 0 60px rgba(255,194,77,.25)}}
+  @keyframes surge{0%,100%{box-shadow:0 0 14px rgba(255,194,77,.5)}50%{box-shadow:0 0 30px rgba(255,194,77,.95)}}
+  @keyframes surgerose{0%,100%{box-shadow:0 0 14px rgba(255,122,184,.5)}50%{box-shadow:0 0 32px rgba(255,122,184,.95),0 0 60px rgba(255,122,184,.35)}}
+  @keyframes mic{0%,100%{opacity:1;transform:scaleY(1)}50%{opacity:.55;transform:scaleY(.5)}}
+  @keyframes ripple{0%{transform:scale(.6);opacity:.85}100%{transform:scale(2.2);opacity:0}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+
+<section style="padding:52px 46px 70px;font-family:Archivo,sans-serif;color:#eef0ff">
+
+  <div id="12a" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+    <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.3em;color:#ffd6e9">TURNS 12–15 · DISCOVERY PATH · <a href="#12a">12a</a> · <a href="#13a">13a</a> · <a href="#14a">14a</a> · <a href="#15a">15a</a></div>
+    <div style="font-family:Monoton,cursive;font-size:42px;line-height:1.14;letter-spacing:.02em;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.5),0 0 26px rgba(255,45,143,.9),0 0 60px rgba(255,45,143,.4)">EVERY SCREEN, EVERY CONTROL</div>
+    <div style="font-size:14px;max-width:1000px;color:rgba(238,240,255,.74);line-height:1.55;text-wrap:pretty">Four people walk through one night in the same room and see four different products. This follows each of them in order, and every button, badge, timer, counter and tray is called out on the control itself — what it does, who can see it, what state it is in here, and what other states it has. Photographic faces throughout, at true device size, so the question "is that window big enough to read a face" answers itself.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:14px;max-width:1180px;margin-bottom:26px">
+    <div style="flex:1;min-width:330px;display:flex;align-items:flex-start;gap:11px;padding:14px 16px;border-radius:18px;background:rgba(255,45,143,.1);border:1.5px solid rgba(255,45,143,.5)">
+      <span style="font-size:15px;color:#ff8ac2">◈</span>
+      <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.6;color:rgba(255,214,233,.9);text-wrap:pretty"><strong style="color:#fff">Read this instead of the old walkthrough.</strong> <em>Last Call Walkthrough</em> is ten screens through one night from a single vantage point; it stays valid on the mid-round exit and the promotion, but this file replaces it as the entry point because role gating — not sequence — is what people get wrong.</div>
+    </div>
+    <div style="flex:1;min-width:330px;display:flex;align-items:flex-start;gap:11px;padding:14px 16px;border-radius:18px;background:rgba(45,227,208,.1);border:1.5px solid rgba(45,227,208,.5)">
+      <span style="font-size:15px;color:#7ff2e6">⤢</span>
+      <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.6;color:rgba(214,244,255,.9);text-wrap:pretty"><strong style="color:#fff">393×715 is the size of record.</strong> That is the usable height once Safari's chrome is subtracted; 390×844 is the best case. Where the stack does not fit at 715, the last track shows it not fitting rather than scaling the frame up.</div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:8px">
+    <span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.18em;color:rgba(238,240,255,.5)">WHO CAN SEE IT</span>
+    <sc-for list="{{ gates }}" as="g" hint-placeholder-count="6">
+      <span style="padding:3px 9px;border-radius:9px;background:{{ g.bg }};border:1px solid {{ g.edge }};font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.1em;color:{{ g.ink }}">{{ g.label }}</span>
+    </sc-for>
+  </div>
+
+  <sc-for list="{{ tracks }}" as="t" hint-placeholder-count="6">
+    <div style="margin-top:56px;display:flex;flex-direction:column;gap:16px">
+      <sc-if value="{{ t.turnTitle }}" hint-placeholder-val="{{ false }}">
+        <div id="{{ t.turnId }}" style="display:flex;flex-direction:column;gap:10px;padding-bottom:6px">
+          <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.3em;color:{{ t.ink }}">{{ t.turnKicker }} · <a href="{{ t.turnHref }}">{{ t.turnRef }}</a></div>
+          <div style="font-family:Monoton,cursive;font-size:38px;line-height:1.16;letter-spacing:.02em;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.5),0 0 26px rgba(255,194,77,.7),0 0 60px rgba(255,194,77,.28)">{{ t.turnTitle }}</div>
+          <div style="font-size:14px;max-width:1000px;color:rgba(238,240,255,.74);line-height:1.55;text-wrap:pretty">{{ t.turnBlurb }}</div>
+        </div>
+      </sc-if>
+      <div style="display:flex;align-items:flex-start;gap:16px;padding:16px 20px;border-radius:20px;background:{{ t.bg }};border:1.5px solid {{ t.edge }};max-width:1180px">
+        <div style="flex:none;width:46px;height:46px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:{{ t.chipBg }};font-family:'Baloo 2',sans-serif;font-weight:800;font-size:22px;color:{{ t.chipInk }}">{{ t.letter }}</div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+            <span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:26px;line-height:1.25;color:#fff">{{ t.title }}</span>
+            <span style="font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.14em;color:{{ t.ink }}">{{ t.path }}</span>
+          </div>
+          <div style="font-size:12.5px;line-height:1.6;color:rgba(238,240,255,.76);max-width:940px;text-wrap:pretty">{{ t.note }}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:30px;align-items:flex-start">
+        <sc-for list="{{ t.screens }}" as="s" hint-placeholder-count="4">
+          <div style="display:flex;flex-direction:column;gap:11px;width:{{ s.wrapW }}px">
+            <div style="padding-left:292px;display:flex;flex-direction:column;gap:5px;width:{{ s.headW }}px">
+              <div style="display:flex;align-items:center;gap:7px">
+                <span style="font-family:'Azeret Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.16em;color:{{ s.dot }}">{{ s.step }}</span>
+                <span style="padding:2px 7px;border-radius:8px;background:{{ s.sizeBg }};font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:{{ s.sizeInk }}">{{ s.size }}</span>
+              </div>
+              <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:21px;line-height:1.3;color:#fff">{{ s.title }}</div>
+              <div style="font-size:11.5px;line-height:1.5;color:rgba(238,240,255,.62);text-wrap:pretty">{{ s.blurb }}</div>
+            </div>
+
+            <div style="position:relative;width:{{ s.wrapW }}px;height:{{ s.frameH }}px">
+              <div style="position:absolute;left:292px;top:0;width:{{ s.w }}px;height:{{ s.frameH }}px;border-radius:42px;overflow:hidden;background:#080b20;box-shadow:0 0 0 2.5px {{ s.rim }},0 26px 52px -16px rgba(0,0,0,.85);display:flex;flex-direction:column">
+                <div style="position:absolute;inset:0;background:radial-gradient(100% 30% at 26% 0%, rgba(255,45,143,.18), transparent 60%)"></div>
+
+                <div style="position:relative;flex:none;display:flex;flex-wrap:nowrap;align-items:center;gap:7px;padding:52px 12px 8px;overflow:hidden">
+                  <div style="font-family:Monoton,cursive;font-size:12px;letter-spacing:.04em;color:#fff;text-shadow:0 0 12px rgba(255,45,143,.85);flex:none">LAST CALL</div>
+                  <div style="flex:1"></div>
+                  <div style="display:flex;align-items:center;gap:4px;min-height:25px;padding:0 8px;border-radius:13px;background:{{ s.phasebg }};border:{{ s.phaseborder }};font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:{{ s.phaseink }};white-space:nowrap">{{ s.phase }}</div>
+                  <sc-if value="{{ s.indicator }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;gap:5px;min-height:25px;padding:0 9px;border-radius:13px;background:rgba(255,194,77,.16);border:1px solid rgba(255,194,77,.6);white-space:nowrap">
+                      <span style="width:7px;height:7px;border-radius:50%;background:linear-gradient(180deg,#ffe0a8,#ffc24d);box-shadow:0 0 7px rgba(255,194,77,.9);animation:tally 2.4s ease-in-out infinite"></span>
+                      <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.1em;color:#ffd98a">{{ s.indicator }}</span>
+                    </div>
+                  </sc-if>
+                  <div style="display:flex;align-items:center;gap:3px;min-height:25px;padding:0 8px;border-radius:13px;background:rgba(8,11,32,.62);border:1px solid rgba(185,168,255,.4);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:#eef0ff;white-space:nowrap">👁 {{ s.eyes }}</div>
+                  <div style="display:flex;align-items:center;gap:2px;min-height:25px;padding:0 8px;border-radius:13px;background:linear-gradient(180deg,#ffd6e9,#ff8ac2);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:#4a0724;white-space:nowrap">✦{{ s.credits }}</div>
+                  <sc-if value="{{ s.gear }}" hint-placeholder-val="{{ false }}">
+                    <div style="flex:none;width:40px;height:40px;margin:-8px -8px -8px -2px;display:flex;align-items:center;justify-content:center;color:#b9a8ff;font-size:17px">⚙</div>
+                  </sc-if>
+                </div>
+
+                <sc-if value="{{ s.quad }}" hint-placeholder-val="{{ true }}">
+                  <div id="rt_chairs" style="position:relative;flex:none;display:grid;grid-template-columns:{{ s.quadCols }};grid-template-rows:{{ s.quadRows }};gap:5px;padding:0 9px">
+                    <sc-for list="{{ s.quad }}" as="c" hint-placeholder-count="4">
+                      <div class="chair" style="position:relative;grid-row:{{ c.row }};grid-column:{{ c.col }};padding:2.5px;border-radius:17px;background:{{ c.rimbg }};border:{{ c.rim }};box-shadow:{{ c.glow }};opacity:{{ c.op }};transform:{{ c.cellT }};filter:{{ c.cellF }};transform-style:preserve-3d">
+                        <div style="position:relative;height:{{ c.h }};border-radius:14px;overflow:hidden;background:#0b0f22">
+                          <sc-if value="{{ c.hasPhoto }}" hint-placeholder-val="{{ false }}">
+                            <div style="position:absolute;inset:0;background-image:url({{ c.photo }});background-size:cover;background-position:50% 24%;filter:{{ c.feedFilter }};transform:{{ c.feedTransform }}"></div>
+                          </sc-if>
+                          <sc-if value="{{ c.silShape }}" hint-placeholder-val="{{ false }}">
+                            <div style="position:absolute;inset:0;background:linear-gradient(180deg,#232045,#101227)">
+                              <div style="position:absolute;left:50%;top:26%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;background:rgba(185,168,255,.32)"></div>
+                              <div style="position:absolute;left:50%;top:64%;transform:translate(-50%,-50%);width:56px;height:74px;border-radius:28px 28px 14px 14px;background:linear-gradient(180deg,rgba(185,168,255,.32),rgba(185,168,255,.1))"></div>
+                            </div>
+                          </sc-if>
+                          <div style="position:absolute;inset:0;background-image:{{ c.wash }};opacity:{{ c.washOp }};mix-blend-mode:screen"></div>
+                          <sc-if value="{{ c.maskIcon }}" hint-placeholder-val="{{ false }}">
+                            <div style="position:absolute;left:50%;top:32%;transform:translate(-50%,-50%);font-size:44px;line-height:1;opacity:{{ c.maskOpacity }};text-shadow:0 4px 14px rgba(0,0,0,.7)">{{ c.maskIcon }}</div>
+                          </sc-if>
+                          <div style="position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(180deg,transparent,{{ c.scrim }})"></div>
+                          <sc-if value="{{ c.muted }}" hint-placeholder-val="{{ false }}">
+                            <div style="position:absolute;inset:0;background:rgba(6,10,30,.42)"></div>
+                            <div style="position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px">
+                              <span style="font-size:20px;line-height:1;text-shadow:0 1px 4px rgba(0,0,0,.9)">🔇</span>
+                              <span style="font-family:'Azeret Mono',monospace;font-size:7px;font-weight:700;letter-spacing:.12em;color:rgba(255,255,255,.78);text-shadow:0 1px 4px rgba(0,0,0,.9)">MUTED</span>
+                            </div>
+                          </sc-if>
+                          <sc-if value="{{ c.empty }}" hint-placeholder-val="{{ false }}">
+                            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:rgba(45,227,208,.06)">
+                              <span style="font-size:20px;line-height:1;color:#7ff2e6">+</span>
+                              <span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:#aef7ee">{{ c.empty }}</span>
+                              <span style="font-family:Archivo,sans-serif;font-size:9.5px;color:rgba(174,247,238,.72);text-align:center;padding:0 8px">{{ c.emptySub }}</span>
+                            </div>
+                          </sc-if>
+                          <sc-if value="{{ c.promo }}" hint-placeholder-val="{{ false }}">
+                            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;background:rgba(30,20,4,.72)">
+                              <span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:34px;line-height:1;color:#fff;text-shadow:0 0 16px rgba(255,194,77,.95)">{{ c.promo }}</span>
+                              <span style="padding:2px 9px;border-radius:11px;background:rgba(255,194,77,.9);font-family:'Azeret Mono',monospace;font-weight:700;font-size:8px;letter-spacing:.12em;color:#3d2600">{{ c.promoWho }}</span>
+                            </div>
+                          </sc-if>
+                          <sc-if value="{{ c.hearts }}" hint-placeholder-val="{{ true }}">
+                            <div style="position:absolute;top:6px;left:6px;display:flex;align-items:center;gap:3px;padding:2px 8px;border-radius:11px;background:rgba(6,8,24,.62);backdrop-filter:blur(6px)"><span style="font-size:11px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,45,143,.95)">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:11px;color:#ffd6e9">{{ c.hearts }}</span></div>
+                          </sc-if>
+                          <sc-if value="{{ c.clock }}" hint-placeholder-val="{{ true }}">
+                            <div class="cclock" style="position:absolute;top:6px;right:6px;display:flex;align-items:center;gap:3px;padding:2px 7px;border-radius:8px;background:{{ c.clockBg }};border:{{ c.clockBorder }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:{{ c.clockSize }};color:{{ c.clockInk }}"><span style="font-size:7px">{{ c.clockPause }}</span>{{ c.clock }}</div>
+                          </sc-if>
+                          <sc-if value="{{ c.tag }}" hint-placeholder-val="{{ true }}">
+                            <div style="position:absolute;top:{{ c.tagTop }};right:6px;padding:2px 8px;border-radius:10px;background:{{ c.tagbg }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:7.5px;letter-spacing:.12em;color:{{ c.tagink }}">{{ c.tag }}</div>
+                          </sc-if>
+                          <sc-if value="{{ c.asked }}" hint-placeholder-val="{{ false }}">
+                            <div style="position:absolute;bottom:7px;right:6px;display:flex;align-items:center;gap:3px;padding:2px 7px;border-radius:9px;background:{{ c.askedBg }};border:1px solid {{ c.askedEdge }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:7px;letter-spacing:.1em;color:{{ c.askedInk }};white-space:nowrap">{{ c.asked }}</div>
+                          </sc-if>
+                          <sc-if value="{{ c.filterBadge }}" hint-placeholder-val="{{ false }}">
+                            <div style="position:absolute;bottom:7px;right:6px;display:flex;align-items:center;gap:3px;padding:2px 7px;border-radius:9px;background:{{ c.filterBg }};border:1px solid {{ c.filterEdge }}"><span style="font-size:9px;line-height:1">{{ c.filterIcon }}</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:7px;letter-spacing:.08em;color:{{ c.filterInk }}">{{ c.filterBadge }}</span></div>
+                          </sc-if>
+                          <sc-if value="{{ c.name }}" hint-placeholder-val="{{ true }}">
+                            <div style="position:absolute;left:6px;bottom:6px;display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:11px;background:{{ c.namebg }};backdrop-filter:blur(8px);font-family:Archivo,sans-serif;font-weight:800;font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">{{ c.name }}<sc-if value="{{ c.mic }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:flex-end;gap:1px;height:8px"><i style="display:block;width:2px;height:5px;background:#fff;animation:mic .9s ease-in-out infinite"></i><i style="display:block;width:2px;height:8px;background:#fff;animation:mic .9s ease-in-out .15s infinite"></i><i style="display:block;width:2px;height:6px;background:#fff;animation:mic .9s ease-in-out .3s infinite"></i></span></sc-if></div>
+                          </sc-if>
+                          <sc-if value="{{ c.heartTap }}" hint-placeholder-val="{{ false }}">
+                            <div style="position:absolute;left:50%;bottom:4px;transform:translateX(-50%);width:48px;height:44px;display:flex;align-items:center;justify-content:center">
+                              <sc-if value="{{ c.rippling }}" hint-placeholder-val="{{ false }}">
+                                <span style="position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:2px solid #ff2d8f;animation:ripple .5s ease-out infinite"></span>
+                              </sc-if>
+                              <span style="display:block;transform:scaleY(.82);font-size:28px;line-height:1;color:{{ c.heartFill }};-webkit-text-stroke:1.5px {{ c.heartStroke }};text-shadow:{{ c.heartGlow }}">♥</span>
+                            </div>
+                          </sc-if>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ s.question }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:relative;flex:none;margin:8px 12px 0;padding:12px 14px;border-radius:18px;background:{{ s.questionBg }};border:1px solid rgba(45,227,208,.28);border-left:3px solid {{ s.questionEdge }};backdrop-filter:blur(16px)">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                      <span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.16em;color:{{ s.questionInk }}">{{ s.questionFor }}</span>
+                      <span style="flex:1"></span>
+                      <span style="padding:2px 8px;border-radius:8px;background:{{ s.qcBg }};border:{{ s.qcBorder }};box-shadow:{{ s.qcGlow }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:{{ s.qcSize }};line-height:1.1;color:{{ s.qcInk }}">{{ s.questionClock }}</span>
+                    </div>
+                    <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:19px;line-height:1.28;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,1)">{{ s.question }}</div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ s.bench }}" hint-placeholder-val="{{ true }}">
+                  <div id="rt_line" style="position:relative;flex:none;margin-top:8px;padding:0 9px;display:flex;flex-direction:column;gap:5px">
+                    <div style="display:flex;align-items:center;gap:7px;padding:0 2px">
+                      <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.18em;color:#ffd6e9;white-space:nowrap">THE BENCH</span>
+                      <span style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:10px;color:rgba(214,205,255,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.benchNote }}</span>
+                      <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;color:rgba(214,205,255,.6);white-space:nowrap">{{ s.benchMeta }}</span>
+                    </div>
+                    <div id="lineitems" style="display:flex;gap:5px">
+                      <sc-for list="{{ s.bench }}" as="b" hint-placeholder-count="3">
+                        <div style="flex:1;min-width:0;position:relative;padding:2px;border-radius:14px;background:{{ b.cardBg }};border:{{ b.cardBorder }};box-shadow:{{ b.cardGlow }};animation:{{ b.cardAnim }}">
+                          <div style="position:relative;height:{{ s.benchH }};border-radius:11px;overflow:hidden;background:#141a3a">
+                            <sc-if value="{{ b.hasPhoto }}" hint-placeholder-val="{{ false }}">
+                              <div style="position:absolute;inset:0;background-image:url({{ b.photo }});background-size:cover;background-position:50% 22%;filter:{{ b.feedFilter }}"></div>
+                            </sc-if>
+                            <sc-if value="{{ b.silShape }}" hint-placeholder-val="{{ false }}">
+                              <div style="position:absolute;inset:0;background:linear-gradient(180deg,#232045,#101227)">
+                                <div style="position:absolute;left:50%;top:28%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;background:rgba(185,168,255,.32)"></div>
+                                <div style="position:absolute;left:50%;top:68%;transform:translate(-50%,-50%);width:42px;height:54px;border-radius:21px 21px 12px 12px;background:linear-gradient(180deg,rgba(185,168,255,.32),rgba(185,168,255,.1))"></div>
+                              </div>
+                            </sc-if>
+                            <div style="position:absolute;left:0;right:0;bottom:0;height:42px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.92))"></div>
+                            <sc-if value="{{ b.empty }}" hint-placeholder-val="{{ false }}">
+                              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:rgba(185,168,255,.05)">
+                                <span style="font-size:17px;line-height:1;color:#b9a8ff">+</span>
+                                <span style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.12em;color:{{ b.emptyInk }};text-align:center;padding:0 6px;line-height:1.4">{{ b.empty }}</span>
+                              </div>
+                            </sc-if>
+                            <sc-if value="{{ b.n }}" hint-placeholder-val="{{ true }}">
+                              <div style="position:absolute;top:4px;left:4px;display:flex;align-items:center;gap:2px;padding:1px 6px;border-radius:9px;background:rgba(6,8,24,.66)"><span style="font-size:10px;line-height:1;color:#ff2d8f">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:10.5px;color:#ffd6e9">{{ b.n }}</span></div>
+                            </sc-if>
+                            <sc-if value="{{ b.badge }}" hint-placeholder-val="{{ false }}">
+                              <div style="position:absolute;top:4px;right:4px;padding:1px 6px;border-radius:9px;background:{{ b.badgeBg }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:7px;letter-spacing:.1em;color:{{ b.badgeInk }};white-space:nowrap">{{ b.badge }}</div>
+                            </sc-if>
+                            <sc-if value="{{ b.name }}" hint-placeholder-val="{{ true }}">
+                              <div style="position:absolute;left:4px;right:4px;bottom:16px;text-align:center;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:12px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.95)">{{ b.name }}</div>
+                            </sc-if>
+                            <div style="position:absolute;left:0;right:0;bottom:4px;display:flex;align-items:center;justify-content:center;gap:3px">
+                              <sc-for list="{{ b.pips }}" as="p" hint-placeholder-count="3">
+                                <i style="display:block;width:5px;height:5px;border-radius:50%;background:{{ p.bg }};box-shadow:{{ p.glow }}"></i>
+                              </sc-for>
+                            </div>
+                          </div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ s.benchCount }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:relative;flex:none;margin:8px 12px 0;display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:13px;background:rgba(185,168,255,.1);border:1px solid rgba(185,168,255,.4)">
+                    <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.18em;color:#ffd6e9;white-space:nowrap">THE BENCH</span>
+                    <span style="flex:1;min-width:0;font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#ffd6e9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.benchCount }}</span>
+                    <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;color:rgba(214,205,255,.7);white-space:nowrap">{{ s.benchMeta }}</span>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ s.lobby }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:relative;flex:1;min-height:0;display:flex;flex-direction:column">
+                  <div style="position:relative;flex:1;min-height:0;display:flex;flex-direction:column;gap:9px;padding:2px 12px 0;overflow:hidden">
+                    <div style="flex:none;display:flex;align-items:center;gap:8px">
+                      <span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.2em;color:#ffd6e9">{{ s.lobbyLabel }}</span>
+                      <span style="flex:1"></span>
+                    </div>
+                    <sc-for list="{{ s.lobby }}" as="rm" hint-placeholder-count="2">
+                      <div style="flex:none;padding:3px;border-radius:22px;background:rgba(6,8,24,.5);border:{{ rm.cardBorder }};box-shadow:{{ rm.glow }}">
+                        <div style="position:relative;height:{{ rm.feedH }};border-radius:19px;overflow:hidden;background:#141a3a;display:flex;gap:2px">
+                          <div style="flex:1;background-image:url({{ rm.photo }});background-size:cover;background-position:50% 22%;filter:{{ rm.filter }}"></div>
+                          <sc-if value="{{ rm.photo2 }}" hint-placeholder-val="{{ false }}">
+                            <div style="flex:1;background-image:url({{ rm.photo2 }});background-size:cover;background-position:50% 22%;box-shadow:inset 0 0 0 2px #ff2d8f"></div>
+                          </sc-if>
+                          <div style="position:absolute;left:0;right:0;bottom:0;height:118px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.94) 62%)"></div>
+                          <div style="position:absolute;left:8px;right:8px;top:8px;display:flex;align-items:center;gap:6px">
+                            <span style="min-height:24px;padding:0 8px;display:flex;align-items:center;border-radius:12px;background:{{ rm.phasebg }};border:{{ rm.phaseborder }};font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:{{ rm.phaseink }};white-space:nowrap">{{ rm.phase }}</span>
+                            <span style="min-height:24px;padding:0 8px;display:flex;align-items:center;gap:4px;border-radius:12px;background:{{ rm.tierBg }};border:{{ rm.tierBorder }};font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.1em;color:{{ rm.tierInk }};white-space:nowrap">{{ rm.tier }}</span>
+                            <span style="flex:1"></span>
+                            <span style="font-family:'Azeret Mono',monospace;font-size:9.5px;font-weight:700;color:#eef0ff;text-shadow:0 1px 4px rgba(0,0,0,.95);white-space:nowrap">👁 {{ rm.eyes }}</span>
+                            <span style="font-family:'Azeret Mono',monospace;font-size:9.5px;font-weight:700;color:#ffd6e9;text-shadow:0 1px 4px rgba(0,0,0,.95);white-space:nowrap">♥ {{ rm.hearts }}</span>
+                          </div>
+                          <div style="position:absolute;left:10px;right:10px;bottom:9px;display:flex;flex-direction:column;gap:6px">
+                            <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:22px;line-height:1.4;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 5px rgba(0,0,0,.95)">{{ rm.host }}</div>
+                            <div style="font-family:Archivo,sans-serif;font-size:11.5px;line-height:1.35;color:rgba(238,240,255,.82);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 4px rgba(0,0,0,.95)">{{ rm.tag }}</div>
+                            <div style="display:flex;align-items:center;gap:8px">
+                              <div style="display:flex;gap:4px">
+                                <sc-for list="{{ rm.seats }}" as="st" hint-placeholder-count="3">
+                                  <i style="display:block;width:24px;height:5px;border-radius:3px;background:{{ st.bg }};box-shadow:{{ st.glow }}"></i>
+                                </sc-for>
+                              </div>
+                              <span style="flex:1;min-width:0;font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:{{ rm.seatInk }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ rm.seatNote }}</span>
+                              <span style="flex:none;min-height:40px;padding:0 14px;display:flex;align-items:center;border-radius:20px;background:{{ rm.ctaBg }};border:{{ rm.ctaBorder }};box-shadow:{{ rm.ctaGlow }};font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:{{ rm.ctaInk }};white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,.9)">{{ rm.cta }}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="position:relative;flex:none;margin:10px 12px 20px;min-height:58px;display:flex;align-items:center;justify-content:center;gap:9px;border-radius:29px;background:linear-gradient(180deg,#ffb4d9,#ff2d8f 52%,#c60d68);border:1.5px solid rgba(255,255,255,.9);box-shadow:inset 0 2px 0 rgba(255,255,255,.85),0 0 38px rgba(255,45,143,.7);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:17px;letter-spacing:.04em;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5)">{{ s.golive }}</div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ s.pill }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:relative;flex:none;margin:11px 12px 0;display:flex;align-items:center;gap:10px;padding:9px 11px 9px 15px;border-radius:26px;background:linear-gradient(180deg,rgba(58,40,10,.9),rgba(30,20,4,.92));border:1.5px solid rgba(255,194,77,.85);animation:emberpulse 2.6s ease-in-out infinite">
+                    <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                      <div style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.18em;color:rgba(255,217,138,.9);white-space:nowrap">{{ s.pillKicker }}</div>
+                      <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;line-height:1.1;color:#fff;white-space:nowrap">{{ s.pillTitle }}</div>
+                    </div>
+                    <div style="flex:1;min-width:0;height:4px;border-radius:2px;background:rgba(255,194,77,.2);overflow:hidden"><div style="width:{{ s.pillBar }};height:100%;border-radius:2px;background:linear-gradient(90deg,#ffc24d,#ffe0a8)"></div></div>
+                    <div style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:22px;line-height:1;color:#fff;text-shadow:0 0 16px rgba(255,194,77,.95);white-space:nowrap">{{ s.pillClock }}</div>
+                    <sc-if value="{{ s.pillAction }}" hint-placeholder-val="{{ false }}">
+                      <div style="flex:none;min-height:44px;padding:0 14px;display:flex;align-items:center;border-radius:22px;cursor:pointer;background:{{ s.pillActionBg }};border:{{ s.pillActionBorder }};font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:{{ s.pillActionInk }};white-space:nowrap">{{ s.pillAction }}</div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+
+                <div style="position:relative;flex:{{ s.tailFlex }};min-height:0;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;padding:8px 11px {{ s.padBottom }}">
+                  <div id="chatstrip" style="flex:1;min-height:{{ s.chatMin }};display:flex;flex-direction:column;justify-content:flex-end;gap:4px;overflow:hidden;-webkit-mask-image:linear-gradient(to top,#000 60%,transparent);mask-image:linear-gradient(to top,#000 60%,transparent)">
+                    <sc-for list="{{ s.chat }}" as="m" hint-placeholder-count="3">
+                      <div style="display:flex;gap:6px;align-items:baseline;text-shadow:0 1px 4px rgba(0,0,0,.98)">
+                        <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:11.5px;color:{{ m.color }};white-space:nowrap">{{ m.who }}</span>
+                        <span style="font-family:Archivo,sans-serif;font-size:12.5px;line-height:1.35;color:#fff">{{ m.text }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ s.composer }}" hint-placeholder-val="{{ true }}">
+                    <div id="inputbar" style="display:flex;gap:8px;align-items:center">
+                      <div style="flex:1;min-width:0;min-height:46px;display:flex;align-items:center;padding:0 14px;border-radius:23px;background:rgba(6,8,24,.6);border:{{ s.fieldBorder }};font-family:Archivo,sans-serif;font-size:13.5px;color:{{ s.fieldInk }}">{{ s.field }}</div>
+                      <sc-if value="{{ s.gift }}" hint-placeholder-val="{{ false }}">
+                        <div style="flex:none;width:46px;height:46px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(255,214,233,.5);font-size:17px">🎁</div>
+                      </sc-if>
+                      <div style="flex:none;width:46px;height:46px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:{{ s.shieldBg }};border:1px solid #b9a8ff;color:#b9a8ff;font-size:17px">🛡</div>
+                      <div style="flex:none;min-height:46px;padding:0 17px;display:flex;align-items:center;gap:6px;border-radius:23px;cursor:pointer;background:{{ s.ctabg }};border:{{ s.ctaborder }};font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;color:{{ s.ctaink }};text-shadow:0 1px 4px rgba(0,0,0,.9);box-shadow:{{ s.ctaglow }};white-space:nowrap">{{ s.cta }}</div>
+                    </div>
+                  </sc-if>
+                </div>
+
+                <sc-if value="{{ s.keyboard }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;left:0;right:0;bottom:0;height:{{ s.keyboard }};background:linear-gradient(180deg,#1b1d2c,#14161f);border-top:1px solid rgba(255,255,255,.14);display:flex;flex-direction:column;justify-content:center;gap:9px;padding:12px 6px">
+                    <sc-for list="{{ s.keys }}" as="k" hint-placeholder-count="3">
+                      <div style="display:flex;gap:5px;justify-content:center">
+                        <sc-for list="{{ k.row }}" as="ch" hint-placeholder-count="10">
+                          <span style="flex:1;max-width:34px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:#3a3d4d;font-family:Archivo,sans-serif;font-size:15px;color:#fff">{{ ch }}</span>
+                        </sc-for>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ s.sheetKicker }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;left:0;right:0;bottom:{{ s.sheetBottom }};z-index:4;display:flex;flex-direction:column;gap:9px;padding:14px 14px {{ s.sheetPadBottom }};border-radius:26px 26px {{ s.sheetRadius }};background:linear-gradient(180deg,rgba(10,13,32,.86),rgba(8,10,26,.97) 26%);border-top:1.5px solid {{ s.sheetEdge }};box-shadow:0 -20px 50px rgba(0,0,0,.6)">
+                    <sc-if value="{{ s.sheetNotch }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;left:{{ s.sheetNotch }};bottom:-9px;width:16px;height:16px;transform:rotate(45deg);background:rgba(8,10,26,.97);border-right:1.5px solid {{ s.sheetEdge }};border-bottom:1.5px solid {{ s.sheetEdge }};border-radius:0 0 3px 0"></div>
+                    </sc-if>
+                    <sc-if value="{{ s.sheetToggle }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;gap:4px;padding:3px;border-radius:16px;background:rgba(6,8,24,.7);border:1px solid rgba(185,168,255,.3)">
+                        <sc-for list="{{ s.sheetToggle }}" as="tg" hint-placeholder-count="2">
+                          <div style="flex:1;min-height:38px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:13px;background:{{ tg.bg }};border:{{ tg.border }};font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13.5px;color:{{ tg.ink }};white-space:nowrap">{{ tg.label }}</div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                    <div style="display:flex;align-items:center;gap:8px;padding:0 2px">
+                      <span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.16em;color:{{ s.sheetInk }}">{{ s.sheetKicker }}</span>
+                      <span style="flex:1"></span>
+                      <span style="font-family:'Azeret Mono',monospace;font-size:9px;color:rgba(214,205,255,.6);white-space:nowrap">{{ s.sheetMeta }}</span>
+                    </div>
+                    <sc-if value="{{ s.sheetTiles }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;gap:7px">
+                        <sc-for list="{{ s.sheetTiles }}" as="tl" hint-placeholder-count="4">
+                          <div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 6px;border-radius:15px;background:{{ tl.bg }};border:{{ tl.border }}">
+                            <span style="font-size:24px;line-height:1">{{ tl.icon }}</span>
+                            <span style="font-family:Archivo,sans-serif;font-weight:700;font-size:9.5px;color:{{ tl.ink }};text-align:center;line-height:1.2">{{ tl.name }}</span>
+                            <span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:8px;color:{{ tl.costInk }}">{{ tl.cost }}</span>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ s.sheetTargets }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;gap:7px">
+                        <sc-for list="{{ s.sheetTargets }}" as="tt" hint-placeholder-count="2">
+                          <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:6px 9px 6px 6px;border-radius:15px;background:{{ tt.bg }};border:{{ tt.border }};box-shadow:{{ tt.glow }}">
+                            <div style="flex:none;width:38px;height:38px;border-radius:11px;background-image:url({{ tt.photo }});background-size:cover;background-position:50% 22%"></div>
+                            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                              <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:11.5px;color:{{ tt.ink }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ tt.name }}</span>
+                              <span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:8.5px;letter-spacing:.06em;color:{{ tt.metaInk }};white-space:nowrap">{{ tt.meta }}</span>
+                            </div>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ s.sheetRows }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;flex-direction:column;gap:8px">
+                        <sc-for list="{{ s.sheetRows }}" as="r" hint-placeholder-count="3">
+                          <div style="display:flex;align-items:center;gap:11px;padding:13px 14px;border-radius:18px;background:{{ r.bg }};border:{{ r.border }};box-shadow:{{ r.glow }}">
+                            <sc-if value="{{ r.icon }}" hint-placeholder-val="{{ false }}">
+                              <span style="flex:none;font-size:19px;line-height:1">{{ r.icon }}</span>
+                            </sc-if>
+                            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                              <span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:16px;line-height:1.25;color:{{ r.ink }}">{{ r.name }}</span>
+                              <span style="font-family:Archivo,sans-serif;font-size:11px;line-height:1.35;color:{{ r.subInk }}">{{ r.sub }}</span>
+                            </div>
+                            <sc-if value="{{ r.meta }}" hint-placeholder-val="{{ false }}">
+                              <span style="flex:none;font-family:'Azeret Mono',monospace;font-weight:700;font-size:9px;letter-spacing:.08em;color:{{ r.metaInk }}">{{ r.meta }}</span>
+                            </sc-if>
+                          </div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ s.sheetFoot }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:10.5px;line-height:1.45;color:rgba(238,240,255,.58);padding:2px 2px 0;text-align:center">{{ s.sheetFoot }}</div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ s.captureTitle }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;background:#07091a">
+                    <div style="position:relative;flex:1;min-height:0;overflow:hidden">
+                      <div style="position:absolute;inset:0;background-image:url({{ s.capturePhoto }});background-size:cover;background-position:50% 26%"></div>
+                      <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 34%, transparent 118px, rgba(4,6,18,.78) 132px)"></div>
+                      <div style="position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);width:236px;height:296px;border-radius:50%;border:2px dashed rgba(45,227,208,.85);box-shadow:0 0 30px rgba(45,227,208,.3)"></div>
+                      <div style="position:absolute;left:0;right:0;top:52px;padding:0 22px;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center">
+                        <span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.18em;color:#7ff2e6">{{ s.captureKicker }}</span>
+                        <span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:24px;line-height:1.3;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.9)">{{ s.captureTitle }}</span>
+                      </div>
+                      <div style="position:absolute;left:16px;right:16px;bottom:14px;padding:12px 14px;border-radius:18px;background:rgba(6,8,24,.82);border:1px solid rgba(185,168,255,.4)">
+                        <div style="font-size:11.5px;line-height:1.5;color:rgba(238,240,255,.85);text-wrap:pretty">{{ s.captureNote }}</div>
+                      </div>
+                    </div>
+                    <div style="flex:none;display:flex;align-items:center;gap:9px;padding:14px 14px 24px">
+                      <sc-for list="{{ s.captureBtns }}" as="cb" hint-placeholder-count="2">
+                        <div style="flex:{{ cb.flex }};min-height:52px;display:flex;align-items:center;justify-content:center;border-radius:26px;background:{{ cb.bg }};border:{{ cb.border }};font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;color:{{ cb.ink }};box-shadow:{{ cb.glow }};white-space:nowrap">{{ cb.label }}</div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ s.overlayTitle }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:0 26px;text-align:center;background:{{ s.overlayBg }}">
+                    <sc-if value="{{ s.overlayPhotos }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;align-items:center;gap:-10px">
+                        <sc-for list="{{ s.overlayPhotos }}" as="op" hint-placeholder-count="2">
+                          <div style="width:{{ op.size }};height:{{ op.size }};border-radius:50%;background-image:url({{ op.src }});background-size:cover;background-position:50% 24%;border:2.5px solid {{ op.edge }};box-shadow:0 0 26px rgba(255,45,143,.6);margin-left:{{ op.ml }}"></div>
+                        </sc-for>
+                      </div>
+                    </sc-if>
+                    <span style="font-family:'Azeret Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.22em;color:{{ s.overlayKick }}">{{ s.overlayKicker }}</span>
+                    <span style="font-family:Monoton,cursive;font-size:{{ s.overlaySize }};line-height:1.1;color:#fff;text-shadow:{{ s.overlayGlow }}">{{ s.overlayTitle }}</span>
+                    <span style="font-family:Archivo,sans-serif;font-size:13px;line-height:1.5;color:rgba(255,214,233,.9);max-width:290px">{{ s.overlaySub }}</span>
+                    <div style="display:flex;flex-direction:column;gap:9px;width:100%;padding-top:6px">
+                      <sc-for list="{{ s.overlayCtas }}" as="oc" hint-placeholder-count="2">
+                        <div style="min-height:52px;display:flex;align-items:center;justify-content:center;gap:7px;border-radius:26px;background:{{ oc.bg }};border:{{ oc.border }};font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;color:{{ oc.ink }};box-shadow:{{ oc.glow }}">{{ oc.label }}</div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{ s.cutline }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;left:0;right:0;top:{{ s.cutline }};bottom:0;z-index:6;background:rgba(255,77,109,.18);border-top:2px dashed #ff4d6d;box-shadow:0 0 18px rgba(255,77,109,.7);pointer-events:none"></div>
+                  <div style="position:absolute;left:12px;right:12px;top:{{ s.cutlineLabelTop }};z-index:7;padding:4px 9px;border-radius:9px;background:#ff4d6d;font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.1em;color:#2a000a;text-align:center">{{ s.cutlineLabel }}</div>
+                </sc-if>
+              </div>
+
+              <div style="position:absolute;inset:0;z-index:8;pointer-events:none">
+                <sc-for list="{{ s.callouts }}" as="c" hint-placeholder-count="4">
+                  <div>
+                    <div style="position:absolute;left:{{ c.stubL }};top:{{ c.cardY }};width:14px;height:1px;background:{{ c.lineColor }}"></div>
+                    <div style="position:absolute;left:{{ c.elbowL }};top:{{ c.vTop }};width:1px;height:{{ c.vH }};background:{{ c.lineColor }}"></div>
+                    <div style="position:absolute;left:{{ c.lineL }};top:{{ c.lineT }};width:{{ c.lineW }};height:1px;background:{{ c.lineColor }}"></div>
+                    <div style="position:absolute;left:{{ c.dotL }};top:{{ c.dotT }};width:9px;height:9px;border-radius:50%;border:2px solid {{ c.dotColor }};background:rgba(6,8,24,.85);box-shadow:0 0 9px {{ c.dotColor }}"></div>
+                    <div style="position:absolute;left:{{ c.boxL }};top:{{ c.boxT }};width:266px;display:flex;flex-direction:column;gap:3px;text-align:{{ c.ta }}">
+                      <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;line-height:1.25;color:#fff">{{ c.name }}</div>
+                      <div style="font-family:Archivo,sans-serif;font-size:11px;line-height:1.45;color:rgba(238,240,255,.74);text-wrap:pretty">{{ c.tap }}</div>
+                      <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:{{ c.jc }};padding-top:1px">
+                        <span style="padding:2px 7px;border-radius:8px;background:{{ c.gateBg }};border:1px solid {{ c.gateEdge }};font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.1em;color:{{ c.gateInk }};white-space:nowrap">{{ c.gate }}</span>
+                        <sc-if value="{{ c.now }}" hint-placeholder-val="{{ true }}">
+                          <span style="padding:2px 7px;border-radius:8px;background:rgba(255,255,255,.09);font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.1em;color:#fff;white-space:nowrap">NOW · {{ c.now }}</span>
+                        </sc-if>
+                      </div>
+                      <sc-if value="{{ c.also }}" hint-placeholder-val="{{ true }}">
+                        <div style="font-family:'Azeret Mono',monospace;font-size:8.5px;line-height:1.5;letter-spacing:.04em;color:rgba(185,168,255,.8)">ALSO · {{ c.also }}</div>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <sc-if value="{{ s.foot }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-left:292px;width:390px;padding:11px 13px;border-radius:15px;background:{{ s.footBg }};border:1px solid {{ s.footEdge }};font-size:11.5px;line-height:1.55;color:{{ s.footInk }};text-wrap:pretty">{{ s.foot }}</div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+
+  <div style="margin-top:64px;max-width:1180px;display:flex;flex-direction:column;gap:12px">
+    <div style="font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.2em;color:#ffd6e9">WHAT THIS FILE SUPERSEDES</div>
+    <sc-for list="{{ supersedes }}" as="x" hint-placeholder-count="5">
+      <div style="display:flex;align-items:flex-start;gap:13px;padding:14px 16px;border-radius:16px;background:{{ x.bg }};border:1px solid {{ x.edge }}">
+        <span style="flex:none;padding:3px 9px;border-radius:8px;background:{{ x.tagBg }};font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.1em;color:{{ x.tagInk }};white-space:nowrap">{{ x.tag }}</span>
+        <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.6;color:rgba(238,240,255,.82);text-wrap:pretty"><strong style="color:#fff">{{ x.what }}</strong> {{ x.body }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1500,&quot;height&quot;:1100},&quot;showCallouts&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Reading mode&quot;},&quot;silhouetteStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;shape&quot;,&quot;shadow&quot;],&quot;default&quot;:&quot;shape&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Blind bench&quot;},&quot;heartCounts&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Reading mode&quot;}}">
+const P = n => "https://randomuser.me/api/portraits/" + n + ".jpg";
+const CAST = {
+  marla: P("women/44"), dev: P("men/32"), june: P("men/75"), sam: P("men/11"),
+  dock: P("men/60"), marisol: P("women/68"), theo: P("men/85"), ade: P("men/22"),
+  you: P("men/46"), nadia: P("women/23")
+};
+
+const WARMW = "radial-gradient(120% 88% at 24% 12%, rgba(255,168,200,.42), transparent 62%), radial-gradient(90% 60% at 62% 108%, rgba(255,110,170,.3), transparent 66%)";
+const COOLW = "radial-gradient(closest-side at 46% 32%, rgba(45,227,208,.26), transparent 68%)";
+
+/* who-can-see-it vocabulary — the one legend in the file, because a chip is a
+   word, not a control. Everything else is called out on the control. */
+const G = {
+  all:   ["EVERYONE",          "#d6cdff", "rgba(185,168,255,.14)", "rgba(185,168,255,.5)"],
+  host:  ["HOST ONLY",         "#ffc2e0", "rgba(255,45,143,.16)",  "rgba(255,45,143,.6)"],
+  chair: ["THIS CHAIR ONLY",   "#aef7ee", "rgba(45,227,208,.16)",  "rgba(45,227,208,.6)"],
+  chairs:["SEATED CHAIRS",     "#aef7ee", "rgba(45,227,208,.1)",   "rgba(45,227,208,.45)"],
+  bench: ["BENCH ONLY",        "#d6cdff", "rgba(185,168,255,.2)",  "rgba(185,168,255,.7)"],
+  crowd: ["CROWD ONLY",        "#ffe0a8", "rgba(255,194,77,.16)",  "rgba(255,194,77,.6)"],
+  pair:  ["HOST + BUYER ONLY", "#ffd98a", "rgba(255,194,77,.2)",   "rgba(255,194,77,.8)"],
+  notme: ["HIDDEN FROM HOST",  "#ff9db8", "rgba(255,77,109,.16)",  "rgba(255,77,109,.6)"]
+};
+
+const co = (side, x, y, name, tap, gate, now, also, hue) => ({
+  side, x, y, name, tap, now: now || "", also: also || "",
+  gate: gate[0], gateInk: gate[1], gateBg: gate[2], gateEdge: gate[3],
+  hue: hue || "#ffd6e9"
+});
+
+const PH = {
+  warm:  { phasebg: "rgba(255,45,143,.18)", phaseborder: "1px solid rgba(255,45,143,.7)", phaseink: "#ffc2e0" },
+  cool:  { phasebg: "rgba(45,227,208,.16)", phaseborder: "1px solid rgba(45,227,208,.6)", phaseink: "#aef7ee" },
+  amber: { phasebg: "rgba(255,194,77,.18)", phaseborder: "1px solid rgba(255,194,77,.7)", phaseink: "#ffd98a" },
+  lilac: { phasebg: "rgba(185,168,255,.18)", phaseborder: "1px solid rgba(185,168,255,.65)", phaseink: "#d6cdff" }
+};
+const CTA = {
+  ask:    { cta: "ASK", ctabg: "rgba(255,45,143,.34)", ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff", ctaglow: "0 0 26px rgba(255,45,143,.6)" },
+  join:   { cta: "♥ JOIN THE BENCH", ctabg: "rgba(255,45,143,.34)", ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff", ctaglow: "0 0 26px rgba(255,45,143,.6)" },
+  leave:  { cta: "↩ LEAVE", ctabg: "rgba(185,168,255,.14)", ctaborder: "1.5px solid rgba(185,168,255,.6)", ctaink: "#d6cdff", ctaglow: "none" },
+  moment: { cta: "✦ MOMENT", ctabg: "rgba(255,194,77,.24)", ctaborder: "1.5px solid rgba(255,194,77,.85)", ctaink: "#ffd98a", ctaglow: "0 0 22px rgba(255,194,77,.5)" },
+  filter: { cta: "🎭 FILTER", ctabg: "rgba(45,227,208,.2)", ctaborder: "1.5px solid rgba(45,227,208,.75)", ctaink: "#aef7ee", ctaglow: "0 0 20px rgba(45,227,208,.4)" },
+  locked: { cta: "✦ MOMENT", ctabg: "rgba(255,255,255,.06)", ctaborder: "1.5px dashed rgba(255,255,255,.28)", ctaink: "rgba(255,255,255,.4)", ctaglow: "none" },
+  waiting:{ cta: "WAITING", ctabg: "rgba(255,255,255,.06)", ctaborder: "1.5px dashed rgba(255,255,255,.28)", ctaink: "rgba(255,255,255,.4)", ctaglow: "none" }
+};
+const EMBER = { rim: "2px solid #ffc24d", rimbg: "rgba(255,194,77,.14)", glow: "0 0 26px rgba(255,194,77,.55), 0 0 60px rgba(255,194,77,.18)" };
+const MINE = { rim: "2px solid #ff2d8f", rimbg: "rgba(255,45,143,.12)", glow: "0 0 20px rgba(255,45,143,.6)", namebg: "rgba(255,45,143,.85)" };
+
+function cell(o) {
+  return Object.assign({
+    row: "auto", col: "auto", h: "168px",
+    rim: "1.5px solid rgba(45,227,208,.55)", rimbg: "rgba(6,8,24,.45)", glow: "0 0 10px rgba(45,227,208,.22)",
+    wash: COOLW, washOp: ".62", scrim: "rgba(4,6,18,.92)", op: "1",
+    photo: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", silShape: false, name: "", namebg: "rgba(6,8,24,.66)", hearts: "",
+    clock: "", clockPause: "", clockBg: "rgba(4,33,31,.74)", clockBorder: "1px solid rgba(45,227,208,.8)", clockSize: "10px", clockInk: "#7ff2e6",
+    tag: "", tagbg: "", tagink: "", muted: false, mic: false,
+    feedFilter: "none", feedTransform: "none", cellT: "none", cellF: "none", maskIcon: "", maskOpacity: "1",
+    filterBadge: "", filterIcon: "", filterBg: "", filterEdge: "", filterInk: "",
+    empty: "", emptySub: "", promo: "", promoWho: "",
+    asked: "", askedBg: "rgba(185,168,255,.2)", askedEdge: "rgba(185,168,255,.7)", askedInk: "#d6cdff",
+    heartTap: "", rippling: false, heartFill: "transparent", heartStroke: "rgba(255,214,233,.85)", heartGlow: "0 1px 4px rgba(0,0,0,.9)"
+  }, o);
+}
+const host = o => cell(Object.assign({
+  photo: CAST.marla, name: "MARLA V.", hearts: "1.2K", namebg: "rgba(255,45,143,.85)",
+  tag: "HOST", tagbg: "linear-gradient(180deg,#ffb4d9,#ff2d8f)", tagink: "#5c0230",
+  rim: "2px solid #ff2d8f", rimbg: "rgba(255,45,143,.14)",
+  glow: "0 0 26px rgba(255,45,143,.6), 0 0 60px rgba(255,138,194,.28)",
+  wash: WARMW, washOp: ".8", scrim: "rgba(30,6,20,.92)"
+}, o));
+const muted = (name, photo) => cell({ photo, name, muted: true, feedFilter: "blur(9px)", feedTransform: "scale(1.16)", rim: "1.5px solid rgba(45,227,208,.22)", glow: "none" });
+const paired = o => cell(Object.assign({ tag: "ON THE FLOOR", tagbg: "rgba(255,194,77,.22)", tagink: "#ffd98a" }, EMBER, o));
+const heartOn = { heartFill: "#ff2d8f", heartStroke: "#ff5fae", heartGlow: "0 0 14px rgba(255,45,143,1), 0 0 30px rgba(255,45,143,.7)" };
+
+const pips = (struck, last) => [0, 1, 2].map(i => ({
+  bg: i < struck ? (last ? "#ff4d6d" : "#ff7ab8") : "rgba(255,255,255,.22)",
+  glow: i < struck ? (last ? "0 0 8px rgba(255,77,109,.95)" : "0 0 6px rgba(255,122,184,.85)") : "none"
+}));
+function bench(o) {
+  return Object.assign({
+    photo: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", silShape: false, name: "", n: "0", pips: pips(0), badge: "",
+    badgeBg: "#ffc24d", badgeInk: "#3d2600", feedFilter: "none",
+    cardBg: "rgba(6,8,24,.5)", cardBorder: "1px solid rgba(185,168,255,.35)", cardGlow: "none", cardAnim: "none"
+  }, o);
+}
+const NEXTUP = { badge: "NEXT UP", cardBg: "rgba(255,194,77,.16)", cardBorder: "1.5px solid #ffc24d", cardGlow: "0 0 18px rgba(255,194,77,.55)", cardAnim: "surge 1.4s ease-in-out infinite" };
+/* Amber 1.4s is a STANDING, rose .62s is a RATE OF CHANGE. The >2x split is
+   load-bearing, so hue and cadence are never composed apart: use one of these
+   three whole, never NEXTUP with an overridden cardAnim or badge. */
+const SURGING = { badge: "SURGING", badgeBg: "#ff7ab8", badgeInk: "#3d0020", cardBg: "rgba(255,122,184,.16)", cardBorder: "1.5px solid #ff7ab8", cardGlow: "0 0 20px rgba(255,122,184,.55)", cardAnim: "surgerose .62s ease-in-out infinite" };
+const RISING = { badge: "RISING", badgeBg: "#ff7ab8", badgeInk: "#3d0020", cardBg: "rgba(255,122,184,.18)", cardBorder: "1.5px solid #ff7ab8", cardGlow: "0 0 20px rgba(255,122,184,.6)", cardAnim: "surgerose .62s ease-in-out infinite" };
+const JUSTON = { badge: "JUST ON", badgeBg: "#ff7ab8", badgeInk: "#3d0020", cardBg: "rgba(255,122,184,.16)", cardBorder: "1.5px solid #ff7ab8", cardGlow: "0 0 18px rgba(255,122,184,.5)", cardAnim: "surgerose .62s ease-in-out infinite" };
+
+const benchEmpty = (label, ink) => bench({ empty: label, emptyInk: ink || "rgba(214,205,255,.8)", n: "", pips: [],
+  cardBorder: "1px dashed rgba(185,168,255,.45)", cardBg: "rgba(185,168,255,.05)" });
+const emptyChair = () => cell({ empty: "TAKE THE CHAIR", emptySub: "the engine seats — nobody self-seats",
+  rim: "1.5px dashed rgba(45,227,208,.65)", rimbg: "rgba(45,227,208,.08)", glow: "0 0 16px rgba(45,227,208,.26)" });
+
+const CH = {
+  room: [{ who: "Marisol", text: "dev is doing the thing again", color: "#b9a8ff" }, { who: "Theo", text: "june's quiet tonight", color: "#b9a8ff" }, { who: "Dock", text: "chair 3 is cooked", color: "#b9a8ff" }],
+  spot: [{ who: "THE HOUSE", text: "june is on the spot · filter dropped", color: "#ffc2e0" }, { who: "Marisol", text: "there he is", color: "#b9a8ff" }],
+  moment: [{ who: "Theo", text: "wait what happened to the audio", color: "#b9a8ff" }, { who: "THE HOUSE", text: "the floor is taken · 0:08", color: "#ffd98a" }, { who: "Dock", text: "someone spent a token 💀", color: "#b9a8ff" }],
+  promo: [{ who: "THE HOUSE", text: "chair 3 is open · bench leader rises in 0:05", color: "#ffd98a" }, { who: "Marisol", text: "DOCK DOCK DOCK", color: "#b9a8ff" }],
+  decide: [{ who: "THE HOUSE", text: "deliberation · she has 90 seconds", color: "#ffd6e9" }, { who: "Theo", text: "she's keeping june", color: "#b9a8ff" }],
+  pre: [{ who: "THE HOUSE", text: "show starts when three chairs fill", color: "#7ff2e6" }, { who: "Marisol", text: "i'm on the bench, wish me luck", color: "#b9a8ff" }],
+  crowd: [{ who: "you", text: "dev answered that so badly", color: "#ffd6e9" }, { who: "Marisol", text: "lmao", color: "#b9a8ff" }, { who: "Theo", text: "hearts on june", color: "#b9a8ff" }]
+};
+
+const FIELD_FIELD = { fieldBorder: "1px solid rgba(185,168,255,.4)", fieldInk: "rgba(238,240,255,.5)", field: "Say something…", shieldBg: "rgba(6,8,24,.6)" };
+
+function screen(o) {
+  return Object.assign({
+    w: 390, h: 844, rim: "#2e4a52", size: "390 × 844", sizeBg: "rgba(45,227,208,.14)", sizeInk: "#aef7ee", phase: "LIVE",
+    dot: "#7ff2e6", eyes: "312", credits: "135", indicator: "", quadRows: "173px 173px", quadCols: "1fr 1fr",
+    quad: null, bench: null, benchNote: "earning hearts until a chair opens", benchMeta: "+5 IN LINE",
+    question: "", questionFor: "", questionClock: "", questionBg: "rgba(6,8,24,.34)", questionEdge: "#2de3d0", questionInk: "#7ff2e6",
+    pill: false, chat: CH.room, chatMin: "0px", composer: true, gift: false, keyboard: "", keys: null,
+    sheetKicker: "", sheetMeta: "", sheetEdge: "rgba(185,168,255,.35)", sheetInk: "#d6cdff", sheetTiles: null, sheetRows: null, sheetFoot: "",
+    sheetBottom: "0px", sheetPadBottom: "22px", sheetRadius: "42px 42px", sheetNotch: "", sheetToggle: null, sheetTargets: null,
+    captureTitle: "", overlayTitle: "", overlaySize: "40px", overlayPhotos: null, overlayCtas: null,
+    overlayGlow: "0 0 12px rgba(255,255,255,.6), 0 0 30px rgba(255,45,143,1), 0 0 70px rgba(255,45,143,.5)",
+    qcBg: "rgba(4,33,31,.78)", qcBorder: "1.5px solid #2de3d0", qcInk: "#7ff2e6", qcSize: "16px", qcGlow: "0 0 12px rgba(45,227,208,.5)",
+    benchH: "116px", benchCount: "", lobby: null, lobbyLabel: "LIVE NOW", gear: false, golive: "● GO LIVE — HOST YOUR ROOM",
+    cutline: "", cutlineLabel: "", cutlineLabelTop: "0px", foot: "",
+    footBg: "rgba(255,255,255,.05)", footEdge: "rgba(255,255,255,.14)", footInk: "rgba(238,240,255,.72)",
+    callouts: []
+  }, PH.cool, CTA.ask, FIELD_FIELD, o);
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    const showCallouts = this.props.showCallouts ?? true;
+    const silStyle = this.props.silhouetteStyle ?? "shape";
+    const showHearts = this.props.heartCounts ?? true;
+
+    /* blind treatment: documented shape silhouette, or the shadow alternative */
+    const blindCell = c => silStyle === "shape"
+      ? Object.assign({}, c, { photo: "", silShape: true, name: "" })
+      : Object.assign({}, c, { silShape: false, feedFilter: "brightness(.07) grayscale(1) contrast(2.2) blur(3px)", name: "" });
+    const blindBench = b => silStyle === "shape"
+      ? Object.assign({}, b, { photo: "", silShape: true, name: "" })
+      : Object.assign({}, b, { silShape: false, feedFilter: "brightness(.07) grayscale(1) contrast(2.2) blur(3px)", name: "" });
+
+    const BENCH_CROWD = [
+      bench(Object.assign({ photo: CAST.dock, name: "DOCK", n: "412", pips: pips(0) }, NEXTUP)),
+      bench({ photo: CAST.marisol, name: "MARISOL", n: "268", pips: pips(1) }),
+      bench({ photo: CAST.theo, name: "THEO", n: "97", pips: pips(2, true) })
+    ];
+    const BENCH_HOST = BENCH_CROWD.map(blindBench);
+
+    const QUAD_PLAY = () => [
+      host({}),
+      cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "0:42" }),
+      cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "0:53" }),
+      cell({ photo: CAST.sam, name: "SAM", hearts: "61", clock: "1:04" })
+    ];
+
+    /* ------------------------------ HOST ------------------------------ */
+    const hostScreens = [
+      screen({
+        step: "H1 · PRESHOW", dot: "#ff6fb0", rim: "#5a2e46", title: "Her room, before the game",
+        blurb: "She is live, the game is not. All three chairs are empty and stay that way — they fill together the instant a third person takes the bench — and the bench is already scoring, which is why there is no reveal storm later.",
+        phase: "WARMING UP · BENCH 2 OF 3", ...PH.lilac, eyes: "96", chat: CH.pre,
+        quad: [
+          host({}),
+          cell({ empty: "TAKE THE CHAIR", emptySub: "fills at 3 on the bench", rim: "1.5px dashed rgba(45,227,208,.65)", rimbg: "rgba(45,227,208,.08)", glow: "0 0 16px rgba(45,227,208,.26)" }),
+          cell({ empty: "TAKE THE CHAIR", emptySub: "fills at 3 on the bench", rim: "1.5px dashed rgba(45,227,208,.65)", rimbg: "rgba(45,227,208,.08)", glow: "0 0 16px rgba(45,227,208,.26)" }),
+          cell({ empty: "TAKE THE CHAIR", emptySub: "fills at 3 on the bench", rim: "1.5px dashed rgba(45,227,208,.65)", rimbg: "rgba(45,227,208,.08)", glow: "0 0 16px rgba(45,227,208,.26)" })
+        ],
+        bench: [blindBench(bench({ photo: CAST.marisol, name: "MARISOL", n: "48", pips: pips(0) })), blindBench(bench({ photo: CAST.dock, name: "DOCK", n: "31", pips: pips(0) })), benchEmpty("1 MORE\nTO START", "#ffd98a")],
+        benchNote: "she reads counts, never faces", benchMeta: "+0 IN LINE",
+        callouts: [
+          co("l", 240, 64, "PHASE CHIP", "Not tappable. Server-owned label for what the room is doing, carrying the auto-start count while it waits.", G.all, "2 OF 3", "R1–R3 ●●○ · FLOOR 0:45 · DELIBERATION · YOUR CALL"),
+          co("r", 38, 105, "PER-CELL HEART COUNT", "Not tappable for her. The crowd's running total on that face — hers is the only one in the quad during preshow.", G.all, "1.2K on her", "hidden while a cell is blurred — you can't back who you can't see"),
+          co("l", 35, 474, "BENCH COUNT · HER COPY", "Not tappable. The only bench signal that reaches her, and the one she cannot hurry.", G.host, "♥48 / 31 / —", "counts climb live; faces never resolve for her"),
+          co("l", 100, 350, "EMPTY CHAIR = JOIN BUTTON", "Tapped by a viewer, not her. Puts them on the bench — nobody is ever seated one at a time, so all three read the same until the show starts.", G.all, "3 OPEN", "occupied · RECONNECTING (amber) · PROMOTING (gold countdown)"),
+          co("r", 195, 520, "BENCH · BLIND TO HER", "Nothing to tap. Silhouettes plus live counts, in queue order, with the seat that starts the show still open.", G.host, "2 OF 3", "crowd and seated chairs see the same three as photographs"),
+          co("l", 286, 801, "🛡 SAFETY", "Opens report / mute / block. First in the row in every role and phase.", G.all, "ALWAYS LIVE", "never credit-gated, never hidden — not even with the keyboard up"),
+          co("r", 348, 801, "ASK", "Her composer verb. Opens the vetted question deck; no free typing anywhere. Inert in preshow — there is nobody in a chair to ask.", G.host, "IDLE PRESHOW", "armed in rounds · greyed during another chair's answer")
+        ],
+        foot: "No chair is ever occupied in WARMING UP. The three fill together when a third person takes the bench, so the row holds its reserved 2×2 shape rather than collapsing — a single tall cell would say the show had started with one man. Adaptive density applies to a running show, not to a room that is still filling.",
+        footBg: "rgba(255,45,143,.08)", footEdge: "rgba(255,45,143,.35)", footInk: "rgba(255,214,233,.85)"
+      }),
+      screen({
+        step: "H2 · SPOTLIGHT", dot: "#ff6fb0", rim: "#5a2e46", title: "She asks one of them",
+        blurb: "The quad breaks to the interview shot for 30 seconds. The other two collapse to a muted strip — recessed, not removed.",
+        phase: "0:22 · SPOTLIGHT", ...PH.warm, quadRows: "310px 51px", chat: CH.spot,
+        quad: [
+          host({ row: "1", col: "1", h: "305px" }),
+          cell({ row: "1", col: "2", h: "305px", photo: CAST.june, name: "JUNE", hearts: "156", mic: true, rim: "2px solid #ff2d8f", rimbg: "rgba(255,45,143,.14)", glow: "0 0 28px rgba(255,45,143,.9)", namebg: "rgba(255,45,143,.85)", tag: "ON THE SPOT", tagbg: "linear-gradient(180deg,#ffb4d9,#ff2d8f)", tagink: "#5c0230" }),
+          cell({ row: "2", col: "1 / -1", h: "46px", photo: CAST.dev, name: "DEV", op: ".5", feedFilter: "blur(3px)", clock: "", tag: "❙❙ HELD", tagbg: "rgba(6,8,24,.7)", tagink: "#7ff2e6" })
+        ],
+        question: "What did you lie about on your first date?", questionFor: "FOR JUNE · CHAIR 2", questionClock: "0:22",
+        bench: BENCH_HOST, benchNote: "still earning through the question", benchMeta: "+5 IN LINE",
+        callouts: [
+          co("l", 290, 240, "SPOTLIGHT RING", "Not a verdict — a target. Per-chair keep/pass does not exist during rounds.", G.all, "JUNE, 0:22 LEFT", "grows to 305px; rivals recede to a 46px strip"),
+          co("r", 100, 545, "QUESTION BANNER", "Authored card she tapped from the deck. Sits below her face zone.", G.all, "TEAL · HER VIEW", "pink and larger on the answering chair's own screen"),
+          co("l", 195, 648, "BENCH DURING A SPOTLIGHT", "Untouched. It keeps scoring while the room's audio is directed.", G.host, "SILHOUETTES", "at 393×715 this row has to collapse — see the last track"),
+          co("l", 353, 474, "ANSWER CLOCK · 30s", "Server-owned. The only clock running: every shot clock is paused.", G.all, "0:22", "flips neon under 0:10"),
+          co("r", 195, 425, "MUTED RIVAL STRIP", "Nothing to tap. Blurred, muted, clock frozen with ❙❙ — no numerals at this width.", G.all, "2 HELD", "restored the instant the answer clock ends"),
+          co("r", 348, 801, "ASK · MID-ANSWER", "Re-opens the deck. Asking again cancels this answer, so it needs the beat to finish.", G.host, "ARMED", "⏭ HEARD ENOUGH replaces it if she wants to cut the phase short")
+        ]
+      }),
+      screen({
+        step: "H3 · THE MOMENT", dot: "#ffc24d", rim: "#5a4a1e", title: "Someone buys her attention",
+        blurb: "Twenty seconds, open floor only, one per show. The quad never breaks — Dev and Sam simply blur and mute, and only on her feed and the buyer's.",
+        phase: "FLOOR 0:31", ...PH.cool, pill: true,
+        quad: [host(EMBER), paired({ photo: CAST.june, name: "JUNE", hearts: "240" }), muted("DEV", CAST.dev), muted("SAM", CAST.sam)],
+        bench: BENCH_HOST, chat: CH.moment,
+        pillKicker: "SOMEONE SPENT A TOKEN", pillTitle: "The floor is his", pillBar: "85%", pillClock: "0:17",
+        pillAction: "✕", pillActionBg: "rgba(90,30,64,.5)", pillActionBorder: "1.5px solid rgba(255,145,180,.6)", pillActionInk: "#ffc2d6",
+        callouts: [
+          co("l", 100, 170, "AMBER PAIRING RIM", "Not a control. Marks the pair the token bought — both cells, never one.", G.pair, "LIT ON 2 CELLS", "cool teal in play · pink when spotlit · gold mid-promotion"),
+          co("l", 100, 350, "BLUR + MUTE + 🔇", "Nothing to tap. Her own receive settings, applied to the two unpaired chairs.", G.pair, "DEV & SAM DOWN", "their heart chips hide with them; their shot clocks freeze"),
+          co("l", 70, 626, "THE PILL", "Ambient, not an alert. Names the state and never the buyer.", G.all, "AMBER · 0:17", "the room's copy reads THE FLOOR IS TAKEN with the same clock"),
+          co("r", 355, 626, "✕ DECLINE", "Ends it, refunds his token, tells him nothing but that it ended.", G.host, "LIVE FROM 0:00", "becomes END EARLY at 0:10 — a wrap, not a refusal, no refund"),
+          co("r", 290, 283, "HEART CHIP, HIDDEN", "Nothing to tap — it is gone. A blurred cell drops its count, because you cannot back who you cannot see.", G.pair, "HIDDEN", "their shot clocks freeze behind the blur too — buying attention never costs a rival air time"),
+          co("r", 348, 801, "ASK · STILL ARMED", "She can end the moment by asking. Gifts are the thing that goes dark, not her.", G.host, "ARMED", "money can never eat an answer: ✦ actions off during spotlights")
+        ],
+        foot: "Filters strip on pairing. If June had Fox Ears on, it comes off the instant the amber rim lights — what he bought is a real face.",
+        footBg: "rgba(255,194,77,.09)", footEdge: "rgba(255,194,77,.45)", footInk: "rgba(255,217,138,.85)"
+      }),
+      screen({
+        step: "H4 · DELIBERATION", dot: "#ff6fb0", rim: "#5a2e46", title: "Ninety seconds to think",
+        blurb: "Round three is done. Everything stays live — the bench still earns, chat still runs — and the only new thing is a clock counting toward her call.",
+        phase: "DELIBERATION 1:12", ...PH.warm, chat: CH.decide,
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "204", clock: "❙❙", clockPause: "", asked: "ASKED R1" }), cell({ photo: CAST.june, name: "JUNE", hearts: "486", clock: "❙❙", asked: "ASKED R2" }), cell({ photo: CAST.dock, name: "DOCK", hearts: "441", clock: "❙❙", tag: "NEW", tagbg: "rgba(255,194,77,.9)", tagink: "#3d2600", asked: "ASKED R3" })],
+        bench: BENCH_HOST,
+        callouts: [
+          co("l", 240, 64, "DELIBERATION CLOCK", "Server-owned, 90s. Nothing forces a decision — expiry opens the tray for her.", G.all, "1:12", "the only phase with no question and no shot clocks"),
+          co("l", 35, 283, "HEART TOTALS, FINAL", "Read-only. Three rounds of crowd verdict, side by side at the moment she chooses.", G.all, "486 · 441 · 204", "still climbing — the crowd keeps voting through deliberation"),
+          co("r", 353, 283, "NEW TAG", "Not tappable. Dock arrived in round 2 by promotion; the tag says he had less air time.", G.all, "1 NEW", "clears when the show ends"),
+          co("r", 348, 801, "ASK · LAST CALLS", "The deck is still open, and deliberation is the one phase where she may re-ask a man who already carries an ASKED pill.", G.host, "ARMED · UNGATED", "⏭ HEARD ENOUGH skips straight to the decision tray"),
+          co("l", 235, 418, "ASKED PILL", "Not tappable. Marks a chair that has had its question and which round it came in — one per man per show, so nobody is interrogated twice while another is never asked at all.", G.all, "ALL THREE ASKED", "absent on an un-asked chair · a promoted man always arrives with none")
+        ]
+      }),
+      screen({
+        step: "H5 · HER CALL", dot: "#ff6fb0", rim: "#5a2e46", title: "The decision tray",
+        blurb: "The verdict happens once, here, ranked by consequence. Keep is the win and gets the shine; clearing the deck is the quietest and needs a confirm.",
+        phase: "YOUR CALL", ...PH.warm, chat: CH.decide, composer: false,
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "204" }), cell({ photo: CAST.june, name: "JUNE", hearts: "486", rim: "2px solid #ff2d8f", glow: "0 0 22px rgba(255,45,143,.8)", namebg: "rgba(255,45,143,.85)" }), cell({ photo: CAST.dock, name: "DOCK", hearts: "441" })],
+        sheetKicker: "THREE ROUNDS DONE", sheetMeta: "NOT TIMED", sheetEdge: "rgba(255,45,143,.5)", sheetInk: "#ffd6e9",
+        sheetRows: [
+          { icon: "", name: "KEEP JUNE", sub: "The win. Ends the night → finale → backstage.", bg: "rgba(255,45,143,.2)", border: "1.5px solid rgba(255,255,255,.85)", glow: "0 0 34px rgba(255,45,143,.6)", ink: "#fff", subInk: "rgba(255,255,255,.82)", meta: "♥486", metaInk: "#ffd6e9" },
+          { icon: "", name: "PASS ONE", sub: "One seat opens → one blind refill → fresh 3-round cycle.", bg: "rgba(6,8,24,.6)", border: "1.5px solid rgba(185,168,255,.45)", glow: "none", ink: "#d6cdff", subInk: "rgba(214,205,255,.7)", meta: "ONE SEAT", metaInk: "rgba(214,205,255,.7)" },
+          { icon: "", name: "CLEAR THE DECK", sub: "All three go → three blind refills, one at a time.", bg: "rgba(6,8,24,.5)", border: "1px dashed rgba(185,168,255,.4)", glow: "none", ink: "rgba(214,205,255,.9)", subInk: "rgba(214,205,255,.6)", meta: "CONFIRM", metaInk: "#ffc24d" },
+          { icon: "", name: "WALK AWAY", sub: "End the night keeping no one. Confirm step, then the walked-alone finale.", bg: "transparent", border: "1px solid rgba(174,247,238,.35)", glow: "none", ink: "rgba(174,247,238,.9)", subInk: "rgba(174,247,238,.6)", meta: "", metaInk: "" }
+        ],
+        sheetFoot: "Nothing in this tray is on a clock. She can sit in it.",
+        callouts: [
+          co("l", 290, 170, "HER PICK, PRE-COMMIT", "Tapping a cell highlights it and pre-fills the tray's KEEP row. Not the verdict yet.", G.host, "JUNE LIT", "no pink ring on any cell if she hasn't leaned"),
+          co("l", 100, 517, "KEEP · THE WIN", "One tap ends the show and hands to the finale. The only affirmative on screen.", G.host, "ARMED", "greys out if that chair drops mid-tray"),
+          co("r", 300, 598, "PASS ONE", "Opens exactly one seat → one blind refill. There is no partial fill.", G.host, "AVAILABLE", "CLEAR THE DECK is the three-seat shape, and it confirms first"),
+          co("r", 195, 760, "WALK AWAY", "Ends the night with nobody. Quietest treatment on the tray, and it confirms.", G.host, "AVAILABLE", "was #rt_endshow in the room; it lives here now")
+        ]
+      }),
+      screen({
+        step: "H6 · BACKSTAGE", dot: "#ff6fb0", rim: "#5a2e46", title: "The winner's room",
+        blurb: "Feed cut, crowd gone, two people and a contact exchange. The exchange is deliberately separate from the cut so nobody loses a good night to a hung-up call.",
+        phase: "OFF AIR", ...PH.lilac, eyes: "0", quad: null, bench: null, composer: false, chat: [],
+        overlayBg: "radial-gradient(120% 62% at 50% 38%, rgba(255,45,143,.4), rgba(4,6,18,.96) 72%)",
+        overlayPhotos: [{ src: CAST.marla, edge: "#ff2d8f", ml: "0px" }, { src: CAST.june, edge: "#ffd6e9", ml: "-18px" }],
+        overlayKicker: "BACKSTAGE · JUST YOU TWO", overlayTitle: "KEPT", overlaySize: "44px", overlayKick: "#ffd6e9",
+        overlaySub: "Three rounds, 1.2K hearts. The room is gone and the clock is off.",
+        overlayCtas: [
+          { label: "SWAP CONTACTS", bg: "linear-gradient(180deg,#ffb4d9,#ff2d8f 52%,#c60d68)", border: "1.5px solid rgba(255,255,255,.9)", ink: "#fff", glow: "inset 0 2px 0 rgba(255,255,255,.85), 0 0 34px rgba(255,45,143,.7)" },
+          { label: "🛡 KEEP IT IN-APP", bg: "rgba(185,168,255,.14)", border: "1.5px solid rgba(185,168,255,.6)", ink: "#d6cdff", glow: "none" },
+          { label: "CUT THE FEED", bg: "transparent", border: "1px solid rgba(174,247,238,.4)", ink: "rgba(174,247,238,.9)", glow: "none" }
+        ],
+        callouts: [
+          co("l", 195, 478, "SWAP CONTACTS", "Mutual. Nothing is shared unless both sides tap it, and neither is told the other declined.", G.pair, "AWAITING BOTH", "single-sided taps expire silently at the end of the night"),
+          co("r", 195, 539, "🛡 KEEP IT IN-APP", "A private thread instead of a phone number. Same weight as the exchange, not a lesser option.", G.pair, "AVAILABLE", "still reachable after CUT THE FEED"),
+          co("r", 195, 600, "CUT THE FEED", "Final on camera, not on contact. The exchange survives it.", G.pair, "AVAILABLE", "she can also cut before exchanging and come back to it")
+        ]
+      })
+    ];
+
+    /* ------------------------------ CHAIR ------------------------------ */
+    const chairScreens = [
+      screen({
+        step: "C1 · TAKING THE CHAIR", dot: "#7ff2e6", rim: "#2e4a52", title: "You rise off the bench",
+        blurb: "You were the bench leader; a chair opened and she let the five seconds run. Your cell is pink because it is yours, not because she chose you.",
+        phase: "R2 ●●○", ...PH.cool, credits: "40",
+        quad: [
+          host({}),
+          cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "0:42", asked: "ASKED R1" }),
+          cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "0:53" }),
+          cell(Object.assign({ photo: CAST.you, name: "YOU", hearts: "412", clock: "1:30", clockSize: "15px", clockBorder: "1.5px solid #ff2d8f", clockBg: "rgba(61,3,36,.9)", clockInk: "#ffd6e9", tag: "JUST ROSE", tagbg: "rgba(255,194,77,.9)", tagink: "#3d2600" }, MINE))
+        ],
+        bench: [bench(Object.assign({ photo: CAST.marisol, name: "MARISOL", n: "268", pips: pips(1) }, NEXTUP)), bench({ photo: CAST.theo, name: "THEO", n: "97", pips: pips(2, true) }), bench(Object.assign({ photo: CAST.ade, name: "ADE", n: "8", pips: pips(0), badge: "JUST ON" }, { badgeBg: "#ffe0ec", badgeInk: "#4a0724" }))],
+        benchNote: "Ade stepped up from the line", benchMeta: "+4 IN LINE",
+        ...CTA.leave,
+        callouts: [
+          co("l", 290, 350, "YOUR CELL", "Pink ring, YOU plaque, enlarged clock. The only cell whose clock counts against you.", G.chair, "JUST ROSE", "the tag clears after one round; the ring stays for you only"),
+          co("l", 195, 520, "THE BENCH, BEHIND YOU", "Read-only for you. Seated chairs get no vote on who rises next.", G.chairs, "3 WAITING", "your own card is gone from it the moment you rise"),
+          co("r", 353, 283, "YOUR SHOT CLOCK", "Not tappable. Total air time you have left in this chair.", G.all, "1:30", "pauses in a spotlight, in a moment, and during a promotion"),
+          co("r", 100, 170, "HER CELL, COOL FOR YOU", "Nothing to tap. You never borrow her warm key, not even from a chair.", G.all, "WARM = HERS", "your own cell stays cool-lit in every other viewer's copy too"),
+          co("r", 348, 801, "↩ LEAVE", "The honest exit. One strike, keep your place in line.", G.chair, "AVAILABLE", "closing the app instead: out for the night, no rejoin"),
+          co("r", 235, 240, "ASKED R1", "Not tappable, and it is your odds made visible: she cannot ask the same man twice, so Dev is out of the running for the next question and you are not.", G.all, "DEV, DONE", "you and June are un-asked · in a clean three-chair show that makes round 3 forced")
+        ]
+      }),
+      screen({
+        step: "C2 · YOUR TWO SPENDS", dot: "#7ff2e6", rim: "#2e4a52", title: "A costume and a token",
+        blurb: "Both of your paid controls live in the same slot as every other primary action — the composer CTA. The filter shelf is open here; ✦ MOMENT is the other state of that button.",
+        phase: "FLOOR 0:31", ...PH.cool, credits: "40",
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "0:42", filterBadge: "BACKDROP", filterIcon: "🌆", filterBg: "rgba(45,227,208,.16)", filterEdge: "rgba(45,227,208,.6)", filterInk: "#aef7ee" }), cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "0:53", maskIcon: "🦊", filterBadge: "FOX EARS", filterIcon: "🦊", filterBg: "rgba(255,194,77,.2)", filterEdge: "rgba(255,194,77,.8)", filterInk: "#ffd98a" }), cell(Object.assign({ photo: CAST.you, name: "YOU", hearts: "412", clock: "1:12" }, MINE))],
+        bench: BENCH_CROWD, benchNote: "still earning while you shop", benchMeta: "+5 IN LINE",
+        ...CTA.filter, ctabg: "rgba(45,227,208,.42)", ctaglow: "0 0 0 2.5px rgba(45,227,208,.5), 0 0 26px rgba(45,227,208,.7)",
+        sheetKicker: "CHOOSE A LOOK", sheetMeta: "ONE PER SHOW", sheetEdge: "rgba(45,227,208,.5)", sheetInk: "#aef7ee",
+        sheetBottom: "74px", sheetPadBottom: "14px", sheetRadius: "18px 18px", sheetNotch: "330px",
+        sheetTiles: [
+          { icon: "💨", name: "Soft Room", cost: "FREE", bg: "rgba(45,227,208,.12)", border: "1.5px solid rgba(45,227,208,.7)", ink: "#eef0ff", costInk: "#7ff2e6" },
+          { icon: "🌆", name: "Neon Back", cost: "FREE", bg: "rgba(45,227,208,.12)", border: "1.5px solid rgba(45,227,208,.7)", ink: "#eef0ff", costInk: "#7ff2e6" },
+          { icon: "🦊", name: "Fox Ears", cost: "✦20", bg: "rgba(255,194,77,.14)", border: "1.5px solid rgba(255,194,77,.6)", ink: "#eef0ff", costInk: "#ffd98a" },
+          { icon: "😇", name: "Halo", cost: "✦20", bg: "rgba(255,194,77,.14)", border: "1.5px solid rgba(255,194,77,.6)", ink: "#eef0ff", costInk: "#ffd98a" }
+        ],
+        sheetFoot: "Teal = free. Amber = ✦20, face-tracked. Curated rack, no uploads.",
+        callouts: [
+          co("l", 180, 418, "MASK BADGE ON A RIVAL", "Not tappable. Tells you what he is wearing and what tier it came from.", G.all, "FOX EARS · ✦", "free backdrop badges read teal; nothing at all if bare-faced"),
+          co("l", 100, 690, "FILTER SHELF", "Rises out of the 🎭 FILTER button into the chat band and stops there — the quad and the bench never move, and chat is what pays. A notch points back at the button.", G.chair, "OPEN", "closed it is nothing but that button · locked for the phase once you commit"),
+          co("r", 348, 801, "🎭 FILTER · THE ORIGIN", "Where the shelf comes from, and its only home. Ringed while open, so button and sheet read as one control.", G.chair, "OPEN, RINGED", "tap again to close · same slot becomes ✦ MOMENT"),
+          co("r", 357, 64, "✦ BALANCE", "Tap for the credit sheet. Everything paid in this file is priced against it.", G.all, "✦40", "greys any control you cannot afford, rather than hiding it")
+        ],
+        foot: "Under twenty seconds of open floor left, ✦ MOMENT locks and offers to arm for the next floor instead. Round 3's ninety-second deliberation has no next floor — arm it early there or lose it.",
+        footBg: "rgba(255,194,77,.09)", footEdge: "rgba(255,194,77,.45)", footInk: "rgba(255,217,138,.85)"
+      }),
+      screen({
+        step: "C3 · SPOTLIGHTED", dot: "#ff6fb0", rim: "#5a2e46", title: "She asks you",
+        blurb: "Your cell grows, your mask drops whether you like it or not, and the banner turns pink because it is addressed to you.",
+        phase: "0:22 · SPOTLIGHT", ...PH.warm, quadRows: "310px 51px", credits: "20",
+        quad: [
+          host({ row: "1", col: "1", h: "305px" }),
+          cell({ row: "1", col: "2", h: "305px", photo: CAST.you, name: "YOU", hearts: "440", mic: true, maskIcon: "🦊", maskOpacity: ".28", rim: "2px solid #ff2d8f", rimbg: "rgba(255,45,143,.14)", glow: "0 0 28px rgba(255,45,143,.9)", namebg: "rgba(255,45,143,.85)", filterBadge: "DROPPING", filterIcon: "🦊", filterBg: "rgba(255,194,77,.2)", filterEdge: "rgba(255,194,77,.8)", filterInk: "#ffd98a" }),
+          cell({ row: "2", col: "1 / -1", h: "46px", photo: CAST.june, name: "JUNE", op: ".5", feedFilter: "blur(3px)", tag: "❙❙ HELD", tagbg: "rgba(6,8,24,.7)", tagink: "#7ff2e6" })
+        ],
+        question: "What did you lie about on your first date?", questionFor: "SHE ASKED YOU", questionClock: "0:22",
+        questionBg: "rgba(6,8,24,.36)", questionEdge: "#ff2d8f", questionInk: "#ffc2e0",
+        bench: null, chat: CH.spot, ...CTA.waiting,
+        callouts: [
+          co("l", 290, 180, "FORCED MASK DROP", "Not your call and not hers — it is the beat. Dissolves over half a second as the ring lands.", G.all, "DROPPING", "you may drop it early yourself, free, any time · you cannot keep it"),
+          co("l", 100, 545, "THE BANNER, ADDRESSED", "Read it and answer. Pink and 22px on your screen; teal and 19px on everyone else's.", G.chair, "PINK · YOURS", "no free-typed questions exist — every card is vetted"),
+          co("r", 353, 474, "ANSWER CLOCK", "Server-owned 30s. Your shot clock is paused behind it.", G.all, "0:22", "flips neon under 0:10 · she can cut it with ⏭ HEARD ENOUGH"),
+          co("r", 348, 801, "COMPOSER, PARKED", "Your CTA slot goes inert while you're answering. Chat still runs; ✦ actions do not.", G.chair, "WAITING", "returns to 🎭 FILTER / ✦ MOMENT when the floor reopens")
+        ]
+      }),
+      screen({
+        step: "C4 · KEPT OR CUT", dot: "#7ff2e6", rim: "#2e4a52", title: "Her call, from your chair",
+        blurb: "Neutral cells during deliberation — no tell, in any direction. Then one of two endings, and the cut one costs you a strike, not your place.",
+        phase: "SHE CHOSE", ...PH.warm, quad: [host({ op: ".22" }), cell({ photo: CAST.dev, name: "DEV", op: ".12" }), cell({ photo: CAST.june, name: "JUNE", op: ".12" }), cell(Object.assign({ photo: CAST.you, name: "YOU", op: ".22" }, MINE))],
+        bench: null, composer: false, chat: [],
+        overlayBg: "radial-gradient(120% 62% at 50% 40%, rgba(185,168,255,.3), rgba(4,6,18,.96) 74%)",
+        overlayKicker: "SHE KEPT JUNE", overlayTitle: "NOT TONIGHT", overlaySize: "30px", overlayKick: "#d6cdff",
+        overlaySub: "You keep your place in line. One strike — two left. Your 440 hearts paid out ✦15.",
+        overlayCtas: [
+          { label: "BACK TO THE BENCH", bg: "rgba(185,168,255,.18)", border: "1.5px solid rgba(185,168,255,.7)", ink: "#eef0ff", glow: "none" },
+          { label: "LEAVE THE ROOM", bg: "transparent", border: "1px solid rgba(174,247,238,.4)", ink: "rgba(174,247,238,.9)", glow: "none" }
+        ],
+        callouts: [
+          co("l", 100, 350, "NO TELL, EITHER WAY", "Nothing to tap during her 90 seconds. Every cell goes neutral and equal on your screen.", G.chairs, "FLAT", "she is the only person who sees a lit pre-commit cell"),
+          co("r", 195, 400, "STRIKE COUNT", "Read-only. Losing a verdict costs one of three; the third removes you for the night.", G.all, "1 OF 3", "your bench card's pips redden and read LAST LIFE at two"),
+          co("r", 195, 454, "BACK TO THE BENCH", "One tap and you are in the queue again, in your original FIFO position.", G.chair, "AVAILABLE", "disabled and reading OUT FOR TONIGHT on a third strike")
+        ]
+      })
+    ];
+
+    /* ------------------------------ BENCH ------------------------------ */
+    const benchScreens = [
+      screen({
+        step: "B1 · JOINING", dot: "#d6cdff", rim: "#3a2e5a", title: "You tap an open chair",
+        blurb: "The empty cell is the join button, and it does not seat you. It puts you on the bench, because seating stays hers.",
+        phase: "R1 ●○○", ...PH.cool, credits: "0",
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "0:42" }), cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "0:53" }), cell({ empty: "TAKE THE CHAIR", emptySub: "she picks from the bench", rim: "1.5px dashed rgba(45,227,208,.65)", rimbg: "rgba(45,227,208,.08)", glow: "0 0 16px rgba(45,227,208,.26)" })],
+        bench: [bench(Object.assign({ photo: CAST.dock, name: "DOCK", n: "412", pips: pips(0) }, NEXTUP)), bench({ photo: CAST.marisol, name: "MARISOL", n: "268", pips: pips(1) }), bench({ photo: CAST.you, name: "YOU", n: "0", pips: pips(0), badge: "JUST ON", badgeBg: "#ffe0ec", badgeInk: "#4a0724", cardBorder: "1.5px solid #ff2d8f", cardBg: "rgba(255,45,143,.14)", cardGlow: "0 0 16px rgba(255,45,143,.5)" })],
+        benchNote: "you're third — order is FIFO", benchMeta: "+4 IN LINE", ...CTA.join,
+        callouts: [
+          co("l", 290, 350, "THE OPEN CELL", "Tap = join the bench. It never reads TAKE THE CHAIR while held or promoting.", G.all, "1 OPEN", "RECONNECTING (amber) · PROMOTING (gold) · occupied"),
+          co("l", 321, 520, "YOUR BENCH CARD", "Yours, pink-ringed. Starts at zero hearts and starts earning immediately.", G.all, "JUST ON · ♥0", "NEXT UP when you lead · SURGING when you're accelerating"),
+          co("r", 69, 466, "NEXT UP", "Not tappable. The amber glow sits on the biggest heart count on the bench — the card that rises when a chair opens, and the default if she says nothing.", G.all, "DOCK ♥412", "queue position never moves the glow · a rose SURGING card can light beside it"),
+          co("r", 321, 570, "STRIKE PIPS", "Read-only. Three strikes and you cannot rejoin tonight.", G.all, "0 OF 3", "redden at two and append LAST LIFE"),
+          co("r", 348, 801, "♥ JOIN THE BENCH", "Same action as the cell, in the composer. Reads OUT FOR TONIGHT after a third strike.", G.all, "AVAILABLE", "becomes ↩ LEAVE once you're in a chair")
+        ]
+      }),
+      screen({
+        step: "B2 · HEADSHOT", dot: "#d6cdff", rim: "#3a2e5a", title: "The face she won't see",
+        blurb: "One capture on joining. The crowd will read this photo on your bench card all night; she gets a silhouette and a number.",
+        phase: "JOINING", ...PH.lilac, quad: null, bench: null, composer: false, chat: [],
+        captureKicker: "ONE SHOT · RETAKE AS OFTEN AS YOU LIKE", captureTitle: "Fill the oval", capturePhoto: CAST.you,
+        captureNote: "This is your bench card for the whole show, at 116×116. The crowd sees it. She sees a silhouette and your live heart count until the moment you rise into a chair.",
+        captureBtns: [
+          { label: "RETAKE", flex: "0 0 120px", bg: "rgba(6,8,24,.6)", border: "1.5px solid rgba(185,168,255,.55)", ink: "#d6cdff", glow: "none" },
+          { label: "USE THIS PHOTO", flex: "1", bg: "linear-gradient(180deg,#ffb4d9,#ff2d8f 52%,#c60d68)", border: "1.5px solid rgba(255,255,255,.9)", ink: "#fff", glow: "0 0 30px rgba(255,45,143,.6)" }
+        ],
+        callouts: [
+          co("l", 195, 256, "FRAMING OVAL", "Not a control. A dashed guide sized to the 116px bench cell's crop.", G.bench, "GUIDE ON", "turns solid teal when a face fills it, so you know the crop works"),
+          co("r", 195, 710, "THE NOTE", "Read-only, and load-bearing: this is where the blind bench is explained before it can feel like a bug.", G.bench, "SHOWN ONCE", "repeats in the bench card's long-press sheet"),
+          co("r", 270, 792, "USE THIS PHOTO", "Commits and drops you onto the bench at ♥0.", G.bench, "ARMED", "RETAKE is unlimited before this tap and locked after")
+        ]
+      }),
+      screen({
+        step: "B3 · BLIND", dot: "#d6cdff", rim: "#3a2e5a", title: "Two renderings of you",
+        blurb: "Your own screen carries the honest inset: your card as the crowd reads it, and the same card as she reads it. Nothing else in the app tells you this.",
+        phase: "FLOOR 0:31", ...PH.cool,
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "0:42" }), cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "0:53" }), cell({ photo: CAST.sam, name: "SAM", hearts: "61", clock: "1:04" })],
+        bench: [
+          bench({ photo: CAST.you, name: "YOU", n: "196", pips: pips(0), cardBorder: "1.5px solid #ff2d8f", cardBg: "rgba(255,45,143,.14)", cardGlow: "0 0 16px rgba(255,45,143,.5)", badge: "THEY SEE", badgeBg: "#ffe0ec", badgeInk: "#4a0724" }),
+          blindBench(bench({ photo: CAST.you, name: "YOU", n: "196", pips: pips(0), cardBorder: "1.5px solid rgba(185,168,255,.7)", cardBg: "rgba(185,168,255,.16)", badge: "SHE SEES", badgeBg: "#b9a8ff", badgeInk: "#1a1230" })),
+          bench(Object.assign({ photo: CAST.marisol, name: "MARISOL", n: "268", pips: pips(1) }, NEXTUP))
+        ],
+        benchNote: "same card, two renderings", benchMeta: "+4 IN LINE", ...CTA.join,
+        callouts: [
+          co("l", 69, 474, "YOUR CARD · CROWD COPY", "Tappable by them, not you. Photograph, name, live count.", G.crowd, "♥196 · PHOTO", "identical treatment to a seated chair's cell, at 116px"),
+          co("l", 195, 580, "YOUR CARD · HER COPY", "Same card, same number, no face and no name.", G.host, "SILHOUETTE", "resolves to your photo the instant you rise into a chair"),
+          co("r", 321, 474, "THE COUNT IS THE BRIDGE", "Nothing to tap. Hearts are the only bench signal that crosses to her.", G.all, "♥196", "so the crowd effectively casts the show, continuously"),
+          co("r", 348, 801, "♥ JOIN THE BENCH", "Already on it — the CTA reads YOUR SEAT IS HELD for a bench member.", G.bench, "ON BENCH", "↩ LEAVE THE BENCH is a long-press on your own card")
+        ],
+        foot: "The two cards sit side by side on purpose. A blind mechanic that a waiting person discovers by accident reads as a bug; shown as a pair, it reads as a rule.",
+        footBg: "rgba(185,168,255,.1)", footEdge: "rgba(185,168,255,.45)", footInk: "rgba(214,205,255,.9)"
+      }),
+      screen({
+        step: "B4 · RISING", dot: "#ffc24d", rim: "#5a4a1e", title: "Five seconds, then the chair",
+        blurb: "A chair opened. You lead the bench, so the countdown is yours unless she overrides it — and the camera-flip does the rest.",
+        phase: "0:05 · PROMOTING", ...PH.amber, chat: CH.promo,
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "0:42" }), cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "0:53" }), cell({ promo: "0:05", promoWho: "YOU RISE NEXT", rim: "2px solid #ffc24d", rimbg: "rgba(255,194,77,.14)", glow: "0 0 24px rgba(255,194,77,.6)" })],
+        bench: [
+          bench(Object.assign({ photo: CAST.you, name: "YOU", n: "412", pips: pips(0) }, RISING)),
+          bench({ photo: CAST.marisol, name: "MARISOL", n: "268", pips: pips(1) }),
+          bench({ photo: CAST.theo, name: "THEO", n: "97", pips: pips(2, true) })
+        ],
+        benchNote: "Marisol shifts left when you go", benchMeta: "+4 IN LINE", ...CTA.join,
+        callouts: [
+          co("l", 290, 350, "PROMOTION COUNTDOWN", "Not a control for you. Gold, in the open cell — never a modal, never a takeover.", G.all, "0:05", "she has these 5 seconds to override; silence promotes you"),
+          co("l", 69, 466, "RISING", "Read-only. Rose at .62s against amber's 1.4s, so it reads as accelerating rather than merely lit. You are here because you had the most hearts, not because you were first.", G.all, "ROSE .62s", "amber NEXT UP 1.4s is the standing · rose .62s is the change happening to it"),
+          co("r", 195, 520, "THE SHIFT LEFT", "Nothing to tap. FIFO order is preserved — the others translate, they never re-sort.", G.all, "QUEUED", "the next in line drops onto the freed bench seat — a translate, never a re-sort"),
+          co("r", 348, 801, "YOUR COMPOSER", "Still the crowd CTA. It flips to ↩ LEAVE on the camera-flip, not before.", G.bench, "JOIN STATE", "no confirm step — the promotion is not opt-in")
+        ]
+      })
+    ];
+
+    /* ------------------------------ CROWD ------------------------------ */
+    const crowdScreens = [
+      screen({
+        step: "R1 · SPECTATING", dot: "#ffe0a8", rim: "#5a4a2e", title: "The cheapest seat",
+        blurb: "You get the whole room in full and a hollow heart at the foot of every cell. No clocks are yours, no verdicts are yours, and nothing is hidden from you.",
+        phase: "R2 ●●○", ...PH.cool, credits: "85", chat: CH.crowd, gift: true, ...CTA.join,
+        quad: [
+          host({ heartTap: "1", heartFill: "rgba(255,45,143,.45)", heartStroke: "rgba(255,145,190,.9)" }),
+          cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "0:42", heartTap: "1" }),
+          cell(Object.assign({ photo: CAST.june, name: "JUNE", hearts: "157", clock: "0:53", heartTap: "1" }, heartOn)),
+          cell({ photo: CAST.sam, name: "SAM", hearts: "61", clock: "1:04", heartTap: "1" })
+        ],
+        bench: BENCH_CROWD, benchNote: "faces and counts — you see what she can't", benchMeta: "+5 IN LINE",
+        callouts: [
+          co("l", 101, 232, "HOLLOW HEART", "Tap to back that face. Multi-tap is expected; the server throttles, never the client.", G.crowd, "JUNE FILLED", "hollow · filled (backed) · hidden entirely on a blurred cell"),
+          co("l", 195, 520, "BENCH, IN FULL", "Each card is a heart target. This is the asymmetry: she is reading silhouettes of these three.", G.crowd, "3 FACES", "she sees the same three as silhouettes plus counts"),
+          co("r", 224, 105, "COUNT CLIMBING", "Read-only. Your tap is in this number within a second.", G.all, "♥157", "hides while its cell is blurred or muted for you"),
+          co("l", 137, 801, "🎁 GIFT", "Opens a target picker — any chair or the host. Dark during spotlights: money can't eat an answer.", G.crowd, "AVAILABLE", "greyed dashed in SPOTLIGHT · live in FLOOR and DELIBERATION"),
+          co("r", 110, 730, "CHAT", "Read-only strip, live in every phase — the crowd stays rowdy in text while the audio is directed.", G.all, "3 LINES", "96px keyboard-open · 82px in a spotlight · fades at the top, never scrolls")
+        ]
+      }),
+      screen({
+        step: "R2 · HEARTING", dot: "#ffe0a8", rim: "#5a4a2e", title: "A heart is a bet",
+        blurb: "Backing someone on the bench pays if she seats them and pays more if they win. That is the whole reason the crowd's signal is worth reading.",
+        phase: "FLOOR 0:31", ...PH.cool, credits: "85", gift: true, ...CTA.join,
+        chat: [{ who: "THE HOUSE", text: "you backed Dock · +15 ✦ if he's seated", color: "#ffd98a" }, { who: "Marisol", text: "DOCK DOCK DOCK", color: "#b9a8ff" }],
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "0:42", heartTap: "1" }), cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "0:53", heartTap: "1" }), cell(Object.assign({ photo: CAST.sam, name: "SAM", hearts: "63", clock: "1:04", heartTap: "1", rippling: true }, heartOn))],
+        bench: BENCH_CROWD, benchNote: "your ✦ payout rides on these three", benchMeta: "+5 IN LINE",
+        callouts: [
+          co("l", 290, 407, "TAP FEEDBACK", "A .5s ripple per tap and the count moves. No cooldown UI — the tap always registers.", G.crowd, "TAPPING", "the ring is the only feedback; the glyph never bounces the hit box"),
+          co("r", 195, 520, "THE BET", "Backing a bench member: +15 ✦ if she seats them, +40 ✦ if they win the finale.", G.crowd, "BACKING DOCK", "no payout for backing a seated chair — the bet is on the bench"),
+          co("r", 357, 64, "✦ BALANCE", "Tap for the credit sheet. Spend on unblur, skip the line, gifts.", G.all, "✦85", "her safety tools are never purchasable with it")
+        ]
+      }),
+      screen({
+        step: "R3 · TYPING", dot: "#ffe0a8", rim: "#5a4a2e", title: "Chat with the keyboard up",
+        blurb: "The hardest real state in the app, at the real height. Video does not move a pixel; the overlay rises and chat gives up its height.",
+        w: 393, h: 715, size: "393 × 715", sizeBg: "rgba(255,194,77,.18)", sizeInk: "#ffd98a",
+        phase: "FLOOR 0:31", ...PH.cool, credits: "85", gift: false, ...CTA.join, cta: "♥",
+        quadRows: "104px 104px",
+        quad: [host({ h: "104px" }), cell({ photo: CAST.dev, name: "DEV", hearts: "88", h: "104px" }), cell({ photo: CAST.june, name: "JUNE", hearts: "156", h: "104px" }), cell({ photo: CAST.sam, name: "SAM", hearts: "61", h: "104px" })],
+        bench: null, chat: [{ who: "Marisol", text: "hearts on june", color: "#b9a8ff" }],
+        field: "dev really said that|", fieldBorder: "1px solid #ff2d8f", fieldInk: "#fff",
+        keyboard: "224px", keys: [{ row: ["q","w","e","r","t","y","u","i","o","p"] }, { row: ["a","s","d","f","g","h","j","k","l"] }, { row: ["z","x","c","v","b","n","m"] }],
+        callouts: [
+          co("l", 195, 140, "CELLS SHRINK, NEVER MOVE", "Nothing to tap. Cells scale in place to 104px — no cell ever changes column.", G.all, "104px", "168px at rest · 305px spotlit · 96px keyboard-open on the panel"),
+          co("r", 195, 320, "BENCH IS THE FIRST CUT", "Gone, not shrunk. Three 116px cells cannot survive a 224px keyboard at 715.", G.all, "HIDDEN", "returns intact the moment the field blurs"),
+          co("r", 300, 456, "🛡 STAYS", "Never hidden with the keyboard up. Typing is exactly when someone may need to report.", G.all, "LIVE", "🎁 hides and the role CTA collapses to ♥ — the shield never does either")
+        ],
+        foot: "At 715 with a 224px keyboard the composer sits at y≈433 and chat keeps three lines. Two things pay for it: the bench is cut entirely, and the composer drops 🎁 and shortens its CTA to ♥ — a field, three buttons and a worded CTA do not fit in 371px. 🛡 keeps its full 46px.",
+        footBg: "rgba(255,194,77,.09)", footEdge: "rgba(255,194,77,.45)", footInk: "rgba(255,217,138,.85)"
+      }),
+      screen({
+        step: "R4 · SHIELD", dot: "#b9a8ff", rim: "#3a2e5a", title: "Safety, and the gift tray behind it",
+        blurb: "One sheet, three exits, no credits involved. The gift picker is the other thing that opens from this row, and it is the one that can be switched off by phase.",
+        phase: "FLOOR 0:31", ...PH.cool, credits: "85", gift: true, ...CTA.join,
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "0:42" }), cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "0:53" }), cell({ photo: CAST.sam, name: "SAM", hearts: "61", clock: "1:04" })],
+        bench: null, chat: CH.crowd, shieldBg: "rgba(185,168,255,.3)",
+        sheetKicker: "🛡 SAFETY", sheetMeta: "NEVER COSTS ✦", sheetEdge: "rgba(185,168,255,.6)", sheetInk: "#d6cdff",
+        sheetRows: [
+          { icon: "⚑", name: "REPORT THIS ROOM", sub: "Goes to a human. The room keeps running while it's reviewed.", bg: "rgba(185,168,255,.16)", border: "1.5px solid rgba(185,168,255,.7)", glow: "none", ink: "#fff", subInk: "rgba(214,205,255,.78)", meta: "", metaInk: "" },
+          { icon: "🔇", name: "MUTE SOMEONE", sub: "Per-person, your feed only. Nobody is told.", bg: "rgba(6,8,24,.6)", border: "1px solid rgba(185,168,255,.4)", glow: "none", ink: "#d6cdff", subInk: "rgba(214,205,255,.62)", meta: "", metaInk: "" },
+          { icon: "⛔", name: "BLOCK & LEAVE", sub: "Out of the room and they can't follow you into another.", bg: "rgba(6,8,24,.5)", border: "1px solid rgba(255,77,109,.45)", glow: "none", ink: "#ff9db8", subInk: "rgba(255,157,184,.6)", meta: "", metaInk: "" }
+        ],
+        sheetFoot: "Identical sheet in every role. Hers has one extra row: force a suitor's filter off.",
+        callouts: [
+          co("l", 40, 568, "🛡 OPEN", "Tap toggles this sheet. Position is fixed in every role and every phase.", G.all, "SHEET OPEN", "the sheet never dims the video below 0.5 — the room stays watchable"),
+          co("r", 195, 616, "REPORT", "Human review, not an automated mute. Loudest row on the sheet.", G.all, "AVAILABLE", "the other two rows are quieter on purpose — they're reversible"),
+          co("r", 195, 763, "BLOCK & LEAVE", "The only row that takes you out of the room. Red-edged, still not an alarm.", G.all, "AVAILABLE", "lilac is safety; red is reserved for last-life and hard exits")
+        ]
+      })
+    ];
+
+    /* --------------------- SAME MOMENT, FOUR SCREENS --------------------- */
+    const asymBase = {
+      phase: "0:05 · PROMOTING", ...PH.amber, chat: CH.promo, h: 844,
+      quadRows: "173px 173px", benchMeta: "+4 IN LINE"
+    };
+    const promoCell = cell({ promo: "0:05", promoWho: "DOCK RISES", rim: "2px solid #ffc24d", rimbg: "rgba(255,194,77,.14)", glow: "0 0 24px rgba(255,194,77,.6)" });
+    const asymScreens = [
+      screen(Object.assign({}, asymBase, {
+        step: "SAME 5s · HOST", dot: "#ff6fb0", rim: "#5a2e46", title: "She is picking blind",
+        blurb: "Three shapes and three numbers. If she does nothing, the leading number rises.",
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "❙❙" }), cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "❙❙" }), promoCell],
+        bench: BENCH_HOST, benchNote: "override within 0:05", ...CTA.ask,
+        callouts: [
+          co("l", 195, 520, "WHAT SHE HAS", "Tappable — a tap is her override. Silhouette, live count, strike pips. No face, no name.", G.host, "412 / 268 / 97", "the count is the only thing that crosses to her"),
+          co("r", 290, 350, "5s OVERRIDE WINDOW", "Her only input here. Silence promotes the bench's heart leader, never the front of the queue.", G.host, "0:05", "server seats the heart leader on expiry — the client never decides")
+        ]
+      })),
+      screen(Object.assign({}, asymBase, {
+        step: "SAME 5s · CHAIR", dot: "#7ff2e6", rim: "#2e4a52", title: "He has no vote",
+        blurb: "A seated chair watches a rival arrive. Read-only by design — competitors do not get to pick their competition.",
+        quad: [host({}), cell(Object.assign({ photo: CAST.you, name: "YOU", hearts: "156", clock: "❙❙" }, MINE)), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "❙❙" }), promoCell],
+        bench: [
+          bench(Object.assign({ photo: CAST.dock, name: "DOCK", n: "412", pips: pips(0) }, NEXTUP, { cardAnim: "none" })),
+          bench(Object.assign({ photo: CAST.marisol, name: "MARISOL", n: "268", pips: pips(1) }, SURGING, { cardAnim: "none" })),
+          bench({ photo: CAST.theo, name: "THEO", n: "97", pips: pips(2, true), cardBorder: "1px dashed rgba(185,168,255,.3)" })
+        ],
+        benchNote: "lit, and none of it is yours", ...CTA.leave, pill: true,
+        pillKicker: "HER FIVE SECONDS", pillTitle: "She's picking from the bench", pillBar: "100%", pillClock: "0:05",
+        pillNote: "Room-wide, every role, every time a chair opens. It is the crowd's cue to flood.", pillNoteInk: "rgba(255,217,138,.75)",
+        callouts: [
+          co("l", 195, 520, "BENCH · LIT BUT INERT", "No tap targets, full information. Amber leader and rose challenger both light for him — he sees the race he is not allowed to vote in.", G.chairs, "NO PULSE", "the crowd's copy of these two cards pulses; his is frozen"),
+          co("l", 70, 626, "THE 0:05 PILL", "Not tappable, and not new chrome — the same amber slot the Moment uses, with different copy. Every role sees it the second a chair opens.", G.all, "0:05", "THE FLOOR IS TAKEN is the other string in this slot"),
+          co("r", 353, 105, "YOUR CLOCK, HELD", "Not tappable. A promotion pauses every shot clock, so an arrival costs nobody air time.", G.all, "❙❙ HELD", "resumes on the camera-flip")
+        ]
+      })),
+      screen(Object.assign({}, asymBase, {
+        step: "SAME 5s · BENCH", dot: "#d6cdff", rim: "#3a2e5a", title: "It is happening to him",
+        blurb: "Dock's own screen. His card is the one pulsing, and there is no confirm — the promotion is not opt-in.",
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "❙❙" }), cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "❙❙" }), cell({ promo: "0:05", promoWho: "YOU RISE NEXT", rim: "2px solid #ffc24d", rimbg: "rgba(255,194,77,.14)", glow: "0 0 24px rgba(255,194,77,.6)" })],
+        bench: [bench(Object.assign({ photo: CAST.dock, name: "YOU", n: "412", pips: pips(0) }, RISING)), bench({ photo: CAST.marisol, name: "MARISOL", n: "268", pips: pips(1) }), bench({ photo: CAST.theo, name: "THEO", n: "97", pips: pips(2, true) })],
+        benchNote: "you're up — no confirm step", ...CTA.join,
+        callouts: [
+          co("l", 69, 466, "RISING · YOUR CARD", "Read-only. Rose at .62s, and the copy is second person here and only here.", G.bench, "ROSE .62s", "the same card reads DOCK, amber, on every other screen in this row"),
+          co("r", 290, 350, "THE CELL YOU'RE ENTERING", "Nothing to tap. Gold countdown in the seat you're about to occupy.", G.all, "0:05", "camera-flip .62s, then your cool-lit chair")
+        ]
+      })),
+      screen(Object.assign({}, asymBase, {
+        step: "SAME 5s · CROWD", dot: "#ffe0a8", rim: "#5a4a2e", title: "They already knew",
+        blurb: "Faces, counts, and four minutes of investment. This is why the reveal storm died: the promotion is a payoff, not a surprise.",
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "❙❙", heartTap: "1" }), cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "❙❙", heartTap: "1" }), promoCell],
+        bench: [
+          bench(Object.assign({ photo: CAST.dock, name: "DOCK", n: "418", pips: pips(0) }, NEXTUP)),
+          bench(Object.assign({ photo: CAST.marisol, name: "MARISOL", n: "301", pips: pips(1) }, SURGING)),
+          bench({ photo: CAST.theo, name: "THEO", n: "97", pips: pips(2, true) })
+        ],
+        benchNote: "five seconds to change her mind for her", gift: true, ...CTA.join, pill: true,
+        pillKicker: "HER FIVE SECONDS", pillTitle: "She's picking from the bench", pillBar: "100%", pillClock: "0:05",
+        pillNote: "The only five seconds in the show where a heart can still move the outcome.", pillNoteInk: "rgba(255,217,138,.75)",
+        chat: [{ who: "Marisol", text: "MARISOL MARISOL MARISOL", color: "#b9a8ff" }, { who: "Theo", text: "she's 117 back GO", color: "#b9a8ff" }, { who: "you", text: "♥♥♥♥♥♥", color: "#ffd6e9" }],
+        callouts: [
+          co("l", 69, 474, "DOCK, WITH A FACE", "Still a heart target through the countdown, and amber because he is the standing — the default she inherits if she says nothing.", G.crowd, "♥418 · PHOTO", "she is looking at a silhouette of this exact card"),
+          co("l", 195, 520, "SURGING · FULL EFFECT", "Tap it flat out. Rose at .62s against amber's 1.4s, and these five seconds are the one window where the gap can actually close.", G.crowd, "MARISOL, 117 BACK", "rose only lights while a card is climbing faster than the leader"),
+          co("r", 70, 626, "THE FLOOD CUE", "Not tappable. The pill tells the whole room she is choosing, which is what starts the tapping — her attention is on the bench and so is everyone else's.", G.all, "0:05", "same slot and hue as the Moment's pill, different copy"),
+          co("r", 195, 570, "PAYOUT PENDING", "Read-only. Everyone who backed him is about to collect ✦15.", G.crowd, "+15 ✦ SOON", "+40 ✦ if he goes on to win the finale")
+        ],
+        foot: "Read this row left to right: same five seconds, four products. The bench is the sharpest case — the crowd is looking at photographs of the three people she is choosing between as shapes.",
+        footBg: "rgba(255,214,233,.1)", footEdge: "rgba(255,214,233,.45)", footInk: "rgba(255,214,233,.9)"
+      }))
+    ];
+
+    /* ---------------------------- HONEST SIZING ---------------------------- */
+    const sizeScreens = [
+      screen({
+        step: "FITS · 390×844", dot: "#7ff2e6", rim: "#2e4a52", title: "Best case",
+        blurb: "The extra 129px goes into faces, not into chat. Chat holds its three-line floor at both heights and the boxes scale in proportion above it — 168→210 for a chair, 116→145 for a bench card.",
+        phase: "FLOOR 0:31", ...PH.cool, gift: true, ...CTA.join,
+        quadRows: "215px 215px", benchH: "145px", chatMin: "78px",
+        quad: [host({ h: "210px" }), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "0:42", h: "210px" }),
+          cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "0:53", h: "210px" }), cell({ photo: CAST.sam, name: "SAM", hearts: "61", clock: "1:04", h: "210px" })],
+        bench: BENCH_CROWD,
+        callouts: [
+          co("l", 110, 760, "CHAT · 78px", "Sole flexible child, held at the same three-line floor as the 715 frame. Consistency here is what lets the boxes above it grow.", G.all, "3 LINES", "96px keyboard-open · the floor never drops below three lines"),
+          co("r", 195, 600, "BENCH · 145px", "Three cards, scaled 1.25× with the quad. Still square, still capped at three.", G.all, "145px", "116px at 715 — the same proportion, less height to spend"),
+          co("l", 100, 200, "CHAIR · 210px", "Nothing to tap. A face at 210px is the whole reason to spend the surplus here instead of on two more lines of chat.", G.all, "210px", "168px at 715 · 305px in a spotlight split")
+        ],
+        foot: "Ruling: chat is fixed at its three-line floor and the playing surface absorbs whatever height the device gives. Faces scale 1.25× between 715 and 844; chat does not move. That keeps one composer position, one chat rhythm, and puts every spare pixel on the thing being judged.",
+        footBg: "rgba(45,227,208,.1)", footEdge: "rgba(45,227,208,.45)", footInk: "rgba(174,247,238,.9)"
+      }),
+      screen({
+        step: "TIGHT · 393×715", dot: "#ffc24d", rim: "#5a4a1e", title: "Real Safari height",
+        blurb: "Same screen, 129px shorter. Everything above chat is fixed, so chat pays the whole difference and lands at 51px — two lines, masked at the top.",
+        w: 393, h: 715, size: "393 × 715", sizeBg: "rgba(255,194,77,.18)", sizeInk: "#ffd98a",
+        phase: "FLOOR 0:31", ...PH.cool, quad: QUAD_PLAY(), bench: BENCH_CROWD, gift: true, ...CTA.join,
+        chat: [{ who: "Marisol", text: "hearts on june", color: "#b9a8ff" }],
+        callouts: [
+          co("l", 110, 612, "CHAT · 51px", "Two lines. Legible, but a two-line strip in a live room is a ticker, not a conversation.", G.all, "2 LINES", "the floor should be 78px — three lines — which 715 cannot pay for"),
+          co("r", 195, 520, "BENCH · UNCHANGED", "Still 116px. It refuses to shrink, which is what forces the choice below.", G.all, "3 CARDS", "collapsing it to a one-line count buys chat back its 78px")
+        ],
+        foot: "Ruling: at ≤740px of usable height the bench drops to a one-line count row (♥412 · 268 · 97 · +4 IN LINE) during spotlights and keyboard-open, and keeps its cards on the open floor. Chat's floor is three lines, and the bench is what pays for it.",
+        footBg: "rgba(255,194,77,.09)", footEdge: "rgba(255,194,77,.45)", footInk: "rgba(255,217,138,.85)"
+      }),
+      screen({
+        step: "DOES NOT FIT · 393×715", dot: "#ff4d6d", rim: "#5a1e28", title: "Spotlight plus bench, shown breaking",
+        blurb: "The 305px interview split, the question banner, the bench and a three-line chat, at 715. It overruns by 169px, and the composer and the shield end up below the bottom edge of the phone.",
+        w: 393, h: 715, size: "393 × 715 · OVERRUN", sizeBg: "rgba(255,77,109,.2)", sizeInk: "#ff9db8",
+        phase: "0:22 · SPOTLIGHT", ...PH.warm, quadRows: "310px 51px",
+        quad: [
+          host({ row: "1", col: "1", h: "305px" }),
+          cell({ row: "1", col: "2", h: "305px", photo: CAST.june, name: "JUNE", hearts: "156", mic: true, rim: "2px solid #ff2d8f", rimbg: "rgba(255,45,143,.14)", glow: "0 0 28px rgba(255,45,143,.9)", namebg: "rgba(255,45,143,.85)" }),
+          cell({ row: "2", col: "1 / -1", h: "46px", photo: CAST.dev, name: "DEV", op: ".5", feedFilter: "blur(3px)", tag: "❙❙ HELD", tagbg: "rgba(6,8,24,.7)", tagink: "#7ff2e6" })
+        ],
+        question: "What did you lie about on your first date?", questionFor: "FOR JUNE · CHAIR 2", questionClock: "0:22",
+        bench: BENCH_CROWD, chatMin: "78px", chat: CH.spot, gift: true, ...CTA.join,
+        frameH: 884, cutline: "715px", cutlineLabel: "↑ THE PHONE ENDS HERE · EVERYTHING BELOW IS OFF-SCREEN", cutlineLabelTop: "726px",
+        callouts: [
+          co("l", 195, 240, "SPLIT · 305px EACH", "Non-negotiable at this beat. Anything smaller and the interview shot stops being one.", G.all, "305px", "the whole break is one grid-template interpolation"),
+          co("r", 195, 648, "BENCH · THE CULPRIT", "134px of fixed height under a 361px split. This is the row that has to go.", G.all, "3 CARDS", "one-line count row costs 26px instead of 134px")
+        ],
+        foot: "Shown at its true overrun rather than scaled to fit — the tinted band is the 169px that does not exist on the device, and the composer and 🛡 shield are sitting in it. The fix is the ruling on the previous frame — during a spotlight at ≤740px, the bench is a count.",
+        footBg: "rgba(255,77,109,.1)", footEdge: "rgba(255,77,109,.5)", footInk: "#ffb8c8"
+      })
+    ];
+
+
+    /* ---------------- TURN 13 · THE COLD OPEN (393×715) ---------------- */
+    const preshow = o => screen(Object.assign({
+      w: 393, h: 715, size: "393 × 715", sizeBg: "rgba(255,194,77,.18)", sizeInk: "#ffd98a",
+      rim: "#3a2e5a", dot: "#d6cdff", eyes: "96", credits: "0", ...PH.lilac, ...CTA.join,
+      quad: [host({}), emptyChair(), emptyChair(), emptyChair()]
+    }, o));
+    const CTAJ_X = { cta: 303, shield: 194 }, CTAA_X = { cta: 351, shield: 289 }, COMP_Y = 672;
+
+    const openScreens = [
+      preshow({
+        step: "0A · ONE ON THE BENCH", title: "The gun is loaded, not fired",
+        blurb: "She is live and the game is not. Three chairs sit open because no one can seat themselves — the engine does it, and only when the bench fills.",
+        phase: "BENCH 1 OF 3",
+        bench: [bench({ photo: CAST.marisol, name: "MARISOL", n: "14", pips: pips(0) }), benchEmpty("2 MORE\nTO START"), benchEmpty("2 MORE\nTO START")],
+        benchNote: "the show starts when the third one lands", benchMeta: "+0 IN LINE",
+        chat: [{ who: "THE HOUSE", text: "the show starts when three take the bench", color: "#7ff2e6" }, { who: "Marisol", text: "first. no pressure", color: "#b9a8ff" }],
+        callouts: [
+          co("l", 240, 64, "PHASE CHIP · THE COUNT", "Not tappable. The auto-start progress rides in the chip that already exists, so the count costs the layout nothing.", G.all, "1 OF 3", "WARMING UP before anyone joins · R1 ●○○ once the show runs"),
+          co("l", 195, 520, "EMPTY BENCH SEAT", "Tap to join, which triggers the headshot capture. Reads the remaining count, so the threshold is legible from the seat itself.", G.all, "2 MORE TO START", "a filled card is a photo, a name and a live count"),
+          co("r", 100, 170, "HER CELL, ALONE", "Nothing to tap. She is broadcasting to a room with no game in it — the warm key is already on her.", G.all, "LIVE, PRESHOW", "the three cool cells fill in one beat, not one at a time"),
+          co("r", 69, 474, "FIRST ON", "Her card, not tappable by her. It starts earning the second the photo is taken — and it carries no badge, because in preshow the bench is the cast rather than a queue for chairs.", G.all, "♥14 · NO BADGE", "the badge lights the moment a seated chair can open — from the show's first second onward"),
+          co("r", CTAJ_X.cta, COMP_Y, "♥ JOIN THE BENCH", "The only way onto the show. It never puts you in a chair.", G.crowd, "AVAILABLE", "the empty bench cell is the same action, in the place you are already looking")
+        ],
+        foot: "Authored at 715, not 844. Every count-to-three frame has to survive the height the owner's phone actually gives.",
+        footBg: "rgba(255,194,77,.09)", footEdge: "rgba(255,194,77,.45)", footInk: "rgba(255,217,138,.85)"
+      }),
+      preshow({
+        step: "0B · TWO ON THE BENCH", title: "One to go",
+        blurb: "The only state in the app where the crowd can see the show is about to start. That is the most persuasive thing the lobby can show, too.",
+        phase: "BENCH 2 OF 3",
+        bench: [bench({ photo: CAST.marisol, name: "MARISOL", n: "48", pips: pips(0) }), bench({ photo: CAST.dock, name: "DOCK", n: "31", pips: pips(0) }), benchEmpty("1 MORE\nTO START", "#ffd98a")],
+        benchNote: "one seat from a show", benchMeta: "+0 IN LINE",
+        chat: [{ who: "Theo", text: "who's taking the last one", color: "#b9a8ff" }, { who: "THE HOUSE", text: "one more and the chairs fill", color: "#7ff2e6" }],
+        callouts: [
+          co("l", 240, 64, "ONE TO GO", "Not tappable. The chip and the last cell say the same number on purpose — this is the moment worth advertising.", G.all, "2 OF 3", "still no badge: all three of these benchers take chairs at 3 of 3, so none of them is next"),
+          co("l", 321, 520, "THE LAST SEAT", "Tap to join and start the show. It goes amber at 1 of 3 — the only place the preshow raises its voice.", G.all, "1 MORE TO START", "lilac dashed at 2 of 3 · gone once the bench is full"),
+          co("r", 195, 350, "CHAIRS, STILL EMPTY", "Not tappable by anyone, including her. A live-run bug let a host seat manually; that fights the starting gun and has to go.", G.host, "3 OPEN", "they fill together, in one camera beat, never one at a time"),
+          co("r", CTAJ_X.shield, COMP_Y, "🛡 SAFETY", "Live in preshow too. Nothing about safety waits for the show to start.", G.all, "ALWAYS LIVE", "same slot, same 46px, every role and every phase")
+        ]
+      }),
+      preshow({
+        step: "0C · THE THIRD LANDS", title: "The starting gun",
+        blurb: "Theo takes the last bench seat and the show is no longer waiting on anyone. Three seconds of held breath, then the chairs fill.",
+        phase: "BENCH 3 OF 3 · STARTING", ...PH.amber, dot: "#ffc24d", rim: "#5a4a1e",
+        bench: [bench({ photo: CAST.marisol, name: "MARISOL", n: "48", pips: pips(0) }), bench({ photo: CAST.dock, name: "DOCK", n: "31", pips: pips(0) }),
+          bench(Object.assign({ photo: CAST.theo, name: "THEO", n: "3", pips: pips(0) }, JUSTON))],
+        benchNote: "full — the show starts on its own", benchMeta: "+0 IN LINE",
+        chat: [{ who: "THE HOUSE", text: "three on the bench · starting in 3", color: "#ffd98a" }, { who: "Marisol", text: "oh god", color: "#b9a8ff" }],
+        ...CTA.waiting,
+        callouts: [
+          co("l", 240, 64, "STARTING", "Not tappable, and not cancellable. The chip is the only warning the room gets before the graphic.", G.all, "3 OF 3", "no host cue exists — the bench filling IS the cue"),
+          co("l", 321, 466, "JUST ON", "Read-only. Rose at .62s — an event, not a standing. Amber at 1.4s is reserved for who is next, which nobody is yet.", G.all, "THEO · ROSE", "amber NEXT UP 1.4s = a standing · rose .62s = a change (see 0E and track ★)"),
+          co("r", 195, 350, "THREE SECONDS", "Nothing to tap. The chairs are still empty for three more seconds; the fill is the graphic, not a state swap.", G.all, "T-3", "a live run prompted only one of three for a headshot — no photo means broken silhouettes on her side"),
+          co("r", CTAJ_X.cta, COMP_Y, "COMPOSER, PARKED", "Joining is closed for these three seconds — the bench is full and the line has not opened yet.", G.crowd, "WAITING", "reopens as ♥ JOIN THE LINE the moment round 1 starts")
+        ]
+      }),
+      screen({
+        w: 393, h: 715, size: "393 × 715 · FULL BLEED", sizeBg: "rgba(255,45,143,.2)", sizeInk: "#ffc2e0",
+        step: "0D · SHOW BEGINS", dot: "#ff6fb0", rim: "#5a2e46", title: "One graphic, every role at once",
+        blurb: "Not a transition — the show's title card. Identical on her screen, the three chairs and every spectator, which is the only moment in the app where that is true.",
+        phase: "GOING LIVE", ...PH.warm, eyes: "104", credits: "0", quad: null, bench: null, composer: false, chat: [],
+        overlayBg: "radial-gradient(120% 70% at 50% 40%, rgba(255,45,143,.5), rgba(4,6,18,.97) 72%)",
+        overlayPhotos: [
+          { src: CAST.marla, edge: "#ff2d8f", ml: "0px", size: "84px" },
+          { src: CAST.marisol, edge: "rgba(45,227,208,.9)", ml: "-16px", size: "72px" },
+          { src: CAST.dock, edge: "rgba(45,227,208,.9)", ml: "-16px", size: "72px" },
+          { src: CAST.theo, edge: "rgba(45,227,208,.9)", ml: "-16px", size: "72px" }
+        ],
+        overlayKicker: "🎬 THREE ON THE BENCH · 3", overlayKick: "#7ff2e6",
+        overlayTitle: "SHOW BEGINS", overlaySize: "38px",
+        overlaySub: "Marisol, Dock and Theo are taking the chairs. Marla's room, Marla's call.",
+        callouts: [
+          co("l", 195, 300, "THE CAST STRIP", "Not tappable. Her face leads at 84px, the three who filled the bench follow at 72px — the hierarchy the whole show runs on, stated once.", G.all, "4 FACES", "the same overlap treatment carries the finale card"),
+          co("l", 195, 470, "WHO AND WHOSE", "Read-only. Names the three, then names the room's owner — the two facts a late arrival needs.", G.all, "NAMED", "the finale swaps this line for the verdict"),
+          co("r", 195, 390, "SHOW BEGINS", "Nothing to tap, and nothing to dismiss. Runs 3 seconds and cannot be skipped, including by her.", G.all, "3s, BROADCAST", "the counter in the kicker runs 3 · 2 · 1 · then the quad"),
+          co("r", 195, 340, "THE COUNTER", "Read-only. It lives in the kicker rather than as a hero numeral, so the faces stay the biggest thing on screen.", G.all, "3", "2 · 1 · then the chairs are full")
+        ],
+        foot: "Designed inside 715 with the safe-area padding already spent. At 844 it simply has more air above and below — nothing in the composition moves.",
+        footBg: "rgba(255,45,143,.08)", footEdge: "rgba(255,45,143,.4)", footInk: "rgba(255,214,233,.88)"
+      }),
+      screen({
+        w: 393, h: 715, size: "393 × 715", sizeBg: "rgba(255,194,77,.18)", sizeInk: "#ffd98a",
+        step: "0E · HER DEFAULT", dot: "#ffc24d", rim: "#5a4a1e", title: "The glow follows the hearts",
+        blurb: "A chair opened and she has five seconds. The amber glow sits on the biggest heart count on the bench — not the front of the queue — and that card is what gets seated if she says nothing.",
+        phase: "0:05 · PROMOTING", ...PH.amber, ...CTA.ask,
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "❙❙" }), cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "❙❙" }),
+          cell({ promo: "0:05", promoWho: "DOCK RISES", rim: "2px solid #ffc24d", rimbg: "rgba(255,194,77,.14)", glow: "0 0 24px rgba(255,194,77,.6)" })],
+        bench: [
+          blindBench(bench({ photo: CAST.marisol, name: "MARISOL", n: "268", pips: pips(1) })),
+          blindBench(bench(Object.assign({ photo: CAST.dock, name: "DOCK", n: "412", pips: pips(0) }, NEXTUP))),
+          blindBench(bench({ photo: CAST.theo, name: "THEO", n: "97", pips: pips(2, true) }))
+        ],
+        benchNote: "she reads counts, never faces", benchMeta: "+4 IN LINE",
+        chat: [{ who: "THE HOUSE", text: "chair 3 is open · Dock rises in 0:05", color: "#ffd98a" }, { who: "Marisol", text: "he earned it", color: "#b9a8ff" }],
+        callouts: [
+          co("l", 290, 350, "THE OPEN CELL", "Not a control for anyone but the clock. Gold countdown in the seat about to be filled, and it names the default out loud.", G.all, "0:05 · DOCK", "RECONNECTING in amber if the seat is held, never TAKE THE CHAIR"),
+          co("l", 195, 520, "NEXT UP · MOST HEARTS", "Tappable only by her, as an override. Hearts rank the glow — Dock is second in the queue and 144 ahead — and that card is seated if her five seconds run out.", G.all, "DOCK ♥412", "line order breaks ties and covers an all-zero bench, so exactly one card is always lit"),
+          co("r", 100, 170, "HER FIVE SECONDS", "Tap any bench card to override the default. Silence is a decision, and it goes to the crowd's leader.", G.host, "COUNTING", "no modal, no confirm — the window closes and the seat fills"),
+          co("r", 35, 474, "THE COUNT SHE CAN SEE", "Read-only, and the only bench signal that crosses to her. Faces never resolve; the numbers are the whole read.", G.host, "268 · 412 · 97", "the crowd sees these three as photographs"),
+          co("r", CTAA_X.cta, COMP_Y, "ASK", "Still armed. She can spend her five seconds asking a seated chair instead, and let the default land.", G.host, "ARMED", "⏭ SHE'S HEARD ENOUGH also survives the window")
+        ],
+        foot: "Supersedes the build, which derives NEXT UP from line_position. Hearts rank it, line order breaks ties — all four states are drawn in track ★ above, and the nextOffBench() dependency is in the supersedes list.",
+        footBg: "rgba(255,77,109,.1)", footEdge: "rgba(255,77,109,.5)", footInk: "#ffb8c8"
+      })
+    ];
+
+
+    /* ============ TURN 14 · LOBBY · BEATS · THE BADGE (393×715) ============ */
+    const N715 = { w: 393, h: 715, size: "393 × 715", sizeBg: "rgba(255,194,77,.18)", sizeInk: "#ffd98a" };
+    const SEAT_OPEN = { bg: "rgba(45,227,208,.85)", glow: "0 0 8px rgba(45,227,208,.7)" };
+    const SEAT_TAKEN = { bg: "rgba(255,45,143,.8)", glow: "0 0 8px rgba(255,45,143,.6)" };
+    const SEAT_NEXT = { bg: "rgba(255,255,255,.2)", glow: "none" };
+    const TIER_LIVE = { tier: "● LIVE FEED", tierBg: "rgba(255,45,143,.28)", tierBorder: "1px solid rgba(255,255,255,.7)", tierInk: "#fff" };
+    const TIER_STILL = { tier: "STILL", tierBg: "rgba(6,8,24,.6)", tierBorder: "1px dashed rgba(185,168,255,.5)", tierInk: "rgba(214,205,255,.8)" };
+    const room = o => Object.assign({
+      cardBorder: "1.5px solid rgba(185,168,255,.4)", glow: "none", feedH: "240px", filter: "none", photo2: "",
+      phasebg: "rgba(45,227,208,.18)", phaseborder: "1px solid rgba(45,227,208,.6)", phaseink: "#aef7ee",
+      seatInk: "rgba(174,247,238,.9)", ctaBg: "rgba(6,8,24,.62)", ctaBorder: "1.5px solid rgba(185,168,255,.6)", ctaInk: "#d6cdff", ctaGlow: "none"
+    }, TIER_STILL, o);
+    const CTA_SEAT = { cta: "TAKE THE SEAT", ctaBg: "rgba(255,45,143,.4)", ctaBorder: "1.5px solid rgba(255,255,255,.9)", ctaInk: "#fff", ctaGlow: "0 0 26px rgba(255,45,143,.6)" };
+
+    const lobbyScreens = [
+      screen(Object.assign({}, N715, {
+        step: "L1 · THE LOBBY", dot: "#ffd6e9", rim: "#5a2e46", title: "One feed is live. The rest are stills.",
+        blurb: "The focused card carries the host's actual feed; everything below it is a still with live numbers. That is the whole video budget — one decoder, one thermal cost, and the enticement lands anyway because the top card is the one you are reading.",
+        phase: "14 LIVE", ...PH.warm, eyes: "1.4K", credits: "0", quad: null, bench: null, composer: false, chat: [],
+        gear: true, lobbyLabel: "LIVE NOW · WITHIN 25 MI",
+        lobby: [
+          room(Object.assign({ photo: CAST.marla, host: "Marla's Room", tag: "36 · looking for someone who talks back", eyes: "96", hearts: "1.2K", feedH: "244px",
+            phase: "2 OF 3 ON THE BENCH", phasebg: "rgba(255,194,77,.22)", phaseborder: "1px solid rgba(255,194,77,.8)", phaseink: "#ffd98a",
+            cardBorder: "2px solid rgba(255,45,143,.75)", glow: "0 0 28px rgba(255,45,143,.4)",
+            seats: [SEAT_OPEN, SEAT_OPEN, SEAT_OPEN], seatNote: "3 CHAIRS OPEN · 4.2 MI" }, TIER_LIVE, CTA_SEAT)),
+          room({ photo: CAST.nadia, host: "Juniper's Room", tag: "29 · round two, nobody kept yet", eyes: "312", hearts: "4.8K", feedH: "168px",
+            phase: "R2 · SPOTLIGHT", phasebg: "rgba(255,45,143,.2)", phaseborder: "1px solid rgba(255,45,143,.7)", phaseink: "#ffc2e0",
+            filter: "saturate(.82) brightness(.92)",
+            seats: [SEAT_TAKEN, SEAT_TAKEN, SEAT_TAKEN], seatNote: "FULL · OPENS NEXT ROUND · 11 MI", seatInk: "rgba(255,194,224,.9)", cta: "WATCH" })
+        ],
+        callouts: [
+          co("l", 93, 147, "BENCH COUNT AS THE HEADLINE", "Not tappable. The preshow count is the most persuasive string the lobby has, so it takes the phase slot and goes amber.", G.all, "2 OF 3", "R2 ● SPOTLIGHT in pink once the show runs · WARMING UP at zero"),
+          co("l", 100, 278, "HOST NAME + LINE", "The whole card is the tap target. 22px Baloo at line-height 1.4, because 1.1 clips the descenders under overflow:hidden.", G.all, "LIVE FEED", "one feed decodes at a time — scrolling hands the feed to the next focused card"),
+          co("r", 158, 410, "STILL, LIVE NUMBERS", "Still frame, but 👁 and ♥ keep ticking. Desaturated 18% so the difference is felt before it is read.", G.all, "STILL", "upgrade path: promote to live at 3–4 visible cards, gated per device"),
+          co("r", 330, 147, "👁 AND ♥", "Read-only, on the video rather than in a chrome row — the numbers are part of the draw.", G.all, "96 · ♥1.2K", "both poll on the room list channel, not the video track"),
+          co("l", 60, 339, "SEAT STRIP", "Not tappable on its own. Teal open, pink taken, grey opens-next-round — it answers \"can I get on?\" before the tap.", G.all, "3 OPEN", "FULL · OPENS NEXT ROUND on the card below it"),
+          co("r", 307, 342, "TAKE THE SEAT / WATCH", "Same slot, two verbs by state. It is the only place the lobby promises anything.", G.all, "TAKE THE SEAT", "WATCH when the chairs are full — never a disabled button"),
+          co("r", 195, 628, "GO LIVE", "Fixed bar, never a card in the feed and never scrolled away.", G.all, "ALWAYS", "opens the go-live sheet: show name, tagline, go"),
+          co("r", 361, 64, "⚙ SETTINGS", "Last in the top row, after ✦. Opens name, seeking, age range, distance and the delete-account flow.", G.all, "SHOWN", "hidden only before a profile exists · same slot in the room, so it never moves")
+        ],
+        foot: "Settings sits last in the top row, after ✦ — the same row it occupies in the room, so the one piece of chrome that follows you everywhere never moves. It appears only once a profile exists; #whoami goes away.",
+        footBg: "rgba(185,168,255,.1)", footEdge: "rgba(185,168,255,.45)", footInk: "rgba(214,205,255,.9)"
+      })),
+      screen(Object.assign({}, N715, {
+        step: "L2 · CARD STATES", dot: "#ffd6e9", rim: "#5a2e46", title: "Preshow versus mid-spotlight",
+        blurb: "The same card in the two states that matter. Preshow sells a countable threshold; a running show sells the interview shot, so the card splits to the two-up her feed already broke to.",
+        phase: "14 LIVE", ...PH.warm, eyes: "1.4K", credits: "0", quad: null, bench: null, composer: false, chat: [],
+        lobbyLabel: "TWO STATES, ONE CARD", golive: "● GO LIVE — HOST YOUR ROOM",
+        lobby: [
+          room(Object.assign({ photo: CAST.marla, host: "Marla's Room", tag: "36 · looking for someone who talks back", eyes: "96", hearts: "1.2K", feedH: "206px",
+            phase: "1 OF 3 ON THE BENCH", phasebg: "rgba(255,194,77,.22)", phaseborder: "1px solid rgba(255,194,77,.8)", phaseink: "#ffd98a",
+            seats: [SEAT_OPEN, SEAT_OPEN, SEAT_OPEN], seatNote: "PRESHOW · 3 CHAIRS OPEN" }, TIER_LIVE, CTA_SEAT)),
+          room(Object.assign({ photo: CAST.marla, photo2: CAST.june, host: "Marla's Room", tag: "asking June: what did you lie about?", eyes: "312", hearts: "1.9K", feedH: "206px",
+            phase: "R2 · 0:22 SPOTLIGHT", phasebg: "rgba(255,45,143,.2)", phaseborder: "1px solid rgba(255,45,143,.7)", phaseink: "#ffc2e0",
+            seats: [SEAT_TAKEN, SEAT_TAKEN, SEAT_NEXT], seatNote: "2 SEATED · 1 OPENS NEXT ROUND", seatInk: "rgba(255,194,224,.9)", cta: "WATCH" }, TIER_LIVE))
+        ],
+        callouts: [
+          co("l", 93, 147, "PRESHOW CARD", "Tap to enter. It has one job: make the threshold legible.", G.all, "1 OF 3", "the count is the headline until the third lands"),
+          co("l", 100, 266, "THE PROMISE", "Her tagline, verbatim, while nothing is happening yet.", G.all, "PRESHOW COPY", "swaps to the live question once a spotlight runs"),
+          co("r", 195, 420, "SPOTLIGHT CARD", "Tap to watch. The card splits to her and the chair being asked — the same two-up the room breaks to, at card scale.", G.all, "TWO-UP", "single feed when no spotlight runs"),
+          co("r", 100, 492, "THE LIVE QUESTION", "Read-only. A card mid-show sells the question, not the bio.", G.all, "ASKING JUNE", "reverts to the tagline between rounds"),
+          co("r", 60, 525, "SEAT STRIP · MIXED", "Grey is the honest third state: taken by the show, not by a person, and it opens next round.", G.all, "2 TAKEN · 1 GREY", "teal open · pink taken · grey opens next round")
+        ]
+      })),
+      screen(Object.assign({}, N715, {
+        step: "L3 · THE SLIDE-IN", dot: "#7ff2e6", rim: "#2e4a52", title: "The card becomes the room",
+        blurb: "Currently a state swap. The tapped card's feed rect should travel to the host cell's rect and the room chrome should assemble around it — one 320ms move, so entering a room feels like walking through the card you chose.",
+        phase: "ENTERING", ...PH.lilac, eyes: "96", credits: "0", composer: false, chat: [],
+        quadRows: "424px 104px", quadCols: "1fr 1fr 1fr",
+        quad: [
+          host({ row: "1", col: "1 / -1", h: "424px", cellT: "scale(1.02)" }),
+          cell({ row: "2", col: "1", h: "104px", empty: "CHAIR 1", emptySub: "arriving", op: ".34", rim: "1.5px dashed rgba(45,227,208,.45)", rimbg: "rgba(45,227,208,.05)", glow: "none" }),
+          cell({ row: "2", col: "2", h: "104px", empty: "CHAIR 2", emptySub: "arriving", op: ".24", rim: "1.5px dashed rgba(45,227,208,.4)", rimbg: "rgba(45,227,208,.04)", glow: "none" }),
+          cell({ row: "2", col: "3", h: "104px", empty: "CHAIR 3", emptySub: "arriving", op: ".14", rim: "1.5px dashed rgba(45,227,208,.35)", rimbg: "rgba(45,227,208,.03)", glow: "none" })
+        ],
+        benchCount: "♥ 14 · — · —", benchMeta: "ASSEMBLING",
+        callouts: [
+          co("l", 195, 300, "HER FEED, MID-TRAVEL", "Nothing to tap for 320ms. The card's feed rect interpolates to the host cell rect — same DOM node, same stream, no reload.", G.all, "88% THERE", "the live card is already the feed, so there is nothing to swap in"),
+          co("r", 195, 570, "ALL THREE CHAIRS", "Inert while they arrive. All three fade up from 40% of the move, staggered 60ms apart after her cell lands — three across at 104px here, then the quad settles to 2×2 at 168px.", G.all, "34/24/14%", "the surface is her cell plus three chairs at every instant of the move, never two"),
+          co("r", 195, 645, "BENCH AS A COUNT", "The ≤740px collapse, used here as the arrival state — cards resolve once the room is settled.", G.all, "COUNT ROW", "three 116px cards on the open floor at full height")
+        ],
+        foot: "Motion spec: card feed rect → host cell rect, 320ms cubic-bezier(.2,.9,.3,1). Chrome fades in over the last 60%. Back reverses it. Video never re-attaches — a black flash on entry is the failure this removes.",
+        footBg: "rgba(45,227,208,.1)", footEdge: "rgba(45,227,208,.45)", footInk: "rgba(174,247,238,.9)"
+      }))
+    ];
+
+    const spotQuad = (targetName, targetPhoto, extra) => [
+      host({ row: "1", col: "1", h: "305px" }),
+      cell(Object.assign({ row: "1", col: "2", h: "305px", photo: targetPhoto, name: targetName, hearts: "156", mic: true,
+        rim: "2px solid #ff2d8f", rimbg: "rgba(255,45,143,.14)", glow: "0 0 28px rgba(255,45,143,.9)", namebg: "rgba(255,45,143,.85)" }, extra || {})),
+      cell({ row: "2", col: "1 / -1", h: "46px", photo: CAST.dev, name: "DEV", op: ".5", feedFilter: "blur(3px)", tag: "❙❙ HELD", tagbg: "rgba(6,8,24,.7)", tagink: "#7ff2e6" })
+    ];
+    const clockScreen = o => screen(Object.assign({}, N715, {
+      dot: "#7ff2e6", rim: "#2e4a52", ...PH.warm, ...CTA.ask, quadRows: "310px 51px", phase: "R2 · SPOTLIGHT",
+      quad: spotQuad("JUNE", CAST.june),
+      question: "What did you lie about on your first date?", questionFor: "FOR JUNE · CHAIR 2",
+      benchCount: "♥ 412 · 268 · 97", benchMeta: "+4 IN LINE",
+      chat: [{ who: "Marisol", text: "oh he's stalling", color: "#b9a8ff" }]
+    }, o));
+
+    const beatScreens = [
+      screen(Object.assign({}, N715, {
+        step: "B1 · ROUND FLASH", dot: "#7ff2e6", rim: "#2e4a52", title: "Round two, announced",
+        blurb: "Rounds increment server-side and nothing currently says so. Six tenths of a second, full-bleed, over the live quad — loud enough to mark an act, short enough that nobody taps through it.",
+        phase: "R2 ●●○", ...PH.cool, composer: false, chat: [],
+        quad: QUAD_PLAY(), bench: null,
+        overlayBg: "radial-gradient(120% 70% at 50% 44%, rgba(45,227,208,.4), rgba(4,6,18,.86) 74%)",
+        overlayKicker: "●●○ TWO IN, ONE TO GO", overlayKick: "#aef7ee",
+        overlayTitle: "ROUND 2", overlaySize: "44px",
+        overlayGlow: "0 0 12px rgba(255,255,255,.6), 0 0 30px rgba(45,227,208,1), 0 0 70px rgba(45,227,208,.45)",
+        overlaySub: "Marla's round. Three chairs, one question each.",
+        callouts: [
+          co("l", 195, 320, "ROUND 2", "Nothing to tap and nothing to skip. Fires on the server's round increment, .6s, then it is gone.", G.all, "0.6s", "R1 and R3 use the same card — R3 adds FINAL ROUND to the kicker"),
+          co("r", 195, 415, "THE DOTS, SAID OUT LOUD", "Read-only. The chip in the top bar carries these dots all show; the flash is the one moment they are legible.", G.all, "●●○", "the flash is teal because rounds are show machinery, not her choice"),
+          co("l", 100, 380, "THE QUAD, STILL RUNNING", "Live underneath at 86% scrim — a flash that hides the room reads as a page load.", G.all, "VISIBLE", "the scrim never goes fully opaque on a beat this short")
+        ]
+      })),
+      clockScreen({
+        step: "B2 · CLOCK AT 0:30", title: "Calm", questionClock: "0:30",
+        blurb: "The answer clock opens as a quiet teal token inside the question banner. At thirty seconds nothing is at stake yet, so nothing shouts.",
+        callouts: [
+          co("l", 353, 474, "0:30 · CALM", "Not tappable. Teal token, 16px, inside the banner — show machinery, stated once.", G.all, "TEAL 16px", "flips at 0:10 · takes over at 0:03"),
+          co("r", 195, 588, "BENCH AS A COUNT", "The ≤740px spotlight collapse in place: three cards become one line so chat and the composer survive.", G.all, "COUNT ROW", "cards return on the open floor")
+        ]
+      }),
+      clockScreen({
+        step: "B2b · CLOCK AT 0:10", title: "Urgent", questionClock: "0:10",
+        qcBg: "rgba(61,3,36,.85)", qcBorder: "1.5px solid #ff2d8f", qcInk: "#ffd6e9", qcSize: "24px", qcGlow: "0 0 18px rgba(255,45,143,.85)",
+        blurb: "At ten it goes neon and grows by half. Same slot, same banner — the escalation is colour and size, never a new element appearing.",
+        chat: [{ who: "Marisol", text: "TEN SECONDS", color: "#b9a8ff" }],
+        callouts: [
+          co("l", 353, 474, "0:10 · NEON", "Not tappable. Pink, 24px, haloed. The token has not moved a pixel — it has only grown.", G.all, "PINK 24px", "teal 16px at 0:30 · full-width at 0:03"),
+          co("r", 100, 520, "THE QUESTION HOLDS", "The card does not change at ten. Moving the question while someone answers it is the one thing this beat must not do.", G.all, "UNCHANGED", "the banner only clears when the answer clock ends")
+        ]
+      }),
+      clockScreen({
+        step: "B2c · CLOCK AT 0:03", title: "Out of time",
+        questionClock: "0:03", questionFor: "FOR JUNE · CHAIR 2",
+        qcBg: "rgba(61,3,36,.92)", qcBorder: "2px solid #ff2d8f", qcInk: "#fff", qcSize: "40px", qcGlow: "0 0 26px rgba(255,45,143,1), 0 0 60px rgba(255,45,143,.5)",
+        blurb: "Three seconds is the only time the clock is the biggest thing on screen. It is still the same token in the same slot — no takeover, because he is mid-sentence.",
+        chat: [{ who: "Marisol", text: "3", color: "#b9a8ff" }, { who: "Dock", text: "2", color: "#b9a8ff" }],
+        callouts: [
+          co("l", 340, 486, "0:03 · 40px", "Not tappable. It outgrows the question text on purpose, and it stops at zero — no buzzer graphic over his face.", G.all, "40px", "at 0:00 the banner clears and the quad restores"),
+          co("r", 195, 640, "WHAT DOESN'T HAPPEN", "No overlay, no takeover, no sound cue in the design. He is answering; the room can read a numeral.", G.all, "QUAD INTACT", "the only full-bleed beats are round flash, show begins, the call and the cut")
+        ]
+      }),
+      screen(Object.assign({}, N715, {
+        step: "B3 · THE CAMERA-FLIP", dot: "#ffc24d", rim: "#5a4a1e", title: "Mid-rotation",
+        blurb: "Her five seconds expired and the bench's heart leader is taking the chair. 620ms: the empty cell rotates on Y, brightens at the halfway point, and Dock is on the other side of it. The signature promotion move.",
+        phase: "PROMOTING", ...PH.amber, ...CTA.ask,
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "❙❙" }), cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "❙❙" }),
+          cell({ photo: CAST.dock, name: "DOCK", hearts: "412", cellT: "perspective(600px) rotateY(62deg)", cellF: "brightness(1.5)",
+            rim: "2px solid #ffc24d", rimbg: "rgba(255,194,77,.18)", glow: "0 0 30px rgba(255,194,77,.9)" })],
+        bench: [
+          bench(Object.assign({ photo: CAST.marisol, name: "MARISOL", n: "268", pips: pips(1) }, NEXTUP)),
+          bench({ photo: CAST.theo, name: "THEO", n: "97", pips: pips(2, true) }),
+          bench(Object.assign({ photo: CAST.ade, name: "ADE", n: "0", pips: pips(0), badge: "JUST ON" }, { badgeBg: "#ffe0ec", badgeInk: "#4a0724" }))
+        ],
+        benchNote: "Marisol shifts left · Ade drops in", benchMeta: "+3 IN LINE",
+        chat: [{ who: "THE HOUSE", text: "Dock takes chair 3", color: "#ffd98a" }],
+        callouts: [
+          co("l", 290, 350, "THE FLIP", "Nothing to tap. rotateY 0→90→-90→0 over 620ms with a brightness spike at the turn, so the seat visibly hands over rather than cutting.", G.all, "62° · BRIGHT", "the cell is amber through the flip and cool-lit the instant it lands"),
+          co("l", 100, 170, "HER CELL, UNMOVED", "The quad never breaks for a promotion. She keeps her key light and her size throughout.", G.all, "UNCHANGED", "only the arriving cell animates — the other two chairs hold"),
+          co("r", 69, 520, "THE SHIFT LEFT", "Read-only. Marisol translates into the freed slot at 300ms; Ade drops in behind her. A translate, never a re-sort.", G.all, "SHIFTING", "FIFO order survives the promotion — hearts moved the seat, not the queue"),
+          co("r", 180, 283, "CLOCKS HELD", "Not tappable. Every shot clock freezes through the flip, so an arrival costs nobody air time.", G.all, "❙❙ HELD", "resume the frame after the cell lands")
+        ],
+        foot: "Keyframes: 0% rotateY(0) brightness(.7) · 49% rotateY(90deg) brightness(1.6) · 50% rotateY(-90deg) · 100% rotateY(0) brightness(1). backface-visibility hidden, and the whole thing is inside prefers-reduced-motion.",
+        footBg: "rgba(255,194,77,.09)", footEdge: "rgba(255,194,77,.45)", footInk: "rgba(255,217,138,.85)"
+      })),
+      screen(Object.assign({}, N715, {
+        step: "B4 · HEARD ENOUGH", dot: "#ff6fb0", rim: "#5a2e46", title: "A line that ends an act",
+        blurb: "Her skip is currently a silent state advance. It is the loudest thing she does all show — she is cutting the deliberation short in front of everyone — so it gets 1.2 seconds and the wordmark treatment.",
+        phase: "HER CALL", ...PH.warm, composer: false, chat: [],
+        quad: [host({ op: ".3" }), cell({ photo: CAST.dev, name: "DEV", op: ".18" }), cell({ photo: CAST.june, name: "JUNE", op: ".18" }), cell({ photo: CAST.dock, name: "DOCK", op: ".18" })],
+        bench: null,
+        overlayBg: "radial-gradient(120% 70% at 50% 42%, rgba(255,45,143,.5), rgba(4,6,18,.95) 72%)",
+        overlayKicker: "⏭ SHE SKIPPED THE CLOCK", overlayKick: "#ffd6e9",
+        overlayTitle: "HEARD ENOUGH", overlaySize: "34px",
+        overlaySub: "Ninety seconds of deliberation, ended at 1:12. She is deciding now.",
+        callouts: [
+          co("l", 195, 340, "HEARD ENOUGH", "Fires from her ⏭ in the composer. 1.2s, unskippable, then the decision tray opens on her screen only.", G.host, "1.2s", "the same card fires if she skips a spotlight — kicker changes, title does not"),
+          co("r", 195, 410, "THE ROOM'S COPY", "Read-only, and identical for everyone. It advances the phase by exactly one rung — never straight to a verdict.", G.all, "BROADCAST", "the crowd's next screen is the drum roll, not the tray")
+        ]
+      })),
+      screen(Object.assign({}, N715, {
+        step: "B5 · THE CALL", dot: "#ff6fb0", rim: "#5a2e46", title: "The climax",
+        blurb: "Currently a state transition. It should be the biggest graphic in the app: her, him, the wordmark bloom, and the number the crowd built. Every role sees this at the same second.",
+        phase: "SHE CHOSE", ...PH.warm, eyes: "312", composer: false, chat: [], quad: null, bench: null,
+        overlayBg: "radial-gradient(120% 66% at 50% 40%, rgba(255,45,143,.55), rgba(4,6,18,.96) 74%)",
+        overlayPhotos: [{ src: CAST.marla, edge: "#ff2d8f", ml: "0px", size: "92px" }, { src: CAST.june, edge: "#fff", ml: "-14px", size: "104px" }],
+        overlayKicker: "MARLA MADE HER CALL", overlayKick: "#ffd6e9",
+        overlayTitle: "KEPT", overlaySize: "52px",
+        overlaySub: "June. Three rounds, 486 hearts, one chair. Everyone who backed him collects ✦40.",
+        overlayCtas: [
+          { label: "GO BACKSTAGE", bg: "linear-gradient(180deg,#ffb4d9,#ff2d8f 52%,#c60d68)", border: "1.5px solid rgba(255,255,255,.9)", ink: "#fff", glow: "inset 0 2px 0 rgba(255,255,255,.85), 0 0 34px rgba(255,45,143,.7)" },
+          { label: "COLLECT ✦40", bg: "rgba(255,214,233,.16)", border: "1.5px solid rgba(255,214,233,.7)", ink: "#ffd6e9", glow: "none" }
+        ],
+        callouts: [
+          co("l", 195, 195, "THE PAIR", "Not tappable. His circle is the larger of the two and the only white-edged thing in the app — that is the whole prize, stated in one shape.", G.all, "104px, WHITE", "the finale card reuses this pair at 84px with the two cut men beside it"),
+          co("l", 195, 320, "KEPT", "52px Monoton with the triple bloom. The word the show is named after doing its job.", G.all, "52px", "WALKED ALONE is the same card with her circle alone"),
+          co("r", 195, 400, "THE NUMBER", "Read-only. It names the crowd's stake in the outcome, which is what makes hearts worth tapping.", G.all, "486 · ✦40", "the payout line is absent if you backed nobody"),
+          co("r", 195, 469, "GO BACKSTAGE", "Winner and host only. The crowd's copy of this card carries COLLECT and nothing else.", G.pair, "WINNER ONLY", "the two cut men get B6 instead, at the same second")
+        ]
+      })),
+      screen(Object.assign({}, N715, {
+        step: "B6 · THE CUT", dot: "#b9a8ff", rim: "#3a2e5a", title: "Equal weight to the win",
+        blurb: "The two men she passed get their own full-bleed card, the same size and the same second as the winner's. It names what they earned rather than what they lost, and it never shows them the pair.",
+        phase: "SHE CHOSE", ...PH.lilac, eyes: "312", composer: false, chat: [], quad: null, bench: null,
+        overlayBg: "radial-gradient(120% 66% at 50% 40%, rgba(185,168,255,.4), rgba(4,6,18,.97) 74%)",
+        overlayPhotos: [{ src: CAST.dev, edge: "#b9a8ff", ml: "0px", size: "104px" }],
+        overlayKicker: "SHE KEPT JUNE", overlayKick: "#d6cdff",
+        overlayTitle: "CUT", overlaySize: "52px",
+        overlayGlow: "0 0 12px rgba(255,255,255,.55), 0 0 30px rgba(185,168,255,1), 0 0 70px rgba(185,168,255,.4)",
+        overlaySub: "204 hearts in two rounds, Dev. One strike, two left, and your place in line is where you left it.",
+        overlayCtas: [
+          { label: "BACK TO THE BENCH", bg: "rgba(185,168,255,.2)", border: "1.5px solid rgba(185,168,255,.8)", ink: "#fff", glow: "0 0 26px rgba(185,168,255,.45)" },
+          { label: "SEE WHAT YOU EARNED", bg: "rgba(255,214,233,.14)", border: "1.5px solid rgba(255,214,233,.6)", ink: "#ffd6e9", glow: "none" },
+          { label: "LEAVE THE ROOM", bg: "transparent", border: "1px solid rgba(174,247,238,.4)", ink: "rgba(174,247,238,.9)", glow: "none" }
+        ],
+        callouts: [
+          co("l", 195, 164, "HIS FACE, ALONE", "Not tappable. Same 104px circle the winner gets, lilac-edged. He is not shown the couple — that is the difference between a result and a rubbing-in.", G.chair, "104px, LILAC", "the winner's card is the same composition in pink"),
+          co("l", 195, 290, "CUT", "52px, lilac bloom. Loud, because a quiet dismissal is worse than a loud one.", G.chair, "52px", "the room never sees this card — it is his screen only"),
+          co("r", 195, 368, "WHAT HE KEEPS", "Read-only, and deliberately first: hearts earned, strikes remaining, queue position intact.", G.chair, "204 · 1 OF 3", "reads OUT FOR TONIGHT instead on a third strike"),
+          co("r", 195, 500, "THREE WAYS OUT", "Rejoin, look at the payout, or leave. Rejoining is the loudest, because the show wants him back.", G.chair, "ARMED", "no dead end and no auto-eject — he chooses when the night is over")
+        ],
+        foot: "Fires at the same instant as THE CALL, on the two passed chairs' screens only. Never shows the winning pair, never uses her pink, and the first thing on it is a number he earned.",
+        footBg: "rgba(185,168,255,.1)", footEdge: "rgba(185,168,255,.45)", footInk: "rgba(214,205,255,.9)"
+      }))
+    ];
+
+    const badgeScreen = (o, benchCards) => screen(Object.assign({}, N715, {
+      dot: "#ffc24d", rim: "#5a4a1e", ...PH.cool, ...CTA.ask,
+      quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "0:42" }),
+        cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "0:53" }), cell({ photo: CAST.sam, name: "SAM", hearts: "61", clock: "1:04" })],
+      bench: benchCards, benchMeta: "+4 IN LINE",
+      chat: [{ who: "THE HOUSE", text: "hearts rank the badge · line order breaks ties", color: "#7ff2e6" }]
+    }, o));
+    const lit = o => bench(Object.assign({}, o, NEXTUP));
+
+    const badgeScreens = [
+      badgeScreen({
+        step: "N1 · ALL-ZERO BENCH", title: "Nobody has been hearted yet",
+        blurb: "Show start. Three cards, three zeroes, and the old hearts-only derivation lit nothing at all here — it demanded a unique non-zero leader. Line order covers it: the badge goes to the earliest in line and the bench always names exactly one man.",
+        phase: "R1 ●○○", benchNote: "no hearts yet — earliest in line holds it",
+        callouts: [
+          co("l", 69, 466, "BADGE ON POSITION", "Not tappable except by her. With every count at zero there is nothing to rank, so line_position decides — Marisol joined first.", G.all, "MARISOL ♥0", "the instant one card takes a heart, hearts win outright"),
+          co("r", 195, 520, "NEVER NOTHING", "Read-only. The badge must always name exactly one man; a silent bench taught the crowd the mechanism did not exist.", G.all, "1 OF 3 LIT", "the old rule lit nothing on a tie, a lone bencher, or an all-zero bench"),
+          co("r", 35, 474, "ZERO IS A COUNT", "Read-only. ♥0 renders rather than hiding — an empty chip would read as a broken card.", G.all, "♥0", "counts start moving within seconds of the show starting")
+        ]
+      }, [
+        lit({ photo: CAST.marisol, name: "MARISOL", n: "0", pips: pips(0) }),
+        bench({ photo: CAST.dock, name: "DOCK", n: "0", pips: pips(0) }),
+        bench({ photo: CAST.theo, name: "THEO", n: "0", pips: pips(0) })
+      ]),
+      badgeScreen({
+        step: "N2 · A TIE", title: "Two men, same count",
+        blurb: "Marisol and Dock are both on 268. Hearts cannot separate them, so the earlier in line takes it — and the room can see why, because the counts are on the cards.",
+        phase: "R2 ●●○", benchNote: "tied at 268 — earliest in line wins it",
+        callouts: [
+          co("l", 69, 466, "TIE, BROKEN BY ORDER", "Her override still works. Equal counts fall back to line_position, so Marisol holds the badge at the same number.", G.all, "MARISOL ♥268", "one more heart on Dock's card moves the glow immediately"),
+          co("r", 161, 474, "THE TIE IS VISIBLE", "Read-only. Both counts read 268 on the cards, so the tiebreak looks like a rule rather than a glitch.", G.all, "268 · 268", "a crowd that cannot see the tiebreak assumes the house cheated"),
+          co("r", 195, 580, "ONE GLOW, ALWAYS", "Never two badges. A single amber standing is the whole point; a rose SURGING card can still light beside it.", G.all, "1 LIT", "SURGING is a rate of change, not a second standing")
+        ]
+      }, [
+        lit({ photo: CAST.marisol, name: "MARISOL", n: "268", pips: pips(1) }),
+        bench({ photo: CAST.dock, name: "DOCK", n: "268", pips: pips(0) }),
+        bench({ photo: CAST.theo, name: "THEO", n: "97", pips: pips(2, true) })
+      ]),
+      badgeScreen({
+        step: "N3 · A CLEAR LEADER", title: "Hearts win outright",
+        blurb: "Dock is second in line and 144 hearts ahead. The badge follows the hearts and so does the seat — this is the case the ruling exists for, and the one the old mechanism named one man for while seating another.",
+        phase: "R2 ●●○", benchNote: "second in line, first in hearts",
+        callouts: [
+          co("l", 195, 466, "HEARTS BEAT POSITION", "Her override still works. Dock queued second and holds the badge, because 412 beats 268.", G.all, "DOCK ♥412", "if a chair opens now and she says nothing, Dock is seated"),
+          co("r", 69, 474, "FIRST IN LINE, UNLIT", "Read-only. Marisol is still first off the bench for queue purposes; she is simply not the crowd's pick.", G.all, "MARISOL ♥268", "she keeps her position — hearts never reorder the queue"),
+          co("r", 195, 580, "BADGE = MECHANISM", "Read-only, and the reason for the change: the card that glows is the card that gets seated.", G.all, "ALIGNED", "before the ruling the badge named one man and the engine seated another")
+        ]
+      }, [
+        bench({ photo: CAST.marisol, name: "MARISOL", n: "268", pips: pips(1) }),
+        lit({ photo: CAST.dock, name: "DOCK", n: "412", pips: pips(0) }),
+        bench({ photo: CAST.theo, name: "THEO", n: "97", pips: pips(2, true) })
+      ]),
+      badgeScreen({
+        step: "N4 · NO RENDERED LANE", title: "The one case that lights nothing",
+        blurb: "The bench shows three lanes and the line can be twenty deep. If the derivation ever names someone who is not on screen, nothing lights — this rule is unchanged, and it is the only silent state left.",
+        phase: "R3 ●●●", benchNote: "next off the bench is not on screen", benchMeta: "+17 IN LINE",
+        callouts: [
+          co("l", 195, 520, "NOTHING LIT", "Read-only. Rather than glowing the wrong lane, the bench glows no lane — a badge on the wrong man is worse than no badge.", G.all, "0 LIT", "the only remaining silent state, and it is deliberate"),
+          co("r", 340, 452, "THE LINE IS LONGER", "Not tappable. Seventeen people behind three lanes; the count is all anyone gets about them.", G.all, "+17", "the front three are the only cards that ever render")
+        ],
+        foot: "Build dependency, not a design detail: this needs nextOffBench() — described in source as the one derivation of who is next off the bench, called in four places — to rank by hearts with line_position as the tiebreak. Until it lands, the app seats by line_position while the design glows on hearts, and the badge will lie.",
+        footBg: "rgba(255,77,109,.1)", footEdge: "rgba(255,77,109,.5)", footInk: "#ffb8c8"
+      }, [
+        bench({ photo: CAST.marisol, name: "MARISOL", n: "268", pips: pips(1) }),
+        bench({ photo: CAST.dock, name: "DOCK", n: "412", pips: pips(0) }),
+        bench({ photo: CAST.theo, name: "THEO", n: "97", pips: pips(2, true) })
+      ])
+    ];
+
+
+    /* ================== TURN 15 · SENT FILTERS (390×844) ================== */
+    const PRANK = [
+      { icon: "🐰", name: "Bunny Ears", cost: "✦40", bg: "rgba(255,122,184,.14)", border: "1.5px solid rgba(255,122,184,.6)", ink: "#eef0ff", costInk: "#ff9dc8" },
+      { icon: "😵‍💫", name: "Dizzy Halo", cost: "✦40", bg: "rgba(255,122,184,.2)", border: "2px solid #ff7ab8", ink: "#fff", costInk: "#ffd6e9" },
+      { icon: "🫧", name: "Bubbles", cost: "✦40", bg: "rgba(255,122,184,.14)", border: "1.5px solid rgba(255,122,184,.6)", ink: "#eef0ff", costInk: "#ff9dc8" },
+      { icon: "🤠", name: "Ten-Gallon", cost: "✦40", bg: "rgba(255,122,184,.14)", border: "1.5px solid rgba(255,122,184,.6)", ink: "#eef0ff", costInk: "#ff9dc8" }
+    ];
+    const TOG = (a) => [
+      { label: "🎭 WEAR IT", bg: a === 0 ? "rgba(45,227,208,.3)" : "transparent", border: a === 0 ? "1.5px solid rgba(45,227,208,.85)" : "1px solid transparent", ink: a === 0 ? "#fff" : "rgba(214,205,255,.6)" },
+      { label: "🎁 SEND IT", bg: a === 1 ? "rgba(255,122,184,.3)" : "transparent", border: a === 1 ? "1.5px solid #ff7ab8" : "1px solid transparent", ink: a === 1 ? "#fff" : "rgba(214,205,255,.6)" }
+    ];
+    const sentScreens = [
+      screen({
+        step: "S1 · SEND IT", dot: "#ff9dc8", rim: "#5a2e46", title: "Same shelf, second tab",
+        blurb: "The shelf you already have grows one toggle. WEAR IT is the costume rack from C2; SEND IT is the same rack aimed at a rival, at double the price, and it can only be aimed at another seated chair.",
+        phase: "FLOOR 0:31", ...PH.cool, credits: "85", ...CTA.filter,
+        ctabg: "rgba(255,122,184,.4)", ctaborder: "1.5px solid #ff7ab8", ctaink: "#fff", ctaglow: "0 0 0 2.5px rgba(255,122,184,.45), 0 0 26px rgba(255,122,184,.6)",
+        quad: [host({}), cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "0:42" }),
+          cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "0:53" }),
+          cell(Object.assign({ photo: CAST.you, name: "YOU", hearts: "156", clock: "1:04" }, MINE))],
+        bench: null,
+        sheetKicker: "🎭 THE SHELF", sheetMeta: "ONE SEND PER SHOW", sheetEdge: "rgba(255,122,184,.6)", sheetInk: "#ff9dc8",
+        sheetBottom: "74px", sheetPadBottom: "14px", sheetRadius: "18px 18px", sheetNotch: "330px",
+        sheetToggle: TOG(1), sheetTiles: PRANK,
+        sheetTargets: [
+          { photo: CAST.dev, name: "DEV · CHAIR 2", meta: "SEND ✦40", bg: "rgba(255,122,184,.18)", border: "1.5px solid #ff7ab8", glow: "0 0 18px rgba(255,122,184,.4)", ink: "#fff", metaInk: "#ffd6e9" },
+          { photo: CAST.june, name: "JUNE · CHAIR 3", meta: "SEND ✦40", bg: "rgba(6,8,24,.6)", border: "1px solid rgba(185,168,255,.4)", glow: "none", ink: "#d6cdff", metaInk: "rgba(214,205,255,.7)" }
+        ],
+        callouts: [
+          co("l", 100, 500, "THE TOGGLE", "Two tabs, one shelf. WEAR IT is free-to-teal; SEND IT is rose, because a rate of change to someone else's face is not a costume.", G.chair, "SEND IT", "WEAR IT holds the ✦20 rack from C2 — same four icons, half the price"),
+          co("l", 100, 590, "AIMED, NOT SPRAYED", "Pick the mask, then pick exactly one chair. There is no send-to-all and no send-to-her.", G.chair, "DEV SELECTED", "the bench and the host never appear in this list"),
+          co("r", 195, 660, "✦40 · DOUBLE", "Wearing costs ✦20, sending costs ✦40. Doing something to someone else should never be the cheaper button.", G.chair, "✦85 BALANCE", "one send per show, spent or not — it does not stack with your own costume"),
+          co("r", 348, 801, "🎭 FILTER · THE ORIGIN", "Still one button in one slot. The toggle lives inside the shelf, so sending never gets its own piece of chrome.", G.chair, "OPEN, RINGED", "rose ring while the SEND tab is up · teal on WEAR")
+        ],
+        foot: "Chairs only — she is never a target and neither is the bench. Curation is the rest of the safety mechanism. Bunny ears, a dizzy halo, bubbles, a hat — nothing that comments on how someone looks, nothing that reads as an insult, and no uploads, ever.",
+        footBg: "rgba(255,122,184,.1)", footEdge: "rgba(255,122,184,.5)", footInk: "rgba(255,214,233,.9)"
+      }),
+      screen({
+        step: "S2 · THE ROOM'S VIEW", dot: "#ff9dc8", rim: "#5a2e46", title: "Dev is wearing a halo he didn't buy",
+        blurb: "One published track, so everyone sees the same thing — including her. The room is told a filter was sent and never told who sent it, exactly like the Moment's pill.",
+        phase: "FLOOR 0:24", ...PH.cool, credits: "45", ...CTA.join, gift: true,
+        quad: [host({}),
+          cell({ photo: CAST.dev, name: "DEV", hearts: "88", clock: "0:42", maskIcon: "😵‍💫", filterBadge: "SENT · 0:22", filterIcon: "🐰", filterBg: "rgba(255,122,184,.24)", filterEdge: "#ff7ab8", filterInk: "#fff", rim: "1.5px solid rgba(255,122,184,.7)", glow: "0 0 18px rgba(255,122,184,.45)" }),
+          cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "0:53", maskIcon: "🦊", filterBadge: "FOX EARS", filterIcon: "🦊", filterBg: "rgba(255,194,77,.2)", filterEdge: "rgba(255,194,77,.8)", filterInk: "#ffd98a" }),
+          cell({ photo: CAST.sam, name: "SAM", hearts: "61", clock: "1:04" })],
+        bench: null,
+        chat: [{ who: "THE HOUSE", text: "someone sent Dev a look · 0:22", color: "#ff9dc8" }, { who: "Marisol", text: "WHO DID THAT", color: "#b9a8ff" }, { who: "Theo", text: "he's taking it so well", color: "#b9a8ff" }],
+        callouts: [
+          co("l", 290, 170, "SENT · 0:22", "Not tappable by the crowd. Rose badge with a countdown, so the room knows it is temporary and not his taste.", G.all, "SENT, 0:22 LEFT", "a worn filter's badge is teal or amber and carries no clock"),
+          co("l", 290, 240, "THE ROSE RIM", "Nothing to tap. The only cell treatment that means something is happening TO this man rather than by him.", G.all, "ROSE", "teal in play · pink spotlit · amber paired · gold promoting"),
+          co("r", 195, 700, "THE HOUSE LINE", "Read-only, and deliberately anonymous. It names the state and never the buyer — the same rule the Moment's pill follows.", G.all, "NAMED, NOT BLAMED", "if it named the sender the room would referee it, and that is a fight"),
+          co("r", 235, 240, "JUNE, UNTOUCHED", "His Fox Ears are his own — amber badge, no clock. Both kinds of filter coexist in one quad without ambiguity.", G.all, "WORN", "one send per show per chair, so this can happen to at most two men a night")
+        ],
+        foot: "She sees the halo too. There is no version where the crowd sees a prank and the host sees a clean face — one published track, one appearance, which is the constraint the whole filter system was designed around.",
+        footBg: "rgba(45,227,208,.1)", footEdge: "rgba(45,227,208,.45)", footInk: "rgba(174,247,238,.9)"
+      }),
+      screen({
+        step: "S3 · HIS SCREEN", dot: "#b9a8ff", rim: "#3a2e5a", title: "Ten seconds, then it's his call",
+        blurb: "The consent floor. For ten seconds it is locked and the joke lands; after that SHAKE IT OFF is free and instant, and it never tells him who sent it.",
+        phase: "FLOOR 0:24", ...PH.cool, credits: "20", ...CTA.leave,
+        quad: [host({}),
+          cell(Object.assign({ photo: CAST.dev, name: "YOU", hearts: "88", clock: "0:42", maskIcon: "😵‍💫", rim: "2px solid #ff7ab8", rimbg: "rgba(255,122,184,.16)", glow: "0 0 24px rgba(255,122,184,.6)", namebg: "rgba(255,122,184,.9)" })),
+          cell({ photo: CAST.june, name: "JUNE", hearts: "156", clock: "0:53" }),
+          cell({ photo: CAST.sam, name: "SAM", hearts: "61", clock: "1:04" })],
+        bench: null, pill: true,
+        pillKicker: "SOMEONE SENT YOU A LOOK", pillTitle: "Dizzy Halo", pillBar: "55%", pillClock: "0:12",
+        pillAction: "SHAKE IT OFF", pillActionBg: "rgba(255,122,184,.26)", pillActionBorder: "1.5px solid #ff7ab8", pillActionInk: "#fff",
+        pillNote: "Free, instant, and you are never told who sent it. Locked for the first ten seconds.",
+        pillNoteInk: "rgba(255,214,233,.8)",
+        chat: [{ who: "Marisol", text: "WHO DID THAT", color: "#b9a8ff" }, { who: "THE HOUSE", text: "someone sent Dev a look · 0:22", color: "#ff9dc8" }],
+        callouts: [
+          co("l", 195, 626, "SHAKE IT OFF", "His only control, and it costs nothing. Greyed with a 0:10 counter for the first ten seconds, live for the rest of the thirty.", G.chair, "LIVE AT 0:12", "greyed 0:30→0:20 · live 0:20→0:00 · gone when it expires"),
+          co("l", 290, 170, "YOUR OWN FACE", "Nothing to tap. Your cell takes the rose rim in your copy too — you are not the last to know what you look like.", G.chair, "ROSE", "the room sees the identical treatment"),
+          co("r", 195, 700, "NO NAME, EVER", "Read-only. Not naming the sender is what keeps this a joke rather than a grudge, and it is the same call as the Moment's decline.", G.all, "ANONYMOUS", "🛡 still reports the room, and the host can force any filter off"),
+          co("r", 348, 801, "YOUR COMPOSER", "Unchanged. A sent filter never takes your controls away — you keep your ✦, your token and your shelf.", G.chair, "NORMAL", "your own ✦20 costume is still available underneath it")
+        ],
+        foot: "Three hard stops: it strips at your spotlight like any filter, it strips on pairing, and the host can force it off at any time. A sent filter can never be the thing you answer a question behind.",
+        footBg: "rgba(185,168,255,.1)", footEdge: "rgba(185,168,255,.45)", footInk: "rgba(214,205,255,.9)"
+      })
+    ];
+
+    const tracks = [
+      { letter: "S", title: "Sent filters", path: "SEND IT → THE ROOM'S VIEW → HIS SCREEN",
+        turnId: "15a", turnHref: "#15a", turnRef: "15a", turnKicker: "TURN 15 · A FILTER YOU PUT ON SOMEONE ELSE", turnTitle: "SEND IT",
+        turnBlurb: "Bunny ears on a rival, from the same shelf, at double the price. It works because a filter is published in the wearer's own track — his client applies what the server tells it to — and it is survivable because of a consent floor, a curated set, and an anonymous sender.",
+        note: "Chairs only, one send per show, thirty seconds, open floor only. He can shake it off free after ten. The room is told a look was sent and never told by whom, and it strips at a spotlight and on pairing like any other filter. The curation is the safety mechanism: nothing in the rack comments on how anyone looks.",
+        bg: "rgba(255,122,184,.1)", edge: "rgba(255,122,184,.5)", ink: "#ff9dc8", chipBg: "rgba(255,122,184,.3)", chipInk: "#fff", screens: sentScreens },
+      { letter: "L", title: "The lobby", path: "THE LIST → CARD STATES → THE SLIDE-IN",
+        turnId: "14a", turnHref: "#14a", turnRef: "14a", turnKicker: "TURN 14 · LOBBY · BEATS · THE BADGE", turnTitle: "THE FIVE SLOTS",
+        turnBlurb: "The lobby made video-forward on one live feed, the four broadcast beats at game-show volume, and the corrected NEXT UP derivation drawn in all four of its states. Everything here is authored at 393×715.",
+        note: "One live feed, on the focused card only, with stills below carrying live numbers — enticing without gambling the room on thermals. The upgrade path to more live cards is designed but not assumed.",
+        bg: "rgba(255,214,233,.09)", edge: "rgba(255,214,233,.45)", ink: "#ffd6e9", chipBg: "rgba(255,214,233,.26)", chipInk: "#fff", screens: lobbyScreens },
+      { letter: "!", title: "The broadcast beats", path: "ROUND FLASH → 0:30 → 0:10 → 0:03 → CAMERA-FLIP → HEARD ENOUGH → THE CALL → THE CUT",
+        note: "Game-show loud: full-bleed, wordmark, neon bloom. Four of these are takeovers and four are escalations inside chrome that already exists — the distinction matters, because a takeover over someone mid-answer is the one thing none of them may do.",
+        bg: "rgba(255,45,143,.09)", edge: "rgba(255,45,143,.45)", ink: "#ffc2e0", chipBg: "rgba(255,45,143,.3)", chipInk: "#fff", screens: beatScreens },
+      { letter: "★", title: "The badge, all four states", path: "ALL-ZERO → A TIE → A CLEAR LEADER → NO RENDERED LANE",
+        note: "Hearts rank the badge and drive the default seat; line_position breaks ties and covers the all-zero bench. Once the show is running the badge always names exactly one man. It is dark in exactly two states: preshow, where every bencher is about to be seated so nobody is next, and when the derivation names someone with no rendered lane.",
+        bg: "rgba(255,194,77,.09)", edge: "rgba(255,194,77,.5)", ink: "#ffd98a", chipBg: "rgba(255,194,77,.28)", chipInk: "#ffd98a", screens: badgeScreens },
+      { letter: "0", title: "The cold open", path: "1 OF 3 → 2 OF 3 → THE THIRD LANDS → SHOW BEGINS → HER DEFAULT",
+        turnId: "13a", turnHref: "#13a", turnRef: "13a", turnKicker: "TURN 13 · THE COLD OPEN + TWO RULINGS", turnTitle: "THREE ON THE BENCH",
+        turnBlurb: "The bench filling to three is the starting gun — no host cue, nobody self-seating, and the count carried in chrome that already exists. Five frames authored at 393×715, the height every full-bleed graphic has to be built for, ending on the ruling that the amber glow follows hearts rather than queue position.",
+        note: "Everything here is a broadcast beat rather than a control surface: the room is being told something in unison. The two rulings at the end of it — auto-start at three, and NEXT UP by hearts — both contradict the current build, and both are in the supersedes list at the foot of this file.",
+        bg: "rgba(255,194,77,.09)", edge: "rgba(255,194,77,.5)", ink: "#ffd98a", chipBg: "rgba(255,194,77,.28)", chipInk: "#ffd98a", screens: openScreens },
+      { letter: "H", title: "The host", path: "PRESHOW → SPOTLIGHT → THE MOMENT → DELIBERATION → HER CALL → BACKSTAGE",
+        note: "She is the only person with a verdict, a question deck, and a blind bench. Everything she can do is either safety or authored content — she never types a question and never buys anything.",
+        bg: "rgba(255,45,143,.09)", edge: "rgba(255,45,143,.45)", ink: "#ffc2e0", chipBg: "rgba(255,45,143,.3)", chipInk: "#fff", screens: hostScreens },
+      { letter: "C", title: "A chair", path: "TAKING THE CHAIR → YOUR SPENDS → SPOTLIGHTED → KEPT OR CUT",
+        note: "He gets one shot clock, one filter and one token, and no vote on anything — including who joins him. Every control he has costs him something: air time, ✦, or a strike.",
+        bg: "rgba(45,227,208,.08)", edge: "rgba(45,227,208,.45)", ink: "#aef7ee", chipBg: "rgba(45,227,208,.26)", chipInk: "#aef7ee", screens: chairScreens },
+      { letter: "B", title: "The bench", path: "JOINING → HEADSHOT → BLIND → RISING",
+        note: "The only role that is rendered two different ways at once. Three people wait publicly, in FIFO order, scoring the whole time — and the one she is about to seat is whoever the crowd has pushed highest — never simply whoever waited longest.",
+        bg: "rgba(185,168,255,.1)", edge: "rgba(185,168,255,.45)", ink: "#d6cdff", chipBg: "rgba(185,168,255,.28)", chipInk: "#eef0ff", screens: benchScreens },
+      { letter: "R", title: "The crowd", path: "SPECTATING → HEARTING → TYPING → SHIELD",
+        note: "Nothing is hidden from them and nothing is theirs. Their only instrument is the heart, which is also a bet — and it is the single signal that reaches the host through the blind bench.",
+        bg: "rgba(255,194,77,.09)", edge: "rgba(255,194,77,.45)", ink: "#ffd98a", chipBg: "rgba(255,194,77,.26)", chipInk: "#ffd98a", screens: crowdScreens },
+      { letter: "=", title: "One moment, four screens", path: "THE PROMOTION BEAT · 0:05 · SAME SECOND",
+        note: "Read across. The blind bench is the sharpest asymmetry in the product: the crowd is looking at photographs of the three people the host is choosing between as silhouettes.",
+        bg: "rgba(255,214,233,.09)", edge: "rgba(255,214,233,.45)", ink: "#ffd6e9", chipBg: "rgba(255,214,233,.26)", chipInk: "#fff", screens: asymScreens },
+      { letter: "⤢", title: "Honest sizing", path: "390 × 844 → 393 × 715 → OVERRUN",
+        note: "The same room at both heights, then the one combination that genuinely does not fit — shown breaking rather than scaled up. The ruling it forces is new and supersedes an earlier claim.",
+        bg: "rgba(45,227,208,.08)", edge: "rgba(45,227,208,.45)", ink: "#aef7ee", chipBg: "rgba(45,227,208,.26)", chipInk: "#aef7ee", screens: sizeScreens }
+    ];
+
+    /* geometry: the callout layer lives over the frame, so a leader line can
+       land on the control itself instead of pointing at a legend. */
+    const FL = 292, GUT = 26, LW = 266;
+    tracks.forEach(t => t.screens.forEach(s => {
+      s.wrapW = FL + s.w + GUT + LW;
+      s.headW = s.w + FL;
+      s.frameH = s.frameH || s.h;
+      /* keyboard is an absolute overlay, so the column has to reserve its band
+         or the composer renders behind it */
+      s.padBottom = s.keyboard ? (parseInt(s.keyboard, 10) + 12) + "px" : "20px";
+      s.tailFlex = s.lobby ? "none" : "1";
+      /* Cards are ~104px tall, so two anchors closer than that on one side used
+         to stack. Lay each side out as a column with a minimum gap, then join
+         card to control with an elbow — the leader line still lands on the
+         control, and the card is free to sit wherever it fits. Reserved height
+         is derived from the copy — a fixed card height let a long tap/also
+         string run into the card below. */
+      const cardH = c => 20 + Math.ceil(c.name.length / 24) * 18
+        + Math.ceil(c.tap.length / 50) * 16 + 22
+        + (c.also ? Math.ceil(c.also.length / 42) * 13 : 0) + 14;
+      const right = FL + s.w + GUT, elbowL = c => c.side === "l" ? LW + 14 : right - 14;
+      const laid = [];
+      ["l", "r"].forEach(side => {
+        const col = (showCallouts ? s.callouts : []).filter(c => c.side === side).sort((a, b) => a.y - b.y);
+        let cursor = 0;
+        col.forEach(c => { const top = Math.max(c.y - 16, cursor); c.boxTop = top; cursor = top + cardH(c); });
+        /* backward pass: bound each card by the frame's bottom, then push its
+           predecessor up to keep the gap — the elbow absorbs the offset, so a
+           card near the bottom edge never needs to sit at its own anchor */
+        for (let k = col.length - 1; k >= 0; k--) {
+          const limit = k === col.length - 1 ? s.frameH - 6 - cardH(col[k]) : col[k + 1].boxTop - cardH(col[k]);
+          if (col[k].boxTop > limit) col[k].boxTop = Math.max(0, limit);
+        }
+        col.forEach(c => laid.push(c));
+      });
+      s.callouts = laid.map(c => {
+        const tx = FL + c.x, el = elbowL(c), cardY = c.boxTop + 14;
+        return Object.assign({}, c, {
+          lineT: c.y + "px", boxT: c.boxTop + "px", cardY: cardY + "px",
+          dotT: (c.y - 4) + "px", dotL: (tx - 4) + "px",
+          stubL: (c.side === "l" ? LW : right - 14) + "px",
+          elbowL: el + "px", vTop: Math.min(cardY, c.y) + "px", vH: Math.abs(cardY - c.y) + "px",
+          lineL: c.side === "l" ? el + "px" : tx + "px",
+          lineW: c.side === "l" ? Math.max(0, tx - el) + "px" : Math.max(0, el - tx) + "px",
+          boxL: c.side === "l" ? "0px" : right + "px",
+          ta: c.side === "l" ? "right" : "left",
+          jc: c.side === "l" ? "flex-end" : "flex-start",
+          lineColor: "rgba(255,214,233,.5)", dotColor: c.hue
+        });
+      });
+      /* clock and tag share the top-right corner; stack the tag under it */
+      (s.quad || []).forEach(c => { c.tagTop = (c.clock && c.tag) ? "28px" : "6px"; c.hasPhoto = !!c.photo && c.photo.indexOf("data:") !== 0; });
+      (s.bench || []).forEach(b => { b.hasPhoto = !!b.photo && b.photo.indexOf("data:") !== 0; });
+      (s.overlayPhotos || []).forEach(p => { p.size = p.size || "104px"; });
+      if (!showHearts) {
+        (s.quad || []).forEach(c => { c.hearts = ""; });
+        (s.bench || []).forEach(b => { b.n = "—"; });
+      }
+    }));
+
+    return {
+      tracks,
+      gates: Object.keys(G).map(k => ({ label: G[k][0], ink: G[k][1], bg: G[k][2], edge: G[k][3] })),
+      supersedes: [
+        { tag: "OWNER RULING", what: "Hearts rank the badge and drive the default seat. Line order breaks ties.", body: "The badge always names exactly one man, never nothing: hearts rank it, and line_position resolves a tie and covers the all-zero bench at show start. Waiting order stays FIFO — hearts move the glow and the default seat, they never reorder the queue. This reverses a deliberate prior decision, and half its reasoning is dissolved rather than ignored: hearts now DO seat, because the heart leader is the chair that fills when her five-second window expires, so badge and mechanism realign. The surviving objection — that a hearts-only rule went silent on a tie, a lone bencher and an all-zero bench — is what line_position is here for. Dark in exactly two states, both deliberate: preshow, where all three benchers take chairs at 3 of 3 so nobody is next, and when the derivation names someone with no rendered lane. All four states are drawn in track ★. BUILD DEPENDENCY, not a design detail: nextOffBench(), the one derivation of who is next off the bench, is called in four places and must be changed. Until it lands the app seats by line_position while the design glows on hearts, and the badge will lie.",
+          bg: "rgba(255,77,109,.1)", edge: "rgba(255,77,109,.5)", tagBg: "#ff4d6d", tagInk: "#2a000a" },
+        { tag: "OWNER RULING", what: "Three on the bench starts the show, automatically.", body: "No host cue and no manual seating — the bench filling to three IS the starting gun, and the three who filled it take the chairs together in one graphic (13a, frames 0A–0D). The count rides in the phase chip and in the empty bench cells, so it costs the layout nothing. Two live-run defects sit against this: a host was able to seat manually, and only one of three seats prompted for a headshot — no photo means broken silhouettes on her side of the blind bench.",
+          bg: "rgba(255,194,77,.09)", edge: "rgba(255,194,77,.45)", tagBg: "#ffc24d", tagInk: "#3d2600" },
+        { tag: "RULING", what: "A chair's shot clock expiring is named on air.", body: "The room sees the empty chair regardless, and a clock running out is neutral and public — so it is called, by name, in chat and in the cell. The dignity rule it might seem to breach exists for a different case: a disconnect must never read as TAKE THE CHAIR, because that tells the room SHE passed him. Nobody passed anyone when a timer ends.",
+          bg: "rgba(185,168,255,.1)", edge: "rgba(185,168,255,.45)", tagBg: "#b9a8ff", tagInk: "#1a1230" },
+        { tag: "NOTE", what: "Seeking, age range and distance are designed as if they work.", body: "Whether the show logic reads them is a build question the owner will rule on separately — the design does not route around their absence.",
+          bg: "rgba(255,255,255,.05)", edge: "rgba(255,255,255,.16)", tagBg: "rgba(255,255,255,.2)", tagInk: "#fff" },
+        { tag: "NEW RULE", what: "Full-bleed graphics are authored at 393×715, not 390×844.", body: "SHOW BEGINS, THE CALL, THE CUT, the round flash and every other broadcast beat are composed inside 715 with the safe-area padding already spent. At 844 they gain air above and below and nothing in the composition moves. Authoring at 844 and trusting it to shrink is what put the rail on the bench and collapsed chat to one line in past runs.",
+          bg: "rgba(45,227,208,.08)", edge: "rgba(45,227,208,.45)", tagBg: "#2de3d0", tagInk: "#042b28" },
+        { tag: "REPLACES", what: "Last Call Walkthrough as the entry point.", body: "Ten screens from one vantage point becomes four role paths with control-level annotation. The walkthrough's reasoning on the mid-round exit, the four ways a chair empties, and the promotion-not-storm argument all stand unchanged — read it second, for the rule tables.",
+          bg: "rgba(255,45,143,.09)", edge: "rgba(255,45,143,.4)", tagBg: "#ff2d8f", tagInk: "#fff" },
+        { tag: "NEW RULE", what: "At ≤740px usable height the bench collapses to a one-line count during spotlights and keyboard-open.", body: "This supersedes “the bench does not move and keeps earning throughout” in the README and in Last Call Panel. It cannot hold at 393×715: the 305px split plus a 134px bench plus a three-line chat overruns the phone by 118px and pushes the composer and the shield off screen. Cards stay on the open floor, where the height exists. Counts keep updating either way, so the crowd never loses its job.",
+          bg: "rgba(255,77,109,.1)", edge: "rgba(255,77,109,.5)", tagBg: "#ff4d6d", tagInk: "#2a000a" },
+        { tag: "AMENDS", what: "The vertical .lc-rail is a STAGE-view artifact.", body: "In the panel room there is no space for a floating column, so the rail flattens into the composer row: 🛡 first, 🎁 beside it for the crowd, then the role CTA. The invariant is unchanged — safety is always present, always the same size, never credit-gated, never hidden with the keyboard up — but the README's “right rail over the video” description applies to STAGE only.",
+          bg: "rgba(185,168,255,.1)", edge: "rgba(185,168,255,.45)", tagBg: "#b9a8ff", tagInk: "#1a1230" },
+        { tag: "AMENDS", what: "Placeholder video wells are retired from the reference set.", body: "Room, Episode, Moment and Filters all draw feeds as gradient wells. Every frame here is a photographic portrait at true size, because gray boxes hide the only thing worth judging at 116px and 168px. Faces are CC placeholder portraits (randomuser.me) standing in for real streams — not a cast, not identifiable people. They are 128px source files, so the 305px spotlight cells look soft here: that is the placeholder's resolution, not the layout's.",
+          bg: "rgba(45,227,208,.08)", edge: "rgba(45,227,208,.45)", tagBg: "#2de3d0", tagInk: "#042b28" },
+        { tag: "CONFIRMS", what: "No floor hold anywhere, and no 🔇 in any rail.", body: "Rev 5 retired the paid 15s room-wide mute; this file has no entry point for it in any role. The Moment is the only paid mute, it is scoped to the host and the buyer, and the room's only tell is the amber pill. .lc-floorbtn and .lc-floor__pop should come out of lastcall-theme.css.",
+          bg: "rgba(255,194,77,.09)", edge: "rgba(255,194,77,.45)", tagBg: "#ffc24d", tagInk: "#3d2600" },
+        { tag: "CONFIRMS", what: "Filters, as specified, need no new rules here.", body: "One published track means one appearance for every viewer. The mask drops at the spotlight beat (C3) and on pairing (H3), and the blind bench strips facial detail before a filter could apply, so the two mechanics never negotiate.",
+          bg: "rgba(45,227,208,.08)", edge: "rgba(45,227,208,.45)", tagBg: "#2de3d0", tagInk: "#042b28" }
+      ]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

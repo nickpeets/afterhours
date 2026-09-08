@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Archivo:wght@400;500;600;700;800&family=Azeret+Mono:wght@400;600;700&family=Monoton&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#080b20;}
+  *{box-sizing:border-box;}
+  a{color:#ff6fb0;text-decoration:none;}
+  a:hover{color:#fff;}
+  @keyframes tally{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes beat{0%,100%{transform:scale(1)}18%{transform:scale(1.14)}36%{transform:scale(1)}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+
+<section style="padding:52px 44px 40px;font-family:Archivo,sans-serif;color:#eef0ff">
+  <div id="3a" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+    <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.3em;color:#2de3d0">TURN 3 · ROOM REDESIGN · <a href="#3a">3a</a></div>
+    <div style="font-family:Monoton,cursive;font-size:52px;line-height:1.1;letter-spacing:.02em;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.5),0 0 26px rgba(255,45,143,.95),0 0 62px rgba(255,45,143,.45)">LAST CALL</div>
+    <div style="font-size:14px;max-width:700px;color:rgba(238,240,255,.74);line-height:1.55;text-wrap:pretty">The stack is gone. <strong style="color:#fff">#rt_hero is a full-bleed fixed backdrop</strong> — it never reflows, for anything. Everything else floats over it in bottom-anchored layers, so the keyboard lifts only chat + composer and her face stays exactly where it was. Chairs, the line, chat and the composer form one bottom-anchored stack; her face zone runs from the top bar to roughly 55%. Both role CTAs live in the composer, so no layer ever costs the hero a row.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:32px;max-width:1000px">
+    <div style="flex:1;min-width:220px;padding:14px;border-radius:16px;background:#111634;border:1px solid rgba(185,168,255,.22)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.2em;color:#2de3d0;margin-bottom:7px">WHAT DIED</div>
+      <div style="font-size:12.5px;line-height:1.6;color:rgba(238,240,255,.7)">Both full-width bottom bars. The second header row. The boxed hero with margins. The dead 3-up empty-chair grid.</div>
+    </div>
+    <div style="flex:1;min-width:310px;padding:14px;border-radius:16px;background:#111634;border:1px solid rgba(255,214,233,.28)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.2em;color:#ffd6e9;margin-bottom:9px">WHO SEES WHOM · DURING PLAY</div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div style="display:flex;gap:6px;align-items:center;font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.1em;color:rgba(238,240,255,.4);padding-bottom:4px">
+          <span style="width:80px;flex:none">CAN SEE →</span><span style="flex:1;text-align:center">HOST</span><span style="flex:1;text-align:center">CHAIRS</span><span style="flex:1;text-align:center">LINE</span>
+        </div>
+        <sc-for list="{{ visibility }}" as="v" hint-placeholder-count="3">
+          <div style="display:flex;gap:6px;align-items:center;padding:7px 0;border-top:1px solid rgba(255,255,255,.07)">
+            <span style="width:80px;flex:none;font-family:Archivo,sans-serif;font-weight:800;font-size:11px;color:{{ v.ink }}">{{ v.who }}</span>
+            <span style="flex:1;text-align:center;font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:{{ v.aink }}">{{ v.a }}</span>
+            <span style="flex:1;text-align:center;font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:{{ v.bink }}">{{ v.b }}</span>
+            <span style="flex:1;text-align:center;font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:{{ v.cink }}">{{ v.c }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-family:Archivo,sans-serif;font-size:11.5px;line-height:1.55;color:rgba(238,240,255,.7);margin-top:11px;text-wrap:pretty"><strong style="color:#ffd6e9">During play the line is dark to everyone</strong> — no faces, no names, no hearts, not even for the room. It's a number. Chairs see her and each other; she sees the chairs. Spectator hearts belong to the <em>chairs</em> while the show runs.<br><br>Then a chair opens and the queue detonates: candidates are revealed to the whole room at once for 15 seconds, hearts are hammered live, and she picks blind off tallies climbing in real time. <strong style="color:#ffd6e9">That storm is the crowd's power moment</strong> — the only time line faces exist, and the only signal that ever crosses to her.</div>
+      <div style="font-family:Archivo,sans-serif;font-size:11px;line-height:1.5;color:rgba(174,247,238,.82);margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.08)"><strong style="color:#7ff2e6">Mutes sit on top of this, never under it.</strong> A spotlight or a paid floor hold blurs a chair for everyone at once, and while blurred that chair's heart count hides — you can't back who you can't see. <strong style="color:#7ff2e6">Nothing touches the draft:</strong> mutes and floor holds are inert during a storm, and the mingle clock suspends until it resolves.</div>
+    </div>
+    <div style="flex:1;min-width:220px;padding:14px;border-radius:16px;background:#111634;border:1px solid rgba(185,168,255,.22)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.2em;color:#2de3d0;margin-bottom:7px">IDS KEPT</div>
+      <div style="font-family:'Azeret Mono',monospace;font-size:10.5px;line-height:1.75;color:rgba(238,240,255,.62)">rt_hero · rt_chairs · .chair · .cclock · .kepttag · .hostctl · rt_line · lineitems · chatstrip · .floatmsg · inputbar · rt_joinline · rt_endshow · rt_title · rt_host · rt_hostbadge · chip</div>
+    </div>
+    <div style="flex:1;min-width:220px;padding:14px;border-radius:16px;background:#111634;border:1px solid rgba(185,168,255,.22)">
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.2em;color:#ffd6e9;margin-bottom:7px">ONE MARKUP, FIVE STATES</div>
+      <div style="font-size:12.5px;line-height:1.6;color:rgba(238,240,255,.7)">Frame 1 carries the real IDs. The rest are the same DOM with a root class: <span style="font-family:'Azeret Mono',monospace;font-size:11px;color:#2de3d0">.is-spectator</span> <span style="font-family:'Azeret Mono',monospace;font-size:11px;color:#2de3d0">.is-suitor</span> <span style="font-family:'Azeret Mono',monospace;font-size:11px;color:#2de3d0">.kb-open</span> <span style="font-family:'Azeret Mono',monospace;font-size:11px;color:#2de3d0">.is-empty</span>.</div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start">
+
+    <!-- 1 · HOST -->
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.2em;color:#2de3d0">1 · HOST VIEW</div>
+      <div style="font-size:12px;color:rgba(238,240,255,.6);max-width:390px;line-height:1.5">Chairs are all face now: the video fills the whole tile and her verdict floats <em>inside</em> it — ✕ and ✓ on a gradient scrim over his chin, not a control shelf below. His heart count tucks under the clock on the right, in line with the KEPT pill. Same footprint, ~90% more face. LAST CALL sits right of the text field inside <code style="font-family:'Azeret Mono',monospace;font-size:11px;color:#7ff2e6">#inputbar</code> — no extra row, no pill over her face. Rail is identical in every role: 🛡, 🎁 → chair picker, ♥ tap. Only her ✦ wallet is hidden — she earns, she doesn't spend.</div>
+      <div class="lc-room" style="position:relative;width:390px;height:844px;border-radius:42px;overflow:hidden;background:#080b20;box-shadow:0 0 0 3px #241a52,0 30px 60px -18px rgba(0,0,0,.85)">
+
+        <div id="rt_hero" style="position:absolute;inset:0;background:#141a3a;background-image:radial-gradient(closest-side at 42% 30%, rgba(255,255,255,.16), transparent 66%),radial-gradient(closest-side at 74% 74%, rgba(255,45,143,.24), transparent 72%),radial-gradient(closest-side at 12% 86%, rgba(45,227,208,.14), transparent 70%)">
+          <div style="position:absolute;left:50%;top:26%;transform:translate(-50%,-50%);width:150px;height:190px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.14),transparent 72%)"></div>
+          <div style="position:absolute;left:0;right:0;top:0;height:150px;background:linear-gradient(180deg,rgba(4,6,18,.88),transparent)"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:430px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.46) 46%,rgba(4,6,18,.8))"></div>
+          <div style="position:absolute;left:50%;top:24%;transform:translateX(-50%);font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.24em;color:rgba(255,255,255,.28)">HER FACE ZONE · KEPT CLEAR</div>
+        </div>
+
+        <div class="lc-topbar" style="position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:9px;padding:52px 13px 10px">
+          <div style="width:44px;height:44px;margin-left:-13px;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;color:#ff6fb0;text-shadow:0 1px 4px rgba(0,0,0,.95)">‹</div>
+          <div style="font-family:Monoton,cursive;font-size:12px;letter-spacing:.04em;color:#fff;text-shadow:0 0 12px rgba(255,45,143,.85),0 1px 4px rgba(0,0,0,.9);flex:none">LAST CALL</div>
+          <div id="rt_title" hidden="hidden"></div>
+          <div style="flex:1"></div>
+          <div class="chip" style="display:flex;align-items:center;gap:4px;min-height:28px;padding:0 9px;border-radius:14px;background:rgba(8,11,32,.62);border:1px solid rgba(255,45,143,.6);backdrop-filter:blur(8px)"><span style="width:6px;height:6px;border-radius:50%;background:#ff2d8f;box-shadow:0 0 7px 2px rgba(255,45,143,.9);animation:tally 1.8s infinite"></span><span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#ffd6e9">LIVE</span></div>
+          <div class="lc-phase" style="display:flex;align-items:center;gap:5px;min-height:28px;padding:0 9px;border-radius:14px;background:rgba(45,227,208,.14);border:1px solid rgba(45,227,208,.5);backdrop-filter:blur(8px);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#aef7ee">R2<span class="lc-rounds__dots" style="display:flex;gap:3px;align-items:center"><i style="width:5px;height:5px;border-radius:50%;background:#2de3d0;box-shadow:0 0 6px rgba(45,227,208,.9)"></i><i style="width:5px;height:5px;border-radius:50%;background:#2de3d0;box-shadow:0 0 6px rgba(45,227,208,.9)"></i><i style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.22)"></i></span></div>
+          <div class="chip" style="display:flex;align-items:center;gap:4px;height:28px;padding:0 9px;border-radius:14px;background:rgba(8,11,32,.62);border:1px solid rgba(185,168,255,.4);backdrop-filter:blur(8px);font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#eef0ff">👁 312</div>
+          <div class="chip lc-credits" style="display:flex;align-items:center;gap:3px;height:28px;padding:0 9px;border-radius:14px;background:linear-gradient(180deg,#ffd6e9,#ff8ac2);font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#4a0724">✦135</div>
+        </div>
+
+        <div id="rt_host" style="position:absolute;left:13px;top:110px;display:flex;align-items:center;gap:7px">
+          <div id="rt_hostbadge" style="padding:4px 11px;border-radius:14px;background:rgba(6,8,24,.6);border:1px solid rgba(255,45,143,.75);backdrop-filter:blur(8px);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">MARLA V.</div>
+          <div style="padding:3px 9px;border-radius:12px;background:linear-gradient(180deg,#ffb4d9,#ff2d8f);font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.14em;color:#5c0230">HOST</div>
+        </div>
+
+        <div class="lc-rail" style="position:absolute;z-index:3;right:13px;top:112px;display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.55);backdrop-filter:blur(8px);color:#b9a8ff;font-size:16px">🛡</div>
+          <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.45);backdrop-filter:blur(8px);font-size:19px">🎁</div>
+          <div style="width:44px;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:50%;background:rgba(255,45,143,.14);border:1px solid rgba(255,45,143,.45);backdrop-filter:blur(8px)" style-active="transform:scale(.94);background:rgba(255,45,143,.34)">
+            <span style="font-size:17px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,255,255,.6),0 0 18px rgba(255,45,143,1);animation:beat 2.2s ease-in-out infinite">♥</span>
+            <span style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;color:#ffd6e9">1.2K</span>
+          </div>
+        </div>
+
+        <div style="position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:9px;padding:0 12px 22px">
+
+          <div id="rt_chairs" style="display:flex;gap:7px">
+            <div class="chair" style="flex:1;padding:3px;border-radius:16px;background:rgba(6,8,24,.42);border:1.5px solid #2de3d0;box-shadow:0 0 12px rgba(45,227,208,.45);backdrop-filter:blur(4px)">
+              <div style="position:relative;height:136px;border-radius:12px;overflow:hidden;background:#141a3a;background-image:radial-gradient(closest-side at 46% 32%, rgba(45,227,208,.2), transparent 70%)">
+                <div style="position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);width:60px;height:74px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.14),transparent 72%)"></div>
+                <div style="position:absolute;left:0;right:0;bottom:0;height:62px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.72))"></div>
+                <div style="position:absolute;top:4px;left:4px;padding:2px 7px;border-radius:10px;background:rgba(6,8,24,.6);backdrop-filter:blur(6px);font-family:Archivo,sans-serif;font-weight:800;font-size:9px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">DEV</div>
+                <div class="chair__hearts" style="position:absolute;top:24px;left:4px;display:flex;align-items:center;gap:3px;padding:1px 6px;border-radius:9px;background:rgba(6,8,24,.5);backdrop-filter:blur(6px)"><span style="font-size:9px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,45,143,.95)">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:9px;color:#ffd6e9">88</span></div>
+                <div class="cclock" style="position:absolute;top:4px;right:4px;padding:1px 5px;border-radius:6px;background:rgba(4,33,31,.7);border:1px solid rgba(45,227,208,.8);font-family:'Azeret Mono',monospace;font-weight:700;font-size:9px;color:#7ff2e6">0:42</div>
+                <div class="hostctl" style="position:absolute;left:4px;right:4px;bottom:4px;display:flex;align-items:center;justify-content:center;min-height:32px;border-radius:11px;background:rgba(255,45,143,.14);border:1px dashed rgba(255,45,143,.5);backdrop-filter:blur(6px);font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.14em;color:#ffd6e9;text-shadow:0 1px 4px rgba(0,0,0,.95)">TAP TO ASK</div>
+                </div>
+              </div>
+            </div>
+            <div class="chair is-kept" style="flex:1;padding:3px;border-radius:16px;background:rgba(6,8,24,.42);border:1.5px solid #ff2d8f;box-shadow:0 0 14px rgba(255,45,143,.7);backdrop-filter:blur(4px)">
+              <div style="position:relative;height:136px;border-radius:12px;overflow:hidden;background:#141a3a;background-image:radial-gradient(closest-side at 48% 32%, rgba(255,45,143,.24), transparent 70%)">
+                <div style="position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);width:60px;height:74px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.15),transparent 72%)"></div>
+                <div style="position:absolute;left:0;right:0;bottom:0;height:62px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.72))"></div>
+                <div style="position:absolute;top:4px;left:4px;padding:2px 7px;border-radius:10px;background:rgba(6,8,24,.6);border:1px solid rgba(255,45,143,.7);backdrop-filter:blur(6px);font-family:Archivo,sans-serif;font-weight:800;font-size:9px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">JUNE</div>
+                <div class="cclock" style="position:absolute;top:4px;right:4px;padding:1px 5px;border-radius:6px;background:rgba(61,3,36,.72);border:1px solid #ff2d8f;font-family:'Azeret Mono',monospace;font-weight:700;font-size:9px;color:#ffd6e9">0:08</div>
+                <div class="kepttag" style="position:absolute;top:24px;right:4px;padding:1px 7px;border-radius:9px;background:rgba(255,45,143,.85);font-family:'Azeret Mono',monospace;font-weight:700;font-size:7px;letter-spacing:.12em;color:#3f0119">KEPT</div>
+                <div class="chair__hearts" style="position:absolute;top:24px;left:4px;display:flex;align-items:center;gap:3px;padding:1px 6px;border-radius:9px;background:rgba(6,8,24,.5);backdrop-filter:blur(6px)"><span style="font-size:9px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,45,143,.95)">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:9px;color:#ffd6e9">240</span></div>
+                <div class="hostctl" style="position:absolute;left:4px;right:4px;bottom:4px;display:flex;align-items:center;justify-content:center;min-height:32px;border-radius:11px;background:rgba(255,45,143,.14);border:1px dashed rgba(255,45,143,.5);backdrop-filter:blur(6px);font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.14em;color:#ffd6e9;text-shadow:0 1px 4px rgba(0,0,0,.95)">TAP TO ASK</div>
+                </div>
+              </div>
+            </div>
+            <div class="chair is-empty" style="flex:1;padding:3px;border-radius:16px;background:rgba(6,8,24,.32);border:1.5px dashed rgba(45,227,208,.45);backdrop-filter:blur(4px)">
+              <div style="height:136px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+                <div style="width:20px;height:20px;border-radius:6px;border:1.5px solid rgba(45,227,208,.5)"></div>
+                <div style="font-family:'Azeret Mono',monospace;font-size:8px;letter-spacing:.14em;color:rgba(45,227,208,.75);text-align:center;line-height:1.6">CHAIR 3<br>OPEN</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="rt_line" style="display:flex;align-items:center;gap:8px;min-height:38px;padding:9px 11px;border-radius:14px;background:rgba(6,8,24,.5);border:1px solid rgba(185,168,255,.35);backdrop-filter:blur(8px)">
+              <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.12em;color:#b9a8ff;white-space:nowrap">5 IN LINE</span>
+              <span id="lineitems" style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:10.5px;color:rgba(214,205,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">revealed when a chair opens</span>
+            </div>
+
+          <div id="chatstrip" style="max-height:138px;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;overflow:hidden;-webkit-mask-image:linear-gradient(to top,#000 62%,transparent);mask-image:linear-gradient(to top,#000 62%,transparent)">
+            <sc-for list="{{ chat }}" as="m" hint-placeholder-count="5">
+              <div class="floatmsg" style="display:flex;gap:6px;align-items:baseline;text-shadow:0 1px 4px rgba(0,0,0,.98)">
+                <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:12px;color:{{ m.color }};white-space:nowrap">{{ m.who }}</span>
+                <span style="font-family:Archivo,sans-serif;font-size:13px;line-height:1.35;color:#fff">{{ m.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div id="inputbar" style="display:flex;gap:8px;align-items:center">
+            <div style="flex:1;min-width:0;height:48px;display:flex;align-items:center;padding:0 15px;border-radius:24px;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.4);backdrop-filter:blur(10px);font-family:Archivo,sans-serif;font-size:14px;color:rgba(238,240,255,.55)">Say something…</div>
+            <div class="lc-ask" style="flex:none;min-height:48px;padding:0 20px;display:flex;align-items:center;gap:7px;border-radius:24px;cursor:pointer;background:rgba(255,45,143,.34);border:1.5px solid rgba(255,255,255,.9);backdrop-filter:blur(10px);color:#fff;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;letter-spacing:.03em;text-shadow:0 1px 4px rgba(0,0,0,.9);box-shadow:0 0 30px rgba(255,45,143,.7)">ASK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 · SPECTATOR -->
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.2em;color:#2de3d0">2 · SPECTATOR · .is-spectator</div>
+      <div style="font-size:12px;color:rgba(238,240,255,.6);max-width:390px;line-height:1.5">Their hearts belong to the chairs during play — one hollow heart centred in each — no box, no fill, it lights up on press. JOIN THE LINE takes the same composer slot as LAST CALL — pill width, but the white ring and pink halo keep it the loudest control on screen.</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:42px;overflow:hidden;background:#080b20;box-shadow:0 0 0 3px #241a52,0 30px 60px -18px rgba(0,0,0,.85)">
+        <div style="position:absolute;inset:0;background:#141a3a;background-image:radial-gradient(closest-side at 42% 30%, rgba(255,255,255,.16), transparent 66%),radial-gradient(closest-side at 74% 74%, rgba(255,45,143,.24), transparent 72%)">
+          <div style="position:absolute;left:50%;top:26%;transform:translate(-50%,-50%);width:150px;height:190px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.14),transparent 72%)"></div>
+          <div style="position:absolute;left:0;right:0;top:0;height:150px;background:linear-gradient(180deg,rgba(4,6,18,.88),transparent)"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:430px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.46) 46%,rgba(4,6,18,.8))"></div>
+        </div>
+
+        <div style="position:absolute;left:0;right:0;top:0;display:flex;flex-wrap:nowrap;align-items:center;gap:7px;padding:52px 13px 10px;overflow:hidden">
+          <div style="width:44px;height:44px;margin-left:-13px;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;color:#ff6fb0;text-shadow:0 1px 4px rgba(0,0,0,.95)">‹</div>
+          <div style="font-family:Monoton,cursive;font-size:12px;letter-spacing:.04em;color:#fff;text-shadow:0 0 12px rgba(255,45,143,.85),0 1px 4px rgba(0,0,0,.9);flex:none">LAST CALL</div>
+          <div id="rt_title" hidden="hidden"></div>
+          <div style="flex:1"></div>
+          <div class="chip" style="display:flex;align-items:center;gap:4px;min-height:28px;padding:0 9px;border-radius:14px;background:rgba(8,11,32,.62);border:1px solid rgba(255,45,143,.6);backdrop-filter:blur(8px)"><span style="width:6px;height:6px;border-radius:50%;background:#ff2d8f;box-shadow:0 0 7px 2px rgba(255,45,143,.9);animation:tally 1.8s infinite"></span><span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#ffd6e9">LIVE</span></div>
+          <div class="lc-phase" style="display:flex;align-items:center;gap:5px;min-height:28px;padding:0 9px;border-radius:14px;background:rgba(45,227,208,.14);border:1px solid rgba(45,227,208,.5);backdrop-filter:blur(8px);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#aef7ee">R2<span class="lc-rounds__dots" style="display:flex;gap:3px;align-items:center"><i style="width:5px;height:5px;border-radius:50%;background:#2de3d0;box-shadow:0 0 6px rgba(45,227,208,.9)"></i><i style="width:5px;height:5px;border-radius:50%;background:#2de3d0;box-shadow:0 0 6px rgba(45,227,208,.9)"></i><i style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.22)"></i></span></div>
+          <div class="chip" style="display:flex;align-items:center;gap:4px;height:28px;padding:0 9px;border-radius:14px;background:rgba(8,11,32,.62);border:1px solid rgba(185,168,255,.4);backdrop-filter:blur(8px);font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#eef0ff">👁 312</div>
+          <div class="chip lc-credits" style="display:flex;align-items:center;gap:3px;height:28px;padding:0 9px;border-radius:14px;background:linear-gradient(180deg,#ffd6e9,#ff8ac2);font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#4a0724">✦135</div>
+        </div>
+
+        <div style="position:absolute;left:13px;top:110px;padding:4px 11px;border-radius:14px;background:rgba(6,8,24,.6);border:1px solid rgba(255,45,143,.75);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">MARLA V.</div>
+        <div class="lc-rail" style="position:absolute;z-index:3;right:13px;top:112px;display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.55);backdrop-filter:blur(8px);color:#b9a8ff;font-size:16px">🛡</div>
+          <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.45);backdrop-filter:blur(8px);font-size:19px">🎁</div>
+          <div style="width:44px;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:50%;background:rgba(255,45,143,.14);border:1px solid rgba(255,45,143,.45);backdrop-filter:blur(8px)" style-active="transform:scale(.94);background:rgba(255,45,143,.34)">
+            <span style="font-size:17px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,255,255,.6),0 0 18px rgba(255,45,143,1);animation:beat 2.2s ease-in-out infinite">♥</span>
+            <span style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;color:#ffd6e9">1.2K</span>
+          </div>
+        </div>
+
+        <div style="position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:9px;padding:0 12px 22px">
+          <div style="display:flex;gap:7px">
+            <div style="flex:1;padding:3px;border-radius:16px;background:rgba(6,8,24,.42);border:1.5px solid #2de3d0;box-shadow:0 0 12px rgba(45,227,208,.45)">
+              <div style="position:relative;height:136px;border-radius:12px;overflow:hidden;background:#141a3a;background-image:radial-gradient(closest-side at 46% 32%, rgba(45,227,208,.2), transparent 70%)">
+                <div style="position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);width:60px;height:74px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.14),transparent 72%)"></div>
+                <div style="position:absolute;left:0;right:0;bottom:0;height:62px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.72))"></div>
+                <div style="position:absolute;top:4px;left:4px;padding:2px 7px;border-radius:10px;background:rgba(6,8,24,.6);backdrop-filter:blur(6px);font-family:Archivo,sans-serif;font-weight:800;font-size:9px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">DEV</div>
+                <div class="chair__hearts" style="position:absolute;top:24px;left:4px;display:flex;align-items:center;gap:3px;padding:1px 6px;border-radius:9px;background:rgba(6,8,24,.5);backdrop-filter:blur(6px)"><span style="font-size:9px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,45,143,.95)">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:9px;color:#ffd6e9">88</span></div>
+                <div style="position:absolute;top:4px;right:4px;padding:1px 5px;border-radius:6px;background:rgba(4,33,31,.7);border:1px solid rgba(45,227,208,.8);font-family:'Azeret Mono',monospace;font-weight:700;font-size:9px;color:#7ff2e6">0:42</div>
+                <div class="lc-hearttap" style="position:absolute;left:50%;bottom:4px;transform:translateX(-50%);width:48px;height:44px;display:flex;align-items:center;justify-content:center" style-active="transform:translateX(-50%) scale(1.06)"><span class="lc-hearttap__glyph" style="display:block;transform:scaleY(.82);font-size:28px;line-height:1;color:transparent;-webkit-text-stroke:1.5px rgba(255,214,233,.85);text-shadow:0 1px 4px rgba(0,0,0,.9)" style-active="color:#ff2d8f;-webkit-text-stroke:1.5px #ff5fae;text-shadow:0 0 14px rgba(255,45,143,1),0 0 30px rgba(255,45,143,.7);transform:translateX(-50%) scaleY(.82) scale(1.14)">♥</span></div>
+              </div>
+            </div>
+            <div style="flex:1;padding:3px;border-radius:16px;background:rgba(6,8,24,.42);border:1.5px solid #ff2d8f;box-shadow:0 0 14px rgba(255,45,143,.7)">
+              <div style="position:relative;height:136px;border-radius:12px;overflow:hidden;background:#141a3a;background-image:radial-gradient(closest-side at 48% 32%, rgba(255,45,143,.24), transparent 70%)">
+                <div style="position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);width:60px;height:74px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.15),transparent 72%)"></div>
+                <div style="position:absolute;left:0;right:0;bottom:0;height:62px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.72))"></div>
+                <div style="position:absolute;top:4px;left:4px;padding:2px 7px;border-radius:10px;background:rgba(6,8,24,.6);border:1px solid rgba(255,45,143,.7);backdrop-filter:blur(6px);font-family:Archivo,sans-serif;font-weight:800;font-size:9px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">JUNE</div>
+                <div style="position:absolute;top:4px;right:4px;padding:1px 5px;border-radius:6px;background:rgba(61,3,36,.72);border:1px solid #ff2d8f;font-family:'Azeret Mono',monospace;font-weight:700;font-size:9px;color:#ffd6e9">0:08</div>
+                <div style="position:absolute;top:24px;right:4px;padding:1px 7px;border-radius:9px;background:rgba(255,45,143,.85);font-family:'Azeret Mono',monospace;font-weight:700;font-size:7px;letter-spacing:.12em;color:#3f0119">KEPT</div>
+                <div class="chair__hearts" style="position:absolute;top:24px;left:4px;display:flex;align-items:center;gap:3px;padding:1px 6px;border-radius:9px;background:rgba(6,8,24,.5);backdrop-filter:blur(6px)"><span style="font-size:9px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,45,143,.95)">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:9px;color:#ffd6e9">240</span></div>
+                <div class="lc-hearttap" style="position:absolute;left:50%;bottom:4px;transform:translateX(-50%);width:48px;height:44px;display:flex;align-items:center;justify-content:center" style-active="transform:translateX(-50%) scale(1.06)"><span class="lc-hearttap__glyph" style="display:block;transform:scaleY(.82);font-size:28px;line-height:1;color:rgba(255,45,143,.55);-webkit-text-stroke:1.5px rgba(255,145,190,.9);text-shadow:0 0 12px rgba(255,45,143,.75),0 1px 4px rgba(0,0,0,.9)" style-active="color:#ff2d8f;-webkit-text-stroke:1.5px #ff5fae;text-shadow:0 0 14px rgba(255,45,143,1),0 0 30px rgba(255,45,143,.7);transform:translateX(-50%) scaleY(.82) scale(1.14)">♥</span></div>
+              </div>
+            </div>
+            <div style="flex:1;padding:3px;border-radius:16px;background:rgba(6,8,24,.32);border:1.5px dashed rgba(45,227,208,.45)">
+              <div style="height:136px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+                <div style="width:20px;height:20px;border-radius:6px;border:1.5px solid rgba(45,227,208,.5)"></div>
+                <div style="font-family:'Azeret Mono',monospace;font-size:8px;letter-spacing:.14em;color:rgba(45,227,208,.75);text-align:center;line-height:1.6">CHAIR 3<br>OPEN</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;min-height:38px;padding:9px 11px;border-radius:14px;background:rgba(6,8,24,.5);border:1px solid rgba(185,168,255,.35);backdrop-filter:blur(8px)">
+              <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.12em;color:#b9a8ff;white-space:nowrap">5 IN LINE</span>
+              <span style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:10.5px;color:rgba(214,205,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right">revealed when a chair opens</span>
+            </div>
+
+          <div style="max-height:120px;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;overflow:hidden;-webkit-mask-image:linear-gradient(to top,#000 62%,transparent);mask-image:linear-gradient(to top,#000 62%,transparent)">
+            <sc-for list="{{ chat }}" as="m" hint-placeholder-count="5">
+              <div style="display:flex;gap:6px;align-items:baseline;text-shadow:0 1px 4px rgba(0,0,0,.98)">
+                <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:12px;color:{{ m.color }};white-space:nowrap">{{ m.who }}</span>
+                <span style="font-family:Archivo,sans-serif;font-size:13px;line-height:1.35;color:#fff">{{ m.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="flex:1;min-width:0;height:48px;display:flex;align-items:center;padding:0 15px;border-radius:24px;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.4);font-family:Archivo,sans-serif;font-size:14px;color:rgba(238,240,255,.55)">Say something…</div>
+            <div id="rt_joinline" style="flex:none;height:48px;padding:0 18px;display:flex;align-items:center;gap:7px;border-radius:24px;background:rgba(255,45,143,.34);border:1.5px solid rgba(255,255,255,.9);backdrop-filter:blur(10px);color:#fff;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;letter-spacing:.04em;text-shadow:0 1px 4px rgba(0,0,0,.9);box-shadow:0 0 30px rgba(255,45,143,.7)" style-active="transform:translateY(4px);box-shadow:inset 0 2px 0 rgba(255,255,255,.85),0 0 0 2px rgba(255,255,255,.9)"><span style="font-size:15px">♥</span>JOIN THE LINE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 · SUITOR -->
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.2em;color:#2de3d0">3 · YOU'RE IN A CHAIR · .is-suitor</div>
+      <div style="font-size:12px;color:rgba(238,240,255,.6);max-width:390px;line-height:1.5">He sees her and his rivals, never the queue behind him — only how deep it is. His chair is the big one — ringed pink, badged YOU, enlarged clock; rivals shrink to bottom-aligned podiums. The 🔇 button on his rail opens one action — 15 seconds for 10 ✦, single tap, no confirm dialog. While it runs, the rail button becomes the countdown and their shot clocks freeze, so buying attention never burns a rival's time. No Keep/Pass, no Join the Line — he's already in.</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:42px;overflow:hidden;background:#080b20;box-shadow:0 0 0 3px #241a52,0 30px 60px -18px rgba(0,0,0,.85)">
+        <div style="position:absolute;inset:0;background:#141a3a;background-image:radial-gradient(closest-side at 42% 30%, rgba(255,255,255,.16), transparent 66%),radial-gradient(closest-side at 74% 74%, rgba(255,45,143,.24), transparent 72%)">
+          <div style="position:absolute;left:50%;top:26%;transform:translate(-50%,-50%);width:150px;height:190px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.14),transparent 72%)"></div>
+          <div style="position:absolute;left:0;right:0;top:0;height:150px;background:linear-gradient(180deg,rgba(4,6,18,.88),transparent)"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:430px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.6) 42%,rgba(4,6,18,.94))"></div>
+        </div>
+
+        <div style="position:absolute;left:0;right:0;top:0;display:flex;flex-wrap:nowrap;align-items:center;gap:7px;padding:52px 13px 10px;overflow:hidden">
+          <div style="width:44px;height:44px;margin-left:-13px;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;color:#ff6fb0;text-shadow:0 1px 4px rgba(0,0,0,.95)">‹</div>
+          <div style="font-family:Monoton,cursive;font-size:12px;letter-spacing:.04em;color:#fff;text-shadow:0 0 12px rgba(255,45,143,.85),0 1px 4px rgba(0,0,0,.9);flex:none">LAST CALL</div>
+          <div id="rt_title" hidden="hidden"></div>
+          <div style="flex:1"></div>
+          <div class="chip" style="display:flex;align-items:center;gap:4px;min-height:28px;padding:0 9px;border-radius:14px;background:rgba(8,11,32,.62);border:1px solid rgba(255,45,143,.6);backdrop-filter:blur(8px)"><span style="width:6px;height:6px;border-radius:50%;background:#ff2d8f;box-shadow:0 0 7px 2px rgba(255,45,143,.9);animation:tally 1.8s infinite"></span><span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#ffd6e9">LIVE</span></div>
+          <div class="lc-phase" style="display:flex;align-items:center;gap:5px;min-height:28px;padding:0 9px;border-radius:14px;background:rgba(45,227,208,.14);border:1px solid rgba(45,227,208,.5);backdrop-filter:blur(8px);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#aef7ee">R2<span class="lc-rounds__dots" style="display:flex;gap:3px;align-items:center"><i style="width:5px;height:5px;border-radius:50%;background:#2de3d0;box-shadow:0 0 6px rgba(45,227,208,.9)"></i><i style="width:5px;height:5px;border-radius:50%;background:#2de3d0;box-shadow:0 0 6px rgba(45,227,208,.9)"></i><i style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.22)"></i></span></div>
+          <div class="chip" style="display:flex;align-items:center;gap:4px;height:28px;padding:0 9px;border-radius:14px;background:rgba(8,11,32,.62);border:1px solid rgba(185,168,255,.4);backdrop-filter:blur(8px);font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#eef0ff">👁 312</div>
+          <div class="chip lc-credits" style="display:flex;align-items:center;gap:3px;height:28px;padding:0 9px;border-radius:14px;background:linear-gradient(180deg,#ffd6e9,#ff8ac2);font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#4a0724">✦135</div>
+        </div>
+
+        <div style="position:absolute;left:13px;top:110px;padding:4px 11px;border-radius:14px;background:rgba(6,8,24,.6);border:1px solid rgba(255,45,143,.75);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;color:#fff">MARLA V.</div>
+
+        <div class="lc-rail" style="position:absolute;z-index:3;right:13px;top:112px;display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.55);backdrop-filter:blur(8px);color:#b9a8ff;font-size:16px">🛡</div>
+          <div class="lc-floorbtn is-active" style="position:relative;width:44px;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;background:rgba(45,227,208,.28);border:1.5px solid #2de3d0;backdrop-filter:blur(8px);box-shadow:0 0 18px rgba(45,227,208,.55)">
+            <span style="font-size:14px;line-height:1">🔇</span>
+            <span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:7.5px;color:#aef7ee">0:09</span>
+          </div>
+          <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.45);backdrop-filter:blur(8px);font-size:19px">🎁</div>
+          <div style="width:44px;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:50%;background:rgba(255,45,143,.14);border:1px solid rgba(255,45,143,.45);backdrop-filter:blur(8px)" style-active="transform:scale(.94);background:rgba(255,45,143,.34)">
+            <span style="font-size:17px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,255,255,.6),0 0 18px rgba(255,45,143,1);animation:beat 2.2s ease-in-out infinite">♥</span>
+            <span style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;color:#ffd6e9">240</span>
+          </div>
+        </div>
+
+        <div style="position:absolute;z-index:4;right:62px;top:104px;width:158px;display:flex;flex-direction:column;gap:6px;padding:9px;border-radius:16px;background:rgba(6,8,24,.8);border:1.5px solid rgba(45,227,208,.6);backdrop-filter:blur(14px);box-shadow:0 12px 30px rgba(0,0,0,.6)">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:6px">
+            <span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:12px;color:#aef7ee">Take the floor</span>
+            <span style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;color:rgba(255,214,233,.8)">✦135</span>
+          </div>
+          <div style="min-height:46px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:13px;background:rgba(45,227,208,.24);border:1.5px solid rgba(45,227,208,.85);box-shadow:0 0 16px rgba(45,227,208,.35)" style-active="transform:scale(.96);background:rgba(45,227,208,.4)">
+            <span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:14px;color:#fff">15s</span>
+            <span style="width:1px;height:14px;background:rgba(255,255,255,.3)"></span>
+            <span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:11px;color:#ffd6e9">10 ✦</span>
+          </div>
+          <div style="font-family:Archivo,sans-serif;font-size:9.5px;line-height:1.45;color:rgba(174,247,238,.8)">Blurs and mutes the other chairs for 15 seconds. Their clocks pause — nobody loses time.</div>
+        </div>
+
+        <div style="position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:9px;padding:0 12px 22px">
+
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="height:3px;border-radius:2px;background:rgba(255,255,255,.16);overflow:hidden"><div style="width:60%;height:100%;background:linear-gradient(90deg,#2de3d0,#aef7ee)"></div></div>
+            <div style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.12em;color:rgba(174,247,238,.85);text-shadow:0 1px 4px rgba(0,0,0,.95)">YOU HAVE THE FLOOR · THEIR CLOCKS PAUSED</div>
+          </div>
+
+          <div style="display:flex;gap:7px;align-items:flex-end">
+            <div style="flex:.8;align-self:flex-end;padding:3px;border-radius:14px;background:rgba(6,8,24,.42);border:1px solid rgba(45,227,208,.55);box-shadow:0 0 10px rgba(45,227,208,.32)">
+              <div class="chair__feed is-dimmed" style="position:relative;height:104px;border-radius:12px;overflow:hidden;background:#141a3a">
+                <div style="position:absolute;inset:0;background-image:radial-gradient(closest-side at 46% 32%, rgba(45,227,208,.2), transparent 70%);filter:blur(9px);transform:scale(1.12)"></div>
+                <div style="position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);width:64px;height:78px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.13),transparent 72%);filter:blur(9px)"></div>
+                <div style="position:absolute;inset:0;background:rgba(6,10,30,.34)"></div>
+                <div style="position:absolute;left:0;right:0;bottom:0;height:52px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.72))"></div>
+                <div style="position:absolute;top:4px;left:4px;padding:2px 7px;border-radius:10px;background:rgba(6,8,24,.6);backdrop-filter:blur(6px);font-family:Archivo,sans-serif;font-weight:800;font-size:9px;color:rgba(255,255,255,.72);text-shadow:0 1px 3px rgba(0,0,0,.9)">DEV</div>
+                <div class="cclock is-paused" style="position:absolute;top:4px;right:4px;display:flex;align-items:center;gap:3px;padding:1px 5px;border-radius:6px;background:rgba(6,8,24,.6);border:1px dashed rgba(45,227,208,.5);font-family:'Azeret Mono',monospace;font-weight:700;font-size:9px;color:rgba(127,242,230,.7)"><span class="cclock__pause" style="font-size:7px">❙❙</span>0:42</div>
+                <div style="position:absolute;left:0;right:0;bottom:6px;display:flex;flex-direction:column;align-items:center;gap:2px">
+                  <span style="font-size:15px;line-height:1;color:rgba(255,255,255,.9);text-shadow:0 1px 4px rgba(0,0,0,.95)">🔇</span>
+                  <span style="font-family:'Azeret Mono',monospace;font-size:7px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.78);text-shadow:0 1px 4px rgba(0,0,0,.95)">MUTED 0:09</span>
+                </div>
+              </div>
+            </div>
+            <div class="lc-selfview" style="flex:1.4;padding:3px;border-radius:16px;background:rgba(6,8,24,.5);border:1.5px solid #ff2d8f;box-shadow:0 0 16px rgba(255,45,143,.75)">
+              <div style="position:relative;height:136px;border-radius:12px;overflow:hidden;background:#141a3a;background-image:radial-gradient(closest-side at 48% 32%, rgba(255,45,143,.26), transparent 70%)">
+                <div style="position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);width:60px;height:74px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.15),transparent 72%)"></div>
+                <div style="position:absolute;left:0;right:0;bottom:0;height:62px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.72))"></div>
+                <div style="position:absolute;top:4px;left:4px;padding:2px 7px;border-radius:10px;background:rgba(255,45,143,.85);backdrop-filter:blur(6px);font-family:Archivo,sans-serif;font-weight:800;font-size:9px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)">YOU</div>
+                <div class="chair__hearts" style="position:absolute;top:24px;left:4px;display:flex;align-items:center;gap:3px;padding:1px 6px;border-radius:9px;background:rgba(6,8,24,.5);backdrop-filter:blur(6px)"><span style="font-size:9px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,45,143,.95)">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:9px;color:#ffd6e9">240</span></div>
+                <div class="cclock" style="position:absolute;top:4px;right:4px;padding:2px 7px;border-radius:8px;background:rgba(61,3,36,.8);border:1.5px solid #ff2d8f;box-shadow:0 0 14px rgba(255,45,143,.6);font-family:'Azeret Mono',monospace;font-weight:700;font-size:15px;letter-spacing:.04em;color:#ffd6e9;text-shadow:0 0 10px rgba(255,45,143,.8)">0:08</div>
+                <div style="position:absolute;left:0;right:0;bottom:5px;text-align:center;font-family:'Azeret Mono',monospace;font-size:7.5px;letter-spacing:.16em;color:rgba(255,214,233,.8);text-shadow:0 1px 4px rgba(0,0,0,.95)">YOUR TURN</div>
+              </div>
+            </div>
+            <div style="flex:.8;align-self:flex-end;padding:3px;border-radius:14px;background:rgba(6,8,24,.32);border:1px dashed rgba(45,227,208,.4)">
+              <div style="height:104px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+                <div style="width:20px;height:20px;border-radius:6px;border:1.5px solid rgba(45,227,208,.5)"></div>
+                <div style="font-family:'Azeret Mono',monospace;font-size:8px;letter-spacing:.14em;color:rgba(45,227,208,.75);text-align:center;line-height:1.6">CHAIR 3<br>OPEN</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+              <div style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.16em;color:#ff8ac2;text-shadow:0 1px 4px rgba(0,0,0,.95)">BEHIND YOU</div>
+              <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.1em;color:rgba(238,240,255,.5);text-shadow:0 1px 4px rgba(0,0,0,.95)">5 WAITING</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:14px;background:rgba(6,8,24,.5);border:1px dashed rgba(185,168,255,.4);backdrop-filter:blur(6px)">
+              <span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:16px;color:#d6cdff">9</span>
+              <span style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:11.5px;color:rgba(214,205,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">waiting behind you — you can't see who</span>
+            </div>
+          </div>
+
+          <div style="max-height:96px;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;overflow:hidden;-webkit-mask-image:linear-gradient(to top,#000 62%,transparent);mask-image:linear-gradient(to top,#000 62%,transparent)">
+            <sc-for list="{{ chat }}" as="m" hint-placeholder-count="4">
+              <div style="display:flex;gap:6px;align-items:baseline;text-shadow:0 1px 4px rgba(0,0,0,.98)">
+                <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:12px;color:{{ m.color }};white-space:nowrap">{{ m.who }}</span>
+                <span style="font-family:Archivo,sans-serif;font-size:13px;line-height:1.35;color:#fff">{{ m.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="flex:1;min-width:0;height:48px;display:flex;align-items:center;padding:0 15px;border-radius:24px;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.4);font-family:Archivo,sans-serif;font-size:14px;color:rgba(238,240,255,.55)">Say something…</div>
+            <div style="flex:none;height:48px;padding:0 16px;display:flex;align-items:center;gap:6px;border-radius:24px;background:rgba(185,168,255,.14);border:1.5px solid rgba(185,168,255,.6);backdrop-filter:blur(10px);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#d6cdff">↩ LEAVE CHAIR</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3b · DRAFT -->
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.2em;color:#2de3d0">3b · THE DRAFT STORM · .is-drafting · HOST</div>
+      <div style="font-size:12px;color:rgba(238,240,255,.6);max-width:390px;line-height:1.5">The queue was invisible until this second. Four candidates are revealed to the room at once and the crowd hammers hearts for <strong style="color:#ffd6e9">15 seconds</strong> while she reads silhouettes with tallies climbing live — momentum, not totals. Tap one to seat instantly, or the leader sits at 0:00. Full five-POV treatment plus edge states in <strong style="color:#ffd6e9">Last Call Draft</strong>.</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:42px;overflow:hidden;background:#080b20;box-shadow:0 0 0 3px #241a52,0 30px 60px -18px rgba(0,0,0,.85)">
+        <div style="position:absolute;inset:0;background:#141a3a;background-image:radial-gradient(closest-side at 42% 30%, rgba(255,255,255,.16), transparent 66%),radial-gradient(closest-side at 74% 74%, rgba(255,45,143,.24), transparent 72%)">
+          <div style="position:absolute;left:50%;top:26%;transform:translate(-50%,-50%);width:150px;height:190px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.14),transparent 72%)"></div>
+          <div style="position:absolute;left:0;right:0;top:0;height:150px;background:linear-gradient(180deg,rgba(4,6,18,.88),transparent)"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:430px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.46) 46%,rgba(4,6,18,.8))"></div>
+        </div>
+
+        <div style="position:absolute;left:0;right:0;top:0;display:flex;flex-wrap:nowrap;align-items:center;gap:7px;padding:52px 13px 10px;overflow:hidden">
+          <div style="width:44px;height:44px;margin-left:-13px;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;color:#ff6fb0;text-shadow:0 1px 4px rgba(0,0,0,.95)">‹</div>
+          <div style="font-family:Monoton,cursive;font-size:12px;letter-spacing:.04em;color:#fff;text-shadow:0 0 12px rgba(255,45,143,.85),0 1px 4px rgba(0,0,0,.9);flex:none">LAST CALL</div>
+          <div style="flex:1"></div>
+          <div class="chip" style="display:flex;align-items:center;gap:4px;min-height:28px;padding:0 9px;border-radius:14px;background:rgba(8,11,32,.62);border:1px solid rgba(255,45,143,.6);backdrop-filter:blur(8px)"><span style="width:6px;height:6px;border-radius:50%;background:#ff2d8f;box-shadow:0 0 7px 2px rgba(255,45,143,.9);animation:tally 1.8s infinite"></span><span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#ffd6e9">LIVE</span></div>
+          <div class="lc-phase" style="display:flex;align-items:center;gap:5px;min-height:28px;padding:0 9px;border-radius:14px;background:rgba(45,227,208,.14);border:1px solid rgba(45,227,208,.5);backdrop-filter:blur(8px);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#aef7ee">R2<span class="lc-rounds__dots" style="display:flex;gap:3px;align-items:center"><i style="width:5px;height:5px;border-radius:50%;background:#2de3d0;box-shadow:0 0 6px rgba(45,227,208,.9)"></i><i style="width:5px;height:5px;border-radius:50%;background:#2de3d0;box-shadow:0 0 6px rgba(45,227,208,.9)"></i><i style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.22)"></i></span></div>
+          <div class="chip" style="display:flex;align-items:center;gap:4px;height:28px;padding:0 9px;border-radius:14px;background:rgba(8,11,32,.62);border:1px solid rgba(185,168,255,.4);backdrop-filter:blur(8px);font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#eef0ff">👁 312</div>
+          <div class="chip lc-credits" style="display:flex;align-items:center;gap:3px;height:28px;padding:0 9px;border-radius:14px;background:linear-gradient(180deg,#ffd6e9,#ff8ac2);font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#4a0724">✦135</div>
+        </div>
+
+        <div style="position:absolute;left:13px;top:110px;display:flex;align-items:center;gap:7px">
+          <div style="padding:4px 11px;border-radius:14px;background:rgba(6,8,24,.6);border:1px solid rgba(255,45,143,.75);backdrop-filter:blur(8px);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">MARLA V.</div>
+          <div style="padding:3px 9px;border-radius:12px;background:linear-gradient(180deg,#ffb4d9,#ff2d8f);font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.14em;color:#5c0230">HOST</div>
+        </div>
+
+        <div class="lc-rail" style="position:absolute;z-index:3;right:13px;top:112px;display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.55);backdrop-filter:blur(8px);color:#b9a8ff;font-size:16px">🛡</div>
+          <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.45);backdrop-filter:blur(8px);font-size:19px">🎁</div>
+          <div style="width:44px;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:50%;background:rgba(255,45,143,.14);border:1px solid rgba(255,45,143,.45);backdrop-filter:blur(8px)">
+            <span style="font-size:17px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,255,255,.6),0 0 18px rgba(255,45,143,1);animation:beat 2.2s ease-in-out infinite">♥</span>
+            <span style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;color:#ffd6e9">1.2K</span>
+          </div>
+        </div>
+
+        <div style="position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:9px;padding:0 12px 22px">
+
+          <div style="display:flex;gap:7px;align-items:flex-end">
+            <div style="flex:1;padding:3px;border-radius:16px;background:rgba(6,8,24,.42);border:1.5px solid #2de3d0;box-shadow:0 0 12px rgba(45,227,208,.45)">
+              <div style="position:relative;height:112px;border-radius:12px;overflow:hidden;background:#141a3a;background-image:radial-gradient(closest-side at 46% 32%, rgba(45,227,208,.2), transparent 70%)">
+                <div style="position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);width:56px;height:70px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.14),transparent 72%)"></div>
+                <div style="position:absolute;left:0;right:0;bottom:0;height:52px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.72))"></div>
+                <div style="position:absolute;top:4px;left:4px;padding:2px 7px;border-radius:10px;background:rgba(6,8,24,.6);backdrop-filter:blur(6px);font-family:Archivo,sans-serif;font-weight:800;font-size:9px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">DEV</div>
+                <div class="cclock" style="position:absolute;top:4px;right:4px;padding:1px 5px;border-radius:6px;background:rgba(4,33,31,.7);border:1px solid rgba(45,227,208,.8);font-family:'Azeret Mono',monospace;font-weight:700;font-size:9px;color:#7ff2e6">0:42</div>
+              </div>
+            </div>
+            <div style="flex:1;padding:3px;border-radius:16px;background:rgba(6,8,24,.42);border:1.5px solid #ff2d8f;box-shadow:0 0 14px rgba(255,45,143,.7)">
+              <div style="position:relative;height:112px;border-radius:12px;overflow:hidden;background:#141a3a;background-image:radial-gradient(closest-side at 48% 32%, rgba(255,45,143,.24), transparent 70%)">
+                <div style="position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);width:56px;height:70px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.15),transparent 72%)"></div>
+                <div style="position:absolute;left:0;right:0;bottom:0;height:52px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.72))"></div>
+                <div style="position:absolute;top:4px;left:4px;padding:2px 7px;border-radius:10px;background:rgba(6,8,24,.6);border:1px solid rgba(255,45,143,.7);backdrop-filter:blur(6px);font-family:Archivo,sans-serif;font-weight:800;font-size:9px;color:#fff">JUNE</div>
+                <div class="kepttag" style="position:absolute;top:24px;right:4px;padding:1px 7px;border-radius:9px;background:rgba(255,45,143,.85);font-family:'Azeret Mono',monospace;font-weight:700;font-size:7px;letter-spacing:.12em;color:#3f0119">KEPT</div>
+              </div>
+            </div>
+            <div style="flex:1;padding:3px;border-radius:16px;background:rgba(255,45,143,.12);border:2px solid #ff2d8f;box-shadow:0 0 18px rgba(255,45,143,.85)">
+              <div style="position:relative;height:112px;border-radius:12px;background:rgba(6,8,24,.5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px">
+                <div style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:26px;line-height:1;color:#fff;text-shadow:0 0 14px rgba(255,214,233,.9)">0:15</div>
+                <div style="font-family:'Azeret Mono',monospace;font-size:7.5px;font-weight:700;letter-spacing:.14em;color:#ffd6e9;text-align:center;line-height:1.6">CHAIR 3<br>PICK ONE</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:7px;padding:10px;border-radius:18px;background:rgba(255,45,143,.1);border:1.5px solid rgba(255,45,143,.5);backdrop-filter:blur(10px)">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:13px;line-height:1;color:#ff2d8f;text-shadow:0 0 10px rgba(255,45,143,.95)">♥</span>
+              <div style="flex:1;min-width:0;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.9)">THE CROWD IS TELLING YOU</div>
+              <div style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:rgba(255,214,233,.85)">TALLIES LIVE</div>
+            </div>
+
+            <div style="display:flex;gap:6px">
+              <div style="flex:1;position:relative;padding:3px;border-radius:14px;background:rgba(255,45,143,.2);border:1.5px solid #ff2d8f;box-shadow:0 0 16px rgba(255,45,143,.55)" style-active="transform:scale(.96)">
+                <div style="position:absolute;top:-7px;left:50%;transform:translateX(-50%);padding:1px 6px;border-radius:8px;background:#ff2d8f;font-family:'Azeret Mono',monospace;font-weight:700;font-size:6.5px;letter-spacing:.1em;color:#fff;white-space:nowrap">FAVOURITE</div>
+                <div class="lc-silhouette" style="position:relative;height:74px;border-radius:11px;overflow:hidden;background:linear-gradient(180deg,#2a2450,#12142e)">
+                  <div style="position:absolute;left:50%;top:26%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:rgba(185,168,255,.42)"></div>
+                  <div style="position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:32px;height:40px;border-radius:16px 16px 11px 11px;background:linear-gradient(180deg,rgba(185,168,255,.42),rgba(185,168,255,.14))"></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:3px;padding-top:4px"><span style="font-size:9px;line-height:1;color:#ff2d8f">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:10px;color:#fff">412</span></div>
+              </div>
+              <sc-for list="{{ draftRest }}" as="p" hint-placeholder-count="3">
+                <div style="flex:1;padding:3px;border-radius:14px;background:rgba(6,8,24,.42);border:1px solid rgba(185,168,255,.45);backdrop-filter:blur(6px)" style-active="transform:scale(.96);background:rgba(255,45,143,.22)">
+                  <div class="lc-silhouette" style="position:relative;height:74px;border-radius:11px;overflow:hidden;background:linear-gradient(180deg,#232045,#101227)">
+                    <div style="position:absolute;left:50%;top:26%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:rgba(185,168,255,.3)"></div>
+                    <div style="position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:32px;height:40px;border-radius:16px 16px 11px 11px;background:linear-gradient(180deg,rgba(185,168,255,.3),rgba(185,168,255,.1))"></div>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:center;gap:3px;padding-top:4px"><span style="font-size:9px;line-height:1;color:rgba(255,45,143,.85)">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:10px;color:rgba(255,214,233,.9)">{{ p.hearts }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <div style="font-family:Archivo,sans-serif;font-size:10px;color:rgba(255,214,233,.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 4px rgba(0,0,0,.9)">No pick → the <strong style="color:#fff">favourite</strong> is seated</div>
+              <div style="display:flex;align-items:center;gap:5px;white-space:nowrap">
+                <span style="display:flex;gap:-4px;align-items:center">
+                  <span style="width:16px;height:16px;border-radius:50%;background:linear-gradient(180deg,#3b2a72,#1c1444);border:1px solid rgba(185,168,255,.5)"></span>
+                  <span style="width:16px;height:16px;border-radius:50%;margin-left:-5px;background:linear-gradient(180deg,#3b2a72,#1c1444);border:1px solid rgba(185,168,255,.5)"></span>
+                  <span style="width:16px;height:16px;border-radius:50%;margin-left:-5px;background:linear-gradient(180deg,#3b2a72,#1c1444);border:1px solid rgba(185,168,255,.5)"></span>
+                </span>
+                <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:rgba(214,205,255,.8)">NEXT 3 STEP UP</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="max-height:44px;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;overflow:hidden;-webkit-mask-image:linear-gradient(to top,#000 62%,transparent);mask-image:linear-gradient(to top,#000 62%,transparent)">
+            <sc-for list="{{ chat }}" as="m" hint-placeholder-count="2">
+              <div style="display:flex;gap:6px;align-items:baseline;text-shadow:0 1px 4px rgba(0,0,0,.98)">
+                <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:12px;color:{{ m.color }};white-space:nowrap">{{ m.who }}</span>
+                <span style="font-family:Archivo,sans-serif;font-size:13px;line-height:1.35;color:#fff">{{ m.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="flex:1;min-width:0;height:48px;display:flex;align-items:center;padding:0 15px;border-radius:24px;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.4);backdrop-filter:blur(10px);font-family:Archivo,sans-serif;font-size:14px;color:rgba(238,240,255,.55)">Say something…</div>
+            <div style="flex:none;height:48px;padding:0 16px;display:flex;align-items:center;gap:6px;border-radius:24px;background:rgba(45,227,208,.24);border:1.5px solid rgba(45,227,208,.85);backdrop-filter:blur(10px);color:#aef7ee;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;letter-spacing:.03em;text-shadow:0 1px 4px rgba(0,0,0,.9);box-shadow:0 0 20px rgba(45,227,208,.35)">🎬 LAST CALL</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 · KEYBOARD -->
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.2em;color:#2de3d0">4 · KEYBOARD OPEN · .kb-open</div>
+      <div style="font-size:12px;color:rgba(238,240,255,.6);max-width:390px;line-height:1.5">Spectator mid-type. Video and chairs do not move a pixel — chat shrinks and the composer rides <code style="font-family:'Azeret Mono',monospace;font-size:11px;color:#7ff2e6">visualViewport</code>, role CTA still in its slot.</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:42px;overflow:hidden;background:#080b20;box-shadow:0 0 0 3px #241a52,0 30px 60px -18px rgba(0,0,0,.85)">
+        <div style="position:absolute;inset:0;background:#141a3a;background-image:radial-gradient(closest-side at 42% 30%, rgba(255,255,255,.16), transparent 66%),radial-gradient(closest-side at 74% 74%, rgba(255,45,143,.24), transparent 72%)">
+          <div style="position:absolute;left:50%;top:26%;transform:translate(-50%,-50%);width:150px;height:190px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.14),transparent 72%)"></div>
+          <div style="position:absolute;left:0;right:0;top:0;height:150px;background:linear-gradient(180deg,rgba(4,6,18,.88),transparent)"></div>
+          <div style="position:absolute;left:0;right:0;bottom:296px;height:210px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.92))"></div>
+        </div>
+
+        <div style="position:absolute;left:0;right:0;top:0;display:flex;flex-wrap:nowrap;align-items:center;gap:7px;padding:52px 13px 10px;overflow:hidden">
+          <div style="width:44px;height:44px;margin-left:-13px;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;color:#ff6fb0;text-shadow:0 1px 4px rgba(0,0,0,.95)">‹</div>
+          <div style="font-family:Monoton,cursive;font-size:12px;letter-spacing:.04em;color:#fff;text-shadow:0 0 12px rgba(255,45,143,.85),0 1px 4px rgba(0,0,0,.9);flex:none">LAST CALL</div>
+          <div id="rt_title" hidden="hidden"></div>
+          <div style="flex:1"></div>
+          <div class="chip" style="display:flex;align-items:center;gap:4px;min-height:28px;padding:0 9px;border-radius:14px;background:rgba(8,11,32,.62);border:1px solid rgba(255,45,143,.6);backdrop-filter:blur(8px)"><span style="width:6px;height:6px;border-radius:50%;background:#ff2d8f;box-shadow:0 0 7px 2px rgba(255,45,143,.9);animation:tally 1.8s infinite"></span><span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#ffd6e9">LIVE</span></div>
+          <div class="lc-phase" style="display:flex;align-items:center;gap:5px;min-height:28px;padding:0 9px;border-radius:14px;background:rgba(45,227,208,.14);border:1px solid rgba(45,227,208,.5);backdrop-filter:blur(8px);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#aef7ee">R2<span class="lc-rounds__dots" style="display:flex;gap:3px;align-items:center"><i style="width:5px;height:5px;border-radius:50%;background:#2de3d0;box-shadow:0 0 6px rgba(45,227,208,.9)"></i><i style="width:5px;height:5px;border-radius:50%;background:#2de3d0;box-shadow:0 0 6px rgba(45,227,208,.9)"></i><i style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.22)"></i></span></div>
+          <div class="chip" style="display:flex;align-items:center;gap:4px;height:28px;padding:0 9px;border-radius:14px;background:rgba(8,11,32,.62);border:1px solid rgba(185,168,255,.4);backdrop-filter:blur(8px);font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#eef0ff">👁 312</div>
+          <div class="chip lc-credits" style="display:flex;align-items:center;gap:3px;height:28px;padding:0 9px;border-radius:14px;background:linear-gradient(180deg,#ffd6e9,#ff8ac2);font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#4a0724">✦135</div>
+        </div>
+
+        <div style="position:absolute;left:13px;top:110px;padding:4px 11px;border-radius:14px;background:rgba(6,8,24,.6);border:1px solid rgba(255,45,143,.75);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;color:#fff">MARLA V.</div>
+
+        <div class="lc-rail" style="position:absolute;z-index:3;right:13px;top:112px;display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.55);backdrop-filter:blur(8px);color:#b9a8ff;font-size:16px">🛡</div>
+          <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.45);backdrop-filter:blur(8px);font-size:19px">🎁</div>
+          <div style="width:44px;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:50%;background:rgba(255,45,143,.14);border:1px solid rgba(255,45,143,.45);backdrop-filter:blur(8px)">
+            <span style="font-size:17px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,255,255,.6),0 0 18px rgba(255,45,143,1);animation:beat 2.2s ease-in-out infinite">♥</span>
+            <span style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;color:#ffd6e9">1.2K</span>
+          </div>
+        </div>
+
+        <div style="position:absolute;left:0;right:0;bottom:296px;display:flex;flex-direction:column;gap:8px;padding:0 12px 10px">
+          <div style="display:flex;gap:7px">
+            <div style="flex:1;padding:3px;border-radius:14px;background:rgba(6,8,24,.42);border:1px solid rgba(45,227,208,.5)">
+              <div style="position:relative;height:58px;border-radius:11px;overflow:hidden;background:#141a3a">
+                <div style="position:absolute;top:3px;left:4px;font-family:Archivo,sans-serif;font-weight:800;font-size:9px;color:#eef0ff;text-shadow:0 1px 3px #000">DEV</div>
+                <div style="position:absolute;bottom:3px;right:4px;font-family:'Azeret Mono',monospace;font-weight:700;font-size:8px;color:#7ff2e6">0:42</div>
+              </div>
+            </div>
+            <div style="flex:1;padding:3px;border-radius:14px;background:rgba(6,8,24,.42);border:1px solid rgba(255,45,143,.6)">
+              <div style="position:relative;height:58px;border-radius:11px;overflow:hidden;background:#141a3a;background-image:radial-gradient(closest-side at 48% 34%, rgba(255,45,143,.2), transparent 72%)">
+                <div style="position:absolute;top:3px;left:4px;font-family:Archivo,sans-serif;font-weight:800;font-size:9px;color:#fff;text-shadow:0 1px 3px #000">JUNE</div>
+                <div style="position:absolute;bottom:3px;right:4px;font-family:'Azeret Mono',monospace;font-weight:700;font-size:8px;color:#ffd6e9">0:08</div>
+              </div>
+            </div>
+            <div style="flex:1;padding:3px;border-radius:14px;background:rgba(6,8,24,.32);border:1px dashed rgba(45,227,208,.4)">
+              <div style="height:58px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-family:'Azeret Mono',monospace;font-size:7.5px;letter-spacing:.12em;color:rgba(45,227,208,.7)">OPEN</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:6px;align-items:center">
+            <div style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.14em;color:#ff8ac2;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,.95)">THE LINE</div>
+            <sc-for list="{{ onDeck }}" as="p" hint-placeholder-count="4">
+              <div style="width:30px;height:30px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#141a3a;border:1px solid rgba(255,45,143,.45);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:12px;color:#fff">{{ p.i }}</div>
+            </sc-for>
+            <div style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:#b9a8ff">+5</div>
+          </div>
+
+          <div style="max-height:96px;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;overflow:hidden;-webkit-mask-image:linear-gradient(to top,#000 58%,transparent);mask-image:linear-gradient(to top,#000 58%,transparent)">
+            <sc-for list="{{ chat }}" as="m" hint-placeholder-count="3">
+              <div style="display:flex;gap:6px;align-items:baseline;text-shadow:0 1px 4px rgba(0,0,0,.98)">
+                <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:12px;color:{{ m.color }};white-space:nowrap">{{ m.who }}</span>
+                <span style="font-family:Archivo,sans-serif;font-size:13px;line-height:1.35;color:#fff">{{ m.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="flex:1;min-width:0;height:48px;display:flex;align-items:center;padding:0 15px;border-radius:24px;background:rgba(6,8,24,.72);border:1.5px solid #ff2d8f;box-shadow:0 0 18px rgba(255,45,143,.4);font-family:Archivo,sans-serif;font-size:14px;color:#fff">Saturday works<span style="width:1.5px;height:18px;margin-left:2px;background:#ff2d8f"></span></div>
+            <div style="flex:none;height:48px;padding:0 18px;display:flex;align-items:center;gap:7px;border-radius:24px;background:rgba(255,45,143,.34);border:1.5px solid rgba(255,255,255,.9);backdrop-filter:blur(10px);color:#fff;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;letter-spacing:.04em;text-shadow:0 1px 4px rgba(0,0,0,.9);box-shadow:0 0 30px rgba(255,45,143,.7)"><span style="font-size:15px">♥</span>JOIN THE LINE</div>
+          </div>
+        </div>
+
+        <div style="position:absolute;left:0;right:0;bottom:0;height:296px;background:#c9cdd6;border-top:1px solid rgba(0,0,0,.2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+          <div style="font-family:Archivo,sans-serif;font-weight:700;font-size:12px;letter-spacing:.1em;color:rgba(20,26,58,.55)">SYSTEM KEYBOARD</div>
+          <div style="font-family:'Azeret Mono',monospace;font-size:10px;line-height:1.7;color:rgba(20,26,58,.45);text-align:center;max-width:250px">overlays the video · nothing below it<br>reflows · backdrop stays fixed</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5 · EMPTY -->
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.2em;color:#2de3d0">5 · EMPTY ROOM · .is-empty · FIRST RUN</div>
+      <div style="font-size:12px;color:rgba(238,240,255,.6);max-width:390px;line-height:1.5">Her alone, full screen — the first thing every new host sees. No dead 3-up grid; chairs collapse to one strip. LAST CALL is disabled until someone's in a chair.</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:42px;overflow:hidden;background:#080b20;box-shadow:0 0 0 3px #241a52,0 30px 60px -18px rgba(0,0,0,.85)">
+        <div style="position:absolute;inset:0;background:#141a3a;background-image:radial-gradient(closest-side at 44% 32%, rgba(255,255,255,.18), transparent 66%),radial-gradient(closest-side at 76% 78%, rgba(255,45,143,.2), transparent 72%)">
+          <div style="position:absolute;left:50%;top:28%;transform:translate(-50%,-50%);width:160px;height:200px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.16),transparent 72%)"></div>
+          <div style="position:absolute;left:0;right:0;top:0;height:150px;background:linear-gradient(180deg,rgba(4,6,18,.88),transparent)"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:400px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.46) 42%,rgba(4,6,18,.8))"></div>
+        </div>
+
+        <div style="position:absolute;left:0;right:0;top:0;display:flex;flex-wrap:nowrap;align-items:center;gap:7px;padding:52px 13px 10px;overflow:hidden">
+          <div style="width:44px;height:44px;margin-left:-13px;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;color:#ff6fb0;text-shadow:0 1px 4px rgba(0,0,0,.95)">‹</div>
+          <div style="font-family:Monoton,cursive;font-size:12px;letter-spacing:.04em;color:#fff;text-shadow:0 0 12px rgba(255,45,143,.85),0 1px 4px rgba(0,0,0,.9);flex:none">LAST CALL</div>
+          <div id="rt_title" hidden="hidden"></div>
+          <div style="flex:1"></div>
+          <div class="chip" style="display:flex;align-items:center;gap:4px;height:28px;padding:0 9px;border-radius:14px;background:rgba(8,11,32,.62);border:1px solid rgba(45,227,208,.55);backdrop-filter:blur(8px)"><span style="width:6px;height:6px;border-radius:50%;background:#2de3d0"></span><span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.1em;color:#7ff2e6">WARMING UP</span></div>
+          <div class="chip" style="display:flex;align-items:center;gap:4px;height:28px;padding:0 9px;border-radius:14px;background:rgba(8,11,32,.62);border:1px solid rgba(185,168,255,.4);backdrop-filter:blur(8px);font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#eef0ff">👁 12</div>
+          <div class="chip lc-credits" style="display:flex;align-items:center;gap:3px;height:28px;padding:0 9px;border-radius:14px;background:linear-gradient(180deg,#ffd6e9,#ff8ac2);font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#4a0724">✦135</div>
+        </div>
+
+        <div style="position:absolute;left:13px;top:110px;display:flex;align-items:center;gap:7px">
+          <div style="padding:4px 11px;border-radius:14px;background:rgba(6,8,24,.6);border:1px solid rgba(255,45,143,.75);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;color:#fff">MARLA V.</div>
+          <div style="padding:3px 9px;border-radius:12px;background:linear-gradient(180deg,#ffb4d9,#ff2d8f);font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.14em;color:#5c0230">HOST</div>
+        </div>
+        <div class="lc-rail" style="position:absolute;z-index:3;right:13px;top:112px;display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.55);backdrop-filter:blur(8px);color:#b9a8ff;font-size:16px">🛡</div>
+          <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.45);backdrop-filter:blur(8px);font-size:19px">🎁</div>
+          <div style="width:44px;height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:50%;background:rgba(255,45,143,.14);border:1px solid rgba(255,45,143,.45);backdrop-filter:blur(8px)" style-active="transform:scale(.94);background:rgba(255,45,143,.34)">
+            <span style="font-size:17px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,255,255,.6),0 0 18px rgba(255,45,143,1);animation:beat 2.2s ease-in-out infinite">♥</span>
+            <span style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;color:#ffd6e9">0</span>
+          </div>
+        </div>
+
+        <div style="position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:12px;padding:0 20px 22px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:11px;text-align:center">
+            <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:27px;line-height:1.1;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.4),0 0 24px rgba(255,45,143,.8)">YOU'RE ON AIR<br>AND YOU LOOK GREAT</div>
+            <div style="font-family:Archivo,sans-serif;font-size:13px;line-height:1.5;color:rgba(238,240,255,.78);max-width:290px;text-wrap:pretty;text-shadow:0 1px 4px rgba(0,0,0,.95)">Nobody's in a chair yet. Share the room, or wait — people are browsing the lobby right now.</div>
+          </div>
+
+          <div style="display:flex;gap:6px;align-items:center;padding:9px 12px;border-radius:14px;background:rgba(6,8,24,.5);border:1px dashed rgba(45,227,208,.4);backdrop-filter:blur(6px)">
+            <span class="lc-strip__label" style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.14em;color:rgba(45,227,208,.85);white-space:nowrap">3 CHAIRS OPEN</span>
+            <span class="lc-strip__hint" style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:11px;color:rgba(238,240,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">they fill from the line</span>
+            <span class="lc-strip__count" style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:#b9a8ff;white-space:nowrap">0 WAITING</span>
+          </div>
+
+          <div style="max-height:104px;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;overflow:hidden;-webkit-mask-image:linear-gradient(to top,#000 58%,transparent);mask-image:linear-gradient(to top,#000 58%,transparent)">
+            <div style="display:flex;gap:6px;align-items:baseline;text-shadow:0 1px 4px rgba(0,0,0,.98)">
+              <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:12px;color:#7ff2e6;white-space:nowrap">THE HOUSE</span>
+              <span style="font-family:Archivo,sans-serif;font-size:13px;line-height:1.35;color:#fff">Room's live — a moderator is watching 🛡</span>
+            </div>
+          </div>
+
+          <div style="height:54px;display:flex;align-items:center;justify-content:center;gap:9px;border-radius:27px;background:linear-gradient(180deg,#ffb4d9,#ff2d8f 52%,#c60d68);color:#fff;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:16px;letter-spacing:.05em;box-shadow:inset 0 2px 0 rgba(255,255,255,.85),0 0 0 2.5px rgba(255,255,255,.9),0 6px 0 #8c0847,0 0 40px rgba(255,45,143,.7)" style-active="transform:translateY(6px);box-shadow:inset 0 2px 0 rgba(255,255,255,.85),0 0 0 2.5px rgba(255,255,255,.9)">🔗 SHARE THE ROOM</div>
+
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="flex:1;min-width:0;height:48px;display:flex;align-items:center;padding:0 15px;border-radius:24px;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.4);font-family:Archivo,sans-serif;font-size:14px;color:rgba(238,240,255,.55)">Say hello to the room…</div>
+            <div style="flex:none;height:48px;padding:0 16px;display:flex;align-items:center;gap:6px;border-radius:24px;background:rgba(45,227,208,.1);border:1.5px solid rgba(45,227,208,.4);backdrop-filter:blur(10px);font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:rgba(127,242,230,.75)">🎬 LAST CALL</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1400,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      visibility: [
+        { who: "Host", ink: "#ff8ac2", a: "—", aink: "rgba(238,240,255,.3)",
+          b: "FULL", bink: "#7ff2e6", c: "COUNT ONLY", cink: "rgba(185,168,255,.75)" },
+        { who: "Chairs", ink: "#aef7ee", a: "FULL", aink: "#7ff2e6",
+          b: "FULL", bink: "#7ff2e6", c: "COUNT ONLY", cink: "rgba(185,168,255,.75)" },
+        { who: "Room / line", ink: "#ffd6e9", a: "FULL", aink: "#7ff2e6",
+          b: "FULL", bink: "#7ff2e6", c: "COUNT ONLY", cink: "rgba(185,168,255,.75)" },
+        { who: "— in a storm", ink: "rgba(255,214,233,.75)", a: "—", aink: "rgba(238,240,255,.3)",
+          b: "—", bink: "rgba(238,240,255,.3)", c: "FACES + LIVE ♥", cink: "#ffd6e9" }
+      ],
+      onDeck: [
+        { i: "D", hearts: "412" },
+        { i: "M", hearts: "268" },
+        { i: "T", hearts: "97" },
+        { i: "A", hearts: "41" }
+      ],
+      draftRest: [
+        { n: "MARISOL", hearts: "268" },
+        { n: "THEO", hearts: "97" },
+        { n: "ADE", hearts: "41" }
+      ],
+      chat: [
+        { who: "Dock", text: "chair two is charming, I'll say it", color: "#b9a8ff" },
+        { who: "THE HOUSE", text: "June took chair two 🎬", color: "#7ff2e6" },
+        { who: "Marisol", text: "the cooking answer! ten out of ten", color: "#b9a8ff" },
+        { who: "THE HOUSE", text: "Dock sent a neon rose ♥", color: "#ff8ac2" },
+        { who: "Theo", text: "genuinely rooting for both of them", color: "#b9a8ff" }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

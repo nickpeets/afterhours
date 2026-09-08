@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Archivo:wght@400;500;600;700;800&family=Azeret+Mono:wght@400;600;700&family=Monoton&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#080b20;}
+  *{box-sizing:border-box;}
+  @keyframes tally{0%,100%{opacity:1}50%{opacity:.35}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+
+<section style="width:1500px;padding:56px 52px 52px;font-family:Archivo,sans-serif;color:#eef0ff;background:#080b20;background-image:radial-gradient(90% 40% at 12% 0%, rgba(255,45,143,.16), transparent 62%),radial-gradient(70% 34% at 92% 100%, rgba(45,227,208,.12), transparent 60%)">
+
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:32px;margin-bottom:34px">
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.3em;color:#2de3d0">ONE NIGHT, END TO END</div>
+      <div style="font-family:Monoton,cursive;font-size:44px;line-height:1.12;letter-spacing:.02em;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.5),0 0 26px rgba(255,45,143,.9),0 0 60px rgba(255,45,143,.4)">THE FLOW</div>
+    </div>
+    <div style="display:flex;gap:9px">
+      <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:13px;background:{{ l.bg }};border:1px solid {{ l.edge }}">
+          <span style="width:9px;height:9px;border-radius:3px;background:{{ l.hue }}"></span>
+          <span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;color:{{ l.ink }};white-space:nowrap">{{ l.n }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <sc-for list="{{ acts }}" as="a" hint-placeholder-count="4">
+    <div style="margin-bottom:26px;padding:20px 22px 22px;border-radius:24px;background:{{ a.bg }};border:1.5px solid {{ a.edge }}">
+      <div style="display:flex;align-items:baseline;gap:13px;margin-bottom:16px">
+        <span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:11px;letter-spacing:.2em;color:{{ a.hue }};white-space:nowrap">{{ a.kicker }}</span>
+        <span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:24px;line-height:1.1;color:#fff;white-space:nowrap">{{ a.title }}</span>
+        <span style="flex:1;min-width:0;font-size:12.5px;line-height:1.5;color:rgba(238,240,255,.62)">{{ a.sub }}</span>
+        <span style="font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.1em;color:rgba(238,240,255,.4);white-space:nowrap">{{ a.dur }}</span>
+      </div>
+
+      <div style="display:flex;align-items:stretch;gap:0">
+        <sc-for list="{{ a.steps }}" as="s" hint-placeholder-count="4">
+          <div style="display:flex;align-items:stretch;flex:{{ s.flex }};min-width:0">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:0">
+              <div style="display:flex;flex-direction:column;gap:8px;padding:13px 14px;border-radius:16px;background:{{ s.cardbg }};border:{{ s.cardborder }};box-shadow:{{ s.glow }};min-height:150px">
+                <div style="display:flex;align-items:center;gap:7px">
+                  <div style="width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:9px;background:{{ s.chipbg }};font-size:13px;color:{{ s.chipink }}">{{ s.icon }}</div>
+                  <div style="flex:1;min-width:0;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;line-height:1.15;color:#fff">{{ s.n }}</div>
+                </div>
+                <div style="font-size:11.5px;line-height:1.5;color:rgba(238,240,255,.72);text-wrap:pretty">{{ s.body }}</div>
+                <sc-if value="{{ s.who }}" hint-placeholder-val="{{ true }}">
+                  <div style="margin-top:auto;display:flex;flex-wrap:wrap;gap:5px">
+                    <sc-for list="{{ s.who }}" as="w" hint-placeholder-count="2">
+                      <span style="padding:2px 8px;border-radius:9px;background:{{ w.bg }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:8px;letter-spacing:.1em;color:{{ w.ink }};white-space:nowrap">{{ w.n }}</span>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+              <sc-if value="{{ s.note }}" hint-placeholder-val="{{ true }}">
+                <div style="padding:7px 4px 0;font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:{{ s.noteInk }};line-height:1.5">{{ s.note }}</div>
+              </sc-if>
+            </div>
+            <sc-if value="{{ s.arrow }}" hint-placeholder-val="{{ true }}">
+              <div style="flex:none;width:26px;display:flex;align-items:center;justify-content:center;font-size:15px;color:{{ s.arrowInk }}">→</div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+
+  <div style="display:flex;gap:22px;align-items:stretch">
+    <div style="flex:1.35;min-width:0;padding:20px 22px;border-radius:24px;background:rgba(255,45,143,.1);border:1.5px solid rgba(255,45,143,.5)">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:14px">
+        <span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:11px;letter-spacing:.2em;color:#ff8ac2">ACT V</span>
+        <span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:24px;color:#fff">SHE DECIDES</span>
+        <span style="flex:1;min-width:0;font-size:12.5px;color:rgba(238,240,255,.62)">Four exits, and only one ends the night.</span>
+      </div>
+      <div style="display:flex;gap:9px">
+        <sc-for list="{{ exits }}" as="e" hint-placeholder-count="4">
+          <div style="flex:{{ e.flex }};min-width:0;display:flex;flex-direction:column;gap:8px;padding:13px 14px;border-radius:16px;background:{{ e.bg }};border:{{ e.border }};box-shadow:{{ e.glow }}">
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="font-size:14px;color:{{ e.hue }}">{{ e.icon }}</span>
+              <span style="flex:1;min-width:0;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;line-height:1.15;color:{{ e.ink }}">{{ e.n }}</span>
+            </div>
+            <div style="font-size:11.5px;line-height:1.5;color:{{ e.bodyink }};text-wrap:pretty">{{ e.body }}</div>
+            <div style="margin-top:auto;font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.1em;color:{{ e.hue }};line-height:1.5">{{ e.goes }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="flex:1;min-width:0;padding:20px 22px;border-radius:24px;background:rgba(45,227,208,.09);border:1.5px solid rgba(45,227,208,.45)">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:14px">
+        <span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:11px;letter-spacing:.2em;color:#7ff2e6">ACT VI</span>
+        <span style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:24px;color:#fff">AFTER HOURS</span>
+      </div>
+      <div style="display:flex;gap:0;align-items:stretch">
+        <sc-for list="{{ after }}" as="s" hint-placeholder-count="4">
+          <div style="display:flex;align-items:stretch;flex:1;min-width:0">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;padding:12px 12px;border-radius:15px;background:rgba(6,8,24,.5);border:1px solid rgba(45,227,208,.4)">
+              <div style="font-size:14px;color:#7ff2e6">{{ s.icon }}</div>
+              <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;line-height:1.15;color:#fff">{{ s.n }}</div>
+              <div style="font-size:11px;line-height:1.45;color:rgba(174,247,238,.8);text-wrap:pretty">{{ s.body }}</div>
+            </div>
+            <sc-if value="{{ s.arrow }}" hint-placeholder-val="{{ true }}">
+              <div style="flex:none;width:22px;display:flex;align-items:center;justify-content:center;font-size:14px;color:rgba(127,242,230,.6)">→</div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <div style="margin-top:13px;padding:11px 13px;border-radius:14px;background:rgba(185,168,255,.1);border:1px solid rgba(185,168,255,.4);display:flex;align-items:flex-start;gap:9px">
+        <span style="font-size:13px;color:#b9a8ff">🛡</span>
+        <div style="flex:1;min-width:0;font-size:11px;line-height:1.5;color:rgba(214,205,255,.88)">Cut the Feed is final on camera but not on contact — the exchange screen exists so nobody loses a night's worth of nerve to a hung-up call.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:24px;display:flex;flex-wrap:wrap;gap:11px">
+    <sc-for list="{{ rails }}" as="r" hint-placeholder-count="3">
+      <div style="flex:1;min-width:300px;padding:14px 16px;border-radius:18px;background:{{ r.bg }};border:1px solid {{ r.edge }}">
+        <div style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.18em;color:{{ r.hue }};margin-bottom:6px">{{ r.k }}</div>
+        <div style="font-size:11.5px;line-height:1.55;color:rgba(238,240,255,.75);text-wrap:pretty">{{ r.body }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1500,&quot;height&quot;:1180}}">
+const PINK = { hue: "#ff8ac2", bg: "rgba(255,45,143,.09)", edge: "rgba(255,45,143,.42)", ink: "#ffd6e9" };
+const TEAL = { hue: "#7ff2e6", bg: "rgba(45,227,208,.08)", edge: "rgba(45,227,208,.42)", ink: "#aef7ee" };
+const GOLD = { hue: "#ffd6e9", bg: "rgba(255,214,233,.08)", edge: "rgba(255,214,233,.45)", ink: "#ffd6e9" };
+const LILAC = { hue: "#b9a8ff", bg: "rgba(185,168,255,.08)", edge: "rgba(185,168,255,.38)", ink: "#d6cdff" };
+
+const TAG_HOST = { n: "HOST", bg: "rgba(255,45,143,.3)", ink: "#ffd6e9" };
+const TAG_SUITOR = { n: "SUITOR", bg: "rgba(45,227,208,.22)", ink: "#aef7ee" };
+const TAG_CROWD = { n: "CROWD", bg: "rgba(255,214,233,.2)", ink: "#ffd6e9" };
+const TAG_SERVER = { n: "SERVER", bg: "rgba(185,168,255,.2)", ink: "#d6cdff" };
+
+function step(o) {
+  return Object.assign({
+    flex: "1", arrow: true, arrowInk: "rgba(255,255,255,.28)",
+    cardbg: "rgba(6,8,24,.5)", cardborder: "1px solid rgba(185,168,255,.28)", glow: "none",
+    chipbg: "rgba(185,168,255,.18)", chipink: "#d6cdff", icon: "◈",
+    who: null, note: "", noteInk: "rgba(238,240,255,.42)"
+  }, o);
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      legend: [
+        { n: "HER MOVE", hue: "#ff2d8f", ...PINK },
+        { n: "THE SHOW", hue: "#2de3d0", ...TEAL },
+        { n: "THE CROWD", hue: "#ffd6e9", ...GOLD },
+        { n: "SAFETY", hue: "#b9a8ff", ...LILAC }
+      ],
+
+      acts: [
+        Object.assign({}, LILAC, {
+          kicker: "ACT I", title: "IN THE DOOR", dur: "~90 SEC",
+          sub: "Verified once, then straight to rooms. Radius is shown but not filtered until a market has density.",
+          steps: [
+            step({ icon: "♥", n: "Log in", body: "Email and password. New users get name, password and one selfie for face verification.", who: [TAG_HOST, TAG_SUITOR] }),
+            step({ icon: "☺", n: "Verify", body: "One selfie, framed as a promise to her rather than a hurdle. It's why the rooms stay real.", who: [TAG_SERVER], cardborder: "1px solid rgba(185,168,255,.45)", note: "GATE — no unverified face ever reaches a chair", noteInk: "rgba(185,168,255,.75)" }),
+            step({ icon: "⌕", n: "Lobby", body: "Full-bleed live feeds, each showing phase, seats and heart count. Sort and filter, or go live yourself.", who: [TAG_SUITOR, TAG_CROWD] }),
+            step({ arrow: false, icon: "◔", n: "Radius", body: "Distance shows on every card; filtering by it switches on per-market at ~10 concurrent rooms.", cardborder: "1px dashed rgba(185,168,255,.4)", note: "PHASE 2 — parked at launch" })
+          ]
+        }),
+        Object.assign({}, PINK, {
+          kicker: "ACT II", title: "SHE GOES LIVE", dur: "~2 MIN",
+          sub: "Everything she'll need mid-show gets chosen now, calmly, before anyone is watching.",
+          steps: [
+            step({ icon: "♥", n: "GO LIVE", body: "One tap from the lobby's fixed bar. Her room opens in pre-show — she's on camera, no chairs filled.", who: [TAG_HOST], cardbg: "rgba(255,45,143,.12)", cardborder: "1.5px solid rgba(255,45,143,.6)", glow: "0 0 22px rgba(255,45,143,.3)", chipbg: "rgba(255,45,143,.3)", chipink: "#fff" }),
+            step({ icon: "◈", n: "Pick her decks", body: "Icebreakers, Real Talk, Funny, Spicy. Two are on by default so she can go live without deciding anything.", who: [TAG_HOST], note: "NO FREE-TYPING ANYWHERE — every question is vetted" }),
+            step({ icon: "◈", n: "Queue an opener", body: "One question staged so round 1 opens on a question instead of silence. Target is chosen on the spot.", who: [TAG_HOST] }),
+            step({ arrow: false, icon: "🔗", n: "Share the room", body: "Empty-room state's primary action. Chairs fill from the bench as suitors arrive.", who: [TAG_HOST, TAG_CROWD] })
+          ]
+        }),
+        Object.assign({}, GOLD, {
+          kicker: "ACT III", title: "THE ROOM FILLS", dur: "OPEN-ENDED",
+          sub: "Empty quadrants are the join button. The bench starts scoring the moment anyone queues.",
+          steps: [
+            step({ icon: "+", n: "Take the chair", body: "Tapping an open cell joins the bench — seating stays hers, so the CTA says \"she picks from the bench.\"", who: [TAG_SUITOR], cardbg: "rgba(45,227,208,.1)", cardborder: "1.5px solid rgba(45,227,208,.5)", chipbg: "rgba(45,227,208,.24)", chipink: "#aef7ee" }),
+            step({ icon: "♥", n: "Bench earns", body: "Front three of the queue sit in square scored cells, gaining hearts continuously. Behind them the line is a number.", who: [TAG_CROWD], cardbg: "rgba(255,214,233,.1)", cardborder: "1.5px solid rgba(255,214,233,.5)", chipbg: "rgba(255,214,233,.22)", chipink: "#ffd6e9", note: "SHE SEES SILHOUETTES + COUNTS, NEVER FACES", noteInk: "rgba(255,214,233,.75)" }),
+            step({ arrow: false, icon: "🎬", n: "Show start", body: "Third chair fills → a 3-second lights-down beat, all roles. Wordmark blooms, three names land, chatting time is over.", who: [TAG_SERVER], cardborder: "1px solid rgba(255,214,233,.45)" })
+          ]
+        }),
+        Object.assign({}, TEAL, {
+          kicker: "ACT IV", title: "THREE ROUNDS", dur: "~6 MIN · ×3",
+          sub: "Spotlight, then open floor, three times. Server owns every clock; she can skip any of them.",
+          steps: [
+            step({ icon: "◈", n: "She asks", body: "Tap a question, tap a chair. ASK sits in the composer — her primary verb during the show.", who: [TAG_HOST], cardbg: "rgba(255,45,143,.1)", cardborder: "1.5px solid rgba(255,45,143,.5)", chipbg: "rgba(255,45,143,.26)", chipink: "#fff" }),
+            step({ icon: "◐", n: "Split screen", body: "The quad breaks to a two-up for 30s — her and him at 305px. Rivals collapse to a muted strip, mics cut.", who: [TAG_SUITOR], cardbg: "rgba(45,227,208,.1)", cardborder: "1.5px solid rgba(45,227,208,.5)", chipbg: "rgba(45,227,208,.24)", chipink: "#aef7ee", note: "HIS AUDITION CLOCK PAUSES — answering never costs him time" }),
+            step({ icon: "♥", n: "Open floor", body: "45s, all mics live, the only phase a paid 15s floor hold works in. Crowd hearts the chairs and the bench.", who: [TAG_CROWD, TAG_SUITOR], note: "MONEY CAN NEVER EAT AN ANSWER" }),
+            step({ arrow: false, icon: "↑", n: "A chair opens", body: "She passes someone → 5s to override → the bench leader rises on the camera-flip. No modal, no storm.", who: [TAG_CROWD, TAG_SERVER], cardbg: "rgba(255,194,77,.12)", cardborder: "1.5px solid rgba(255,194,77,.55)", chipbg: "rgba(255,194,77,.26)", chipink: "#ffe0b4", note: "LOSE ONE → A STRIKE. THREE → OUT FOR THE NIGHT", noteInk: "rgba(255,194,77,.8)" })
+          ]
+        })
+      ],
+
+      exits: [
+        { flex: "1.15", icon: "♥", n: "KEEP ONE", hue: "#fff", ink: "#fff", bodyink: "rgba(255,255,255,.85)",
+          bg: "rgba(255,45,143,.24)", border: "1.5px solid rgba(255,255,255,.85)", glow: "0 0 26px rgba(255,45,143,.5)",
+          body: "The win. Tap a chair and the show ends — the other cells go cold, his warms to match hers.",
+          goes: "→ FINALE · BACKSTAGE" },
+        { flex: "1", icon: "✕", n: "PASS ONE", hue: "#b9a8ff", ink: "#eef0ff", bodyink: "rgba(238,240,255,.7)",
+          bg: "rgba(6,8,24,.55)", border: "1.5px solid rgba(185,168,255,.45)", glow: "none",
+          body: "One seat opens, the bench fills it, three fresh rounds begin with the same host.",
+          goes: "→ BACK TO ACT IV" },
+        { flex: "1", icon: "⟳", n: "CLEAR THE DECK", hue: "#b9a8ff", ink: "rgba(238,240,255,.9)", bodyink: "rgba(238,240,255,.62)",
+          bg: "rgba(6,8,24,.45)", border: "1px dashed rgba(185,168,255,.4)", glow: "none",
+          body: "All three passed after a confirm. New cast seated one at a time so the crowd watches it assemble.",
+          goes: "→ BACK TO ACT IV" },
+        { flex: "1", icon: "🎬", n: "WALK AWAY", hue: "#7ff2e6", ink: "rgba(238,240,255,.9)", bodyink: "rgba(238,240,255,.62)",
+          bg: "rgba(45,227,208,.1)", border: "1px solid rgba(45,227,208,.45)", glow: "none",
+          body: "Available any time, needs a confirm. She ends the night keeping nobody, and that's a clean ending.",
+          goes: "→ WALKED ALONE" }
+      ],
+
+      after: [
+        { icon: "★", n: "Finale", body: "Winner reveal with the recap card, or the walked-alone variant.", arrow: true },
+        { icon: "✂", n: "Backstage", body: "Private two-tile room, host + winner. One Cut the Feed button.", arrow: true },
+        { icon: "✦", n: "Exchange", body: "After the cut: pass a number or email, or decline.", arrow: true },
+        { icon: "◈", n: "Thread", body: "Private chat if both said yes. The night keeps going.", arrow: false }
+      ],
+
+      rails: [
+        Object.assign({}, LILAC, { k: "ALWAYS ON, EVERY PHASE",
+          body: "🛡 never moves, never dims, never gates behind credits — same slot in every role and phase, including keyboard-open and mid-spotlight. Her exit is one tap from anywhere." }),
+        Object.assign({}, GOLD, { k: "WHO KNOWS WHAT",
+          body: "The room and the chairs see the bench in full; she sees silhouettes with live counts. Hearts are the only signal that reaches her, so the crowd casts the show continuously rather than in bursts." }),
+        Object.assign({}, TEAL, { k: "SERVER OWNS THE CLOCK",
+          body: "Every phase timer, the 5s override, shot clocks, floor holds, strike counts and the fallback seat live server-side. The client renders state and sends intent." })
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

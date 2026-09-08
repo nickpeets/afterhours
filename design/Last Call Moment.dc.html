@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Archivo:wght@400;500;600;700;800&family=Azeret+Mono:wght@400;600;700&family=Monoton&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#080b20;}
+  *{box-sizing:border-box;}
+  @keyframes tally{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes emberpulse{0%,100%{box-shadow:0 0 18px rgba(255,194,77,.4)}50%{box-shadow:0 0 32px rgba(255,194,77,.75),0 0 60px rgba(255,194,77,.25)}}
+  @keyframes mic{0%,100%{opacity:1;transform:scaleY(1)}50%{opacity:.55;transform:scaleY(.5)}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+
+<section style="padding:52px 46px 44px;font-family:Archivo,sans-serif;color:#eef0ff">
+  <div id="10a" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+    <div style="font-family:'Azeret Mono',monospace;font-size:11px;letter-spacing:.3em;color:#ffc24d">TURN 10 · THE MOMENT · <a href="#10a" style="color:#ff6fb0;text-decoration:none">10a</a></div>
+    <div style="font-family:Monoton,cursive;font-size:42px;line-height:1.14;letter-spacing:.02em;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.5),0 0 26px rgba(255,194,77,.75),0 0 60px rgba(255,194,77,.32)">THE MOMENT</div>
+    <div style="font-size:14px;max-width:860px;color:rgba(238,240,255,.74);line-height:1.55;text-wrap:pretty">Twenty seconds where the quad never breaks — Dev and Sam just blur and mute, and only to Marla and June. Amber is the paid lane — it's already the ✦ credit colour and the bench's leader hue, so a premium beat reads as premium without inventing anything. Five screens, starting with the trigger itself — the last draft skipped straight to the moment already running — then the indicator detail and my rulings on the two open questions.</div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;gap:11px;max-width:1060px;margin-bottom:30px;padding:14px 16px;border-radius:18px;background:rgba(255,45,143,.1);border:1.5px solid rgba(255,45,143,.5)">
+    <span style="font-size:16px;color:#ff8ac2">♥</span>
+    <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.6;color:rgba(255,214,233,.9);text-wrap:pretty"><strong style="color:#fff">One objection before the screens.</strong> As written, a stranger buys twenty seconds of her attention and she cannot decline for the first ten. That is the exact dynamic this product was built to avoid, and it is the one thing here that could stop a host going live. I've designed a <strong style="color:#fff">decline</strong> — an ✕ live from second zero that refunds his token and tells him nothing except that the moment ended. His ten-second floor still protects the purchase in every ordinary case; it just no longer holds her in place.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start">
+    <sc-for list="{{ frames }}" as="f" hint-placeholder-count="4">
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:7px;height:7px;border-radius:50%;background:{{ f.dot }}"></span>
+          <span style="font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:{{ f.dot }}">{{ f.tag }}</span>
+        </div>
+        <div style="width:390px;font-family:Archivo,sans-serif;font-size:12px;line-height:1.5;color:rgba(238,240,255,.62);text-wrap:pretty">{{ f.blurb }}</div>
+
+        <div style="position:relative;width:390px;height:844px;border-radius:42px;overflow:hidden;background:#080b20;box-shadow:0 0 0 2.5px {{ f.rim }},0 26px 52px -16px rgba(0,0,0,.85);display:flex;flex-direction:column">
+          <div style="position:absolute;inset:0;background:{{ f.field }}"></div>
+
+          <div style="position:relative;display:flex;flex-wrap:nowrap;align-items:center;gap:7px;padding:52px 12px 8px;overflow:hidden">
+            <div style="font-family:Monoton,cursive;font-size:12px;letter-spacing:.04em;color:#fff;text-shadow:0 0 12px rgba(255,45,143,.85);flex:none">LAST CALL</div>
+            <div style="flex:1"></div>
+            <div style="display:flex;align-items:center;gap:4px;min-height:25px;padding:0 8px;border-radius:13px;background:{{ f.phasebg }};border:{{ f.phaseborder }};font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.08em;color:{{ f.phaseink }};white-space:nowrap">{{ f.phase }}</div>
+            <sc-if value="{{ f.indicator }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;align-items:center;gap:5px;min-height:25px;padding:0 9px;border-radius:13px;background:rgba(255,194,77,.16);border:1px solid rgba(255,194,77,.6);backdrop-filter:blur(8px);white-space:nowrap">
+                <span style="width:7px;height:7px;border-radius:50%;background:linear-gradient(180deg,#ffe0a8,#ffc24d);box-shadow:0 0 7px rgba(255,194,77,.9);animation:tally 2.4s ease-in-out infinite"></span>
+                <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.1em;color:#ffd98a">{{ f.indicator }}</span>
+              </div>
+            </sc-if>
+            <div style="display:flex;align-items:center;gap:3px;min-height:25px;padding:0 8px;border-radius:13px;background:rgba(8,11,32,.62);border:1px solid rgba(185,168,255,.4);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:#eef0ff;white-space:nowrap">👁 312</div>
+            <div style="display:flex;align-items:center;gap:2px;min-height:25px;padding:0 8px;border-radius:13px;background:linear-gradient(180deg,#ffd6e9,#ff8ac2);font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;color:#4a0724;white-space:nowrap">✦135</div>
+          </div>
+
+          <sc-if value="{{ f.quad }}" hint-placeholder-val="{{ true }}">
+            <div id="rt_chairs" style="position:relative;display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:0 9px">
+              <sc-for list="{{ f.quad }}" as="c" hint-placeholder-count="4">
+                <div class="chair" style="position:relative;padding:2.5px;border-radius:17px;background:{{ c.rimbg }};border:{{ c.rim }};box-shadow:{{ c.glow }}">
+                  <div style="position:relative;height:168px;border-radius:14px;overflow:hidden;background:#0b0f22">
+                    <div style="position:absolute;inset:-8px;background:{{ c.well }};background-image:{{ c.wash }};filter:{{ c.feedFilter }};transform:{{ c.feedTransform }}">
+                      <div style="position:absolute;left:50%;top:36%;transform:translate(-50%,-50%);width:78px;height:94px;border-radius:50%;background:radial-gradient(closest-side,{{ c.faceLight }},transparent 72%)"></div>
+                    </div>
+                    <div style="position:absolute;left:0;right:0;bottom:0;height:52px;background:linear-gradient(180deg,transparent,{{ c.scrim }})"></div>
+                    <sc-if value="{{ c.muted }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;inset:0;background:rgba(6,10,30,.4)"></div>
+                      <div style="position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px">
+                        <span style="font-size:18px;line-height:1;color:rgba(255,255,255,.85);text-shadow:0 1px 4px rgba(0,0,0,.9)">🔇</span>
+                        <span style="font-family:'Azeret Mono',monospace;font-size:7px;font-weight:700;letter-spacing:.12em;color:rgba(255,255,255,.75);text-shadow:0 1px 4px rgba(0,0,0,.9)">MUTED</span>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ c.hearts }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;top:6px;left:6px;display:flex;align-items:center;gap:3px;padding:2px 8px;border-radius:11px;background:rgba(6,8,24,.62);backdrop-filter:blur(6px)"><span style="font-size:11px;line-height:1;color:#ff2d8f;text-shadow:0 0 8px rgba(255,45,143,.95)">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:11px;color:#ffd6e9">{{ c.hearts }}</span></div>
+                    </sc-if>
+                    <sc-if value="{{ c.clock }}" hint-placeholder-val="{{ true }}">
+                      <div class="cclock" style="position:absolute;top:6px;right:6px;padding:2px 7px;border-radius:8px;background:rgba(4,33,31,.74);border:1px solid rgba(45,227,208,.8);font-family:'Azeret Mono',monospace;font-weight:700;font-size:10px;color:#7ff2e6">{{ c.clock }}</div>
+                    </sc-if>
+                    <sc-if value="{{ c.tag }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;top:6px;right:6px;padding:2px 8px;border-radius:10px;background:{{ c.tagbg }};font-family:'Azeret Mono',monospace;font-weight:700;font-size:7.5px;letter-spacing:.12em;color:{{ c.tagink }}">{{ c.tag }}</div>
+                    </sc-if>
+                    <div style="position:absolute;left:6px;bottom:6px;display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:11px;background:{{ c.namebg }};backdrop-filter:blur(8px);font-family:Archivo,sans-serif;font-weight:800;font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)">{{ c.n }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="position:relative;margin-top:8px;padding:0 9px;display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex;align-items:center;gap:7px;padding:0 2px">
+                <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;letter-spacing:.18em;color:#ffd6e9;white-space:nowrap">THE BENCH</span>
+                <span style="flex:1;min-width:0;font-family:Archivo,sans-serif;font-size:10px;color:rgba(214,205,255,.72);white-space:nowrap">earning hearts until a chair opens</span>
+                <span style="font-family:'Azeret Mono',monospace;font-size:8.5px;font-weight:700;color:rgba(214,205,255,.6);white-space:nowrap">+5 IN LINE</span>
+              </div>
+              <div style="display:flex;gap:5px">
+                <sc-for list="{{ f.bench }}" as="b" hint-placeholder-count="3">
+                  <div style="flex:1;position:relative;padding:2px;border-radius:14px;background:rgba(6,8,24,.5);border:1px solid rgba(185,168,255,.35)">
+                    <div style="position:relative;height:112px;border-radius:11px;overflow:hidden;background:#141a3a;background-image:radial-gradient(closest-side at 46% 36%, rgba(255,255,255,.2), transparent 72%)">
+                      <div style="position:absolute;left:0;right:0;bottom:0;height:40px;background:linear-gradient(180deg,transparent,rgba(4,6,18,.9))"></div>
+                      <div style="position:absolute;top:4px;left:4px;display:flex;align-items:center;gap:2px;padding:1px 6px;border-radius:9px;background:rgba(6,8,24,.62)"><span style="font-size:10px;line-height:1;color:#ff2d8f">♥</span><span style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:10.5px;color:#ffd6e9">{{ b.n }}</span></div>
+                      <div style="position:absolute;left:4px;right:4px;bottom:4px;text-align:center;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:12px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.95)">{{ b.name }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.pill }}" hint-placeholder-val="{{ true }}">
+            <div style="position:relative;margin:11px 12px 0;display:flex;align-items:center;gap:10px;padding:9px 11px 9px 15px;border-radius:26px;background:linear-gradient(180deg,rgba(58,40,10,.9),rgba(30,20,4,.92));border:1.5px solid rgba(255,194,77,.85);backdrop-filter:blur(12px);animation:emberpulse 2.6s ease-in-out infinite">
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <div style="font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.18em;color:rgba(255,217,138,.9);white-space:nowrap">{{ f.pillKicker }}</div>
+                <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;line-height:1.1;color:#fff;white-space:nowrap">{{ f.pillTitle }}</div>
+              </div>
+              <div style="flex:1;min-width:0;height:4px;border-radius:2px;background:rgba(255,194,77,.2);overflow:hidden"><div style="width:{{ f.pillBar }};height:100%;border-radius:2px;background:linear-gradient(90deg,#ffc24d,#ffe0a8)"></div></div>
+              <div style="font-family:'Azeret Mono',monospace;font-weight:700;font-size:24px;line-height:1;color:#fff;text-shadow:0 0 16px rgba(255,194,77,.95);white-space:nowrap">{{ f.pillClock }}</div>
+              <sc-if value="{{ f.pillAction }}" hint-placeholder-val="{{ true }}">
+                <div style="flex:none;min-height:44px;padding:0 15px;display:flex;align-items:center;border-radius:22px;cursor:pointer;background:{{ f.pillActionBg }};border:{{ f.pillActionBorder }};font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:{{ f.pillActionInk }};white-space:nowrap" style-active="transform:scale(.96)">{{ f.pillAction }}</div>
+              </sc-if>
+            </div>
+            <sc-if value="{{ f.pillNote }}" hint-placeholder-val="{{ true }}">
+              <div style="position:relative;padding:7px 16px 0;font-family:Archivo,sans-serif;font-size:10.5px;line-height:1.45;color:{{ f.pillNoteInk }}">{{ f.pillNote }}</div>
+            </sc-if>
+          </sc-if>
+
+          <div style="position:relative;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;padding:8px 11px 20px">
+            <div id="chatstrip" style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;overflow:hidden;-webkit-mask-image:linear-gradient(to top,#000 60%,transparent);mask-image:linear-gradient(to top,#000 60%,transparent)">
+              <sc-for list="{{ f.chat }}" as="m" hint-placeholder-count="3">
+                <div style="display:flex;gap:6px;align-items:baseline;text-shadow:0 1px 4px rgba(0,0,0,.98)">
+                  <span style="font-family:Archivo,sans-serif;font-weight:800;font-size:11.5px;color:{{ m.color }};white-space:nowrap">{{ m.who }}</span>
+                  <span style="font-family:Archivo,sans-serif;font-size:12.5px;line-height:1.35;color:#fff">{{ m.text }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div id="inputbar" style="display:flex;gap:8px;align-items:center">
+              <div style="flex:1;min-width:0;min-height:46px;display:flex;align-items:center;padding:0 14px;border-radius:23px;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.4);font-family:Archivo,sans-serif;font-size:13.5px;color:rgba(238,240,255,.5)">Say something…</div>
+              <div style="flex:none;width:46px;height:46px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.55);color:#b9a8ff;font-size:17px">🛡</div>
+              <div style="flex:none;min-height:46px;padding:0 17px;display:flex;align-items:center;gap:6px;border-radius:23px;cursor:pointer;background:{{ f.ctabg }};border:{{ f.ctaborder }};font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;color:{{ f.ctaink }};text-shadow:0 1px 4px rgba(0,0,0,.9);box-shadow:{{ f.ctaglow }};white-space:nowrap">{{ f.cta }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+
+    <div style="display:flex;flex-direction:column;gap:9px;width:472px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:7px;height:7px;border-radius:50%;background:#ffc24d"></span>
+        <span style="font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.16em;color:#ffc24d">5 · THE INDICATOR · DETAIL</span>
+      </div>
+      <div style="font-size:12px;line-height:1.5;color:rgba(238,240,255,.62);text-wrap:pretty">Three candidates, one survivor. The deciding constraint isn't taste — it's that the room must not be told who bought it.</div>
+
+      <div style="padding:22px;border-radius:24px;background:#0d1020;border:1.5px solid rgba(255,194,77,.4);display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;justify-content:center;padding:22px 0 8px">
+          <div style="display:flex;align-items:center;gap:9px;padding:0 16px;min-height:44px;border-radius:22px;background:rgba(255,194,77,.16);border:1.5px solid rgba(255,194,77,.6);backdrop-filter:blur(8px)">
+            <span style="width:11px;height:11px;border-radius:50%;background:linear-gradient(180deg,#ffe0a8,#ffc24d);box-shadow:0 0 12px rgba(255,194,77,.95);animation:tally 2.4s ease-in-out infinite"></span>
+            <span style="font-family:'Azeret Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.12em;color:#ffd98a">THE FLOOR IS TAKEN</span>
+            <span style="width:1px;height:15px;background:rgba(255,194,77,.35)"></span>
+            <span style="font-family:'Azeret Mono',monospace;font-size:14px;font-weight:700;color:#fff">0:08</span>
+          </div>
+        </div>
+        <div style="font-size:12px;line-height:1.6;color:rgba(238,240,255,.78);text-wrap:pretty;text-align:center;padding:0 8px">Header pill, amber, beside the phase chip. A slow 2.4s ember — not a blink. It names the state, never the buyer, and the countdown turns it from an alert into something to wait out.</div>
+
+        <div style="display:flex;flex-direction:column;gap:9px;padding-top:4px;border-top:1px solid rgba(255,255,255,.09)">
+          <sc-for list="{{ options }}" as="o" hint-placeholder-count="3">
+            <div style="display:flex;align-items:flex-start;gap:11px;padding:12px 13px;border-radius:15px;background:{{ o.bg }};border:1px solid {{ o.edge }}">
+              <span style="flex:none;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:{{ o.markbg }};font-size:12px;color:{{ o.markink }}">{{ o.mark }}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:14px;color:{{ o.ink }}">{{ o.n }}</div>
+                <div style="font-size:11.5px;line-height:1.5;color:rgba(238,240,255,.68);margin-top:2px;text-wrap:pretty">{{ o.body }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="padding:18px;border-radius:22px;background:rgba(255,194,77,.09);border:1.5px solid rgba(255,194,77,.45);display:flex;flex-direction:column;gap:11px">
+        <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:19px;color:#fff">Ruling · under 20 seconds left</div>
+        <div style="font-size:12.5px;line-height:1.6;color:rgba(238,240,255,.8);text-wrap:pretty"><strong style="color:#ffd98a">Lock the button at T-20, and offer to queue it.</strong> Truncating sells a twenty-second product and delivers six — for a paid feature that's a refund conversation, and it teaches people the thing is unreliable. Letting it run past the phase boundary is worse: a purchase would be overriding the show's clock, which breaks the one rule everything else here rests on.</div>
+        <div style="font-size:12.5px;line-height:1.6;color:rgba(238,240,255,.8);text-wrap:pretty">So at 0:20 remaining the control greys with <span style="font-family:'Azeret Mono',monospace;font-size:11px;color:#ffd98a">NOT ENOUGH FLOOR LEFT</span>, and offers one tap to arm it for the next open floor — it fires automatically the second that phase opens, before anyone else can. He loses nothing, the show keeps its clock, and the pressure to use it early is a feature.</div>
+        <div style="font-size:12.5px;line-height:1.6;color:rgba(238,240,255,.8);text-wrap:pretty">Round 3's open floor is the exception: it's 90s of deliberation, so the lock lands at T-20 there too and there is no next phase to queue into. Arm it earlier or lose it.</div>
+      </div>
+
+      <div style="padding:18px;border-radius:22px;background:rgba(45,227,208,.08);border:1.5px solid rgba(45,227,208,.45);display:flex;flex-direction:column;gap:11px">
+        <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:19px;color:#fff">Three things to settle</div>
+        <div style="font-size:12.5px;line-height:1.6;color:rgba(238,240,255,.78);text-wrap:pretty"><strong style="color:#7ff2e6">This replaces the floor hold.</strong> The spec already has a paid 15s mute at 10 ✦, mingle-only. Two overlapping paid mutes in one phase is one too many — retire the old one and let the moment be the mechanic.</div>
+        <div style="font-size:12.5px;line-height:1.6;color:rgba(238,240,255,.78);text-wrap:pretty"><strong style="color:#7ff2e6">It isn't private, and the copy shouldn't say it is.</strong> Dev and Sam are muted only on Marla's feed and June's — the two of them can still hear and see each other, and the rest of the room never loses a thing. "Private moment" promises a booth we're not building; <em>the floor is taken</em> is true from every seat.</div>
+        <div style="font-size:12.5px;line-height:1.6;color:rgba(238,240,255,.78);text-wrap:pretty"><strong style="color:#7ff2e6">Both mutes are real, and independent.</strong> Marla's <code style="font-family:'Azeret Mono',monospace;font-size:11px;color:#fff">updateReceiveSettings</code> silences Dev and Sam on her end; June's does the same on his — two separate calls, so one can land without the other. If either fails to apply in time, drop the moment and refund rather than run it half-blocked.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1400,&quot;height&quot;:1100}}">
+const WARM = { well: "#1a1230", wash: "radial-gradient(120% 88% at 24% 12%, rgba(255,168,200,.34), transparent 62%), radial-gradient(90% 60% at 62% 108%, rgba(255,110,170,.22), transparent 66%)", faceLight: "rgba(255,226,236,.3)", scrim: "rgba(30,6,20,.88)" };
+const COOL = { well: "#101a30", wash: "radial-gradient(closest-side at 46% 32%, rgba(45,227,208,.19), transparent 68%)", faceLight: "rgba(214,244,255,.16)", scrim: "rgba(4,6,18,.88)" };
+/* Amber is the paid lane: already the credit colour and the bench leader hue,
+   so a premium beat needs no new token. During a moment BOTH cells take an
+   amber rim — the pair is what was bought, not either person. */
+const EMBER = { rim: "2px solid #ffc24d", rimbg: "rgba(255,194,77,.14)", glow: "0 0 26px rgba(255,194,77,.55), 0 0 60px rgba(255,194,77,.18)" };
+
+const FIELD_ROOM = "radial-gradient(100% 30% at 26% 0%, rgba(255,45,143,.18), transparent 60%)";
+
+const PHASE_FLOOR = { phase: "FLOOR 0:31", phasebg: "rgba(45,227,208,.16)", phaseborder: "1px solid rgba(45,227,208,.6)", phaseink: "#aef7ee" };
+const CTA_ASK = { cta: "ASK", ctabg: "rgba(255,45,143,.34)", ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff", ctaglow: "0 0 26px rgba(255,45,143,.6)" };
+const CTA_LEAVE = { cta: "↩ LEAVE", ctabg: "rgba(185,168,255,.14)", ctaborder: "1.5px solid rgba(185,168,255,.6)", ctaink: "#d6cdff", ctaglow: "none" };
+const CTA_JOIN = { cta: "♥ BENCH", ctabg: "rgba(255,45,143,.34)", ctaborder: "1.5px solid rgba(255,255,255,.9)", ctaink: "#fff", ctaglow: "0 0 26px rgba(255,45,143,.6)" };
+const CTA_MOMENT = { cta: "✦ MOMENT", ctabg: "rgba(255,194,77,.24)", ctaborder: "1.5px solid rgba(255,194,77,.85)", ctaink: "#ffd98a", ctaglow: "0 0 22px rgba(255,194,77,.5)" };
+
+function chair(o) {
+  return Object.assign({
+    rim: "1.5px solid rgba(45,227,208,.55)", rimbg: "rgba(6,8,24,.45)", glow: "0 0 10px rgba(45,227,208,.22)",
+    namebg: "rgba(6,8,24,.66)", clock: "", tag: "", tagbg: "", tagink: "",
+    muted: false, feedFilter: "none", feedTransform: "none"
+  }, COOL, o);
+}
+const hostCell = (o) => Object.assign({
+  rim: "2px solid #ff2d8f", rimbg: "rgba(255,45,143,.14)",
+  glow: "0 0 26px rgba(255,45,143,.6), 0 0 60px rgba(255,138,194,.28)",
+  n: "MARLA V.", hearts: "1.2K", namebg: "rgba(255,45,143,.85)",
+  tag: "HOST", tagbg: "linear-gradient(180deg,#ffb4d9,#ff2d8f)", tagink: "#5c0230", clock: "",
+  muted: false, feedFilter: "none", feedTransform: "none"
+}, WARM, o);
+const mutedChair = (n) => chair({ n, muted: true, hearts: "", feedFilter: "blur(9px)", feedTransform: "scale(1.16)", rim: "1.5px solid rgba(45,227,208,.22)", glow: "none" });
+const pairedChair = (o) => chair(Object.assign({ tag: "ON THE FLOOR", tagbg: "rgba(255,194,77,.22)", tagink: "#ffd98a" }, EMBER, o));
+
+const BENCH = [{ name: "DOCK", n: "412" }, { name: "MARISOL", n: "268" }, { name: "THEO", n: "97" }];
+const CHAT_MOMENT = [
+  { who: "Marisol", text: "he actually used it", color: "#b9a8ff" },
+  { who: "THE HOUSE", text: "the floor is taken · 0:08", color: "#ffd98a" },
+  { who: "Dock", text: "bold", color: "#b9a8ff" }
+];
+const CHAT_ROOM = [
+  { who: "Theo", text: "wait what happened to the audio", color: "#b9a8ff" },
+  { who: "THE HOUSE", text: "the floor is taken · 0:08", color: "#ffd98a" },
+  { who: "Marisol", text: "someone spent a token 💀", color: "#b9a8ff" }
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    const momentBase = { field: FIELD_ROOM, chat: CHAT_MOMENT, ...PHASE_FLOOR, indicator: "", bench: BENCH };
+    return {
+      frames: [
+        Object.assign({}, {
+          tag: "0 · SEATED CHAIR · BEFORE ANYONE BUYS", dot: "#7ff2e6", rim: "#2e4a52", field: FIELD_ROOM,
+          blurb: "The screen the other four assume already happened. Floor's open, nobody's spent a token yet — this is any seated chair's own view. The trigger lives where every other primary action already lives: the bottom CTA, swapped to amber and to ✦ MOMENT. Tap it and you're frame 2 from the other side. Spend it and the button is gone — greys to USED for the rest of the show.",
+          indicator: "", chat: CHAT_ROOM, ...PHASE_FLOOR, ...CTA_MOMENT,
+          quad: [
+            hostCell({}),
+            chair({ n: "DEV", hearts: "88", clock: "0:42" }),
+            chair({ n: "JUNE", hearts: "156", clock: "0:53" }),
+            chair({ n: "YOU", hearts: "156", clock: "1:04", rim: "2px solid #ff2d8f", rimbg: "rgba(255,45,143,.12)", glow: "0 0 20px rgba(255,45,143,.6)", namebg: "rgba(255,45,143,.85)" })
+          ],
+          bench: BENCH
+        }),
+        Object.assign({}, momentBase, {
+          tag: "1 · HOST · FIRST TEN SECONDS", dot: "#ffc24d", rim: "#5a4a1e", pill: true,
+          blurb: "The quad never breaks. Her tile and June's take the amber ring — the pair the token bought — while Dev and Sam blur and mute, same as a held floor. The catch: only she and June see it that way. Dev, Sam, and everyone else keep the room exactly as it was. From second zero the pill carries an ✕: her decline, refunded, and June's told nothing but that it ended.",
+          quad: [
+            hostCell(EMBER),
+            pairedChair({ n: "JUNE", hearts: "240" }),
+            mutedChair("DEV"),
+            mutedChair("SAM")
+          ],
+          pillKicker: "SOMEONE SPENT A TOKEN", pillTitle: "The floor is his", pillBar: "85%", pillClock: "0:17",
+          pillAction: "✕", pillActionBg: "rgba(90,30,64,.5)", pillActionBorder: "1.5px solid rgba(255,145,180,.6)", pillActionInk: "#ffc2d6",
+          pillNote: "Decline any time. His token comes back and he isn't told why.", pillNoteInk: "rgba(255,214,233,.72)",
+          ...CTA_ASK
+        }),
+        Object.assign({}, momentBase, {
+          tag: "2 · HOST · AFTER TEN SECONDS", dot: "#ffc24d", rim: "#5a4a1e", pill: true,
+          blurb: "At 0:10 the ✕ becomes END EARLY — same slot, warmer read. Nothing else about the quad moves: Dev and Sam are still just two blurred, muted tiles to her, not gone from the show.",
+          quad: [
+            hostCell(EMBER),
+            pairedChair({ n: "JUNE", hearts: "240" }),
+            mutedChair("DEV"),
+            mutedChair("SAM")
+          ],
+          pillKicker: "20-SECOND MOMENT", pillTitle: "The floor is his", pillBar: "40%", pillClock: "0:08",
+          pillAction: "END EARLY", pillActionBg: "rgba(255,194,77,.22)", pillActionBorder: "1.5px solid rgba(255,194,77,.8)", pillActionInk: "#ffd98a",
+          pillNote: "Ending now is a wrap, not a refusal — no refund, no penalty either way.", pillNoteInk: "rgba(255,217,138,.75)",
+          ...CTA_ASK
+        }),
+        Object.assign({}, momentBase, {
+          tag: "3 · BUYING CHAIR", dot: "#aef7ee", rim: "#2e4a52", pill: true,
+          blurb: "June's own screen: same quad, no controls — he bought the time, he doesn't own it. Dev and Sam blur and mute for him too, so the two of them get the moment while Dev, Sam, and the rest of the room keep theirs untouched.",
+          quad: [
+            hostCell(EMBER),
+            pairedChair({ n: "YOU", hearts: "240", tag: "YOUR MOMENT", tagbg: "rgba(255,194,77,.9)", tagink: "#3d2600", namebg: "rgba(255,194,77,.9)" }),
+            mutedChair("DEV"),
+            mutedChair("SAM")
+          ],
+          pillKicker: "YOUR TOKEN · ONE PER SHOW", pillTitle: "You have the floor", pillBar: "40%", pillClock: "0:08",
+          pillAction: "", pillNote: "Your shot clock is paused. She can end this at any time.", pillNoteInk: "rgba(255,217,138,.72)",
+          ...CTA_LEAVE
+        }),
+        Object.assign({}, {
+          tag: "4 · OTHER CHAIRS, BENCH & CROWD", dot: "#7ff2e6", rim: "#2e4a52", field: FIELD_ROOM,
+          blurb: "Nothing collapses. Everyone still sees and hears the whole room — only her receive settings changed — so the only difference is one amber pill in the header. All three non-buying audiences get exactly this view.",
+          indicator: "TAKEN", chat: CHAT_ROOM, ...PHASE_FLOOR, ...CTA_JOIN,
+          quad: [
+            hostCell({}),
+            chair({ n: "DEV", hearts: "88", clock: "0:42" }),
+            chair({ n: "JUNE", hearts: "240", tag: "ON THE FLOOR", tagbg: "rgba(255,194,77,.22)", tagink: "#ffd98a" }),
+            chair({ n: "YOU", hearts: "156", clock: "1:04", rim: "2px solid #ff2d8f", rimbg: "rgba(255,45,143,.12)", glow: "0 0 20px rgba(255,45,143,.6)", namebg: "rgba(255,45,143,.85)" })
+          ],
+          bench: BENCH
+        })
+      ],
+
+      options: [
+        { mark: "✓", n: "Header pill · THE FLOOR IS TAKEN", markbg: "#ffc24d", markink: "#3d2600", ink: "#ffd98a",
+          bg: "rgba(255,194,77,.12)", edge: "rgba(255,194,77,.55)",
+          body: "Lives in the chip row where phase already lives, so the room reads it as show state rather than an interruption. It's the only option that can't leak who bought it." },
+        { mark: "✕", n: "Ring on the buyer's tile", markbg: "rgba(90,30,64,.5)", markink: "#ffc2d6", ink: "rgba(238,240,255,.75)",
+          bg: "rgba(6,8,24,.5)", edge: "rgba(185,168,255,.3)",
+          body: "Prettiest option, and disqualified: it points straight at the buyer, which the brief rules out. It would also collide with the pink target ring during a spotlight." },
+        { mark: "✕", n: "Full-width status bar", markbg: "rgba(90,30,64,.5)", markink: "#ffc2d6", ink: "rgba(238,240,255,.75)",
+          bg: "rgba(6,8,24,.5)", edge: "rgba(185,168,255,.3)",
+          body: "Reads as an alert for something that isn't wrong, and costs a row of height the grid can't spare. Ambient was the requirement; a banner is the opposite." }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

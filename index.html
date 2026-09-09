@@ -1087,7 +1087,7 @@
         <div class="prefrow"><span class="preflabel">Your name</span>
           <input type="text" id="set_name" placeholder="What the room calls you" maxlength="18" autocomplete="nickname"></div>
         <div class="prefrow"><span class="preflabel">Your birthday</span>
-          <input type="date" id="set_bday" max="2008-08-03" style="color-scheme:dark"></div>
+          <input type="date" id="set_bday" style="color-scheme:dark"></div>
         <div class="prefrow"><span class="preflabel">I am</span>
           <div class="prefchips" id="set_gender">
             <button type="button" data-v="woman">Woman</button><button type="button" data-v="man">Man</button><button type="button" data-v="nonbinary">Nonbinary</button>
@@ -1987,7 +1987,21 @@ function beatPromotion(seatIdx){
 let ME=null, MYPROFILE=null;
 let COINS=120;
 function updateWallet(){ ["coinchip","rt_coinchip"].forEach(id=>{ const c=$(id); if(c) c.textContent="✦ "+COINS; }); }
+/* Birthday picker ceiling: the newest date that is already 18 years old
+   TODAY, computed on every render. The literal it replaces
+   (a literal max of 2008-08-03) drifted a day per day and locked out anyone who
+   turned 18 after it. UX affordance only - the age<18 check in the
+   set_go handler is the gate. Exported through window.__lc (gate 69). */
+function adultMaxBirthdate(now){
+  const t=now?new Date(now):new Date();
+  const y=t.getFullYear()-18, m=t.getMonth(), d=t.getDate();
+  const c=new Date(y,m,d);
+  if(c.getMonth()!==m) c.setDate(0);   // Feb 29 -> Feb 28 in a non-leap target year
+  const p=n=>String(n).padStart(2,"0");
+  return c.getFullYear()+"-"+p(c.getMonth()+1)+"-"+p(c.getDate());
+}
 function showSetup(){
+  const bd=$("set_bday"); if(bd) bd.max=adultMaxBirthdate();   // render-time, never a literal
   $("auth").classList.add("hide");
   $("lobby").style.display="none";
   $("setup").style.display="block";
@@ -6355,6 +6369,7 @@ window.__lc = {
   askTargets, askEligible, askMark, askedThisRound, askedThisCycle, egOpenDrawer, egFireSpotlight,
   /* bench entry — takeBenchSeat is the ONE door onto the bench */
   benchHeadshot, takeBenchSeat,
+  adultMaxBirthdate,
   /* seating / host actions */
   hostSeat, hostKeep, hostPass, autoSeatFromLine,
   /* bench order — nextOffBench is the ONE answer to "who is next off the

@@ -82,6 +82,38 @@ function requireChromium() {
 
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".webmanifest": "application/manifest+json", ".png": "image/png" };
 
+/* SNAP_LATCH — armed in EVERY context before index.html runs (gate 12).
+   A MutationObserver records the first time #snap carries .show and never
+   clears.  The capture overlay lives ~3s inside room entry and is gone
+   before open() resolves, so nothing armed after entry can see it; the
+   latch can.  It is read back through window.__lc.harness.snapSeen: the
+   setter below attaches it the moment index.html publishes window.__lc,
+   so gates reach it through the one export like every other reference.
+   Observation only — no app logic lives here. */
+const SNAP_LATCH = `(() => {
+  const harness = { snapSeen: false, snapSeenAt: null };
+  let mo = null;
+  const check = () => {
+    const s = document.getElementById("snap");
+    if (s && s.classList.contains("show")) {
+      harness.snapSeen = true; harness.snapSeenAt = Date.now();
+      if (mo) mo.disconnect();
+    }
+  };
+  mo = new MutationObserver(check);
+  const arm = () => {
+    mo.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
+    check();
+  };
+  if (document.documentElement) arm(); else document.addEventListener("DOMContentLoaded", arm, { once: true });
+  let lc;
+  Object.defineProperty(window, "__lc", {
+    configurable: true, enumerable: true,
+    get() { return lc; },
+    set(v) { lc = v; if (v && typeof v === "object") { try { v.harness = harness; } catch (e) {} } },
+  });
+})();`;
+
 class Client {
   constructor(harness, name, context, page) {
     this.harness = harness; this.name = name; this.context = context; this.page = page;
@@ -147,6 +179,7 @@ class Harness {
       ...opts,   // e.g. { isMobile:true, hasTouch:true } for real mobile emulation (gate 24)
     });
     await context.route("**/*", (route) => this._route(route, name));
+    await context.addInitScript(SNAP_LATCH);   // gate 12: #snap latch, armed before index.html runs
     const page = await context.newPage();
     const client = new Client(this, name, context, page);
     await context.exposeBinding("__rpcCall", async (_source, argJson) => {

@@ -8,8 +8,11 @@
  *   - ♥ TAKE A BENCH SEAT: capture gate (#snap) appears BEFORE the role
  *     write; the man lands on the bench with a face on file.
  *   - empty-chair tap: same door, same capture, same result.
- *   - rejoin after reload with face already on file: bench restored
- *     SILENTLY — the capture screen never shows, the photo is unchanged.
+ *   - rejoin after reload: the capture RUNS AGAIN.  There is no on-file
+ *     shortcut — takeBenchSeat() calls benchHeadshot() unconditionally, so
+ *     every bench join re-takes the photo and rewrites face_json.  The
+ *     on-file skip was removed by ruling 2026-08-23 (confirmed 2026-09-09);
+ *     this gate asserted the old contract until then.
  *   - host tap seats an individual at bench count 1 and 2 (no waiting for
  *     three), and the three-at-once rule survives ONLY as the automatic
  *     curtain-up when 3 sit benched with no host tap.  Both coexist.
@@ -102,23 +105,39 @@ module.exports = {
       await waitFor(() => (D.memberRow(room, "u_b") || {}).role === "line", 15000, "suitor B benched");
       t.ok(!!D.profiles.get("u_b")?.face_json?.photo, "the empty-chair path captured a headshot too");
 
-      /* --- rejoin/session-restore: face on file → silent, no re-prompt --- */
+      /* --- rejoin/session-restore: the capture RUNS AGAIN — no face-on-file shortcut --- */
       const PRESET = "data:image/jpeg;base64,PRESETFACE";
       D.profiles.get("u_c").face_json = { photo: PRESET };
       D.addMember(room, "u_c", "line");
+      /* The write half is op==="table"; rpcLog only records op==="rpc"
+         (backend-double.js), so the profiles update is invisible to it.
+         Same own-property instrument gate 62 uses to see table writes. */
+      const faceWrites = [];
+      const origTable = D.table.bind(D);
+      D.table = (clientId, spec) => {
+        faceWrites.push({ table: spec.table, action: spec.action, values: spec.values });
+        return origTable(clientId, spec);
+      };
+      /* The capture overlay lives ~3s inside room entry and is gone before
+         open() resolves, so nothing armed after open() can see it.  (The old
+         150ms page.evaluate poll never fired at all: it throws mid-reload and
+         its .catch swallowed the throw, so !snapShown passed against every
+         possible behaviour.)  The harness arms a MutationObserver latch on
+         #snap at context creation — lib/harness.js SNAP_LATCH — before
+         index.html runs, and exposes it as window.__lc.harness.snapSeen. */
       const c = await open("rejoinC", uC);
-      let snapShown = false;
-      const probe = setInterval(() => {
-        c.page.evaluate(() => document.getElementById("snap").classList.contains("show"))
-          .then((v) => { if (v) snapShown = true; }).catch(() => {});
-      }, 150);
       await waitFor(() => D.rpcLog.some((r) => r.clientId === "rejoinC" && r.name === "join_line"), 10000,
         "rejoin path re-affirms through the one door");
       await c.page.waitForTimeout(1200);
-      clearInterval(probe);
+      D.table = origTable;
       t.ok((D.memberRow(room, "u_c") || {}).role === "line", "reload lands him back on the bench");
-      t.ok(!snapShown, "restore is SILENT — the capture screen never appears on rejoin");
-      t.ok(D.profiles.get("u_c").face_json.photo === PRESET, "no re-capture: face_json is byte-identical");
+      const snapSeen = await c.page.evaluate(() => !!(window.__lc && window.__lc.harness && window.__lc.harness.snapSeen));
+      t.ok(snapSeen, "the capture screen appeared during rejoin — latch armed before entry, read through window.__lc.harness");
+      const faceWrite = faceWrites.find((w) => w.table === "profiles" && (w.action === "update" || w.action === "upsert") && w.values && w.values.face_json);
+      t.ok(!!faceWrite, "the rejoin wrote face_json through the profiles table — no on-file shortcut");
+      const rejoinPhoto = faceWrite && faceWrite.values.face_json && faceWrite.values.face_json.photo;
+      t.ok(!!rejoinPhoto && rejoinPhoto !== PRESET, "the re-taken photo differs from the seeded PRESET — a real re-capture, not a re-affirm");
+      t.ok((D.profiles.get("u_c").face_json || {}).photo !== PRESET, "the profile on file no longer carries the PRESET photo");
 
       /* --- host taps seat individuals at bench 1, 2, 3 — no count guard ---
              The room is moved to a live phase first: in preshow the automatic

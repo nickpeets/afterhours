@@ -2263,9 +2263,10 @@ async function openRoom(r){
   await loadRoomState();
   // rejoin/session-restore: a reload that lands back in the room still
   // holding the 'line' role must pass through the ONE bench door like every
-  // other path.  His face is already on file, so the door is silent — no
-  // re-prompt, no flash — but the write is re-affirmed by the same
-  // capture-gated entry point that admitted him the first time.
+  // other path.  There is no face-on-file shortcut: the door re-takes the
+  // photo — capture screen, countdown, fresh face_json — and only then
+  // re-affirms the role through the same capture-gated entry point that
+  // admitted him the first time (SPEC gate 12, ruling 2026-08-23).
   if(!AMHOST){
     /* self-fate decider #5 (gate 54's census): reads the TABLE, not the
        rendering — a reload that raced the roster commit must not re-affirm
@@ -5428,9 +5429,10 @@ function subscribeRoom(roomId){
    else: the ♥ TAKE A BENCH SEAT button, the empty-chair tap (which funnels
    into that button), and rejoin/session-restore after a reload.  The capture
    is AWAITED before the role write — the crowd's view of the bench IS the
-   photo.  A man whose face is already on file is restored silently (no
-   re-prompt); a denied camera or failed capture still seats him, with the
-   silhouette (graceful degrade).  The join_line RPC below is the only
+   photo.  There is no face-on-file shortcut — every entry, rejoin included,
+   re-takes the photo (SPEC gate 12, ruling 2026-08-23); a denied camera or
+   failed capture still seats him, with the silhouette (graceful degrade).
+   The join_line RPC below is the only
    bench-role write site in the file — gate 12 asserts that structurally.
    ========================================================================= */
 async function takeBenchSeat(){

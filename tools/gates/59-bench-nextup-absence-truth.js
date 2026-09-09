@@ -128,10 +128,19 @@ module.exports = {
         D.addMember(r, "u_f1", "line", { line_position: 500 });
         D.addMember(r, "u_f2", "line", { line_position: 600 });
         D.addMember(r, "u_f3", "line", { line_position: 700 });
-        D.addMember(r, "u_f4", "line", { line_position: 120 });   // last lane-wise, FIRST in the queue
+        D.addMember(r, "u_f4", "line", { line_position: 120 });   // last lane-wise, first in the queue, and the hearts leader below
       });
       await waitFor(async () => (await lanes()).filter((l) => l && l.uid).length === 3, 10000, "three lanes (four men)");
-      await setHearts({ u_f1: 4, u_f2: 2, u_f3: 1, u_f4: 0 });
+      /* The unrendered man's tally is not a synthetic state.  A heart is a
+         room_events row keyed by payload.target, and every client re-aggregates
+         the whole room on entry — seedHearts() over room_events, and the entry
+         replay in loadEventHistory() — with no filter on whether the target was
+         ever rendered here.  So a man hearted while he sat in a chair, or
+         hearted by another client, carries that tally into the line on a client
+         that never rendered his lane.  HEARTS is keyed by user_id and is only
+         ever cleared wholesale on room entry, so nothing zeroes him on the way
+         back to the line. */
+      await setHearts({ u_f1: 1, u_f2: 1, u_f3: 1, u_f4: 9 });
       const E = await lanes();
       const nE = await nextUid();
       const shown = E.map((l) => l.uid);

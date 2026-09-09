@@ -730,12 +730,20 @@ class BackendDouble {
     if (action === "update" || action === "upsert") {
       if (table === "profiles") {
         const list = Array.isArray(values) ? values : [values];
+        const out = [];
         for (const v of list) {
           const id = v.id || (filters.find((f) => f.col === "id") || {}).val;
           if (!id) throw new Error("profiles write without id");
           const cur = this.profiles.get(id) || { id };
           this.profiles.set(id, { ...cur, ...v });
+          out.push({ ...this.profiles.get(id) });
         }
+        /* upsert(...).select(...).single() returns the written row in prod. This
+           branch returned null regardless of selectAfter, so the app's honest
+           "write did not stick" read-back guard fired on every first-run save
+           (surfaced by gate 69). The insert branch already honours selectAfter
+           exactly this way. */
+        if (selectAfter) return single || list.length === 1 ? out[0] : out;
         return null;
       }
       if (table === "rooms") {

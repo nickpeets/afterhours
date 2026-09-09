@@ -25,7 +25,8 @@ may strand the show below a viable cast without an explicit, named ending
 - **The host has no membership row** and counts +1 in every total;
   `roomCounts()` is the ONE headcount derivation (gate 11).
 - **Every bench entry goes through the headshot gate** — `takeBenchSeat()`
-  is the one door; rejoin with a face on file is silent (gate 12).
+  is the one door; rejoin re-takes the photo — there is no face-on-file
+  shortcut (gate 12, ruling 2026-08-23, confirmed 2026-09-09).
 - **NO MEMBER SEATS HIMSELF.  Seating is INITIATED by the host or by the
   engine — never by the man being seated.**  (OWNER RULING, 2026-08-19,
   relayed by Nick in session.  This rule was previously UNWRITTEN: it lived

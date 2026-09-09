@@ -2017,8 +2017,12 @@ $("set_go").onclick=async()=>{
   const gsel=$("set_gender").querySelector(".on")?.dataset.v||null;
   const ssel=$("set_seeking").querySelector(".on")?.dataset.v||"everyone";
   if(bday){
-    const age=(Date.now()-Date.parse(bday))/31557600000;
-    if(age<18){ err.textContent="Last Call is 21+ energy and 18+ strictly — see you in a few years."; return; }
+    // RULING 2026-09-09: the boundary is the calendar date. 18 on the 18th
+    // birthday, local date, at any hour - no float years, no UTC-midnight
+    // skew. adultMaxBirthdate() is the newest birthdate that is 18 today;
+    // anything later is under 18. ISO strings compare as dates. Gate 69 reads
+    // the same boundary through window.__lc.
+    if(bday>adultMaxBirthdate()){ err.textContent="Last Call is 21+ energy and 18+ strictly — see you in a few years."; return; }
   }
   const dn=($("set_name")?.value||"").trim().slice(0,18);
   if(!dn){ err.textContent="Pick a name — the room needs something to call you."; return; }

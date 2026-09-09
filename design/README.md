@@ -15,10 +15,19 @@ these files.
 
 ## Layout
 
-    design/
-      mocks/       the .dc.html reference implementations
-      assets/      lastcall-theme.css (the styling contract) + support scripts
-      reference/   HANDOFF-README.md — state table and ID/CLASS contract
+    design/                  (flat — there are no subdirectories)
+      *.dc.html              the 13 artboards, listed below
+      README.md              this file
+      HANDOFF-README.md      state table and ID/CLASS contract
+      lastcall-theme.css     the styling contract
+      support.js             every .dc.html loads it as ./support.js
+      deck-stage.js          omelette starter scaffold; imported by an
+                             <x-dc> template, not loaded by any artboard
+                             in this folder
+
+Flat is load-bearing rather than untidy: all 13 artboards reach
+`./support.js` as a sibling, so moving the scripts under a subdirectory
+would break every one of them.
 
 ## The mocks
 
@@ -53,9 +62,12 @@ are build dependencies, not design details:
 
 1. **NEXT UP** — the design glows on hearts (ranked by heart count, with
    `line_position` breaking ties and covering the all-zero bench at show
-   start). The app currently seats by `line_position` only. `nextOffBench()`
-   is called in four places and must change before design and mechanism
-   agree.
+   start). SHIPPED in #78: `nextOffBench()` now ranks by hearts, breaks
+   ties on `line_position` and settles the last tie on `user_id`, so
+   design and mechanism agree. It has three direct callers — the bench
+   render, the pick-window expiry in `egTickStart()`, and `benchQueue()`
+   — plus `benchQueue()`'s own caller at curtain-up as an indirect
+   consumer.
 2. **The draft storm is superseded.** The app has a 15-second reveal storm
    with tallies and a modal. The design replaces it: chair opens → 5-second
    override window for her → bench leader rises on a camera-flip → next in

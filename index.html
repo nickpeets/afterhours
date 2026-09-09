@@ -2816,28 +2816,43 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   const iAmSeated = ROOM_STATE.members.some(m=>m.user_id===ME.id && (m.role==="chair"||m.role==="kept"));
   if(items) items.classList.toggle("is-blind", AMHOST || iAmSeated);
 
-  /* NEXT UP names the man the room will actually seat next — LANE-BINDING,
+  /* NEXT UP names the man the room will actually seat next - LANE-BINDING,
      not value-reading.  nextOffBench() is the ONE derivation of "who is next
-     off the bench"; it orders by line_position, the column production mints
-     at bench entry.  We ask it who, then light the lane that man already
-     holds.  We never re-sort here: lane order is by membership row id so a
-     man keeps his lane all night, and the halo moves while the faces do not.
+     off the bench".  It ranks by HEARTS, breaks ties on line_position - the
+     column production mints at bench entry - and settles the last tie on
+     user_id so the order is stable and never random.  We ask it who, then
+     light the lane that man already holds.  We never re-sort here: lane order
+     is by membership row id so a man keeps his lane all night, and the halo
+     moves while the faces do not.
 
-     WHAT THIS REPLACED.  The badge used to be derived from HEARTS — the
-     unique top scorer among the rendered three wore it.  Hearts seat nobody.
-     nextOffBench reads no hearts at all, so a loud man could wear the badge
-     all night while a quieter, earlier man took every chair: the badge named
-     one man and the mechanism seated another.  It was also SILENT in most
-     real states, because it demanded a unique non-zero leader — a tie, a
-     lone bencher and an all-zero bench each lit nothing.  Under line_position
-     those three conditions are not merely wrong, they are irrelevant: a
-     monotonic column always names exactly one man.  They are gone rather
-     than carried forward, so nothing implies they still gate anything.
+     HEARTS SEAT.  (Owner ruling, 2026-09-08.)  The crowd scores the bench
+     continuously and the host seats from it, so the man wearing the badge is
+     the man the mechanism takes: the heart leader is the default chair when
+     her five-second override window expires.  Badge and mechanism name the
+     same man.  This REVERSES the line_position-only rule that stood here,
+     whose whole defect was the mirror of the one it was written to cure -
+     it could name one man while the chair went to another.
+
+     LINE_POSITION STAYS, as the tiebreak and only as the tiebreak.  Hearts
+     alone go silent in ordinary states: a tie at the same count, a lone
+     bencher, and an all-zero bench at show start.  That silence is why the
+     hearts rule was pulled the first time.  A monotonic column always names
+     exactly one man, so ranking hearts first and falling back to line_position
+     keeps the badge total: it names exactly one man, never nothing.
+
+     BLAST RADIUS.  Three direct calls - the bench render below, benchQueue(),
+     and the pick-window expiry in egTickStart() - plus benchQueue's own caller
+     at curtain-up, which fills its three chairs from this same derivation.  At
+     show start every count is zero, so curtain-up is identical to the old
+     line_position fill.
+
+     HEARTS NEVER REORDER THE QUEUE.  The waiting line stays FIFO and renders
+     from its own path.  Hearts move the glow and the seat, nothing else.
 
      NO BADGE when the named man holds no rendered lane.  The bench shows
      three lanes and the line can be longer; if the next man is the fourth,
-     nothing lights.  No fallback, no nearest-lane guess — a badge on the
-     wrong lane is the defect this replaced, one lane over.  (Gates 58, 59.) */
+     nothing lights.  No fallback, no nearest-lane guess - a badge on the
+     wrong lane is a defect one lane over.  (Gates 58, 59.) */
   const nextMan = nextOffBench(ROOM_STATE.members, CURRENT_ROOM);
   const nextUid = nextMan ? nextMan.user_id : null;
 
@@ -3559,9 +3574,12 @@ function nextOffBench(members, room){
   const waiting=rows.filter(m=>m.role==="line" && !window.__SEATED_UIDS[m.user_id]);
   if(!waiting.length) return null;
   return waiting.slice().sort((a,b)=>{
+    const ah=HEARTS[a.user_id]||0;
+    const bh=HEARTS[b.user_id]||0;
+    if(ah!==bh) return bh-ah;                                    // hearts rank
     const ap=(a.line_position==null)?Infinity:a.line_position;
     const bp=(b.line_position==null)?Infinity:b.line_position;
-    if(ap!==bp) return ap-bp;
+    if(ap!==bp) return ap-bp;                                    // line breaks ties
     return String(a.user_id).localeCompare(String(b.user_id));   // stable, never random
   })[0];
 }

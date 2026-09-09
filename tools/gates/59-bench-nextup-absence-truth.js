@@ -5,20 +5,25 @@
  * THE OTHER HALF OF THE DEFECT.  Gate 58 covers the badge landing on the
  * wrong man.  This gate covers the badge not landing at all.
  *
- * The hearts rule required a UNIQUE NON-ZERO leader among the rendered
- * three.  Three conditions fell out of that, and each one is an ordinary
- * state of a real room:
+ * Hearts rank the bench.  A badge derived from hearts ALONE would need a
+ * unique non-zero leader, and three ordinary states of a real room do not
+ * supply one:
  *
- *   a tie          two men on the same score        → nobody led
- *   a lone bencher one man waiting                  → nobody led
- *   an all-zero    early in the night, before hearts → nobody led
+ *   a tie          two men on the same score          → hearts name nobody
+ *   a lone bencher one man waiting                    → hearts name nobody
+ *   an all-zero    early in the night, before hearts  → hearts name nobody
  *
- * So the room's only published claim about who is next was silent through
- * most of a normal show, and wrong through the rest.  Under line_position
- * none of those three conditions means anything: a globally monotonic
- * column always names exactly one man, whether there is one man or ten and
- * whatever the ledger says.  They are not fixed here, they are GONE — and
- * this gate is what stops them being quietly reintroduced as a guard.
+ * The superseded rule read those three as a reason to drop hearts and let a
+ * monotonic line_position column name the man instead.  The ruling reads the
+ * SAME three states and draws the opposite conclusion: hearts rank, and
+ * line_position is the tiebreak PRECISELY BECAUSE of them.  Where the ledger
+ * is silent or divided the column speaks, and the badge stays total — it
+ * names exactly one man, never nothing.
+ *
+ * So these three are not gone, and they are not edge cases being tolerated.
+ * They are the states the tiebreak exists to cover, and this gate is where
+ * that coverage is proven: scene D holds the tie, scene F holds the lone
+ * bencher who is also at zero.
  *
  * THE ONE REAL ABSENCE (scene E).  The bench renders three lanes; the line
  * can be longer than three.  When the man the mechanism names is the fourth,
@@ -29,8 +34,8 @@
  * over as a fallback would reintroduce it wearing a different costume.
  *
  * Scene E is built four-man deliberately: lane order is by membership row
- * id, so the man inserted LAST holds no lane, and he is given the LOWEST
- * line_position so that he — and only he — is who the mechanism names.
+ * id, so the man inserted LAST holds no lane, and the ledger is set so that
+ * he — and only he — leads it.  Hearts name him; he has no lane to light.
  *
  * SCOPE ASSERTIONS FIRST, and they matter more here than anywhere.  Three
  * of the four claims in this gate are claims that something is ABSENT.

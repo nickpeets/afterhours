@@ -5807,6 +5807,119 @@ async function applyBlur(){
     try{ await DAILY.updateInputSettings({ video:{ processor:{ type:"none" } } }); }catch(e2){}
   }
 }
+/* FILTER PIPELINE (step 1 of 3): Snapchat-style filters need our OWN frame
+   pipeline — Daily's video processors don't run on mobile browsers, and blur
+   is already caged above for stalling the camera.  The shape:
+
+     camera track -> hidden <video> -> <canvas> draw loop
+                  -> canvas.captureStream() -> DAILY.setInputDevicesAsync({ videoSource })
+
+   The canvas track replaces the camera track AT THE SOURCE, so the rest of
+   the app (tiles, subscriptions, the watchdog) sees an ordinary local video
+   track and is not touched.  Same cage as blur:
+     - applied only AFTER the publish is verified, never in createCallObject
+     - opt-in via ?filter=grade (same shape as ?blur=1)
+     - a watchdog fire while a filter is live tears the filter down, restores
+       the raw camera track and latches FILTER_KILLED for the session;
+       videoLeave resets it exactly like BLUR_KILLED.
+   This PR ships ONE placeholder filter ("grade": full-frame colour grade +
+   vignette, 2D canvas ops).  No face tracking, no picker, no show rules. */
+let FILTER_KILLED=false;
+let FILTER={ active:false, name:null, raw:null, canvasTrack:null, canvas:null, video:null, raf:0 };
+const FILTERS={
+  /* "grade": warm lift + a soft vignette.  drawImage first, then two
+     composited fills — every op is 2D-canvas, nothing per-pixel. */
+  grade(g, w, h){
+    g.globalCompositeOperation="overlay";
+    g.fillStyle="rgba(255,120,60,0.22)"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="multiply";
+    const r=Math.max(w,h)*0.72;
+    const v=g.createRadialGradient(w/2,h/2,r*0.35,w/2,h/2,r);
+    v.addColorStop(0,"rgba(255,255,255,1)"); v.addColorStop(1,"rgba(70,40,90,1)");
+    g.fillStyle=v; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="source-over";
+  }
+};
+function filterRawTrack(){
+  const vt=DAILY?.participants?.()?.local?.tracks?.video;
+  return vt?.persistentTrack || vt?.track || null;
+}
+/* filterStart(name): grab the CURRENT local video track (the raw camera),
+   keep a reference to it alive, and publish a canvas track in its place.
+   Returns true when the filter is live, false when it declined (no such
+   filter, killed this session, not publishing, already active, or the
+   platform lacks captureStream). */
+async function filterStart(name){
+  const fx=FILTERS[name];
+  if(!fx){ vdbg("filter: no such filter '"+name+"'", true); return false; }
+  if(FILTER_KILLED){ vdbg("filter: killed this session — not starting"); return false; }
+  if(FILTER.active) return FILTER.name===name;
+  if(!DAILY || !DAILY_JOINED) return false;
+  const raw=filterRawTrack();
+  if(!raw || raw.readyState!=="live"){ vdbg("filter: no live camera track to filter", true); return false; }
+  const canvas=document.createElement("canvas");
+  if(typeof canvas.captureStream!=="function"){ vdbg("filter: canvas.captureStream unsupported here — camera unaffected", true); return false; }
+  const s=(raw.getSettings&&raw.getSettings())||{};
+  const w=s.width||640, h=s.height||480;
+  canvas.width=w; canvas.height=h;
+  // hidden feeder <video>: off-screen but NOT display:none (Safari may stop
+  // decoding a display:none video; a 1px opacity-0 one keeps frames flowing)
+  const video=document.createElement("video");
+  video.playsInline=true; video.setAttribute("playsinline",""); video.muted=true; video.autoplay=true;
+  video.style.cssText="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none";
+  video.srcObject=new MediaStream([raw]);
+  document.body.appendChild(video);
+  try{ const pp=video.play(); if(pp&&pp.catch) pp.catch(()=>{}); }catch(e){}
+  const g=canvas.getContext("2d");
+  // draw loop: requestAnimationFrame is fine for now — the phone is in hand
+  // and foregrounded during a show.  Daily recommends a worker-driven loop
+  // (rAF throttles/stops in backgrounded tabs); not this PR.
+  const tick=()=>{
+    if(!FILTER.active) return;
+    try{
+      if(video.readyState>=2){ g.drawImage(video,0,0,w,h); fx(g,w,h); }
+    }catch(e){}
+    FILTER.raf=requestAnimationFrame(tick);
+  };
+  const stream=canvas.captureStream(30);
+  const canvasTrack=stream.getVideoTracks()[0];
+  FILTER={ active:true, name, raw, canvasTrack, canvas, video, raf:0 };
+  tick();
+  try{
+    await DAILY.setInputDevicesAsync({ videoSource: canvasTrack });
+    vdbg("filter '"+name+"' on ✓ ("+w+"x"+h+")");
+    return true;
+  }catch(e){
+    vdbg("filter start failed — restoring camera ("+(e?.message||e)+")", true);
+    await filterStop();
+    return false;
+  }
+}
+/* filterStop(): hand the raw camera track back to Daily, stop the loop,
+   end the canvas track, release the feeder.  Safe to call when idle. */
+async function filterStop(){
+  if(!FILTER.active && !FILTER.canvasTrack) return;
+  const f=FILTER;
+  FILTER={ active:false, name:null, raw:f.raw, canvasTrack:null, canvas:null, video:null, raf:0 };
+  if(f.raf) cancelAnimationFrame(f.raf);
+  try{
+    if(DAILY && DAILY_JOINED && f.raw && f.raw.readyState==="live")
+      await DAILY.setInputDevicesAsync({ videoSource: f.raw });
+  }catch(e){ vdbg("filter: restoring camera track failed ("+(e?.message||e)+")", true); }
+  try{ if(f.canvasTrack) f.canvasTrack.stop(); }catch(e){}
+  try{ if(f.video){ f.video.pause(); f.video.remove(); } }catch(e){}
+  if(f.canvas){ f.canvas.width=0; f.canvas.height=0; }
+  FILTER.raw=null;
+  vdbg("filter off — raw camera track restored");
+}
+/* applyFilter: the opt-in door, called from the same spots as applyBlur —
+   only after the publish is verified. */
+async function applyFilter(){
+  const name=new URLSearchParams(location.search).get("filter");
+  if(!name) return;                                                     // opt-in only
+  if(FILTER_KILLED || FILTER.active) return;
+  await filterStart(name);
+}
 /* the app's OWN publish switch: byUser attribution stays truthful — every
    programmatic off is recorded here, so diagnostics can say "off (by the
    app)" instead of blaming a user who touched nothing (audit F6). */
@@ -5844,6 +5957,11 @@ function videoWatchdog(){
       lcCamStatus("finding your camera…");   // the SHOW's words, nothing rawer
       BLUR_KILLED=true;   // once a stall is seen, blur stays off for the session
       try{ await DAILY.updateInputSettings({ video:{ processor:{ type:"none" } } }); }catch(e){}
+      if(FILTER.active){   // same cage for the filter pipeline: down for the session, raw camera back
+        FILTER_KILLED=true;
+        vdbg("filter '"+FILTER.name+"' torn down by the watchdog — off for the session", true);
+        try{ await filterStop(); }catch(e){}
+      }
       if(CAM_TRIES>=CAM_MAX_TRIES){
         CAM_GAVE_UP=true;
         vdbg("camera recovery gave up after 3 tries — see track state above", true);
@@ -5940,7 +6058,7 @@ async function _videoJoinOnce(){
       if(shouldPublish){
         const okTrack=await videoPublishVerify();
         vdbg(okTrack ? "publish verified ✓ (preflight)" : "publish verify FAILED — watchdog is the net", !okTrack);
-        setTimeout(()=>tryNativeBlur(),400); applyBlur(); videoWatchdog();
+        setTimeout(()=>tryNativeBlur(),400); applyBlur(); applyFilter(); videoWatchdog();
       }
     }
   }catch(e){
@@ -5963,6 +6081,12 @@ async function videoLeave(){
     // must not carry across.  (BLUR_KILLED resets too: a fresh call object
     // is a fresh chance, and the watchdog re-kills on any new stall.)
     CAM_TRIES=0; CAM_GAVE_UP=false; BLUR_KILLED=false; CAM_APP_OFF=false;
+    // the filter pipeline dies with the instance too: loop stopped, canvas
+    // track ended (the call object is already gone, so no restore call is
+    // made), and FILTER_KILLED resets like BLUR_KILLED — a fresh call is a
+    // fresh chance, and the watchdog re-kills on any new stall.
+    try{ await filterStop(); }catch(e){}
+    FILTER_KILLED=false;
     SUB_SIG=null;
     WATCHDOG_FIRES=0;
     if(WATCHDOG_T){ clearTimeout(WATCHDOG_T); WATCHDOG_T=null; }
@@ -5989,7 +6113,7 @@ async function syncLocalPublish(){
   try{
     await videoSetPublish(shouldPublish);        // truthful byUser bookkeeping
     if(!AMHOST) await DAILY.setLocalAudio(shouldPublish);
-    if(shouldPublish){ videoPublishVerify(); setTimeout(()=>tryNativeBlur(),400); applyBlur(); videoWatchdog(); }
+    if(shouldPublish){ videoPublishVerify(); setTimeout(()=>tryNativeBlur(),400); applyBlur(); applyFilter(); videoWatchdog(); }
   }catch(e){}
 }
 
@@ -6427,6 +6551,16 @@ window.__lc = {
   get SUPA_STORAGE_KEY(){ return SUPA_STORAGE_KEY; },
   get CAM_STATE(){ return { tries:CAM_TRIES, gaveUp:CAM_GAVE_UP, blurKilled:BLUR_KILLED,
                             appOff:CAM_APP_OFF, watchdogFires:WATCHDOG_FIRES, pending:!!WATCHDOG_T }; },
+  /* filter pipeline (step 1) — filterStart/filterStop are the ONE door on and
+     off the canvas source; FILTER_STATE observes it (killed latches for the
+     session on a watchdog fire, rawTrackAlive says the camera track we hold
+     for restore is still live). */
+  filterStart, filterStop, applyFilter,
+  get FILTER_STATE(){ return { active:FILTER.active, name:FILTER.name, killed:FILTER_KILLED,
+                               rawTrackAlive:!!(FILTER.raw && FILTER.raw.readyState==="live"),
+                               canvasTrackId:FILTER.canvasTrack?FILTER.canvasTrack.id:null,
+                               canvasTrackState:FILTER.canvasTrack?FILTER.canvasTrack.readyState:null,
+                               rawTrackId:FILTER.raw?FILTER.raw.id:null }; },
   /* video layer */
   videoJoin, videoLeave, placeVideo, reflowVideo, tileFor, onTrack,
   desiredSubscriptions, syncVideoSubscriptions,

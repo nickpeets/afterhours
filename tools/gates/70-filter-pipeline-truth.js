@@ -31,6 +31,14 @@
  *      GENUINE stream changes (each filter on/off is one — a new track id)
  *   7. ?filter=grade is the opt-in door (applied after the verified publish,
  *      never in createCallObject); no ?filter → nothing happens
+ *      REVISED 2026-09-28 (feat/filter-rules, step 2): the URL door is
+ *      RETIRED.  A URL param put a look on a track the room had not agreed
+ *      to — no badge, no lock, nothing the host could force off — which is
+ *      the hole the show rules close.  The one door is now the member row's
+ *      server-owned `filter` field (gate 71).  Block 7 now proves the
+ *      opposite of what it proved at #83: ?filter=grade does NOTHING, and a
+ *      plain join publishes the camera as-is.  The post-verify door
+ *      (applyFilter) stays where it was and is asserted below.
  */
 "use strict";
 const { Harness } = require("../lib/harness");
@@ -276,14 +284,14 @@ module.exports = {
 
       const optin = await boot("optin", hostU, "?filter=grade");
       await join(optin);
-      await waitFor(() => optin.page.evaluate(() => window.__lc.FILTER_STATE.active === true), 8000, "?filter=grade to auto-apply after the verified publish");
+      await optin.page.waitForTimeout(7000);   // long enough for a post-verify apply AND the would-be watchdog window
       const o1 = await optin.page.evaluate(TRUTH);
-      t.ok(o1.F.active && o1.F.name === "grade" && o1.trackId === o1.F.canvasTrackId,
-        "?filter=grade applies the grade filter after the verified publish, and the call publishes the canvas track");
-      await optin.page.waitForTimeout(7000);   // the would-be watchdog window: a filtered self tile must not read as a stall
-      const o2 = await optin.page.evaluate(TRUTH);
-      t.ok(o2.cam.watchdogFires === 0 && o2.F.killed === false,
-        `the watchdog never fires on a clean filtered join (fires=${o2.cam.watchdogFires}, killed=${o2.F.killed})`);
+      t.ok(o1.F.active === false && o1.customId === null && o1.trackId === o1.camId,
+        "?filter=grade does NOTHING (step 2 retired the URL door): the call publishes the camera as-is — the room field is the only way onto the pipeline");
+      t.ok(o1.cam.watchdogFires === 0 && o1.F.killed === false,
+        `the watchdog never fires on a clean join (fires=${o1.cam.watchdogFires}, killed=${o1.F.killed})`);
+      t.ok(/videoPublishVerify\(\);[\s\S]{0,200}applyFilter\(\);/.test(ctx.html),
+        "the post-verify door (applyFilter) is still wired after the verified publish — the room field lands there");
       await optin.close();
 
       const plain = await boot("plain", hostU);

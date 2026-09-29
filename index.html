@@ -266,6 +266,26 @@
 .chair.is-kept .kepttag{ display:block; }
 .chair.is-kept .cclock{ display:none; }
 
+/* --- FILTER BADGE (feat/filter-rules).  Lifted from design/Last Call
+   Filters.dc.html, the {{ c.filterBadge }} fragment: bottom-right of the feed,
+   teal = the free tier (the amber ✦ tier is not in this build).  Painted from
+   the member row's server-owned `filter` field and from nothing else — the
+   room shows a badge exactly when the server says he is publishing a look.
+   pointer-events:none: the invisible 48×44 heart target underneath keeps
+   working. --- */
+.chair__filter{
+  position:absolute; bottom:6px; right:6px; z-index:2; display:none;
+  align-items:center; gap:3px; padding:2px 7px; border-radius:9px;
+  background:rgba(45,227,208,.16); border:1px solid rgba(45,227,208,.6);
+  pointer-events:none;
+}
+.chair.has-filter:not(.is-empty):not(.is-strip) .chair__filter{ display:flex; }
+.chair__filter-i{ font-size:9px; line-height:1; }
+.chair__filter-t{
+  font-family:'Azeret Mono',monospace; font-weight:700; font-size:7px;
+  letter-spacing:.08em; color:#aef7ee;
+}
+
 /* --- spectator heart tap (44px target; the transform is on the glyph) --- */
 .lc-hearttap{
   position:absolute; right:6px; bottom:6px; z-index:3;
@@ -665,6 +685,60 @@
   box-shadow:none; -webkit-backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
 }
 #room #inputbar #rt_chatsend{ display:none; }   /* Enter sends */
+
+/* --- 🎭 FILTER (feat/filter-rules) — the composer CTA slot, per design/Last
+   Call Discovery.dc.html C2 ("both of your paid controls live in the same
+   slot as every other primary action — the composer CTA") and Filters.dc
+   frame 1 (CTA_FILTER values).  Ringed while the shelf is open ("button and
+   sheet read as one control"); parked/inert while asked or paired (C3
+   "COMPOSER, PARKED", CTA.waiting values). --- */
+#room #inputbar #rt_filterbtn{
+  background:rgba(45,227,208,.2); border:1.5px solid rgba(45,227,208,.75);
+  color:#aef7ee; box-shadow:0 0 20px rgba(45,227,208,.4);
+}
+#room #inputbar #rt_filterbtn.is-open{
+  background:rgba(45,227,208,.42);
+  box-shadow:0 0 0 2.5px rgba(45,227,208,.5), 0 0 26px rgba(45,227,208,.7);
+}
+#room #inputbar #rt_filterbtn.is-inert{
+  background:rgba(255,255,255,.06); border:1.5px dashed rgba(255,255,255,.28);
+  color:rgba(255,255,255,.4); box-shadow:none; cursor:default;
+}
+/* --- THE SHELF — Filters.dc frame 1's sheet fragment, verbatim values.
+   "Rises out of the 🎭 FILTER button into the chat band and stops there —
+   the quad and the bench never move" (Discovery C2): it lives inside
+   .lc-overlay above the composer, so opening it costs chat lines and nothing
+   else. --- */
+.lc-shelf{
+  position:relative; display:none; flex-direction:column; gap:9px;
+  padding:14px 14px 20px; border-radius:24px 24px 0 0;
+  background:linear-gradient(180deg,rgba(10,13,32,.4),rgba(8,10,26,.96) 30%);
+  border-top:1.5px solid rgba(185,168,255,.35);
+}
+.lc-shelf.is-open{ display:flex; }
+.lc-shelf__head{ display:flex; align-items:center; gap:8px; padding:0 2px; }
+.lc-shelf__kicker{ font-family:'Azeret Mono',monospace; font-size:9px; font-weight:700; letter-spacing:.16em; color:#d6cdff; }
+.lc-shelf__meta{ font-family:'Azeret Mono',monospace; font-size:9px; color:rgba(214,205,255,.6); }
+.lc-shelf__rack{ display:flex; gap:7px; overflow-x:auto; }
+.lc-shelf__tile{
+  flex:none; width:76px; display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:10px 6px; border-radius:15px; cursor:pointer;
+  background:rgba(45,227,208,.12); border:1.5px solid rgba(45,227,208,.7); color:#eef0ff;
+}
+.lc-shelf__tile.is-worn{ box-shadow:0 0 0 2.5px rgba(45,227,208,.5), 0 0 20px rgba(45,227,208,.5); }
+.lc-shelf.is-locked .lc-shelf__tile:not(.is-worn){ opacity:.35; cursor:default; }
+.lc-shelf__icon{ font-size:24px; line-height:1; }
+.lc-shelf__name{ font-family:Archivo,sans-serif; font-weight:700; font-size:9.5px; text-align:center; line-height:1.2; }
+.lc-shelf__cost{ font-family:'Azeret Mono',monospace; font-weight:700; font-size:8px; color:#7ff2e6; }
+.lc-shelf__foot{ font-size:10.5px; line-height:1.45; color:rgba(238,240,255,.55); padding:2px 2px 0; }
+/* the wearer's drop — "he can also drop it early, any time, for free"; his
+   only other control and it lives in the shelf, the filter's one home */
+#room .lc-shelf__drop{
+  min-height:40px; padding:0 14px; border-radius:20px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  background:rgba(6,8,24,.6); border:1px solid rgba(185,168,255,.55);
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px; color:#d6cdff;
+}
 
 /* ---- keyboard: video and chairs do not move.  The rail must NOT hide. ---- */
 /* Only .lc-overlay shifts, and it shifts by TRANSFORM: padding or a height
@@ -1076,7 +1150,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0926.1316</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0928.0950</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1172,6 +1246,7 @@
             <div class="chair__hearts" data-hearts=""><span class="chair__hearts-glyph">♥</span><span class="chair__hearts-n">0</span></div>
             <div class="cclock"><span class="cclock__t">0:00</span><span class="cclock__pause">❙❙</span></div>
             <div class="kepttag">KEPT</div>
+            <div class="chair__filter lc-over-video"><span class="chair__filter-i"></span><span class="chair__filter-t"></span></div>
             <div class="chair__name lc-over-video">
               <span class="chair__mic" aria-hidden="true"><i></i><i></i><i></i></span>
               <span class="chair__name-t"></span>
@@ -1199,6 +1274,7 @@
             <div class="chair__hearts" data-hearts=""><span class="chair__hearts-glyph">♥</span><span class="chair__hearts-n">0</span></div>
             <div class="cclock"><span class="cclock__t">0:00</span><span class="cclock__pause">❙❙</span></div>
             <div class="kepttag">KEPT</div>
+            <div class="chair__filter lc-over-video"><span class="chair__filter-i"></span><span class="chair__filter-t"></span></div>
             <div class="chair__name lc-over-video">
               <span class="chair__mic" aria-hidden="true"><i></i><i></i><i></i></span>
               <span class="chair__name-t"></span>
@@ -1226,6 +1302,7 @@
             <div class="chair__hearts" data-hearts=""><span class="chair__hearts-glyph">♥</span><span class="chair__hearts-n">0</span></div>
             <div class="cclock"><span class="cclock__t">0:00</span><span class="cclock__pause">❙❙</span></div>
             <div class="kepttag">KEPT</div>
+            <div class="chair__filter lc-over-video"><span class="chair__filter-i"></span><span class="chair__filter-t"></span></div>
             <div class="chair__name lc-over-video">
               <span class="chair__mic" aria-hidden="true"><i></i><i></i><i></i></span>
               <span class="chair__name-t"></span>
@@ -1294,10 +1371,25 @@
       <!-- chat is the ONLY flexible child of this column -->
       <div class="lc-overlay">
         <div class="chatstrip" id="rt_livelayer" role="log" aria-live="polite" aria-relevant="additions" aria-label="Room chat"></div>
+        <!-- THE SHELF (feat/filter-rules) — Filters.dc frame 1 "CHOOSE A LOOK /
+             ONE PER SHOW", risen out of the 🎭 FILTER button into the chat band.
+             Tiles are painted from FILTER_LOOKS; the state (worn / locked) is
+             painted from the member row's server-owned fields. -->
+        <div class="lc-shelf" id="rt_shelf" role="dialog" aria-label="Choose a look">
+          <div class="lc-shelf__head">
+            <span class="lc-shelf__kicker">CHOOSE A LOOK</span>
+            <span style="flex:1"></span>
+            <span class="lc-shelf__meta" id="rt_shelfmeta">ONE PER SHOW</span>
+          </div>
+          <div class="lc-shelf__rack" id="rt_shelfrack"></div>
+          <button class="lc-shelf__drop" id="rt_filterdrop" style="display:none">🎭 DROP IT · free, any time</button>
+          <div class="lc-shelf__foot">Teal = free, no tracking.</div>
+        </div>
         <div id="inputbar">
           <input type="text" id="rt_chatinput" placeholder="Say something…" maxlength="140" enterkeyhint="send">
           <button id="rt_chatsend" hidden>➤</button>
           <button id="rt_endshow" style="display:none">🎬 LAST CALL</button>
+          <button id="rt_filterbtn" style="display:none" aria-haspopup="dialog" aria-controls="rt_shelf">🎭 FILTER</button>
           <button id="rt_joinline">♥ TAKE A BENCH SEAT</button>
         </div>
       </div>
@@ -1560,7 +1652,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b0926.1316"); }catch(e){}
+try{ console.log("[lastcall] build b0928.0950"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2427,6 +2519,7 @@ async function loadRoomState(){
   // video follows game state: publish my cam if seated, and move feeds into chair tiles
   syncLocalPublish();
   reflowVideo();
+  filterReconcile();   // the look follows MY row's server-owned field — on, off, or swapped
   // wave 8 (d7) belt: a room with NO call and none in motion re-joins on
   // the truth cadence — a rejoin that lost its call heals ≤ one sync
   try{
@@ -2752,6 +2845,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
       // the ASKED overlay belongs to the departed OCCUPANT, not the chair —
       // wipe it with the rest of his identity so the next man starts clean
       el.classList.remove("is-asked");
+      el.classList.remove("has-filter");   // and his badge: a look belongs to a man, not a seat
       setText(el.querySelector(".chair__foot"),"");
       const hearts=el.querySelector(".chair__hearts");
       if(hearts) hearts.dataset.hearts="";
@@ -2796,6 +2890,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     // the collapsed-strip label is stale the moment the spotlight ends
     setText(el.querySelector(".chair__strip-names"),"");
   }
+  filterPaintTiles(chairBySeat);   // the badge: painted from the row's server-owned field, every viewer alike
 
   /* ---- SPOTLIGHT: the quad breaks to a two-up split.  The rivals collapse
      into ONE muted strip so nobody vanishes — first rival carries the strip,
@@ -4517,6 +4612,11 @@ $("rt_safebtn").onclick=()=>{
       .map(m=>({user_id:m.user_id, nm:(((st.profs||{})[m.user_id])?.display_name||"someone")})))
     .filter(p=>p.user_id!==ME.id);
   document.getElementById("reportmodal")?.remove();   // never stack two
+  /* the host's ONE extra row on this sheet (Discovery R4): force a suitor's
+     filter off — a standing moderation power, listed only for men the room
+     says are wearing one, and it is one RPC the server alone honours */
+  const wearing=AMHOST ? (st.members||[]).filter(m=>m && m.filter).map(m=>({user_id:m.user_id,
+      nm:(((st.profs||{})[m.user_id])?.display_name||"someone"), look:filterLookOf(m.filter)})) : [];
   const overlay=document.createElement("div");
   overlay.className="modal show"; overlay.id="reportmodal"; overlay.style.zIndex="300";
   overlay.addEventListener("click",(e)=>{ if(e.target===overlay) overlay.remove(); });
@@ -4524,9 +4624,12 @@ $("rt_safebtn").onclick=()=>{
     <div style="font-size:13px;color:var(--dim);margin-bottom:10px">Reporting someone also blocks them for you.</div>
     <div id="rp_who">${people.map(p=>`<button class="fbtn ghost" data-uid="${p.user_id}" style="display:block;width:100%;margin:4px 0">${escapeHtml(p.nm)}</button>`).join("")||'<div class="emptyrole">nobody else here</div>'}</div>
     <div id="rp_why" style="display:none"></div>
+    ${AMHOST?`<div id="rp_filterhead" style="margin-top:12px;font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.16em;color:#d6cdff">🎭 FORCE A FILTER OFF</div>
+    <div id="rp_filters">${wearing.map(p=>`<button class="fbtn ghost" data-uid="${p.user_id}" style="display:block;width:100%;margin:4px 0">${escapeHtml(p.nm)} · ${p.look?escapeHtml(p.look.name):escapeHtml(String(p.user_id))}</button>`).join("")||'<div class="emptyrole">nobody is wearing one</div>'}</div>`:""}
     <button class="fbtn ghost" id="rp_cancel" style="width:100%;margin-top:8px">Cancel</button></div>`;
   document.body.appendChild(overlay);
   overlay.querySelector("#rp_cancel").onclick=()=>overlay.remove();
+  overlay.querySelectorAll("#rp_filters button").forEach(b=>b.onclick=async()=>{ await hostClearFilter(b.dataset.uid); overlay.remove(); });
   overlay.querySelectorAll("#rp_who button").forEach(b=>b.onclick=()=>{
     const uid=b.dataset.uid;
     const why=overlay.querySelector("#rp_why");
@@ -5424,7 +5527,12 @@ async function exitBackstage(){
 function subscribeRoom(roomId){
   if(ROOM_CHANNEL){ sb.removeChannel(ROOM_CHANNEL); ROOM_CHANNEL=null; }
   ROOM_CHANNEL=sb.channel("room:"+roomId)
-    .on("postgres_changes",{event:"*",schema:"public",table:"room_members",filter:"room_id=eq."+roomId},()=>loadRoomState())
+    .on("postgres_changes",{event:"*",schema:"public",table:"room_members",filter:"room_id=eq."+roomId},(payload)=>{
+      // the filter columns fold synchronously (feat/filter-rules) — the
+      // forced drop must land on this client no later than the ask does
+      if(payload && payload.eventType==="UPDATE") filterFoldMemberRow(payload.new);
+      loadRoomState();
+    })
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"room_events",filter:"room_id=eq."+roomId},(payload)=>{
       handleEvent(payload.new);
       // membership-affecting events also refresh roster
@@ -5562,6 +5670,7 @@ $("rt_joinline").onclick=async()=>{
   loadRoomState();
 };
 function updateJoinBtn(){
+  filterPaintComposer();   // 🎭 FILTER shares the composer; painted on every path below
   const btn=$("rt_joinline"), end=$("rt_endshow");
   // HER verb is ASK, and it lives in the composer — not floating over the video.
   if(AMHOST){
@@ -5617,6 +5726,7 @@ async function leaveRoom(){
   try{ document.querySelectorAll("#room .lc-beat").forEach(el=>el.remove());
        $("room").classList.remove("beat-hold","ask-urgent"); }catch(e){}
   try{ $("rt_gifts").classList.remove("show"); }catch(e){}
+  try{ filterShelfOpen(false); }catch(e){}
   try{ ["eg_drawer","eg_decide","eg_question","eg_showstart","eg_drumroll"].forEach(id=>{ const el=$(id); if(el) el.style.display="none"; }); }catch(e){}
   stopHeartbeat(); stopClockTick(); stopHostPoll();
   await videoLeave();
@@ -5838,6 +5948,22 @@ const FILTERS={
     v.addColorStop(0,"rgba(255,255,255,1)"); v.addColorStop(1,"rgba(70,40,90,1)");
     g.fillStyle=v; g.fillRect(0,0,w,h);
     g.globalCompositeOperation="source-over";
+  },
+  /* "noir": desaturate (saturation-blend against black), a cool lift, and
+     the same vignette.  Second look in the ledger's one free 2D category
+     ("full-frame colour grade / vignette") — still every op a 2D-canvas
+     composite, nothing per-pixel, nothing tracked. */
+  noir(g, w, h){
+    g.globalCompositeOperation="saturation";
+    g.fillStyle="#000"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="overlay";
+    g.fillStyle="rgba(120,150,220,0.18)"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="multiply";
+    const r=Math.max(w,h)*0.72;
+    const v=g.createRadialGradient(w/2,h/2,r*0.3,w/2,h/2,r);
+    v.addColorStop(0,"rgba(255,255,255,1)"); v.addColorStop(1,"rgba(40,40,55,1)");
+    g.fillStyle=v; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="source-over";
   }
 };
 function filterRawTrack(){
@@ -5912,14 +6038,196 @@ async function filterStop(){
   FILTER.raw=null;
   vdbg("filter off — raw camera track restored");
 }
-/* applyFilter: the opt-in door, called from the same spots as applyBlur —
-   only after the publish is verified. */
+/* applyFilter: the post-verify door, called from the same spots as applyBlur
+   — only after the publish is verified.  STEP 2 (feat/filter-rules): the
+   ?filter=grade URL opt-in from step 1 is RETIRED.  A URL param put a look
+   on a track the room had not agreed to — no badge, no lock, nothing the
+   host could force off — which is the exact hole the rules close.  The one
+   door now is the member row's server-owned `filter` field, and this just
+   asks the reconciler to catch up with it once the camera is verifiably
+   publishing (a bench pick lands here at promotion). */
 async function applyFilter(){
-  const name=new URLSearchParams(location.search).get("filter");
-  if(!name) return;                                                     // opt-in only
-  if(FILTER_KILLED || FILTER.active) return;
-  await filterStart(name);
+  await filterReconcile();
 }
+
+/* ============================================================================
+   FILTER SHOW RULES (step 2 of 3) — who can wear one, who can see that they
+   are, and the three ways it comes off.  SOURCE: design/Last Call
+   Filters.dc.html (THE RULES) + Discovery.dc C2/C3/H3.
+
+   THE SHAPE.  A filter is a MEMBER FIELD, server-owned:
+     room_members.filter       the look he publishes right now (or null)
+     room_members.filter_pick  the one look he committed to this show — set
+                               once, never cleared by a drop.  It IS the lock.
+   Four doors, all RPCs, all server-side (PENDING PRODUCTION DDL, tools/
+   DESIGN-filter-rules.md; the local double models the same rejections):
+     set_filter(name)        wearer only · rejected when locked, asked, paired
+     drop_filter()           wearer, any time, free · the lock stays
+     host_clear_filter(uid)  host only — the standing moderation power
+     ask_question            clears the asked man's field INSIDE the ask
+     start_moment            clears both faces' fields INSIDE the pairing
+   THE CLIENT OBSERVES.  It never writes the field and never decides on its
+   own that a look is on or off: filterReconcile() compares the pipeline
+   (step 1's FILTER) with MY row's `filter` and calls filterStart/filterStop
+   to match.  Every tile paints its badge from the row.  There is no
+   per-viewer toggle anywhere — one published track, one face, every viewer.
+   ========================================================================= */
+/* the curated rack (frame 1, "CHOOSE A LOOK / ONE PER SHOW").  Free tier
+   only — the two looks in the ledger's one 2D-canvas category.  The doc's
+   teal "Soft Room" (background blur) and "Neon Back" (backdrop swap) both
+   need person segmentation, which is not a 2D-canvas op and which Daily's
+   processors don't run on mobile browsers (step 1's finding) — not here.
+   The amber ✦ set (face-tracked) is step 3 + token gating: not here. */
+const FILTER_LOOKS=[
+  { id:"grade", icon:"🎞️", name:"Warm Grade", cost:"FREE" },
+  { id:"noir",  icon:"🎞️", name:"Noir",       cost:"FREE" }
+];
+function filterLookOf(id){ return FILTER_LOOKS.find(l=>l.id===id)||null; }
+function filterRowOf(uid){ return ((ROOM_STATE&&ROOM_STATE.members)||[]).find(m=>m&&m.user_id===uid)||null; }
+/* what the ROOM says about who is wearing what — read straight off the
+   member rows, nothing local mixed in */
+function filterRoom(){
+  const out={};
+  for(const m of ((ROOM_STATE&&ROOM_STATE.members)||[])){
+    if(!m || (!m.filter && !m.filter_pick)) continue;
+    out[m.user_id]={ name:m.filter||null, locked:!!m.filter_pick, pick:m.filter_pick||null };
+  }
+  return out;
+}
+function filterAmAsked(){ return !!(CURRENT_ROOM && ME && CURRENT_ROOM.spotlight_target===ME.id); }
+function filterAmPaired(){ return !!(CURRENT_ROOM && ME && (CURRENT_ROOM.moment_a===ME.id || CURRENT_ROOM.moment_b===ME.id)); }
+
+/* the three verbs — each is one RPC and a roster refresh; the rejection is
+   the SERVER's and it is shown as said */
+async function filterPick(name){
+  if(!CURRENT_ROOM) return { ok:false, error:"no room" };
+  const {error}=await sb.rpc("set_filter",{room_id:CURRENT_ROOM.id,name});
+  if(error){ toast("No look tonight: "+error.message); return { ok:false, error:error.message }; }
+  loadRoomState();
+  return { ok:true };
+}
+async function filterDrop(){
+  if(!CURRENT_ROOM) return { ok:false, error:"no room" };
+  const {error}=await sb.rpc("drop_filter",{room_id:CURRENT_ROOM.id});
+  if(error){ toast("Couldn't drop it: "+error.message); return { ok:false, error:error.message }; }
+  loadRoomState();
+  return { ok:true };
+}
+async function hostClearFilter(uid){
+  if(!CURRENT_ROOM) return { ok:false, error:"no room" };
+  const {error}=await sb.rpc("host_clear_filter",{room_id:CURRENT_ROOM.id,user_id:uid});
+  if(error){ toast("Couldn't force it off: "+error.message); return { ok:false, error:error.message }; }
+  loadRoomState();
+  return { ok:true };
+}
+
+/* THE RECONCILER — the only thing that turns the pipeline on or off from
+   room state.  Runs after every roster commit, after every folded member
+   row, and at the post-verify publish door.  One in flight at a time; a
+   change that lands mid-flight re-runs it (the loop), so a drop that
+   arrives while a start is awaiting Daily is never lost. */
+let FILTER_SYNC=null, FILTER_SYNC_AGAIN=false;
+async function filterSyncOnce(){
+  if(!CURRENT_ROOM || !ME) { if(FILTER.active) await filterStop(); return; }
+  const me=filterRowOf(ME.id);
+  /* NO ROW, NO OPINION.  The host has no member row by design, and a chair's
+     row can be missing from one commit on a roster blip (this file is full
+     of the ways a poll arrives momentarily incomplete).  A look is taken
+     down by a row that SAYS null — never by a row that is not there, or the
+     whole room would watch his face flicker bare and back on every blip. */
+  if(!me) return;
+  // a look the server accepts but this client cannot draw: publish RAW —
+  // never invent a substitute, never pretend
+  const want=(me.filter && FILTERS[me.filter]) ? me.filter : null;
+  const publishing=!!(DAILY && DAILY_JOINED && (AMHOST || amISeated()));
+  // bench (or passed): nothing published, so nothing to filter — the pick
+  // waits on the row and applies the moment he publishes (promotion)
+  if(!want || !publishing){ if(FILTER.active) await filterStop(); return; }
+  if(FILTER.active && FILTER.name===want) return;
+  if(FILTER.active) await filterStop();
+  if(FILTER_KILLED) return;
+  const raw=filterRawTrack();
+  if(!raw || raw.readyState!=="live") return;   // not publishing yet — the post-verify door (applyFilter) re-runs this
+  await filterStart(want);
+}
+function filterReconcile(){
+  if(FILTER_SYNC){ FILTER_SYNC_AGAIN=true; return FILTER_SYNC; }
+  FILTER_SYNC=(async()=>{
+    try{ do{ FILTER_SYNC_AGAIN=false; try{ await filterSyncOnce(); }catch(e){ vdbg("filter reconcile: "+(e?.message||e), true); } }while(FILTER_SYNC_AGAIN); }
+    finally{ FILTER_SYNC=null; }
+  })();
+  return FILTER_SYNC;
+}
+/* a room_members realtime row lands here BEFORE the roster refetch: the two
+   filter columns are folded onto the local row synchronously, so the
+   ask's member clear (emitted first, same transaction) is on this client
+   before the rooms row that says he is asked — no beat where the tile is
+   asked AND badged.  Observation of a server row, not a client decision:
+   nothing here sets a value the server did not send. */
+function filterFoldMemberRow(row){
+  if(!row || !CURRENT_ROOM || row.room_id!==CURRENT_ROOM.id) return;
+  if(!("filter" in row) && !("filter_pick" in row)) return;
+  const m=filterRowOf(row.user_id);
+  if(!m) return;
+  const changed=(m.filter!==(row.filter??null)) || (m.filter_pick!==(row.filter_pick??null));
+  m.filter=row.filter??null; m.filter_pick=row.filter_pick??null;
+  if(!changed) return;
+  renderRoom();
+  filterReconcile();
+}
+
+/* ---- painters: badge on tiles (renderRoom), CTA + shelf (updateJoinBtn) ---- */
+function filterPaintTiles(chairBySeat){
+  for(let i=0;i<3;i++){
+    const el=$("rt_seat"+i); if(!el) continue;
+    const c=chairBySeat[i];
+    const look=(c && c.filter) ? filterLookOf(c.filter) : null;
+    el.classList.toggle("has-filter", !!look);
+    const ic=el.querySelector(".chair__filter-i"), tt=el.querySelector(".chair__filter-t");
+    if(ic && ic.textContent!==(look?look.icon:"")) ic.textContent=look?look.icon:"";
+    if(tt && tt.textContent!==(look?look.name.toUpperCase():"")) tt.textContent=look?look.name.toUpperCase():"";
+  }
+}
+function filterShelfOpen(on){
+  const sh=$("rt_shelf"), b=$("rt_filterbtn");
+  if(sh) sh.classList.toggle("is-open", !!on);
+  if(b) b.classList.toggle("is-open", !!on);
+}
+function filterPaintComposer(){
+  const b=$("rt_filterbtn"), sh=$("rt_shelf"); if(!b || !sh) return;
+  const me=(!AMHOST && ME && CURRENT_ROOM) ? filterRowOf(ME.id) : null;
+  const eligible=!!(me && (me.role==="chair"||me.role==="kept"||me.role==="line") && !I_WAS_PASSED);
+  b.style.display=eligible?"flex":"none";
+  if(!eligible){ filterShelfOpen(false); return; }
+  const inert=filterAmAsked() || filterAmPaired();
+  b.classList.toggle("is-inert", inert);
+  if(inert) filterShelfOpen(false);
+  const locked=!!me.filter_pick, worn=me.filter||null;
+  sh.classList.toggle("is-locked", locked);
+  const meta=$("rt_shelfmeta");
+  if(meta) meta.textContent = !locked ? "ONE PER SHOW" : (worn ? "LOCKED · YOUR LOOK TONIGHT" : "LOCKED · DROPPED");
+  const rack=$("rt_shelfrack");
+  if(rack){
+    if(rack.childElementCount!==FILTER_LOOKS.length){
+      rack.innerHTML=FILTER_LOOKS.map(l=>`<button class="lc-shelf__tile" data-look="${l.id}" type="button"><span class="lc-shelf__icon">${l.icon}</span><span class="lc-shelf__name">${escapeHtml(l.name)}</span><span class="lc-shelf__cost">${l.cost}</span></button>`).join("");
+      rack.querySelectorAll(".lc-shelf__tile").forEach(t=>t.onclick=()=>{
+        const mine=filterRowOf(ME.id);
+        if(mine && mine.filter_pick){ toast("One per show — tonight's look is locked in."); return; }
+        filterPick(t.dataset.look);
+      });
+    }
+    rack.querySelectorAll(".lc-shelf__tile").forEach(t=>t.classList.toggle("is-worn", t.dataset.look===worn));
+  }
+  const drop=$("rt_filterdrop");
+  if(drop) drop.style.display = worn ? "flex" : "none";
+}
+$("rt_filterbtn").onclick=()=>{
+  if($("rt_filterbtn").classList.contains("is-inert")){ toast("Not while you're on the spot."); return; }
+  const sh=$("rt_shelf");
+  filterShelfOpen(!(sh && sh.classList.contains("is-open")));
+  filterPaintComposer();
+};
+$("rt_filterdrop").onclick=()=>{ filterDrop(); };
 /* the app's OWN publish switch: byUser attribution stays truthful — every
    programmatic off is recorded here, so diagnostics can say "off (by the
    app)" instead of blaming a user who touched nothing (audit F6). */
@@ -6556,6 +6864,13 @@ window.__lc = {
      session on a watchdog fire, rawTrackAlive says the camera track we hold
      for restore is still live). */
   filterStart, filterStop, applyFilter,
+  /* filter show rules (step 2) — the three verbs are the client's only
+     doors and each is one RPC; FILTER_ROOM is what the ROOM says (member
+     rows), FILTER_STATE is what the PIPELINE says (this client); the
+     reconciler is the one thing that makes the second follow the first. */
+  filterPick, filterDrop, hostClearFilter, filterReconcile,
+  get FILTER_LOOKS(){ return FILTER_LOOKS.map(l=>({...l})); },
+  get FILTER_ROOM(){ return filterRoom(); },
   get FILTER_STATE(){ return { active:FILTER.active, name:FILTER.name, killed:FILTER_KILLED,
                                rawTrackAlive:!!(FILTER.raw && FILTER.raw.readyState==="live"),
                                canvasTrackId:FILTER.canvasTrack?FILTER.canvasTrack.id:null,

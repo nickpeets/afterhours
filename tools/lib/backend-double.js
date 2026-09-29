@@ -66,6 +66,16 @@
 const FRESH_MS = 60_000;    // active_members: last_seen > now() - interval '60 seconds'
 const SWEEP_MS = 180_000;   // sweep_stale_members: now() - interval '3 minutes'
 
+/* FILTER SHOW RULES — the curated rack the SERVER accepts (set_filter's
+   allow-list, PENDING PRODUCTION DDL in tools/DESIGN-filter-rules.md).  This
+   is the free, no-tracking tier only: the two looks the design's ledger files
+   under "full-frame colour grade / vignette — cheap enough to give away".
+   The amber ✦ set is not in this PR and is not in this list, so a client that
+   asks for it is rejected the way production will reject it.  Deliberately
+   NOT imported from index.html: the double is the server's copy of the list,
+   and a gate that watches the two disagree is a gate doing its job. */
+const FILTER_LOOKS = ["grade", "noir"];
+
 let _seq = 1;
 const nid = (p) => p + "_" + (_seq++).toString(36).padStart(6, "0");
 
@@ -106,6 +116,7 @@ class BackendDouble {
       id, host_id, contestant_name: name || "Fixture Room", tagline: "",
       status, phase, round, spotlight_target: null, phase_deadline: null,
       winner_id: null, created_at: this.iso(), host_seen_at: this.iso(),
+      moment_a: null, moment_b: null,   // the Moment seam — see start_moment
     });
     return id;
   }
@@ -160,9 +171,33 @@ class BackendDouble {
       joined_at: this.iso(this.now() - ageMs),
       line_position: line_position !== undefined ? line_position
                    : (role === "line" ? this.nextLinePosition() : null),
+      /* FILTER SHOW RULES (feat/filter-rules, step 2 of 3).  Two server-owned
+         columns on the member row, PENDING PRODUCTION DDL (tools/
+         DESIGN-filter-rules.md):
+           filter       — the look he is publishing RIGHT NOW, or null
+           filter_pick  — the ONE look he committed to this show, or null.
+                          Set once by set_filter and never cleared by a drop;
+                          it IS the one-per-show lock.
+         Kept separate on purpose: a drop clears `filter` and leaves
+         `filter_pick`, which is exactly the "he can't pick a new one" rule,
+         and it leaves the door open for the design's "resumes after the
+         moment" note without a schema change (not built — see the doc). */
+      filter: null, filter_pick: null,
     };
     this.members.push(row);
     return row;
+  }
+  /* the ONE server-side clear, used by every path that strips a filter:
+     drop_filter, host_clear_filter, ask_question, start_moment.  Emits the
+     member UPDATE so every client observes the field change; callers that
+     also mutate the rooms row emit THAT afterwards, so a client never sees
+     asked=true (or paired) with the filter still set. */
+  clearFilterRow(room_id, user_id) {
+    const row = this.memberRow(room_id, user_id);
+    if (!row || row.filter == null) return false;
+    row.filter = null;
+    this.emit("room_members", "UPDATE", { ...row });
+    return true;
   }
   nextLinePosition() {
     /* SOURCE: server function join_line, read 2026-08-12 — the mint is
@@ -552,6 +587,12 @@ class BackendDouble {
         r.spotlight_target = a.target;
         r.spotlight_question_id = a.question_id ?? null;
         r.phase_deadline = this.iso(this.now() + 30_000);
+        /* FORCED DROP ON ASK (filter rules #3): the asked man's filter is
+           cleared INSIDE the ask, before the rooms row is emitted — same
+           transaction in production (DESIGN-filter-rules.md), same
+           statement here.  Never a separate step, never the client's call:
+           a double that let the client clear it would prove nothing. */
+        this.clearFilterRow(a.room_id, a.target);
         this.emit("rooms", "UPDATE", { ...r });
         // prod engine_emit parity (8/9): the spotlight event carries the
         // question text and the answer deadline, so EVERY role paints the
@@ -577,6 +618,80 @@ class BackendDouble {
               question_text: q ? q.text : null, deadline: r.phase_deadline });
         }
         return { ok: true, round: r.round };
+      }
+      /* ---------- FILTER SHOW RULES (feat/filter-rules) ----------
+         Every rejection below is the SERVER's rejection, mirrored word for
+         word from the pending DDL (tools/DESIGN-filter-rules.md) so gate 71
+         can assert the message a client will really see.  The client never
+         writes `filter` or `filter_pick`; these four functions are the only
+         doors, and ask_question / start_moment clear the field inside
+         themselves. */
+      case "set_filter": {
+        if (!uid) throw new Error("not authenticated");
+        const r = this.rooms.get(a.room_id);
+        if (!r) throw new Error("no room");
+        const row = this.memberRow(a.room_id, uid);
+        if (!row || row.role === "gone") throw new Error("not a member of this room");
+        if (!FILTER_LOOKS.includes(a.name)) throw new Error("no such filter");
+        /* order matters and the DDL keeps it: the beat he is in (asked,
+           paired) is named before the standing lock, so the message says
+           WHY NOW rather than why ever */
+        if (r.spotlight_target === uid) throw new Error("filter not allowed while asked");
+        if (r.moment_a === uid || r.moment_b === uid) throw new Error("filter not allowed during a moment");
+        if (row.filter_pick != null) throw new Error("filter locked for this show");
+        row.filter = a.name; row.filter_pick = a.name;
+        this.emit("room_members", "UPDATE", { ...row });
+        return { ok: true, filter: row.filter };
+      }
+      case "drop_filter": {
+        if (!uid) throw new Error("not authenticated");
+        const row = this.memberRow(a.room_id, uid);
+        if (!row) throw new Error("not a member of this room");
+        this.clearFilterRow(a.room_id, uid);   // the lock (filter_pick) stays
+        return { ok: true };
+      }
+      case "host_clear_filter": {
+        if (!uid) throw new Error("not authenticated");
+        const r = this.rooms.get(a.room_id);
+        if (!r) throw new Error("no room");
+        if (r.host_id !== uid) throw new Error("only the host can force a filter off");
+        const row = this.memberRow(a.room_id, a.user_id);
+        if (!row) throw new Error("no such member");
+        this.clearFilterRow(a.room_id, a.user_id);
+        return { ok: true };
+      }
+      /* THE MOMENT — NO PRODUCTION COUNTERPART.  The Moment (design/Last Call
+         Moment.dc.html) is not built anywhere: no RPC, no rooms column, no
+         client.  These two cases are the SEAM the rules need — the pairing
+         is the buyer + the host (the design's pair; she has no member row, so
+         her "field" is nothing to clear), recorded on the rooms row as
+         moment_a / moment_b — so that "both faces go bare the instant the
+         moment starts, atomically with the pairing" is a proven property of
+         the path whatever RPC eventually owns it.  When the real Moment
+         lands, its start function inherits this contract; until then these
+         are labelled what they are: ASSUMED shape, no server read behind
+         them. */
+      case "start_moment": {
+        if (!uid) throw new Error("not authenticated");
+        const r = this.rooms.get(a.room_id);
+        if (!r) throw new Error("no room");
+        if (r.moment_a || r.moment_b) throw new Error("a moment is already running");
+        const other = a.target || r.host_id;
+        r.moment_a = uid; r.moment_b = other;
+        /* both member fields (where a member row exists) clear INSIDE the
+           pairing, then the rooms row carries the pair — one update, no
+           beat where paired && filtered can be observed */
+        this.clearFilterRow(a.room_id, uid);
+        this.clearFilterRow(a.room_id, other);
+        this.emit("rooms", "UPDATE", { ...r });
+        return { ok: true, pair: [uid, other] };
+      }
+      case "end_moment": {
+        const r = this.rooms.get(a.room_id);
+        if (!r) throw new Error("no room");
+        r.moment_a = null; r.moment_b = null;
+        this.emit("rooms", "UPDATE", { ...r });
+        return { ok: true };
       }
       case "decide_keep": {
         // her decision verbs (egDecideTap) — same shape as keep_member /
@@ -760,4 +875,4 @@ class BackendDouble {
   }
 }
 
-module.exports = { BackendDouble, FRESH_MS, SWEEP_MS };
+module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, FILTER_LOOKS };

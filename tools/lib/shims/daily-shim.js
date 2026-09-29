@@ -40,6 +40,8 @@
       this._userName = null;
       this._localVideoOn = false;
       this._localStream = null;
+      this._customVideo = null;  // a MediaStreamTrack handed in via setInputDevicesAsync({ videoSource })
+      this._inputLog = [];       // every setInputDevicesAsync call, for gates
       this._destroyed = false;
       window.__dailyControl = {
         call: this,
@@ -48,6 +50,14 @@
         stopRemoteTrack: (uid) => this.stopRemoteTrack(uid),
         subs: () => JSON.parse(JSON.stringify(this._subs)),
         recv: () => JSON.parse(JSON.stringify(this._recv)),
+        inputLog: () => this._inputLog.slice(),
+        customVideoTrack: () => this._customVideo,
+        cameraTrack: () => (this._localStream ? this._localStream.getVideoTracks()[0] : null),
+        // a silent camera stall: the publish reads off/no track with NO
+        // event, and setLocalVideo(true) cannot wake it (the shape the 6s
+        // watchdog exists for).  Only a DEVICE SWITCH — recoverCamera's
+        // setInputDevicesAsync({ videoDeviceId }) — clears it.
+        stallLocalVideo: () => { this._stalled = true; this._localVideoOn = false; },
       };
     }
     on(ev, cb) { (this._handlers[ev] = this._handlers[ev] || []).push(cb); return this; }
@@ -55,7 +65,11 @@
     _emit(ev, payload) { (this._handlers[ev] || []).forEach((cb) => { try { cb(payload); } catch (e) { console.error("[daily-shim] handler threw:", e); } }); }
 
     _local() {
-      const t = this._localStream ? this._localStream.getVideoTracks()[0] : null;
+      // the published video track: a custom videoSource (a MediaStreamTrack
+      // handed to setInputDevicesAsync) takes precedence over the camera —
+      // SAME object identity, so the app's filter pipeline can be checked
+      // for "the canvas track really is what Daily publishes"
+      const t = this._customVideo || (this._localStream ? this._localStream.getVideoTracks()[0] : null);
       return {
         local: true, user_name: this._userName, session_id: this._localSid,
         tracks: {
@@ -81,7 +95,7 @@
     }
     async setUserName(n) { this._userName = n; }
     async setLocalVideo(on) {
-      this._localVideoOn = !!on;
+      this._localVideoOn = !!on && !this._stalled;
       // one persistent local track, like real daily-js: cache the
       // getUserMedia PROMISE so concurrent setLocalVideo(true) calls can
       // never mint two different local streams (the fake used to, which
@@ -102,7 +116,48 @@
       if (this._localStream) { this._localStream.getTracks().forEach((t) => t.stop()); this._localStream = null; }
       for (const uid of Object.keys(this._byUid())) this.removeRemote(uid);
     }
-    async setInputDevicesAsync(_o) { return {}; }
+    /* setInputDevicesAsync — WAS a no-op returning {} (a fake that let a
+     * filter pipeline "pass" without ever changing what the call publishes).
+     * Now models daily-js's documented shape: `videoSource` as a
+     * MediaStreamTrack is used DIRECTLY as the video input (bypassing device
+     * selection); a device id clears any custom track.  The local
+     * participant's tracks.video reflects the swap — state playable, same
+     * track object — and the swap is announced the way a device switch is:
+     * track-stopped for the outgoing track, participant-updated, then
+     * track-started for the incoming one.  (That event sequence is the
+     * shim's modelling of a local track replacement; docs confirm
+     * track-started/track-stopped fire when tracks begin/end and that
+     * setInputDevicesAsync emits input-settings-updated — verify the exact
+     * local sequence on a live run before leaning on it further.) */
+    async setInputDevicesAsync(o) {
+      o = o || {};
+      const before = this._localVideoOn ? this._local().tracks.video.track : null;
+      if (o.videoSource !== undefined) {
+        if (o.videoSource && typeof o.videoSource === "object" && typeof o.videoSource.getSettings === "function") {
+          this._customVideo = o.videoSource;
+          this._inputLog.push({ videoSource: o.videoSource.id });
+        } else if (o.videoSource === false) {
+          this._customVideo = null; this._localVideoOn = false;
+          this._inputLog.push({ videoSource: false });
+        } else {
+          this._customVideo = null;              // a device id — back to the camera
+          this._inputLog.push({ videoSource: String(o.videoSource) });
+        }
+      } else if (o.videoDeviceId !== undefined) {
+        this._customVideo = null;
+        this._stalled = false;                   // a device switch wakes a stalled camera
+        this._inputLog.push({ videoDeviceId: String(o.videoDeviceId) });
+      }
+      const lp = this._local();
+      const after = this._localVideoOn ? lp.tracks.video.track : null;
+      if (before && after !== before) this._emit("track-stopped", { participant: lp, track: before });
+      this._emit("participant-updated", { participant: lp });
+      if (after && after !== before) this._emit("track-started", { participant: lp, track: after });
+      this._emit("input-settings-updated", { inputSettings: {} });
+      // daily parity: fields are {} when the device is unspecified or
+      // replaced by a custom track
+      return {};
+    }
     async updateInputSettings(_o) { return {}; }
     async getInputSettings() { return {}; }
     localVideo() { return this._localVideoOn; }

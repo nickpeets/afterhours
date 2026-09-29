@@ -95,5 +95,23 @@ module.exports = {
     t.ok(inserts === 1, `exactly 1 raw rooms.insert( call site — the GO-LIVE insert — got ${inserts}`);
     t.ok(/sb\.from\("rooms"\)\.insert\(\{host_id:ME\.id,contestant_name:name,tagline:tag,status:"live"\}\)/.test(html),
       "...and it IS the GO-LIVE insert (host_id/contestant_name/tagline/status:'live'), not some other row creation wearing the allowlist's name");
+
+    /* FILTER SHOW RULES (feat/filter-rules, 2026-09-28): the scan widens to
+       the member row.  A look is room state the whole room must agree on
+       (every tile paints a badge from it), so it is a server-owned
+       room_members field with FOUR doors — set_filter / drop_filter /
+       host_clear_filter, and the clears inside ask_question and the
+       moment's start.  The client has NO write to room_members at all, and
+       the field names never appear in any raw write.  Gate 71 proves the
+       runtime half; this is the static half, same discipline as above. */
+    const memberWrites = (html.match(/sb\.from\("room_members"\)\.(?:update|upsert|insert|delete)\(/g) || []).length;
+    t.ok(memberWrites === 0, `zero raw room_members writes in source (${memberWrites}) — the filter field has no client door`);
+    const rawWrites = [...html.matchAll(/sb\.from\("(?:rooms|room_members)"\)\.(?:update|upsert|insert)\(([\s\S]{0,300}?)\)/g)].map((m) => m[1]);
+    t.ok(rawWrites.every((w) => !/filter|moment_/.test(w)),
+      `no raw write names filter / filter_pick / moment_* (${rawWrites.length} write(s) scanned)`);
+    t.ok(/sb\.rpc\("set_filter",\{room_id:CURRENT_ROOM\.id,name\}\)/.test(html) &&
+         /sb\.rpc\("drop_filter",\{room_id:CURRENT_ROOM\.id\}\)/.test(html) &&
+         /sb\.rpc\("host_clear_filter",\{room_id:CURRENT_ROOM\.id,user_id:uid\}\)/.test(html),
+      "...the three filter verbs are RPC calls with the server's argument shape");
   },
 };

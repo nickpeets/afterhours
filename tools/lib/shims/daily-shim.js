@@ -76,7 +76,8 @@
           // daily parity: a programmatic setLocalVideo(false) reads as
           // off.byUser — exactly the attribution audit F6 flagged, so the
           // app's truth-keeping (CAM_APP_OFF) can be gate-checked
-          video: { state: this._localVideoOn && t ? "playable" : "off", track: this._localVideoOn ? t : null, persistentTrack: this._localVideoOn ? t : null,
+          // an ENDED source is not playable, whatever handed it in
+          video: { state: this._localVideoOn && t && t.readyState === "live" ? "playable" : "off", track: this._localVideoOn ? t : null, persistentTrack: this._localVideoOn ? t : null,
                    off: this._localVideoOn ? undefined : { byUser: true } },
           audio: { state: "off", track: null },
         },
@@ -129,24 +130,44 @@
      * track-started/track-stopped fire when tracks begin/end and that
      * setInputDevicesAsync emits input-settings-updated — verify the exact
      * local sequence on a live run before leaning on it further.) */
+    /* 2026-09-29 (fix/filter-feed-black) — WHAT THE HARNESS FAKED, AND NOW
+     * DOESN'T.  The shim used to keep the camera's device track ALIVE after a
+     * custom videoSource replaced it, so a filter pipeline that drew from
+     * Daily's own device track stayed green here and went BLACK on an iPhone
+     * (live, 2026-09-29): real daily-js releases the device track it owns
+     * when a custom track takes its place, the app's feeder <video> was
+     * holding that released track, and the canvas drew black frames.  The
+     * shim now STOPS the previously-acquired device track on a videoSource
+     * swap (readyState 'ended', track-stopped emitted for it before
+     * track-started for the new one), and a videoDeviceId switch RE-ACQUIRES
+     * the camera (a fresh getUserMedia → a new live track, new id), which is
+     * daily-js's device-switch path.  Handing an ended track back as
+     * videoSource is modelled as what it is: an ended source, not playable. */
     async setInputDevicesAsync(o) {
       o = o || {};
       const before = this._localVideoOn ? this._local().tracks.video.track : null;
       if (o.videoSource !== undefined) {
         if (o.videoSource && typeof o.videoSource === "object" && typeof o.videoSource.getSettings === "function") {
+          const dev = this._localStream ? this._localStream.getVideoTracks()[0] : null;
+          if (dev && dev !== o.videoSource && dev.readyState === "live") {
+            dev.stop();                          // daily-js releases the device track it owned
+            this._emit("track-stopped", { participant: this._local(), track: dev });
+          }
           this._customVideo = o.videoSource;
-          this._inputLog.push({ videoSource: o.videoSource.id });
+          this._inputLog.push({ videoSource: o.videoSource.id, videoSourceReady: o.videoSource.readyState });
         } else if (o.videoSource === false) {
           this._customVideo = null; this._localVideoOn = false;
           this._inputLog.push({ videoSource: false });
         } else {
           this._customVideo = null;              // a device id — back to the camera
           this._inputLog.push({ videoSource: String(o.videoSource) });
+          await this._reacquire();
         }
       } else if (o.videoDeviceId !== undefined) {
         this._customVideo = null;
         this._stalled = false;                   // a device switch wakes a stalled camera
         this._inputLog.push({ videoDeviceId: String(o.videoDeviceId) });
+        await this._reacquire(String(o.videoDeviceId));
       }
       const lp = this._local();
       const after = this._localVideoOn ? lp.tracks.video.track : null;
@@ -157,6 +178,17 @@
       // daily parity: fields are {} when the device is unspecified or
       // replaced by a custom track
       return {};
+    }
+    /* a device switch: daily-js re-acquires the camera.  Only when the track
+       it holds is gone (stopped by a custom-source swap) or a specific device
+       is asked for — a live device track is kept as-is, like the real thing. */
+    async _reacquire(deviceId) {
+      const cur = this._localStream ? this._localStream.getVideoTracks()[0] : null;
+      if (cur && cur.readyState === "live" && !deviceId) return;
+      if (cur && cur.readyState === "live" && deviceId && cur.getSettings().deviceId === deviceId) return;
+      const c = deviceId ? { video: { deviceId: { exact: deviceId } }, audio: false } : { video: true, audio: false };
+      this._localStreamP = navigator.mediaDevices.getUserMedia(c);
+      this._localStream = await this._localStreamP;
     }
     async updateInputSettings(_o) { return {}; }
     async getInputSettings() { return {}; }

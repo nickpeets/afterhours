@@ -1150,7 +1150,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0928.0950</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0928.2118</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1652,7 +1652,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b0928.0950"); }catch(e){}
+try{ console.log("[lastcall] build b0928.2118"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -5778,7 +5778,7 @@ function vstat(kind,uid){ VIDEO_STATS[kind][uid]=(VIDEO_STATS[kind][uid]||0)+1; 
 const DAILY_FN=SUPA_URL+"/functions/v1/daily-room";
 
 /* ---- on-screen video debug panel: auto-appears on failure; full narration with ?debug=1 ---- */
-const VDEBUG_ON = new URLSearchParams(location.search).has("debug");
+const VDEBUG_ON = new URLSearchParams(location.search).has("debug") || new URLSearchParams(location.search).has("vdbg");
 /* QUIET DIAGNOSTICS (SPEC, audit F5): users NEVER see internals.  The
    raw log lives in the console always, and in the on-screen panel ONLY
    under the deliberate ?debug switch — an ✕-severity line no longer
@@ -5933,9 +5933,30 @@ async function applyBlur(){
        the raw camera track and latches FILTER_KILLED for the session;
        videoLeave resets it exactly like BLUR_KILLED.
    This PR ships ONE placeholder filter ("grade": full-frame colour grade +
-   vignette, 2D canvas ops).  No face tracking, no picker, no show rules. */
+   vignette, 2D canvas ops).  No face tracking, no picker, no show rules.
+
+   HOTFIX 2026-09-29 (fix/filter-feed-black) — the feeder draws from a CLONE.
+   Live on an iPhone the chair's published video went black the moment a
+   look went on: the feeder <video> was fed the camera MediaStreamTrack that
+   daily-js itself had acquired, and daily-js RELEASES that device track when
+   a custom videoSource replaces it — so the feeder's track ended and the
+   canvas drew black.  Gate 70 stayed green because the shim kept the device
+   track alive after the swap (fixed there first; see the gate header).  Now:
+     - filterStart feeds the hidden <video> from raw.clone() — our own track,
+       which survives Daily stopping its own (a clone has its own lifetime)
+     - the clone is held in FILTER.clone and STOPPED in filterStop and on kill
+       (no leaked capture: the camera light must go out with the look)
+     - restore never hands Daily the old raw track back (it may be ended):
+       filterStop calls setInputDevicesAsync({ videoDeviceId }) with the
+       camera's deviceId captured at start — the device-switch path daily-js
+       fixed for custom→device in 0.76.0 (index.html pins 0.91.0)
+     - FILTER_STATE carries a readout (raw/clone/feeder/canvas readyState,
+       feederPlaying, framesDrawn, lastDrawAgoMs) and ?debug / ?vdbg paints it
+       into the debug panel once a second, so a black feed can be read off
+       the phone instead of guessed at. */
 let FILTER_KILLED=false;
-let FILTER={ active:false, name:null, raw:null, canvasTrack:null, canvas:null, video:null, raf:0 };
+let FILTER={ active:false, name:null, raw:null, clone:null, deviceId:null, canvasTrack:null, canvas:null, video:null, raf:0, framesDrawn:0, lastDrawAt:0 };
+let FILTER_READOUT_T=null;
 const FILTERS={
   /* "grade": warm lift + a soft vignette.  drawImage first, then two
      composited fills — every op is 2D-canvas, nothing per-pixel. */
@@ -5987,13 +6008,19 @@ async function filterStart(name){
   if(typeof canvas.captureStream!=="function"){ vdbg("filter: canvas.captureStream unsupported here — camera unaffected", true); return false; }
   const s=(raw.getSettings&&raw.getSettings())||{};
   const w=s.width||640, h=s.height||480;
+  const deviceId=s.deviceId||null;   // the way back: a device switch, never the old track
   canvas.width=w; canvas.height=h;
+  // OUR OWN copy of the camera: Daily stops the track it owns when the canvas
+  // track replaces it (that is the black feed), a clone keeps capturing
+  let clone=null;
+  try{ clone=raw.clone(); }catch(e){}
+  if(!clone || clone.readyState!=="live"){ vdbg("filter: could not clone the camera track — camera unaffected", true); return false; }
   // hidden feeder <video>: off-screen but NOT display:none (Safari may stop
   // decoding a display:none video; a 1px opacity-0 one keeps frames flowing)
   const video=document.createElement("video");
   video.playsInline=true; video.setAttribute("playsinline",""); video.muted=true; video.autoplay=true;
   video.style.cssText="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none";
-  video.srcObject=new MediaStream([raw]);
+  video.srcObject=new MediaStream([clone]);
   document.body.appendChild(video);
   try{ const pp=video.play(); if(pp&&pp.catch) pp.catch(()=>{}); }catch(e){}
   const g=canvas.getContext("2d");
@@ -6003,17 +6030,18 @@ async function filterStart(name){
   const tick=()=>{
     if(!FILTER.active) return;
     try{
-      if(video.readyState>=2){ g.drawImage(video,0,0,w,h); fx(g,w,h); }
+      if(video.readyState>=2){ g.drawImage(video,0,0,w,h); fx(g,w,h); FILTER.framesDrawn++; FILTER.lastDrawAt=Date.now(); }
     }catch(e){}
     FILTER.raf=requestAnimationFrame(tick);
   };
   const stream=canvas.captureStream(30);
   const canvasTrack=stream.getVideoTracks()[0];
-  FILTER={ active:true, name, raw, canvasTrack, canvas, video, raf:0 };
+  FILTER={ active:true, name, raw, clone, deviceId, canvasTrack, canvas, video, raf:0, framesDrawn:0, lastDrawAt:0 };
   tick();
+  filterReadoutStart();
   try{
     await DAILY.setInputDevicesAsync({ videoSource: canvasTrack });
-    vdbg("filter '"+name+"' on ✓ ("+w+"x"+h+")");
+    vdbg("filter '"+name+"' on ✓ ("+w+"x"+h+", feeder=clone of "+raw.id.slice(0,8)+", device "+(deviceId?deviceId.slice(0,8):"?")+")");
     return true;
   }catch(e){
     vdbg("filter start failed — restoring camera ("+(e?.message||e)+")", true);
@@ -6021,22 +6049,68 @@ async function filterStart(name){
     return false;
   }
 }
-/* filterStop(): hand the raw camera track back to Daily, stop the loop,
-   end the canvas track, release the feeder.  Safe to call when idle. */
+/* filterStop(): put the camera back by DEVICE SWITCH (the old raw track may
+   be ended — Daily stopped it when the canvas took over), stop the loop, end
+   the canvas track, stop our clone, release the feeder.  Safe when idle. */
 async function filterStop(){
-  if(!FILTER.active && !FILTER.canvasTrack) return;
+  if(!FILTER.active && !FILTER.canvasTrack && !FILTER.clone) return;
   const f=FILTER;
-  FILTER={ active:false, name:null, raw:f.raw, canvasTrack:null, canvas:null, video:null, raf:0 };
+  FILTER={ active:false, name:null, raw:null, clone:null, deviceId:null, canvasTrack:null, canvas:null, video:null, raf:0, framesDrawn:0, lastDrawAt:0 };
   if(f.raf) cancelAnimationFrame(f.raf);
+  filterReadoutStop();
+  let how="no call";
   try{
-    if(DAILY && DAILY_JOINED && f.raw && f.raw.readyState==="live")
-      await DAILY.setInputDevicesAsync({ videoSource: f.raw });
-  }catch(e){ vdbg("filter: restoring camera track failed ("+(e?.message||e)+")", true); }
+    if(DAILY && DAILY_JOINED){
+      let dev=f.deviceId;
+      if(!dev){   // no deviceId in the track settings: ask the browser for the camera
+        try{ const d=(await navigator.mediaDevices.enumerateDevices()).find(x=>x.kind==="videoinput"); dev=d?d.deviceId:null; }catch(e){}
+      }
+      if(dev){ await DAILY.setInputDevicesAsync({ videoDeviceId: dev }); how="videoDeviceId "+dev.slice(0,8); }
+      else { await DAILY.setInputDevicesAsync({ videoSource:false }); await DAILY.setLocalVideo(true); how="videoSource:false + setLocalVideo"; }
+    }
+  }catch(e){ vdbg("filter: restoring camera failed ("+(e?.message||e)+")", true); }
   try{ if(f.canvasTrack) f.canvasTrack.stop(); }catch(e){}
-  try{ if(f.video){ f.video.pause(); f.video.remove(); } }catch(e){}
+  try{ if(f.clone) f.clone.stop(); }catch(e){}       // our capture ends with the look
+  try{ if(f.video){ f.video.pause(); f.video.remove(); } }catch(e){}   // the clone is stopped above; the element goes with it
   if(f.canvas){ f.canvas.width=0; f.canvas.height=0; }
-  FILTER.raw=null;
-  vdbg("filter off — raw camera track restored");
+  vdbg("filter off — camera restored by "+how+" ("+f.framesDrawn+" frames drawn)");
+}
+/* the readout Nick reads off the phone: what the pipeline actually sees,
+   every second, in the debug panel (?debug or ?vdbg).  One line, replaced in
+   place — not a scrolling log line per tick. */
+function filterReadout(){
+  const f=FILTER, v=f.video;
+  return {
+    rawReadyState: f.raw?f.raw.readyState:null,
+    cloneReadyState: f.clone?f.clone.readyState:null,
+    feederReadyState: v?v.readyState:null,
+    feederPlaying: v?!v.paused:false,
+    framesDrawn: f.framesDrawn||0,
+    canvasTrackReadyState: f.canvasTrack?f.canvasTrack.readyState:null,
+    lastDrawAgoMs: f.lastDrawAt?(Date.now()-f.lastDrawAt):null,
+  };
+}
+function filterReadoutStart(){
+  if(!VDEBUG_ON || FILTER_READOUT_T) return;
+  const paint=()=>{
+    if(!FILTER.active){ filterReadoutStop(); return; }
+    const p=document.getElementById("vdebug"); if(!p) return;
+    let el=document.getElementById("vfilter");
+    if(!el){ el=document.createElement("div"); el.id="vfilter"; el.style.cssText="margin-top:4px;padding-top:4px;border-top:1px dashed rgba(255,45,143,.5);white-space:pre-wrap"; }
+    p.appendChild(el);   // always the LAST line of the panel, whatever logged since
+    const r=filterReadout();
+    const stuck=(r.lastDrawAgoMs==null || r.lastDrawAgoMs>1500);
+    el.textContent="FILTER "+FILTER.name+"  frames "+r.framesDrawn+"  last draw "+(r.lastDrawAgoMs==null?"never":r.lastDrawAgoMs+"ms")+(stuck?"  ✕ STUCK":"  ✓")
+      +"\nraw "+r.rawReadyState+" · clone "+r.cloneReadyState+" · feeder rs"+r.feederReadyState+(r.feederPlaying?" playing":" PAUSED")+" · canvas "+r.canvasTrackReadyState;
+    el.style.color=stuck?"#ff8ac2":"#9dffb0";
+    p.style.display="block";
+  };
+  paint();
+  FILTER_READOUT_T=setInterval(paint,1000);
+}
+function filterReadoutStop(){
+  if(FILTER_READOUT_T){ clearInterval(FILTER_READOUT_T); FILTER_READOUT_T=null; }
+  const el=document.getElementById("vfilter"); if(el) el.remove();
 }
 /* applyFilter: the post-verify door, called from the same spots as applyBlur
    — only after the publish is verified.  STEP 2 (feat/filter-rules): the
@@ -6875,7 +6949,10 @@ window.__lc = {
                                rawTrackAlive:!!(FILTER.raw && FILTER.raw.readyState==="live"),
                                canvasTrackId:FILTER.canvasTrack?FILTER.canvasTrack.id:null,
                                canvasTrackState:FILTER.canvasTrack?FILTER.canvasTrack.readyState:null,
-                               rawTrackId:FILTER.raw?FILTER.raw.id:null }; },
+                               rawTrackId:FILTER.raw?FILTER.raw.id:null,
+                               cloneTrackId:FILTER.clone?FILTER.clone.id:null,
+                               deviceId:FILTER.deviceId,
+                               ...filterReadout() }; },
   /* video layer */
   videoJoin, videoLeave, placeVideo, reflowVideo, tileFor, onTrack,
   desiredSubscriptions, syncVideoSubscriptions,

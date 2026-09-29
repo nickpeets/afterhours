@@ -39,6 +39,26 @@
  *      opposite of what it proved at #83: ?filter=grade does NOTHING, and a
  *      plain join publishes the camera as-is.  The post-verify door
  *      (applyFilter) stays where it was and is asserted below.
+ *
+ * REVISED 2026-09-29 (fix/filter-feed-black).  WHAT THE HARNESS FAKED, AND
+ * NOW DOESN'T, round two.  The shim kept the camera's DEVICE track alive
+ * after a custom videoSource replaced it.  Real daily-js releases the
+ * device track it owns on that swap — and the app's feeder <video> was
+ * holding exactly that track, so on an iPhone the canvas drew black frames
+ * while every viewer saw the badge (live, 2026-09-29).  This gate was green
+ * over a black feed.  The shim now stops the device track on the swap
+ * (readyState 'ended', track-stopped emitted) and re-acquires the camera on
+ * a videoDeviceId switch, the way the real library does; with that change
+ * alone this gate went RED on main (11 of 46 checks: rawTrackAlive=false,
+ * cam=ended, restore never happened).  The claims below are the fix's:
+ *   1b. the feeder is fed a CLONE of the raw track; after the swap the raw
+ *       track is ended (Daily's), the clone is live (ours), the feeder is
+ *       playing and framesDrawn keeps INCREASING — frames, not a badge over
+ *       black
+ *   3b. restore goes through setInputDevicesAsync({ videoDeviceId }) — never
+ *       the old raw track — and the local track is playable afterwards; the
+ *       clone is STOPPED after filterStop (no leaked capture)
+ *   4b. the watchdog kill stops the clone too
  */
 "use strict";
 const { Harness } = require("../lib/harness");
@@ -136,9 +156,30 @@ module.exports = {
         `the call's local video track IS the canvas track (call=${t1.trackId} canvas=${t1.F.canvasTrackId} custom=${t1.customId})`);
       t.ok(t1.trackId !== rawId, "…and it is a different track from the raw camera (" + rawId + ")");
       t.ok(t1.state === "playable" && t1.trackReady === "live", `the published track is playable and live (state=${t1.state}, readyState=${t1.trackReady})`);
-      t.ok(t1.F.rawTrackAlive === true && t1.camReady === "live" && t1.F.rawTrackId === rawId,
-        `the raw camera track is kept alive for restore (rawTrackAlive=${t1.F.rawTrackAlive}, cam=${t1.camReady})`);
+      /* 1b. the feed survives Daily releasing its device track */
+      t.ok(t1.F.rawTrackId === rawId && t1.F.rawReadyState === "ended" && t1.camReady === "ended",
+        `Daily's own device track is ENDED after the swap — the shim now models the release (raw=${t1.F.rawReadyState}, cam=${t1.camReady})`);
+      t.ok(t1.F.cloneTrackId && t1.F.cloneTrackId !== rawId && t1.F.cloneReadyState === "live",
+        `the feeder draws from a CLONE of the camera track, and the clone is live (clone=${t1.F.cloneTrackId} ≠ raw=${rawId}, ${t1.F.cloneReadyState})`);
+      t.ok(!!t1.F.deviceId, `the camera's deviceId was captured at start for the way back (${t1.F.deviceId && t1.F.deviceId.slice(0, 8)}…)`);
       t.ok(t1.hiddenVideos === 1, `one hidden feeder <video> on body while the filter is live (${t1.hiddenVideos})`);
+      const feederTrack = await host.page.evaluate(() => {
+        const v = document.querySelector("body > video");
+        const tr = v && v.srcObject && v.srcObject.getVideoTracks()[0];
+        return tr ? { id: tr.id, ready: tr.readyState } : null;
+      });
+      t.ok(feederTrack && feederTrack.id === t1.F.cloneTrackId && feederTrack.ready === "live",
+        `the hidden feeder's srcObject IS the clone, live (${feederTrack && feederTrack.id})`);
+      const frames = await host.page.evaluate(async () => {
+        const a = window.__lc.FILTER_STATE;
+        await new Promise((r) => setTimeout(r, 700));
+        const b = window.__lc.FILTER_STATE;
+        return { a: a.framesDrawn, b: b.framesDrawn, feeder: b.feederReadyState, playing: b.feederPlaying, ago: b.lastDrawAgoMs, canvas: b.canvasTrackReadyState };
+      });
+      t.ok(frames.b > frames.a && frames.b - frames.a >= 5,
+        `framesDrawn keeps INCREASING after the swap (${frames.a} → ${frames.b} in 700ms) — the canvas is drawing camera frames, not black`);
+      t.ok(frames.feeder >= 2 && frames.playing === true && frames.ago !== null && frames.ago < 1500,
+        `readout: feeder readyState=${frames.feeder} playing=${frames.playing} lastDrawAgoMs=${frames.ago} canvas=${frames.canvas}`);
 
       /* ---------- 2. what the real browser says it publishes ---------- */
       /* captureStream settings can take a frame or two to populate */
@@ -152,9 +193,11 @@ module.exports = {
       // the one informational line this gate prints: the numbers the browser
       // itself reported for the published (canvas) track, pass or fail
       console.log(`    ↳ [filter-pipeline] real-browser local video track: ${settings.width}x${settings.height} @ ${settings.frameRate}fps (canvas track)`);
-      const camS = await host.page.evaluate(() => { const c = window.__dailyControl.cameraTrack(); return c ? c.getSettings() : {}; });
+      /* the device track is ended now (its settings are gone) — the clone
+         carries the camera's geometry, and it is what the feeder decodes */
+      const camS = await host.page.evaluate(() => { const v = document.querySelector("body > video"); const c = v && v.srcObject.getVideoTracks()[0]; return c ? c.getSettings() : {}; });
       t.ok(settings.width === camS.width && settings.height === camS.height,
-        `canvas matches the camera's geometry (camera ${camS.width}x${camS.height}@${camS.frameRate})`);
+        `canvas matches the camera's geometry, read off the clone (camera ${camS.width}x${camS.height}@${camS.frameRate})`);
       /* the canvas is actually being drawn (frames flow) */
       const drawn = await host.page.evaluate(async () => {
         const tr = window.__lc.DAILY.participants().local.tracks.video.track;
@@ -169,6 +212,7 @@ module.exports = {
         return { sum, t: v.currentTime };
       });
       t.ok(drawn.t > 0, `frames flow through the canvas track (currentTime=${drawn.t.toFixed(2)}s, pixel sum=${drawn.sum})`);
+      t.ok(drawn.sum > 0, `…and the published frames are NOT black (pixel sum=${drawn.sum}) — the live failure was a black publish under a working badge`);
 
       /* the self tile followed the swap like an ordinary track change */
       await waitFor(() => host.page.evaluate((id) => {
@@ -178,12 +222,25 @@ module.exports = {
       }, t1.trackId), 5000, "the self tile to show the canvas track");
       t.ok(true, "the self tile shows the filtered track — the tile code was not touched, it saw an ordinary local track change");
 
-      /* ---------- 3. filterStop ---------- */
-      await host.page.evaluate(() => window.__lc.filterStop());
+      /* ---------- 3. filterStop — restore by DEVICE SWITCH ---------- */
+      const cloneId1 = t1.F.cloneTrackId;
+      const stopped = await host.page.evaluate(async () => {
+        const v = document.querySelector("body > video");
+        const clone = v.srcObject.getVideoTracks()[0];
+        const logBefore = window.__dailyControl.inputLog().length;
+        await window.__lc.filterStop();
+        const log = window.__dailyControl.inputLog().slice(logBefore);
+        return { cloneReady: clone.readyState, cloneId: clone.id, log };
+      });
       const t2 = await host.page.evaluate(TRUTH);
-      t.ok(t2.trackId === rawId && t2.customId === rawId,
-        `filterStop: the call publishes the raw camera track again (${t2.trackId})`);
-      t.ok(t2.state === "playable" && t2.trackReady === "live", "…playable and live");
+      t.ok(stopped.log.length === 1 && stopped.log[0].videoDeviceId && stopped.log[0].videoDeviceId === t1.F.deviceId,
+        `restore went through setInputDevicesAsync({ videoDeviceId }) — never the old raw track (${JSON.stringify(stopped.log)})`);
+      t.ok(t2.customId === null && t2.trackId && t2.trackId !== t1.trackId && t2.trackId === t2.camId,
+        `filterStop: the call publishes a camera track again, re-acquired by device switch (${t2.trackId}; raw was ${rawId})`);
+      t.ok(t2.state === "playable" && t2.trackReady === "live", `…playable and live (state=${t2.state}, readyState=${t2.trackReady})`);
+      t.ok(stopped.cloneId === cloneId1 && stopped.cloneReady === "ended",
+        `the clone is STOPPED after filterStop — no leaked capture (${stopped.cloneId} ${stopped.cloneReady})`);
+      t.ok(t2.F.cloneTrackId === null && t2.F.cloneReadyState === null, "FILTER releases the clone reference");
       t.ok(t2.F.active === false && t2.F.name === null, "FILTER_STATE.active false");
       t.ok(t2.F.canvasTrackId === null, "the canvas track reference is released");
       const canvasEnded = await host.page.evaluate((id) => {
@@ -205,6 +262,8 @@ module.exports = {
       /* ---------- 4. watchdog fire while active ---------- */
       t.ok(await host.page.evaluate(() => window.__lc.filterStart("grade")), "filter back on for the watchdog case");
       const beforeWd = await host.page.evaluate(TRUTH);
+      const wdClone = await host.page.evaluate(() => { window.__wdClone = document.querySelector("body > video").srcObject.getVideoTracks()[0]; return window.__wdClone.readyState; });
+      t.ok(wdClone === "live", "(sanity) the watchdog case's clone is live before the fire");
       /* force the REAL watchdog branch: it fires only when no self tile is
          mounted at the end of its 6s window, and reflow remounts any playable
          local track within that window — so the stall has to be REAL: arm the
@@ -228,9 +287,12 @@ module.exports = {
       const t4 = await host.page.evaluate(TRUTH);
       t.ok(t4.cam.watchdogFires >= 1 && t4.F.killed === true, `watchdog fired (${t4.cam.watchdogFires}) → FILTER_STATE.killed true`);
       t.ok(t4.F.active === false, "the filter is torn down");
-      t.ok(t4.customId === rawId || t4.customId === null,
-        `the call publishes the raw camera again after the fire (custom=${t4.customId}, raw=${rawId})`);
-      t.ok(t4.trackId === rawId && t4.trackReady === "live", `…and the local track is the live raw camera (${t4.trackId})`);
+      t.ok(t4.customId === null, `the call publishes the camera again after the fire (custom=${t4.customId})`);
+      t.ok(t4.trackId && t4.trackId === t4.camId && t4.trackReady === "live",
+        `…and the local track is a live camera track, re-acquired by device switch (${t4.trackId})`);
+      const killClone = await host.page.evaluate(() => ({ feeders: document.querySelectorAll("body > video").length, clone: window.__wdClone.readyState }));
+      t.ok(killClone.feeders === 0 && killClone.clone === "ended" && t4.F.cloneTrackId === null,
+        `the kill stopped the clone and removed the feeder (clone=${killClone.clone}, feeders left=${killClone.feeders})`);
       t.ok(t4.cam.blurKilled === true, "blur is killed by the same fire (the cage is shared)");
       const noop = await host.page.evaluate(() => window.__lc.filterStart("grade").then((ok) => ({ ok, F: window.__lc.FILTER_STATE })));
       t.ok(noop.ok === false && noop.F.active === false && noop.F.killed === true,

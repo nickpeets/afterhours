@@ -317,6 +317,19 @@ by the existing 80s (watcher exit) / 120s (zombie janitor) absence rules
 only.  A booting host who finds his own live room rejoins it; host UI,
 phase, and clocks restore from server state.
 
+**Q1 v2 (9/30, amends Q1).**  Q1 stands for a REAL reload: a live room
+whose host heartbeat is fresh (≤ 120s — `host_seen_at`, else `created_at`)
+resumes silently, unchanged.  A live room whose host heartbeat is STALE
+(> 120s) does NOT auto-resume.  The host lands in the lobby with a card:
+"You have a show still running — Resume / End it."  Resume → `openRoom(r)`.
+End it → `end_show(room_id, winner_id:null)` with the same `status='ended'`
+fallback `leaveRoom` uses, then `loadRooms()`.  The threshold is ONE number
+in the build (`HOST_STALE_MS`), shared with the zombie janitor and the
+lobby's ghost filter.  Why: a host who signed out (or whose sign-out
+half-failed) without LAST CALL left a live room that the host-exempt zombie
+rule never ended, and her next boot — hours or days later — walked her
+straight back into it (Nick, 2026-09-30; gate 74).
+
 **Q2 — A chair leaving during his own answer = passing himself.**  He's
 out (pass-final), the segment collapses immediately, and the bench-pick
 window opens.  LEAVE is never blocked, in any phase, for any role.

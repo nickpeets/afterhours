@@ -1150,7 +1150,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0928.2118</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b0930.2342</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1189,6 +1189,23 @@
       <div id="whoami" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding:8px 12px;border-radius:10px;background:rgba(17,22,52,.7);border:1px solid rgba(185,168,255,.18);font-family:'Azeret Mono',monospace;font-size:10px;letter-spacing:.08em">
         <span id="whoami_who" style="color:#b9a8ff">—</span>
         <span id="whoami_slot" style="color:rgba(242,240,255,.45)"></span>
+      </div>
+      <!-- STALE-HOST RESUME CARD (RULING Q1 v2).  Static markup, hidden until
+           enterApp finds the host's own live room with a stale beat.  No mock
+           exists for this card; the shell is the lilac notice row from
+           design/Last Call Lobby.dc.html (L3), the buttons are .fbtn. -->
+      <div id="staleresume" style="display:none;flex-direction:column;gap:10px;margin-bottom:14px;padding:14px 16px;border-radius:16px;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.4)">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <span style="font-size:15px;color:#b9a8ff">◔</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;color:#d6cdff">You have a show still running</div>
+            <div id="staleresume_name" style="font-family:Archivo,sans-serif;font-size:12.5px;line-height:1.55;color:rgba(214,205,255,.85);margin-top:3px"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="fbtn neon" id="staleresume_go" style="flex:1;margin:0">Resume</button>
+          <button class="fbtn ghost" id="staleresume_end" style="flex:1;margin:0">End it</button>
+        </div>
       </div>
       <button class="golive" id="golive">● GO LIVE — Host Your Room</button>
       <div class="sectlabel">LIVE NOW</div>
@@ -1652,7 +1669,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b0928.2118"); }catch(e){}
+try{ console.log("[lastcall] build b0930.2342"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -1889,34 +1906,75 @@ $("loginPanel").onsubmit=async(e)=>{
   enterApp();
 };
 
+/* SIGN-OUT NEVER LEAVES A GHOST (fix/signout-ghost-room, 2026-09-30).
+   Nick signed out as host without tapping LAST CALL; the next visit walked
+   him straight back into the old room.  Three holes, three closures:
+     · signOutForSure()   the sign-out's result is READ.  A failure is named
+                          in the console and a local-scope sign-out follows;
+                          a REJECTED call can no longer skip the reload.
+     · endMyLiveRooms()   the ONE sweep of "rooms I host that still say
+                          live".  Both sign-out paths run it — the in-room
+                          path AFTER leaveRoom, so a leave that threw or
+                          half-failed is caught by a fresh read of the table,
+                          not trusted.
+     · the stale-host resume card (enterApp, RULING Q1 v2) for whatever
+       still slips through. */
+async function endMyLiveRooms(){
+  let left=0;
+  try{
+    const {data:mine,error:readErr}=await sb.from("rooms").select("id").eq("host_id",ME.id).eq("status","live");
+    if(readErr) console.log("signout: live-room read failed:",readErr.message);
+    for(const r of (mine||[])){
+      /* GATE 56 (endshow-truth): each ending read + retried; sign-out still
+         proceeds (a user can always leave — blocking it is the conductor's
+         call, per the gate's product note) but an orphaned live room is
+         never SILENT. */
+      let ended=false;
+      for(let a=0;a<3 && !ended;a++){
+        let err=null;
+        try{ const {error}=await sb.rpc("end_show",{room_id:r.id,winner_id:null}); err=error; }
+        catch(e){ err={message:String((e&&e.message)||e)}; }
+        if(!err){ ended=true; break; }
+        console.log("signout: end_show attempt "+(a+1)+" failed for room "+r.id+":",err.message);
+        if(a<2) await new Promise(r2=>setTimeout(r2,600*(a+1)));
+      }
+      if(!ended){ left++; toast("Couldn't close your live room \u2014 it's still LIVE.  Sign back in and tap LAST CALL to end it."); }
+    }
+  }catch(e){ console.log("signout: live-room sweep threw:",String((e&&e.message)||e)); }
+  return left;
+}
+/* the sign-out itself.  Global scope first (revokes the refresh token on the
+   server); if that returns an error OR rejects, say so and fall back to
+   local scope.  Never throws — the caller's reload must always run.
+   SOURCE (@supabase/auth-js 2.112.4, GoTrueClient._signOut, read
+   2026-09-30): a revoke that comes back as an ERROR has already dropped the
+   local session — the library removes it before returning the error.  So
+   the returned-error case was merely SILENT before this; the case that
+   kept the session was a REJECTED call, which also skipped the reload.
+   The local-scope call still makes its own round trip (POST
+   /logout?scope=local) whenever a session is left to revoke. */
+async function signOutForSure(){
+  let error=null;
+  try{ const r=await sb.auth.signOut(); error=(r&&r.error)||null; }
+  catch(e){ error={message:String((e&&e.message)||e)}; }
+  if(!error) return true;
+  console.log("signout: signOut failed:",error.message);
+  try{ const r=await sb.auth.signOut({scope:"local"}); if(r&&r.error) console.log("signout: local-scope signOut failed:",r.error.message); }
+  catch(e){ console.log("signout: local-scope signOut threw:",String((e&&e.message)||e)); }
+  return false;
+}
 $("signout").onclick=async()=>{
   if(CURRENT_ROOM){
     // leaveRoom ends the show properly (with the stubborn fallback) — a
     // bare end_show RPC here once failed silently and left a zombie room
-    try{ await leaveRoom(); }catch(e){}
-  } else if(ME){
-    // not in a room view, but might own a live room (e.g. signed out from the lobby) — end any
-    try{ const {data:mine}=await sb.from("rooms").select("id").eq("host_id",ME.id).eq("status","live");
-      for(const r of (mine||[])){
-        /* GATE 56 (endshow-truth): each ending read + retried; sign-out still
-           proceeds (a user can always leave — blocking it is the conductor's
-           call, per the gate's product note) but an orphaned live room is
-           never SILENT. */
-        let ended=false;
-        for(let a=0;a<3 && !ended;a++){
-          let err=null;
-          try{ const {error}=await sb.rpc("end_show",{room_id:r.id,winner_id:null}); err=error; }
-          catch(e){ err={message:String((e&&e.message)||e)}; }
-          if(!err){ ended=true; break; }
-          console.log("signout: end_show attempt "+(a+1)+" failed for room "+r.id+":",err.message);
-          if(a<2) await new Promise(r2=>setTimeout(r2,600*(a+1)));
-        }
-        if(!ended) toast("Couldn't close your live room \u2014 it's still LIVE.  Sign back in and tap LAST CALL to end it.");
-      }
-    }catch(e){}
+    try{ await leaveRoom(); }catch(e){ console.log("signout: leaveRoom threw:",String((e&&e.message)||e)); }
   }
+  // in a room or not: RE-READ the table and end whatever I still host live.
+  // After a clean leaveRoom this finds nothing; after a leave that threw or
+  // whose end_show was refused, this is the retry and the toast.
+  if(ME) await endMyLiveRooms();
   authBeginSignOut();
-  await sb.auth.signOut(); location.reload();
+  await signOutForSure(); location.reload();
 };
 
 /* ============ BENCH HEADSHOT ============ */
@@ -2180,6 +2238,11 @@ async function enterApp(){
   // without her; the 120s zombie rule ends truly abandoned rooms).  A
   // booting host who finds her own live room walks straight back into it —
   // host UI, phase, and clocks restore from server state via openRoom.
+  // RULING Q1 v2 (9/30): that holds for a REAL reload — a host heartbeat
+  // no older than HOST_STALE_MS.  A live room whose host beat is STALE is
+  // not a reload, it is a show she left running: no auto-resume, the lobby
+  // asks (staleResumeShow, below).
+  staleResumeClear();
   let RESUME_ROOM=null;
   try{
     const {data:mine}=await sb.from("rooms").select("*").eq("host_id",user.id).eq("status","live");
@@ -2218,9 +2281,54 @@ async function enterApp(){
     const lb=$("lobby");
     if(lb && getComputedStyle(lb).display!=="none" && !CURRENT_ROOM) loadRooms();
   },15000);
-  // …and the resumed show takes the stage over the lobby (RULING Q1)
-  if(RESUME_ROOM){ try{ await openRoom(RESUME_ROOM); }catch(e){} }
+  // …and the resumed show takes the stage over the lobby (RULING Q1) —
+  // unless her beat is stale, in which case she is ASKED (Q1 v2)
+  if(RESUME_ROOM){
+    if(hostBeatStale(RESUME_ROOM)) staleResumeShow(RESUME_ROOM);
+    else { try{ await openRoom(RESUME_ROOM); }catch(e){} }
+  }
 }
+
+/* ============ STALE-HOST RESUME CARD (RULING Q1 v2, 9/30) ============
+   HOST_STALE_MS is THE number for "the host has been gone too long": the
+   lobby's ghost filter, openRoom's zombie janitor, and the boot-time resume
+   decision all read it.  The beat is host_seen_at, else created_at (rooms
+   born before the heartbeat column). */
+const HOST_STALE_MS=120000;
+function hostBeatStale(r){
+  const beat=Date.parse((r&&(r.host_seen_at||r.created_at))||0);
+  return Date.now()-beat>HOST_STALE_MS;
+}
+let STALE_RESUME=null;   // the live room the booting host was NOT walked into
+function staleResumeShow(r){
+  STALE_RESUME=r;
+  try{
+    $("staleresume_name").textContent=r.contestant_name||"Untitled Room";
+    $("staleresume_go").disabled=false; $("staleresume_end").disabled=false;
+    $("staleresume").style.display="flex";
+  }catch(e){}
+}
+function staleResumeClear(){
+  STALE_RESUME=null;
+  try{ $("staleresume").style.display="none"; }catch(e){}
+}
+$("staleresume_go").onclick=async()=>{
+  const r=STALE_RESUME; if(!r) return;
+  staleResumeClear();
+  try{ await openRoom(r); }catch(e){ console.log("stale resume: openRoom threw:",String((e&&e.message)||e)); }
+};
+$("staleresume_end").onclick=async()=>{
+  const r=STALE_RESUME; if(!r) return;
+  $("staleresume_go").disabled=true; $("staleresume_end").disabled=true;
+  const ok=await hostEndRoom(r.id);
+  if(ok) staleResumeClear();
+  else{
+    // never silent: the card stays, and she is told
+    $("staleresume_go").disabled=false; $("staleresume_end").disabled=false;
+    toast("Couldn't end that show \u2014 it's still LIVE.  Try again.");
+  }
+  loadRooms();
+};
 
 /* ============ LOBBY ============ */
 async function loadRooms(){
@@ -2229,9 +2337,12 @@ async function loadRooms(){
   const {data:allrooms,error}=await sb.from("rooms").select("*").eq("status","live").order("created_at",{ascending:false});
   if(error){list.innerHTML='<div class="empty">Couldn\'t load rooms: '+error.message+'</div>';return;}
   // ghost filter: a "live" room needs a host heartbeat inside 2 min (or be brand new)
+  // the resume card never outlives its room: ended here, ended elsewhere,
+  // or resumed and then left — if the row is no longer live, the card goes
+  if(STALE_RESUME && !(allrooms||[]).some(r=>r.id===STALE_RESUME.id)) staleResumeClear();
   let rooms=(allrooms||[]).filter(r=>{
     const beat=Date.parse(r.host_seen_at||r.created_at||0);
-    return !beat || Date.now()-beat<120000 || r.host_id===ME.id;
+    return !beat || Date.now()-beat<HOST_STALE_MS || r.host_id===ME.id;
   });
   // matching: fetch host profiles; filter by mutual seeking + age window (degrades if columns absent)
   let HOSTP={};
@@ -2338,13 +2449,14 @@ async function openRoom(r){
   // rooms created before the heartbeat column treat created_at as the beat)
   if(r && r.status==="live" && r.host_id!==ME.id){
     const beat = Date.parse(r.host_seen_at||r.created_at||0);
-    if(beat && Date.now()-beat > 120000){
+    if(beat && Date.now()-beat > HOST_STALE_MS){
       sb.from("rooms").update({status:"ended"}).eq("id",r.id).then(()=>{});  // janitor: best effort
       toast("That show already ended 🌙");
       loadRooms();
       return;
     }
   }
+  if(STALE_RESUME && r && r.id===STALE_RESUME.id) staleResumeClear();   // she walked in by another door (her YOUR ROOM card)
   CURRENT_ROOM=r;
   I_WAS_PASSED=false;
   AMHOST=r.host_id===ME.id;
@@ -4518,7 +4630,7 @@ $("st_delete").onclick=async()=>{
     if(error){ err.textContent="Could not delete: "+error.message; stReset(); return; }
   }catch(e){ err.textContent="Could not delete: "+(e.message||"unknown error"); stReset(); return; }
   authBeginSignOut();
-  try{ await sb.auth.signOut(); }catch(e){}
+  await signOutForSure();   // result read, local-scope fallback, never throws
   location.reload();
 };
 
@@ -5712,6 +5824,20 @@ $("roomback").onclick=()=>{
   }
   leaveRoom();
 };
+/* THE HOST'S STUBBORN ENDING — one implementation, two callers (leaveRoom,
+   and the stale-host resume card's "End it").  end_show first; if the RPC
+   refuses or rejects, the direct status write, so an orphaned room is never
+   left behind.  Returns true when either landed. */
+async function hostEndRoom(roomId){
+  let err=null;
+  try{ const {error}=await sb.rpc("end_show",{room_id:roomId,winner_id:null}); err=error; }
+  catch(e){ err={message:String((e&&e.message)||e)}; }
+  if(!err) return true;
+  console.log("host end_show on leave:",err.message);
+  // stubborn fallback: never leave an orphaned room behind
+  try{ const {error}=await sb.from("rooms").update({status:"ended"}).eq("id",roomId).eq("host_id",ME.id); return !error; }
+  catch(e){ return false; }
+}
 async function leaveRoom(){
   const leaving=CURRENT_ROOM;
   document.getElementById("reportmodal")?.remove();   // room UI must not outlive the room
@@ -5728,18 +5854,22 @@ async function leaveRoom(){
   try{ $("rt_gifts").classList.remove("show"); }catch(e){}
   try{ filterShelfOpen(false); }catch(e){}
   try{ ["eg_drawer","eg_decide","eg_question","eg_showstart","eg_drumroll"].forEach(id=>{ const el=$(id); if(el) el.style.display="none"; }); }catch(e){}
-  stopHeartbeat(); stopClockTick(); stopHostPoll();
+  /* NOTHING ABOVE THE HOST'S end_show MAY SKIP IT (2026-09-30).  These
+     teardown calls were bare: a throw in any of them left leaveRoom before
+     the ending, and the sign-out handler swallowed the throw — a live room
+     with nobody home, and not a word said. */
+  for(const stop of [stopHeartbeat,stopClockTick,stopHostPoll]){
+    try{ stop(); }catch(e){ console.log("leaveRoom: teardown threw:",String((e&&e.message)||e)); }
+  }
   await videoLeave();
-  if(ROOM_CHANNEL){ sb.removeChannel(ROOM_CHANNEL); ROOM_CHANNEL=null; }
+  if(ROOM_CHANNEL){
+    try{ sb.removeChannel(ROOM_CHANNEL); }catch(e){ console.log("leaveRoom: removeChannel threw:",String((e&&e.message)||e)); }
+    ROOM_CHANNEL=null;
+  }
   if(leaving){
     if(leaving.host_id===ME.id){
       // the host IS the show — leaving ends it (unless already ended via finale)
-      const {error}=await sb.rpc("end_show",{room_id:leaving.id,winner_id:null});
-      if(error){
-        console.log("host end_show on leave:",error.message);
-        // stubborn fallback: never leave an orphaned room behind
-        try{ await sb.from("rooms").update({status:"ended"}).eq("id",leaving.id).eq("host_id",ME.id); }catch(e){}
-      }
+      await hostEndRoom(leaving.id);
     } else {
       const {error}=await sb.rpc("leave_room",{room_id:leaving.id});
       if(error) console.log("leave_room:",error.message);
@@ -6894,6 +7024,12 @@ window.__lc = {
   /* room lifecycle — syncRoomTruth is the role-agnostic truth poll,
      showEnded the ONE end-of-show door (wave 3) */
   enterApp, openRoom, leaveRoom, subscribeRoom, handleEvent, syncRoomTruth, showEnded,
+  /* sign-out + stale-host resume (RULING Q1 v2) — endMyLiveRooms is the ONE
+     sweep of rooms I still host live, hostEndRoom the ONE stubborn ending,
+     signOutForSure the ONE sign-out; HOST_STALE_MS is the ONE number. */
+  endMyLiveRooms, hostEndRoom, signOutForSure, hostBeatStale, staleResumeShow, staleResumeClear,
+  get HOST_STALE_MS(){ return HOST_STALE_MS; },
+  get STALE_RESUME(){ return STALE_RESUME; },
   startHeartbeat, stopHeartbeat, startHostPoll, stopHostPoll,
   startClockTick, stopClockTick, serverNow,
   /* finale */

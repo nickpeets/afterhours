@@ -92,6 +92,7 @@ class BackendDouble {
     this.listeners = [];         // fn(evt) — harness fans out to pages
     this.rpcLog = [];            // every rpc call, for gate assertions
     this.authLog = [];           // every auth op, for gate assertions (retry counting)
+    this.opLog = [];             // EVERY dispatched op, in arrival order, across auth/rpc/table — for ORDER assertions (gate 73)
     this.swaps = {};             // room_id -> { uid: contact_text } (backstage swap offers)
     this.clockSkew = 0;          // ms added to "now" (staleness tests)
   }
@@ -248,15 +249,54 @@ class BackendDouble {
        app is required to tell them apart — hence two modes, not one.
        authLog records every auth op so a gate can prove the bounded retry
        actually retried (and only once). */
+    /* OP LOG (fix/signout-ghost-room) — one ordered record of everything a
+       page asked for.  rpcLog and authLog are separate lists, so "did the
+       room end BEFORE the sign-out" had no answer; this is the answer.  The
+       entry is pushed on ARRIVAL and `ok` is filled in when the op settles
+       (null while in flight, true/false after; a `throw` fault leaves it
+       false). */
+    const entry = { n: this.opLog.length, clientId, op, ok: null };
+    if (op === "rpc" && payload) { entry.name = payload.name; entry.args = payload.args || {}; }
+    if (op === "table" && payload) { entry.table = payload.table; entry.action = payload.action; entry.values = payload.values || null; }
+    this.opLog.push(entry);
     if (typeof op === "string" && op.startsWith("auth.")) {
-      this.authLog.push({ clientId, op });
-      const f = this.faults && (this.faults[op + "|" + clientId] || this.faults[op + "|*"]);
-      if (f && f.throw) throw new Error(f.throw === true ? "network unreachable" : f.throw);
-      if (f && f.error) return { data: null, error: { message: f.error } };
+      /* SIGN-OUT FIDELITY (fix/signout-ghost-room).  The double's signOut
+         could not fail and did not know its scope.
+         SOURCE (@supabase/auth-js 2.112.4 — the version index.html pins —
+         dist/main/GoTrueClient.js `_signOut`, read 2026-09-30):
+           · no access token  → no server call at all; the local session is
+             removed; { error: null }.
+           · the revoke (POST /logout?scope=…, made for EVERY scope, local
+             included) comes back an error other than 401/403/404 → the
+             local session is STILL removed (scope !== 'others') and the
+             error is returned.  A refused or unreachable sign-out does not
+             keep you signed in; it is merely reported.
+           · scope 'others' never removes the current session.
+         ASSUMED: what makes the call REJECT outright (a lock timeout, a
+         storage exception) — the `throw` mode below models "it rejected and
+         removed nothing"; nobody has watched production do it.
+         A fault may carry `scope` to hit ONE scope only:
+           D.setFault("auth.signOut", "host", { throw: "…", scope: "global" }) */
+      const isSignOut = op === "auth.signOut";
+      const scope = isSignOut ? ((payload && payload.scope) || "global") : null;
+      if (isSignOut) entry.scope = scope;
+      this.authLog.push(isSignOut ? { clientId, op, scope } : { clientId, op });
+      let f = this.faults && (this.faults[op + "|" + clientId] || this.faults[op + "|*"]);
+      if (f && isSignOut && f.scope && f.scope !== scope) f = null;
+      if (f && f.throw) { entry.ok = false; throw new Error(f.throw === true ? "network unreachable" : f.throw); }
+      if (f && f.error && isSignOut && !this.sessions.has(clientId)) f = null;   // nothing to revoke → no server call to refuse
+      if (f && f.error) {
+        if (isSignOut && scope !== "others") this.sessions.delete(clientId);     // SOURCE above: removed even though the revoke failed
+        entry.ok = false;
+        return { data: null, error: { message: f.error } };
+      }
     }
     try {
-      return { data: await this._dispatch(clientId, op, payload || {}), error: null };
+      const data = await this._dispatch(clientId, op, payload || {});
+      entry.ok = true;
+      return { data, error: null };
     } catch (e) {
+      entry.ok = false;
       return { data: null, error: { message: String(e.message || e) } };
     }
   }
@@ -270,7 +310,7 @@ class BackendDouble {
       const uid = this.sessions.get(clientId);
       return { user: uid ? this.users.get(uid) : null };
     }
-    if (op === "auth.signOut") { this.sessions.delete(clientId); return {}; }
+    if (op === "auth.signOut") { if ((p.scope || "global") !== "others") this.sessions.delete(clientId); return {}; }
     if (op === "auth.signInWithPassword") {
       const u = [...this.users.values()].find((x) => x.email === p.email);
       if (!u) throw new Error("Invalid login credentials");
@@ -296,7 +336,8 @@ class BackendDouble {
      but never kept.  Gates drive both with setFault:
        D.setFault("active_members", "host", { error: "boom" })   // that client's reads fail
        D.setFault("join_line", "w", { drop: true })              // accepted, row untouched
-       D.setFault("join_line", "w", null)                        // clear */
+       D.setFault("join_line", "w", null)                        // clear
+       D.setFault("end_show", "host", { error: "boom", times: 1 }) // refuse ONCE, then clear itself */
   setFault(name, clientId, mode) {
     this.faults = this.faults || {};
     const k = name + "|" + (clientId || "*");
@@ -305,8 +346,13 @@ class BackendDouble {
 
   /* ---------- RPCs ---------- */
   rpc(clientId, name, a) {
-    const f = this.faults && (this.faults[name + "|" + clientId] || this.faults[name + "|*"]);
+    const fk = this.faults && (this.faults[name + "|" + clientId] ? name + "|" + clientId : name + "|*");
+    const f = this.faults && this.faults[fk];
     if (f) {
+      /* `times: N` — the fault fires N times and then clears itself, so a
+         gate can say "the FIRST end_show is refused, the retry lands"
+         without racing the page to clear it (gate 73). */
+      if (f.times !== undefined && (f.error || f.drop)) { if (--f.times <= 0) delete this.faults[fk]; }
       if (f.error) throw new Error(f.error);
       if (f.drop) return (f.result !== undefined ? f.result : null);   // accepted-but-dropped
       if (f.freeze) {

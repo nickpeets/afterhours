@@ -66,7 +66,10 @@
         getUser: () => call("auth.getUser").then(({ data, error }) => ({ data: data || { user: null }, error })),
         signInWithPassword: (c) => call("auth.signInWithPassword", c),
         signUp: (c) => call("auth.signUp", c),
-        signOut: () => call("auth.signOut"),
+        /* the scope is part of the call (fix/signout-ghost-room): the shim
+           used to drop it, so a local-scope fallback was indistinguishable
+           from the global attempt it follows */
+        signOut: (o) => call("auth.signOut", { scope: (o && o.scope) || "global" }),
         resetPasswordForEmail: (e, o) => call("auth.resetPasswordForEmail", { email: e }),
         updateUser: (u) => call("auth.updateUser", u),
         onAuthStateChange(fn) { authListeners.push(fn); return { data: { subscription: { unsubscribe() {} } } }; },
@@ -77,7 +80,14 @@
         return { then: (res, rej) => p.then(res, rej), catch: (rej) => p.catch(rej) };
       },
       channel: (name) => new Channel(name),
-      removeChannel: (ch) => { if (ch) ch.unsubscribe(); return Promise.resolve("ok"); },
+      /* TRANSPORT FAULT (fix/signout-ghost-room): realtime teardown can
+         throw synchronously — a gate arms window.__shimFaults.removeChannel
+         to make it.  Still a dumb transport: no backend semantics here. */
+      removeChannel: (ch) => {
+        const sf = window.__shimFaults;
+        if (sf && sf.removeChannel) throw new Error(sf.removeChannel === true ? "removeChannel: socket already closed" : sf.removeChannel);
+        if (ch) ch.unsubscribe(); return Promise.resolve("ok");
+      },
       functions: { invoke: () => Promise.resolve({ data: null, error: null }) },
     };
   }

@@ -95,7 +95,17 @@ class BackendDouble {
     this.opLog = [];             // EVERY dispatched op, in arrival order, across auth/rpc/table — for ORDER assertions (gate 73)
     this.swaps = {};             // room_id -> { uid: contact_text } (backstage swap offers)
     this.clockSkew = 0;          // ms added to "now" (staleness tests)
+    /* set_filter's allow-list, per double.  Starts as production's ('grade',
+       'noir').  allowFilterLook() widens it for ONE double — it stands in for
+       DDL that HAS NOT BEEN RUN (feat/camera-kit: a lens slug must be added
+       to production's two CHECK constraints and to set_filter before anyone
+       can wear it; tools/DESIGN-filter-rules.md, "Lens looks").  A gate that
+       calls it is testing the client against the server AS IT WILL BE, and
+       says so; without the call a lens slug is rejected here exactly the way
+       production rejects it today. */
+    this.filterLooks = FILTER_LOOKS.slice();
   }
+  allowFilterLook(name) { if (!this.filterLooks.includes(name)) this.filterLooks.push(name); return this.filterLooks.slice(); }
 
   now() { return Date.now() + this.clockSkew; }
   iso(t) { return new Date(t ?? this.now()).toISOString(); }
@@ -678,7 +688,7 @@ class BackendDouble {
         if (!r) throw new Error("no room");
         const row = this.memberRow(a.room_id, uid);
         if (!row || row.role === "gone") throw new Error("not a member of this room");
-        if (!FILTER_LOOKS.includes(a.name)) throw new Error("no such filter");
+        if (!this.filterLooks.includes(a.name)) throw new Error("no such filter");
         /* order matters and the DDL keeps it: the beat he is in (asked,
            paired) is named before the standing lock, so the message says
            WHY NOW rather than why ever */

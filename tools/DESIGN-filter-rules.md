@@ -68,6 +68,31 @@ Battery for the branch tip b0928.0950 (PR #84 body): container 68 gates ·
 timeout; it passed 11/11 twice in isolation and on run 2.  Logged as a timing
 flake, not chased in this task.
 
+## Lens looks (feat/camera-kit, 2026-10-05) — NO DDL WRITTEN, NOTHING RUN
+
+`feat/camera-kit` adds a second kind of filter SOURCE on the client (a Snap
+Camera Kit lens, `CAMKIT` in `index.html`) and changes nothing on the server.
+The client ships inert (no SDK address, no token, no looks), so there is no
+lens slug to allow yet.  When Nick picks the first looks, each slug has to
+pass the SAME three places a teal look does, and nothing else changes shape:
+
+1. `room_members_filter_curated` and `room_members_filter_pick_curated` — the
+   two CHECK constraints above; drop and re-add each with the wider list.
+2. `set_filter` — the `if name not in ('grade','noir')` line.  Read
+   `pg_get_functiondef('set_filter'::regproc)` first and splice, the way
+   `ask_question` was amended (divergence 4 above); re-read and md5 after.
+3. Order: constraints → function → confirm grants unchanged (divergence 5).
+
+`drop_filter`, `host_clear_filter` and the clear inside `ask_question` act on
+the field whatever it holds, so they need no change.  Token pricing (the
+design's "✦20") is not designed for the server and is not part of this.
+
+Until that DDL runs, production answers a lens slug with `no such filter`
+(gate 78 block 0 asserts exactly that through the real tile).  The double
+models the widening per test with `allowFilterLook(slug)` — a stand-in for
+DDL that has NOT been run, labelled as such at every call site (gates 75, 77,
+78).  It is not evidence about production.
+
 ## The rule, in one sentence
 
 A look is room state the whole room must agree on (every tile paints a badge

@@ -285,6 +285,9 @@
   font-family:'Azeret Mono',monospace; font-weight:700; font-size:7px;
   letter-spacing:.08em; color:#aef7ee;
 }
+/* PAID_BADGE (Filters.dc): the amber badge for a lens look (feat/camera-kit) */
+.chair.has-filter--paid .chair__filter{ background:rgba(255,194,77,.2); border-color:rgba(255,194,77,.8); }
+.chair.has-filter--paid .chair__filter-t{ color:#ffd98a; }
 
 /* --- spectator heart tap (44px target; the transform is on the glyph) --- */
 .lc-hearttap{
@@ -726,6 +729,11 @@
   background:rgba(45,227,208,.12); border:1.5px solid rgba(45,227,208,.7); color:#eef0ff;
 }
 .lc-shelf__tile.is-worn{ box-shadow:0 0 0 2.5px rgba(45,227,208,.5), 0 0 20px rgba(45,227,208,.5); }
+/* the amber ✦ tile (feat/camera-kit) — Filters.dc frame 1's sheet values for
+   the face-tracked set (bg / border / costInk).  Rendered ONLY for a Camera
+   Kit lens look, and there are none until CAMKIT is configured. */
+.lc-shelf__tile.is-amber{ background:rgba(255,194,77,.14); border:1.5px solid rgba(255,194,77,.6); }
+.lc-shelf__tile.is-amber .lc-shelf__cost{ color:#ffd98a; }
 .lc-shelf.is-locked .lc-shelf__tile:not(.is-worn){ opacity:.35; cursor:default; }
 .lc-shelf__icon{ font-size:24px; line-height:1; }
 .lc-shelf__name{ font-family:Archivo,sans-serif; font-weight:700; font-size:9.5px; text-align:center; line-height:1.2; }
@@ -1400,7 +1408,7 @@
           </div>
           <div class="lc-shelf__rack" id="rt_shelfrack"></div>
           <button class="lc-shelf__drop" id="rt_filterdrop" style="display:none">🎭 DROP IT · free, any time</button>
-          <div class="lc-shelf__foot">Teal = free, no tracking.</div>
+          <div class="lc-shelf__foot" id="rt_shelffoot">Teal = free, no tracking.</div>
         </div>
         <div id="inputbar">
           <input type="text" id="rt_chatinput" placeholder="Say something…" maxlength="140" enterkeyhint="send">
@@ -2958,6 +2966,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
       // wipe it with the rest of his identity so the next man starts clean
       el.classList.remove("is-asked");
       el.classList.remove("has-filter");   // and his badge: a look belongs to a man, not a seat
+      el.classList.remove("has-filter--paid");
       setText(el.querySelector(".chair__foot"),"");
       const hearts=el.querySelector(".chair__hearts");
       if(hearts) hearts.dataset.hearts="";
@@ -6085,7 +6094,7 @@ async function applyBlur(){
        into the debug panel once a second, so a black feed can be read off
        the phone instead of guessed at. */
 let FILTER_KILLED=false;
-let FILTER={ active:false, name:null, raw:null, clone:null, deviceId:null, canvasTrack:null, canvas:null, video:null, raf:0, framesDrawn:0, lastDrawAt:0 };
+let FILTER={ active:false, name:null, kind:null, raw:null, clone:null, deviceId:null, canvasTrack:null, canvas:null, video:null, session:null, raf:0, framesDrawn:0, lastDrawAt:0 };
 let FILTER_READOUT_T=null;
 const FILTERS={
   /* "grade": warm lift + a soft vignette.  drawImage first, then two
@@ -6125,16 +6134,35 @@ function filterRawTrack(){
    keep a reference to it alive, and publish a canvas track in its place.
    Returns true when the filter is live, false when it declined (no such
    filter, killed this session, not publishing, already active, or the
-   platform lacks captureStream). */
+   platform lacks captureStream).
+
+   TWO SOURCE KINDS (feat/camera-kit).  A look is either a 2D draw function
+   in FILTERS (the two free teal looks — unchanged below) or a Camera Kit
+   lens (camkitLook(name), amber).  Both end in the SAME swap: a canvas
+   track from canvas.captureStream(30) handed to setInputDevicesAsync({
+   videoSource }), fed from OUR clone and never the Daily-owned track (the
+   #85 lesson).  For a lens the canvas is the session's own output and the
+   SDK draws it; everything slow or fallible (SDK load, bootstrap, lens
+   fetch, session start) happens BEFORE the swap, so every lens failure
+   leaves the call publishing the bare camera, untouched. */
 async function filterStart(name){
   const fx=FILTERS[name];
-  if(!fx){ vdbg("filter: no such filter '"+name+"'", true); return false; }
+  const lensLook=fx?null:camkitLook(name);
+  if(!fx && !lensLook){ vdbg("filter: no such filter '"+name+"'", true); return false; }
   if(FILTER_KILLED){ vdbg("filter: killed this session — not starting"); return false; }
   if(FILTER.active) return FILTER.name===name;
   if(!DAILY || !DAILY_JOINED) return false;
+  let prep=null;
+  if(lensLook){
+    prep=await camkitPrepare(name);   // cached once warm; null = latched failure, already logged
+    if(!prep){ vdbg("lens '"+name+"' unavailable — camera unaffected", true); return false; }
+    // the world can move while the SDK loads: re-read every guard
+    if(FILTER_KILLED || !DAILY || !DAILY_JOINED) return false;
+    if(FILTER.active) return FILTER.name===name;
+  }
   const raw=filterRawTrack();
   if(!raw || raw.readyState!=="live"){ vdbg("filter: no live camera track to filter", true); return false; }
-  const canvas=document.createElement("canvas");
+  let canvas=document.createElement("canvas");
   if(typeof canvas.captureStream!=="function"){ vdbg("filter: canvas.captureStream unsupported here — camera unaffected", true); return false; }
   const s=(raw.getSettings&&raw.getSettings())||{};
   const w=s.width||640, h=s.height||480;
@@ -6145,33 +6173,48 @@ async function filterStart(name){
   let clone=null;
   try{ clone=raw.clone(); }catch(e){}
   if(!clone || clone.readyState!=="live"){ vdbg("filter: could not clone the camera track — camera unaffected", true); return false; }
-  // hidden feeder <video>: off-screen but NOT display:none (Safari may stop
-  // decoding a display:none video; a 1px opacity-0 one keeps frames flowing)
-  const video=document.createElement("video");
-  video.playsInline=true; video.setAttribute("playsinline",""); video.muted=true; video.autoplay=true;
-  video.style.cssText="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none";
-  video.srcObject=new MediaStream([clone]);
-  document.body.appendChild(video);
-  try{ const pp=video.play(); if(pp&&pp.catch) pp.catch(()=>{}); }catch(e){}
-  const g=canvas.getContext("2d");
-  // draw loop: requestAnimationFrame is fine for now — the phone is in hand
-  // and foregrounded during a show.  Daily recommends a worker-driven loop
-  // (rAF throttles/stops in backgrounded tabs); not this PR.
-  const tick=()=>{
-    if(!FILTER.active) return;
-    try{
-      if(video.readyState>=2){ g.drawImage(video,0,0,w,h); fx(g,w,h); FILTER.framesDrawn++; FILTER.lastDrawAt=Date.now(); }
-    }catch(e){}
-    FILTER.raf=requestAnimationFrame(tick);
-  };
-  const stream=canvas.captureStream(30);
-  const canvasTrack=stream.getVideoTracks()[0];
-  FILTER={ active:true, name, raw, clone, deviceId, canvasTrack, canvas, video, raf:0, framesDrawn:0, lastDrawAt:0 };
-  tick();
+  let video=null, canvasTrack=null, session=null, tick=null;
+  if(fx){
+    // hidden feeder <video>: off-screen but NOT display:none (Safari may stop
+    // decoding a display:none video; a 1px opacity-0 one keeps frames flowing)
+    video=document.createElement("video");
+    video.playsInline=true; video.setAttribute("playsinline",""); video.muted=true; video.autoplay=true;
+    video.style.cssText="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none";
+    video.srcObject=new MediaStream([clone]);
+    document.body.appendChild(video);
+    try{ const pp=video.play(); if(pp&&pp.catch) pp.catch(()=>{}); }catch(e){}
+    const g=canvas.getContext("2d");
+    // draw loop: requestAnimationFrame is fine for now — the phone is in hand
+    // and foregrounded during a show.  Daily recommends a worker-driven loop
+    // (rAF throttles/stops in backgrounded tabs); not this PR.
+    tick=()=>{
+      if(!FILTER.active) return;
+      try{
+        if(video.readyState>=2){ g.drawImage(video,0,0,w,h); fx(g,w,h); FILTER.framesDrawn++; FILTER.lastDrawAt=Date.now(); }
+      }catch(e){}
+      FILTER.raf=requestAnimationFrame(tick);
+    };
+    const stream=canvas.captureStream(30);
+    canvasTrack=stream.getVideoTracks()[0];
+  }else{
+    // LENS: the session renders OUR clone onto its own output canvas.  Any
+    // failure in here has already cleaned up after itself and latched the
+    // lens off — the camera was never touched, so there is nothing to restore.
+    const L=await camkitSessionOpen(name, prep, clone, s.facingMode);
+    const moved=!!(L && (FILTER.active || FILTER_KILLED || !DAILY || !DAILY_JOINED || (FILTER_SYNC && filterWantNow()!==name)));
+    if(!L || moved){
+      if(L){ vdbg("lens '"+name+"' ready but no longer wanted — not publishing it"); camkitSessionClose(L); }
+      try{ clone.stop(); }catch(e){}
+      return !!(FILTER.active && FILTER.name===name);
+    }
+    canvas=L.canvas; canvasTrack=L.canvasTrack; video=L.video; session=L.session;
+  }
+  FILTER={ active:true, name, kind:fx?"2d":"lens", raw, clone, deviceId, canvasTrack, canvas, video, session, raf:0, framesDrawn:0, lastDrawAt:0 };
+  if(tick) tick(); else camkitFrameWatch(video);
   filterReadoutStart();
   try{
     await DAILY.setInputDevicesAsync({ videoSource: canvasTrack });
-    vdbg("filter '"+name+"' on ✓ ("+w+"x"+h+", feeder=clone of "+raw.id.slice(0,8)+", device "+(deviceId?deviceId.slice(0,8):"?")+")");
+    vdbg("filter '"+name+"' on ✓ ("+(fx?"2d":"lens")+", "+w+"x"+h+", feeder=clone of "+raw.id.slice(0,8)+", device "+(deviceId?deviceId.slice(0,8):"?")+")");
     return true;
   }catch(e){
     vdbg("filter start failed — restoring camera ("+(e?.message||e)+")", true);
@@ -6185,7 +6228,7 @@ async function filterStart(name){
 async function filterStop(){
   if(!FILTER.active && !FILTER.canvasTrack && !FILTER.clone) return;
   const f=FILTER;
-  FILTER={ active:false, name:null, raw:null, clone:null, deviceId:null, canvasTrack:null, canvas:null, video:null, raf:0, framesDrawn:0, lastDrawAt:0 };
+  FILTER={ active:false, name:null, kind:null, raw:null, clone:null, deviceId:null, canvasTrack:null, canvas:null, video:null, session:null, raf:0, framesDrawn:0, lastDrawAt:0 };
   if(f.raf) cancelAnimationFrame(f.raf);
   filterReadoutStop();
   let how="no call";
@@ -6202,7 +6245,10 @@ async function filterStop(){
   try{ if(f.canvasTrack) f.canvasTrack.stop(); }catch(e){}
   try{ if(f.clone) f.clone.stop(); }catch(e){}       // our capture ends with the look
   try{ if(f.video){ f.video.pause(); f.video.remove(); } }catch(e){}   // the clone is stopped above; the element goes with it
-  if(f.canvas){ f.canvas.width=0; f.canvas.height=0; }
+  // a lens: the session is paused and destroyed with the look (its canvas is
+  // the SDK's — left alone); a 2D look: our own canvas is released
+  if(f.session) await camkitSessionEnd(f.session);
+  else if(f.canvas){ f.canvas.width=0; f.canvas.height=0; }
   vdbg("filter off — camera restored by "+how+" ("+f.framesDrawn+" frames drawn)");
 }
 /* the readout Nick reads off the phone: what the pipeline actually sees,
@@ -6230,7 +6276,7 @@ function filterReadoutStart(){
     p.appendChild(el);   // always the LAST line of the panel, whatever logged since
     const r=filterReadout();
     const stuck=(r.lastDrawAgoMs==null || r.lastDrawAgoMs>1500);
-    el.textContent="FILTER "+FILTER.name+"  frames "+r.framesDrawn+"  last draw "+(r.lastDrawAgoMs==null?"never":r.lastDrawAgoMs+"ms")+(stuck?"  ✕ STUCK":"  ✓")
+    el.textContent="FILTER "+FILTER.name+(FILTER.kind==="lens"?" (lens)":"")+"  frames "+r.framesDrawn+"  last draw "+(r.lastDrawAgoMs==null?"never":r.lastDrawAgoMs+"ms")+(stuck?"  ✕ STUCK":"  ✓")
       +"\nraw "+r.rawReadyState+" · clone "+r.cloneReadyState+" · feeder rs"+r.feederReadyState+(r.feederPlaying?" playing":" PAUSED")+" · canvas "+r.canvasTrackReadyState;
     el.style.color=stuck?"#ff8ac2":"#9dffb0";
     p.style.display="block";
@@ -6252,6 +6298,253 @@ function filterReadoutStop(){
    publishing (a bench pick lands here at promotion). */
 async function applyFilter(){
   await filterReconcile();
+}
+
+/* ============================================================================
+   CAMERA KIT (feat/camera-kit) — the foundation of step 3: a SECOND KIND of
+   filter source.  Snap's Camera Kit Web SDK renders a lens onto its own
+   output canvas; that canvas is captured and published through the exact
+   door the 2D looks use (filterStart → setInputDevicesAsync({ videoSource })).
+   Nothing else about the show changes: the look is still a server-owned
+   member field, the reconciler is still the only thing that turns the
+   pipeline on or off, and every show rule (one per show, drop on ASK, the
+   Moment strips, host force-off) applies to a lens look unchanged, because
+   those rules act on the FIELD and never knew what drew the pixels.
+
+   INERT UNTIL CONFIGURED.  CAMKIT below ships with no SDK address, no token,
+   no lens group and no looks.  In that state (camkitOn() false) nothing
+   Camera Kit-related is requested, no amber tile renders, and the two teal
+   looks behave exactly as before.  The SDK is never loaded at boot: the
+   first request for it is made by the first lens look a member's row asks
+   this client to draw (camkitWarm), in the background.
+
+   THE LOAD PATH IS A CONFIG VALUE, NOT A DECISION MADE HERE.  The brief's
+   pinned jsDelivr bundle does not load (2026-10-05, Chromium 151 and Chrome:
+   `cdn.jsdelivr.net/npm/@snap/camera-kit@1.22.0/+esm` fails at module link —
+   "'/npm/@improbable-eng/grpc-web@0.15.0/+esm' does not provide an export
+   named 'grpc'").  Two addresses do load — a bundle vendored into this repo
+   and esm.sh's `?bundle` build — and which one ships is Nick's call (PR
+   body).  sdkUrl is whatever ES module exports bootstrapCameraKit and
+   createMediaStreamSource; PIN THE EXACT VERSION in it, never a floating
+   specifier (the two supabase-js drift incidents).
+
+   API SOURCE: @snap/camera-kit 1.22.0's own .d.ts, read 2026-10-05 —
+   bootstrapCameraKit({ apiToken }) → CameraKit; kit.lensRepository.loadLens(
+   lensId, groupId); kit.createSession() → session; createMediaStreamSource(
+   stream, { cameraType, transform }); session.setSource / applyLens / play(
+   target) / pause(target) / destroy(); session.output.{live,capture} are
+   <canvas>; session.events "error" carries LensExecutionError when a lens
+   dies mid-render (the SDK removes the lens itself and keeps rendering the
+   bare source).  A source object can be attached to a session only once, so
+   every start builds a new source and a new session.
+
+   config:
+     sdkUrl       the ES module address (see above) — null = inert
+     apiToken     the Camera Kit API token — null = inert
+     lensGroupId  the lens group every look below lives in — null = inert
+     looks        { slug: lensId }  or  { slug: { lensId, name, icon, cost } }
+                  — the slug is what goes in room_members.filter, so it must
+                  ALSO pass production's CHECK constraints and set_filter
+                  (tools/DESIGN-filter-rules.md) before anyone can wear it
+     target       which session output is published: "capture" (the SDK's
+                  .d.ts: "content suitable for sharing with other users (e.g.
+                  sent to the other members of a video call)") or "live"
+     mirror       false: publish unmirrored, like the camera and the 2D looks
+                  (no tile in this app mirrors).  true applies the SDK's
+                  Transform2D.MirrorX to the source.
+     loadMs / startMs   ceilings on the SDK load + bootstrap + lens fetch, and
+                  on the session start, so a hung download can never park the
+                  reconciler
+   ========================================================================= */
+const CAMKIT={ sdkUrl:null, apiToken:null, lensGroupId:null, looks:{}, target:"capture", mirror:false, loadMs:45000, startMs:20000 };
+/* loader state.  kitP: the ONE in-flight/settled SDK load + bootstrap.
+   ready[slug]: {mod,kit,lens} once a lens is fetched.  dead / lensDead[slug]:
+   failure latches — a failed SDK or lens is NOT retried on every roster
+   commit; the latches clear with the call (camkitReset, from videoLeave). */
+let CAMKIT_RT={ kitP:null, mod:null, kit:null, ready:{}, warming:{}, dead:null, lensDead:{}, sdkLoads:0 };
+function camkitOn(){
+  return !!(CAMKIT.sdkUrl && CAMKIT.apiToken && CAMKIT.lensGroupId && CAMKIT.looks && Object.keys(CAMKIT.looks).length);
+}
+/* a slug → its look, or null.  A 2D name always wins (a lens slug can never
+   shadow "grade"/"noir"), and nothing is a lens look while CAMKIT is inert. */
+function camkitLook(slug){
+  if(!slug || typeof slug!=="string" || !camkitOn() || FILTERS[slug]) return null;
+  if(!Object.prototype.hasOwnProperty.call(CAMKIT.looks, slug)) return null;
+  const v=CAMKIT.looks[slug];
+  const o=(typeof v==="string") ? { lensId:v } : v;
+  if(!o || !o.lensId) return null;
+  return { id:slug, kind:"lens", lensId:String(o.lensId), icon:o.icon||"✦", name:o.name||slug, cost:o.cost||"✦" };
+}
+function camkitLooks(){ return camkitOn() ? Object.keys(CAMKIT.looks).map(camkitLook).filter(Boolean) : []; }
+function camkitReady(slug){ return !!CAMKIT_RT.ready[slug]; }
+/* can THIS client draw the look the row names?  A 2D look: always.  A lens:
+   only while it is configured and neither the SDK nor that lens is latched
+   off.  False means "publish raw" (the reconciler's standing rule). */
+function filterCanDraw(name){
+  if(!name) return false;
+  if(FILTERS[name]) return true;
+  return !!(camkitLook(name) && !CAMKIT_RT.dead && !CAMKIT_RT.lensDead[name]);
+}
+function filterWantNow(){
+  const me=(ME && CURRENT_ROOM) ? filterRowOf(ME.id) : null;
+  return (me && filterCanDraw(me.filter)) ? me.filter : null;
+}
+function camkitState(){
+  return { on:camkitOn(), sdkLoads:CAMKIT_RT.sdkLoads, booted:!!CAMKIT_RT.kit, dead:CAMKIT_RT.dead,
+           lensDead:{...CAMKIT_RT.lensDead}, ready:Object.keys(CAMKIT_RT.ready), warming:Object.keys(CAMKIT_RT.warming),
+           looks:camkitLooks().map(l=>l.id), target:(CAMKIT.target==="live"?"live":"capture") };
+}
+function camkitReset(){
+  CAMKIT_RT.dead=null; CAMKIT_RT.lensDead={};
+  if(!CAMKIT_RT.kit) CAMKIT_RT.kitP=null;   // a load that never booted may be tried again; a booted SDK is kept
+}
+function camkitTimed(p, ms, what){
+  let timer=null;
+  const limit=new Promise((_,rej)=>{ timer=setTimeout(()=>rej(new Error(what+" timed out after "+ms+"ms")), ms); });
+  return Promise.race([Promise.resolve(p), limit]).finally(()=>clearTimeout(timer));
+}
+function camkitErr(e){ return ((e && e.name && e.name!=="Error") ? e.name+": " : "")+((e && e.message) || e); }
+/* camkitPrepare(slug): SDK module → bootstrap → lens.  Lazy (never at boot),
+   single-flight, cached.  Resolves { mod, kit, lens }, or null with the
+   reason latched and logged — it never throws and never touches the camera.
+   The four ways it says no, each leaving the bare camera publishing:
+     - unsupported browser (no canvas.captureStream, or the SDK's own
+       PlatformNotSupportedError out of bootstrap)
+     - the SDK module failing to load
+     - bootstrap rejecting (a bad or missing token — BootstrapError /
+       ConfigurationError)
+     - the lens fetch failing (unknown lens or group, or the network) */
+async function camkitPrepare(slug){
+  const look=camkitLook(slug);
+  if(!look) return null;
+  if(CAMKIT_RT.dead || CAMKIT_RT.lensDead[slug]) return null;
+  if(CAMKIT_RT.ready[slug]) return CAMKIT_RT.ready[slug];
+  let base=null;
+  try{
+    if(!CAMKIT_RT.kitP){
+      CAMKIT_RT.kitP=(async()=>{
+        if(typeof document.createElement("canvas").captureStream!=="function")
+          throw Object.assign(new Error("canvas.captureStream unsupported here"), { name:"PlatformNotSupportedError" });
+        CAMKIT_RT.sdkLoads++;
+        const mod=await camkitTimed(import(CAMKIT.sdkUrl), CAMKIT.loadMs, "Camera Kit SDK load");
+        if(!mod || typeof mod.bootstrapCameraKit!=="function" || typeof mod.createMediaStreamSource!=="function")
+          throw new Error("the module at sdkUrl does not export bootstrapCameraKit/createMediaStreamSource");
+        const kit=await camkitTimed(mod.bootstrapCameraKit({ apiToken:CAMKIT.apiToken }), CAMKIT.loadMs, "Camera Kit bootstrap");
+        CAMKIT_RT.mod=mod; CAMKIT_RT.kit=kit;
+        vdbg("camera kit: SDK loaded and bootstrapped ✓");
+        return { mod, kit };
+      })();
+    }
+    base=await CAMKIT_RT.kitP;
+  }catch(e){
+    if(!CAMKIT_RT.dead){
+      CAMKIT_RT.dead=camkitErr(e);
+      vdbg("camera kit unavailable — lens looks publish the bare camera ("+CAMKIT_RT.dead+")", true);
+    }
+    return null;
+  }
+  try{
+    const lens=await camkitTimed(base.kit.lensRepository.loadLens(look.lensId, CAMKIT.lensGroupId), CAMKIT.loadMs, "lens fetch");
+    if(!lens) throw new Error("the lens repository returned nothing");
+    CAMKIT_RT.ready[slug]={ mod:base.mod, kit:base.kit, lens };
+    return CAMKIT_RT.ready[slug];
+  }catch(e){
+    if(!CAMKIT_RT.lensDead[slug]){
+      CAMKIT_RT.lensDead[slug]=camkitErr(e);
+      vdbg("lens '"+slug+"' could not be fetched — bare camera ("+CAMKIT_RT.lensDead[slug]+")", true);
+    }
+    return null;
+  }
+}
+/* the reconciler's background door onto camkitPrepare: one warm-up per slug
+   at a time, and when it settles — ready OR latched off — the reconciler
+   runs again and does the right thing with the answer. */
+function camkitWarm(slug){
+  if(CAMKIT_RT.ready[slug] || CAMKIT_RT.warming[slug] || CAMKIT_RT.dead || CAMKIT_RT.lensDead[slug]) return;
+  CAMKIT_RT.warming[slug]=true;
+  camkitPrepare(slug).then(()=>{ delete CAMKIT_RT.warming[slug]; filterReconcile(); });
+}
+/* a hidden <video> on the PUBLISHED track, so the ?debug readout counts the
+   frames the lens is really producing (the SDK draws; we do not) */
+function camkitMonitor(track){
+  const video=document.createElement("video");
+  video.playsInline=true; video.setAttribute("playsinline",""); video.muted=true; video.autoplay=true;
+  video.style.cssText="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none";
+  video.srcObject=new MediaStream([track]);
+  document.body.appendChild(video);
+  try{ const pp=video.play(); if(pp&&pp.catch) pp.catch(()=>{}); }catch(e){}
+  return video;
+}
+function camkitFrameWatch(video){
+  if(!video) return;
+  const hit=()=>{ FILTER.framesDrawn++; FILTER.lastDrawAt=Date.now(); };
+  if(typeof video.requestVideoFrameCallback==="function"){
+    const cb=()=>{ if(FILTER.video!==video) return; hit(); video.requestVideoFrameCallback(cb); };
+    video.requestVideoFrameCallback(cb);
+  }else{
+    let last=-1;
+    const poll=()=>{
+      if(FILTER.video!==video) return;
+      if(video.currentTime!==last){ last=video.currentTime; hit(); }
+      FILTER.raf=requestAnimationFrame(poll);
+    };
+    poll();
+  }
+}
+/* camkitSessionOpen: one session, one source built on OUR clone, the lens
+   applied and playing, its output canvas captured.  Returns { session,
+   canvas, canvasTrack, video } or null — and on null it has destroyed what
+   it made and latched the lens off, so the caller only has to stop the clone. */
+async function camkitSessionOpen(slug, prep, clone, facingMode){
+  let session=null, canvasTrack=null, video=null;
+  try{
+    session=await camkitTimed(prep.kit.createSession(), CAMKIT.startMs, "createSession");
+    const opts={ cameraType:(facingMode==="environment") ? "environment" : "user" };
+    if(CAMKIT.mirror && prep.mod.Transform2D && prep.mod.Transform2D.MirrorX) opts.transform=prep.mod.Transform2D.MirrorX;
+    const source=prep.mod.createMediaStreamSource(new MediaStream([clone]), opts);
+    await camkitTimed(session.setSource(source), CAMKIT.startMs, "setSource");
+    const applied=await camkitTimed(session.applyLens(prep.lens), CAMKIT.startMs, "applyLens");
+    if(applied===false) throw new Error("applyLens was interrupted");
+    const target=(CAMKIT.target==="live") ? "live" : "capture";
+    await camkitTimed(session.play(target), CAMKIT.startMs, "play");
+    const canvas=session.output && session.output[target];
+    if(!canvas || typeof canvas.captureStream!=="function") throw new Error("the session's "+target+" output is not a capturable canvas");
+    canvasTrack=canvas.captureStream(30).getVideoTracks()[0];
+    if(!canvasTrack) throw new Error("the session's output canvas produced no video track");
+    video=camkitMonitor(canvasTrack);
+    const L={ session, canvas, canvasTrack, video, target };
+    /* a lens that dies mid-show: the SDK has already removed it and is
+       rendering the bare source.  Latch it off and let the reconciler take
+       the pipeline down — it is the one thing that stops a look. */
+    try{
+      session.events.addEventListener("error", (ev)=>{
+        const err=ev && ev.detail && ev.detail.error;
+        if(!err || err.name!=="LensExecutionError" || FILTER.session!==session) return;
+        CAMKIT_RT.lensDead[slug]=camkitErr(err);
+        vdbg("lens '"+slug+"' failed while rendering — back to the bare camera ("+CAMKIT_RT.lensDead[slug]+")", true);
+        filterReconcile();
+      });
+    }catch(e){}
+    return L;
+  }catch(e){
+    CAMKIT_RT.lensDead[slug]=camkitErr(e);
+    vdbg("lens '"+slug+"' could not start — camera unaffected ("+CAMKIT_RT.lensDead[slug]+")", true);
+    camkitSessionClose({ session, canvasTrack, video });
+    return null;
+  }
+}
+async function camkitSessionEnd(session){
+  if(!session) return;
+  try{ await camkitTimed(session.pause("live"), 3000, "pause"); }catch(e){}
+  try{ await camkitTimed(session.pause("capture"), 3000, "pause"); }catch(e){}
+  try{ await camkitTimed(session.destroy(), 5000, "destroy"); }catch(e){ vdbg("camera kit: session destroy failed ("+camkitErr(e)+")", true); }
+}
+/* tear down a session that never made it onto the call */
+function camkitSessionClose(L){
+  if(!L) return;
+  try{ if(L.canvasTrack) L.canvasTrack.stop(); }catch(e){}
+  try{ if(L.video){ L.video.pause(); L.video.remove(); } }catch(e){}
+  camkitSessionEnd(L.session);
 }
 
 /* ============================================================================
@@ -6281,12 +6574,18 @@ async function applyFilter(){
    teal "Soft Room" (background blur) and "Neon Back" (backdrop swap) both
    need person segmentation, which is not a 2D-canvas op and which Daily's
    processors don't run on mobile browsers (step 1's finding) — not here.
-   The amber ✦ set (face-tracked) is step 3 + token gating: not here. */
+   The amber ✦ set (face-tracked) is step 3 + token gating: not here.
+   (feat/camera-kit: the amber set's SOURCE now exists — CAMKIT, above — and
+   filterLooks() appends its looks to this rack once it is configured.  It
+   ships unconfigured; pricing is still not here.) */
 const FILTER_LOOKS=[
   { id:"grade", icon:"🎞️", name:"Warm Grade", cost:"FREE" },
   { id:"noir",  icon:"🎞️", name:"Noir",       cost:"FREE" }
 ];
-function filterLookOf(id){ return FILTER_LOOKS.find(l=>l.id===id)||null; }
+/* the whole rack: the free teal looks, then the amber lens looks — and there
+   are no lens looks until CAMKIT is fully configured (camkitOn) */
+function filterLooks(){ return FILTER_LOOKS.concat(camkitLooks()); }
+function filterLookOf(id){ return filterLooks().find(l=>l.id===id)||null; }
 function filterRowOf(uid){ return ((ROOM_STATE&&ROOM_STATE.members)||[]).find(m=>m&&m.user_id===uid)||null; }
 /* what the ROOM says about who is wearing what — read straight off the
    member rows, nothing local mixed in */
@@ -6341,8 +6640,19 @@ async function filterSyncOnce(){
      whole room would watch his face flicker bare and back on every blip. */
   if(!me) return;
   // a look the server accepts but this client cannot draw: publish RAW —
-  // never invent a substitute, never pretend
-  const want=(me.filter && FILTERS[me.filter]) ? me.filter : null;
+  // never invent a substitute, never pretend.  (A lens whose SDK, token or
+  // content failed is exactly that: filterCanDraw says no, he publishes raw.)
+  const want=filterCanDraw(me.filter) ? me.filter : null;
+  /* a lens look loads in the BACKGROUND: the SDK + WASM + lens fetch can take
+     seconds on a phone, and this reconciler is single-flight — awaiting the
+     download here would park a drop (or the ask's clear) behind it.  So: kick
+     the warm-up (idempotent, from the bench too — ready by promotion), carry
+     on bare, and let the warm-up's completion re-run this. */
+  if(want && !FILTERS[want] && !camkitReady(want)){
+    camkitWarm(want);
+    if(FILTER.active) await filterStop();
+    return;
+  }
   const publishing=!!(DAILY && DAILY_JOINED && (AMHOST || amISeated()));
   // bench (or passed): nothing published, so nothing to filter — the pick
   // waits on the row and applies the moment he publishes (promotion)
@@ -6387,6 +6697,7 @@ function filterPaintTiles(chairBySeat){
     const c=chairBySeat[i];
     const look=(c && c.filter) ? filterLookOf(c.filter) : null;
     el.classList.toggle("has-filter", !!look);
+    el.classList.toggle("has-filter--paid", !!(look && look.kind==="lens"));
     const ic=el.querySelector(".chair__filter-i"), tt=el.querySelector(".chair__filter-t");
     if(ic && ic.textContent!==(look?look.icon:"")) ic.textContent=look?look.icon:"";
     if(tt && tt.textContent!==(look?look.name.toUpperCase():"")) tt.textContent=look?look.name.toUpperCase():"";
@@ -6412,8 +6723,12 @@ function filterPaintComposer(){
   if(meta) meta.textContent = !locked ? "ONE PER SHOW" : (worn ? "LOCKED · YOUR LOOK TONIGHT" : "LOCKED · DROPPED");
   const rack=$("rt_shelfrack");
   if(rack){
-    if(rack.childElementCount!==FILTER_LOOKS.length){
-      rack.innerHTML=FILTER_LOOKS.map(l=>`<button class="lc-shelf__tile" data-look="${l.id}" type="button"><span class="lc-shelf__icon">${l.icon}</span><span class="lc-shelf__name">${escapeHtml(l.name)}</span><span class="lc-shelf__cost">${l.cost}</span></button>`).join("");
+    const looks=filterLooks(), sig=looks.map(l=>l.id).join("|");
+    if(rack.dataset.sig!==sig){
+      rack.dataset.sig=sig;
+      rack.innerHTML=looks.map(l=>`<button class="lc-shelf__tile${l.kind==="lens"?" is-amber":""}" data-look="${escapeHtml(l.id)}" type="button"><span class="lc-shelf__icon">${escapeHtml(l.icon)}</span><span class="lc-shelf__name">${escapeHtml(l.name)}</span><span class="lc-shelf__cost">${escapeHtml(l.cost)}</span></button>`).join("");
+      const foot=$("rt_shelffoot");
+      if(foot) foot.textContent = looks.some(l=>l.kind==="lens") ? "Teal = free, no tracking. Amber = face-tracked." : "Teal = free, no tracking.";
       rack.querySelectorAll(".lc-shelf__tile").forEach(t=>t.onclick=()=>{
         const mine=filterRowOf(ME.id);
         if(mine && mine.filter_pick){ toast("One per show — tonight's look is locked in."); return; }
@@ -6599,6 +6914,7 @@ async function videoLeave(){
     // fresh chance, and the watchdog re-kills on any new stall.
     try{ await filterStop(); }catch(e){}
     FILTER_KILLED=false;
+    camkitReset();   // lens failure latches too: a fresh call is a fresh chance (a booted SDK is kept)
     SUB_SIG=null;
     WATCHDOG_FIRES=0;
     if(WATCHDOG_T){ clearTimeout(WATCHDOG_T); WATCHDOG_T=null; }
@@ -7079,9 +7395,15 @@ window.__lc = {
      rows), FILTER_STATE is what the PIPELINE says (this client); the
      reconciler is the one thing that makes the second follow the first. */
   filterPick, filterDrop, hostClearFilter, filterReconcile,
-  get FILTER_LOOKS(){ return FILTER_LOOKS.map(l=>({...l})); },
+  get FILTER_LOOKS(){ return filterLooks().map(l=>({...l})); },
+  /* Camera Kit (feat/camera-kit) — CAMKIT is the LIVE config object (null
+     token = inert; gates configure it, never reimplement it), CAMKIT_STATE
+     observes the loader: how many times the SDK was requested, whether it
+     booted, and which failures are latched. */
+  get CAMKIT(){ return CAMKIT; },
+  get CAMKIT_STATE(){ return camkitState(); },
   get FILTER_ROOM(){ return filterRoom(); },
-  get FILTER_STATE(){ return { active:FILTER.active, name:FILTER.name, killed:FILTER_KILLED,
+  get FILTER_STATE(){ return { active:FILTER.active, name:FILTER.name, kind:FILTER.kind, killed:FILTER_KILLED,
                                rawTrackAlive:!!(FILTER.raw && FILTER.raw.readyState==="live"),
                                canvasTrackId:FILTER.canvasTrack?FILTER.canvasTrack.id:null,
                                canvasTrackState:FILTER.canvasTrack?FILTER.canvasTrack.readyState:null,

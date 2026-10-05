@@ -19,6 +19,23 @@ const REPO = path.resolve(__dirname, "..", "..");
 const ORIGIN = "https://lastcall.test";
 const SHIMS = path.join(__dirname, "shims");
 
+/* CAMERA KIT (feat/camera-kit).  index.html ships CAMKIT with no SDK address
+   and no token — inert — so there is no pinned production URL to intercept
+   yet.  Gates configure the app's own CAMKIT object (window.__lc.CAMKIT, the
+   live export) with these values; the SDK address is routed to
+   shims/camera-kit-shim.js below, exactly as the supabase-js and daily-js
+   CDN bundles are.  ANY @snap/camera-kit address is routed too, so the day a
+   real pinned URL lands in index.html the battery stays offline.
+   The token / group / lens ids are the shim's — a different token makes its
+   bootstrap reject, an unknown lens makes its loadLens reject. */
+const CAMKIT_TEST = {
+  sdkUrl: "https://camkit.test/npm/@snap/camera-kit@0.0.0-shim/+esm",
+  apiToken: "lc-test-token",
+  lensGroupId: "lc-test-group",
+  looks: { foxears: { lensId: "lens-fox", name: "Fox Ears", icon: "\u{1F98A}" }, halo: "lens-halo" },
+};
+const isCamkitUrl = (url) => url.startsWith("https://camkit.test/") || /@snap\/camera-kit/.test(url);
+
 /* BROWSER RESOLUTION (wave 9).  Returns {path} on success or {error, hint}
  * on failure — it never throws, because a throw from here lands inside a
  * gate's run() and run.js launders it into "gate crashed", turning ONE
@@ -132,6 +149,20 @@ class Client {
       return f(window.__lc, args);
     }, { expr, args });
   }
+  /* Camera Kit: configure the app's OWN config object (the live export) —
+     defaults are the harness's shim values, any field can be overridden
+     (a wrong token, an unknown lens id, null to stay inert). */
+  camkitConfigure(over = {}) {
+    return this.page.evaluate((cfg) => { Object.assign(window.__lc.CAMKIT, cfg); return { ...window.__lc.CAMKIT }; },
+      { ...CAMKIT_TEST, ...over });
+  }
+  /* arm (or clear, mode=null) a shim fault — works before the module loads */
+  camkitFault(name, mode) {
+    return this.page.evaluate(({ name, mode }) => {
+      const f = (window.__camkitFaults = window.__camkitFaults || {});
+      if (mode) f[name] = mode; else delete f[name];
+    }, { name, mode });
+  }
   async close() { await this.context.close(); this.harness.clients = this.harness.clients.filter((c) => c !== this); }
 }
 
@@ -142,6 +173,14 @@ class Harness {
     this.double = new BackendDouble();
     this.clients = [];
     this.unexpectedRequests = [];
+    /* every request for the Camera Kit SDK module, by client — "inert" is the
+       claim that this stays EMPTY, and "lazy" that it stays empty until a
+       lens look is first wanted.  camkitLoadFault models the module failing
+       to load at all (a network fact, so it lives here, not in the shim):
+       "abort" (connection refused), "404", or "empty" (a module that loads
+       but is not the SDK). */
+    this.camkitRequests = [];
+    this.camkitLoadFault = null;
     this.mutedRealtime = new Set();
     this.double.onChange((evt) => {
       for (const c of this.clients) {
@@ -211,6 +250,14 @@ class Harness {
       return route.fulfill({ status: 200, contentType: "text/javascript", body: fs.readFileSync(path.join(SHIMS, "supabase-shim.js")) });
     if (url.includes("daily-js") && url.includes("unpkg.com"))
       return route.fulfill({ status: 200, contentType: "text/javascript", body: fs.readFileSync(path.join(SHIMS, "daily-shim.js")) });
+    if (isCamkitUrl(url)) {
+      this.camkitRequests.push({ client: _clientName, url });
+      const cors = { "access-control-allow-origin": "*" };   // a cross-origin module import needs it, like any CDN serves
+      if (this.camkitLoadFault === "abort") return route.abort();
+      if (this.camkitLoadFault === "404") return route.fulfill({ status: 404, headers: cors, body: "not found" });
+      if (this.camkitLoadFault === "empty") return route.fulfill({ status: 200, headers: cors, contentType: "text/javascript", body: "export const nothing = true;" });
+      return route.fulfill({ status: 200, headers: cors, contentType: "text/javascript", body: fs.readFileSync(path.join(SHIMS, "camera-kit-shim.js")) });
+    }
     if (url.startsWith("https://fonts.googleapis.com"))
       return route.fulfill({ status: 200, contentType: "text/css", body: "/* fonts stubbed offline */" });
     if (url.startsWith("https://fonts.gstatic.com")) return route.abort();
@@ -226,4 +273,4 @@ class Harness {
   async close() { await this.browser.close(); }
 }
 
-module.exports = { Harness, ORIGIN, REPO, resolveChromium };
+module.exports = { Harness, ORIGIN, REPO, resolveChromium, CAMKIT_TEST };

@@ -71,7 +71,10 @@ lib/backend-double.js stateful Supabase double in NODE — rooms, members,
                       roles, room_events, RPCs, realtime.  All windows share
                       it, so multi-window flows hit real shared state.
 lib/shims/            served in place of the supabase-js / daily-js CDN
-                      bundles.  Dumb transports: supabase calls forward to
+                      bundles (and, for gates that configure it, the Camera
+                      Kit SDK module: camera-kit-shim.js models the session
+                      lifecycle, renders the source with a lens mark, and has
+                      a fault hook — its header lists what it cannot prove).  Dumb transports: supabase calls forward to
                       the double; the Daily fake mints REAL MediaStreams
                       (fake camera for local, canvas capture for remotes).
 lib/fixtures.js       named rosters, incl. the COUNT PARITY roster

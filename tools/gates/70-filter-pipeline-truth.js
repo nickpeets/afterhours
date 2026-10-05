@@ -284,6 +284,13 @@ module.exports = {
       });
       await waitFor(() => host.page.evaluate(() => window.__lc.CAM_STATE.watchdogFires >= 1), 12_000, "the watchdog to fire");
       await waitFor(() => host.page.evaluate(() => window.__lc.FILTER_STATE.active === false), 5000, "the filter to be torn down");
+      /* RACE CLOSED 2026-10-05 (feat/camera-kit's full run, once, under load):
+         filterStop marks FILTER idle BEFORE its device switch back has
+         landed, so reading the call the instant active goes false could see
+         no local track at all ("re-acquired by device switch (null)").  The
+         claims below are unchanged; this only waits for the restore the
+         watchdog already awaited to be visible on the call. */
+      await waitFor(() => host.page.evaluate(() => !!window.__lc.DAILY.participants().local.tracks.video.track), 5000, "the watchdog's restore to land on the call");
       const t4 = await host.page.evaluate(TRUTH);
       t.ok(t4.cam.watchdogFires >= 1 && t4.F.killed === true, `watchdog fired (${t4.cam.watchdogFires}) → FILTER_STATE.killed true`);
       t.ok(t4.F.active === false, "the filter is torn down");

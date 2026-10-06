@@ -98,11 +98,10 @@ DDL that has NOT been run, labelled as such at every call site (gates 75, 77,
 
 ## Lens slugs ck-objects / ck-express (feat/camera-kit-staging, 2026-10-05)
 
-STATUS: DDL WRITTEN, **NOT RUN**.  Nothing below has been executed against
-production.  It waits on Nick's explicit go; when it runs, the read-back goes
-under "Run log" here and the STATUS line changes.  Until then production
-answers both slugs with `no such filter`, and the ✦ tiles on a `?camkit` page
-toast exactly that.
+STATUS: **RUN IN PRODUCTION 2026-10-06** (Supabase project
+doqtfyxgzlfvglfdkphx, branch main, on Nick's go), as written below.  The run
+log and read-back are at the end of this section.  Production now accepts
+both slugs.
 
 `feat/camera-kit-staging` fills `CAMKIT` in with a staging config behind the
 `?camkit` test flag, with two looks.  The slug is what goes in
@@ -120,10 +119,11 @@ the standing "a look this client cannot draw" rule, gate 75 block 3b.  No
 token pricing; `drop_filter`, `host_clear_filter` and the clear inside
 `ask_question` act on the field whatever it holds and are not touched.
 
-**What this was written against.**  Supabase Studio was NOT opened for this
-branch, so there is no fresh `pg_get_functiondef` read behind this text.  It
-is written against the SOURCE section at the bottom of this file (the
-2026-09-28 read-back).  That section reproduces its recorded fingerprint
+**What this was written against.**  When this text was written Supabase
+Studio had not been opened for this branch, so there was no fresh
+`pg_get_functiondef` read behind it (the run's own preflight, below, is that
+read).  It is written against the SOURCE section at the bottom of this file
+(the 2026-09-28 read-back).  That section reproduces its recorded fingerprint
 exactly — de-indented, with the trailing newline `pg_get_functiondef` emits,
 it is 1203 chars, md5 `de4678378f689f78ffd688bf129aaf3a` (recomputed
 2026-10-05) — and the DDL makes that the server's problem rather than a
@@ -234,6 +234,53 @@ Run the three preflight queries again.  Expect: `a9d3bf79f637cf84c3017b616dfd9ec
 a `?camkit` page: tapping a ✦ tile sets the field (gate 79 block 2 is this,
 against the double).
 
+### Run log 2026-10-06 — production
+
+Run in Supabase Studio's SQL editor (project `afterhours`, branch `main`,
+PRODUCTION), signed in as Nick, on his explicit go.  The statements were
+loaded into the editor from the same file the dry run used, not typed.
+(Studio was showing a platform banner, "We are investigating a technical
+issue", and the project's status tile read "Unhealthy" at the time; every
+query returned normally.)
+
+Preflight, each query run on its own, BEFORE the change:
+
+    set_filter_md5                    | set_filter_chars
+    de4678378f689f78ffd688bf129aaf3a  | 1203
+
+    room_members_filter_curated       | CHECK (((filter IS NULL) OR (filter = ANY (ARRAY['grade'::text, 'noir'::text]))))
+    room_members_filter_pick_curated  | CHECK (((filter_pick IS NULL) OR (filter_pick = ANY (ARRAY['grade'::text, 'noir'…  (cell cut off by the grid)
+
+    active_members / ask_question / drop_filter / host_clear_filter / set_filter — five rows, each beginning
+    {=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/…  (cells cut off by the grid)
+
+So production's `set_filter` was still byte-for-byte the 09-28 read-back.
+
+The change (the `begin; … commit;` block above, as one run): `Success. No rows
+returned`.
+
+Read back, the same three queries, AFTER (cell text read from the grid's DOM,
+so nothing is cut off):
+
+    set_filter_md5                    | set_filter_chars
+    a9d3bf79f637cf84c3017b616dfd9ec5  | 1229
+
+    room_members_filter_curated       | CHECK (((filter IS NULL) OR (filter = ANY (ARRAY['grade'::text, 'noir'::text, 'ck-objects'::text, 'ck-express'::text]))))
+    room_members_filter_pick_curated  | CHECK (((filter_pick IS NULL) OR (filter_pick = ANY (ARRAY['grade'::text, 'noir'::text, 'ck-objects'::text, 'ck-express'::text]))))
+
+    active_members     | {=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+    ask_question       | {=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+    drop_filter        | {=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+    host_clear_filter  | {=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+    set_filter         | {=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+
+The md5 and length are the ones this document predicted and the block
+asserts; both constraints carry the four names; the five ACLs are identical,
+four entries each, no `anon`.  NOT done: a behavioural check through the app
+(a ✦ pick on a `?camkit` page setting the field) — that is the phone test.
+`set_filter`'s production text is now the SOURCE section's with the one
+allow-list line reading `('grade','noir','ck-objects','ck-express')`.
+
 ### Undo
 
     begin;
@@ -246,10 +293,9 @@ against the double).
 ### The double
 
 `backend-double.js` `FILTER_LOOKS` is `["grade","noir","ck-objects","ck-express"]`
-— the server AS THIS DDL LEAVES IT.  Gate 79 block S fails if the page ships a
-lens slug the double's list does not carry, or the reverse.  The double
-running ahead of production is deliberate and is what this STATUS line is
-for: the battery proves the client against the server it is about to get.
+— the server as this DDL leaves it, which since 2026-10-06 is the server as
+it is.  Gate 79 block S fails if the page ships a lens slug the double's list
+does not carry, or the reverse.
 `allowFilterLook()` remains for the harness's shim-only slugs (`foxears`,
 `halo`), which are not production names.
 

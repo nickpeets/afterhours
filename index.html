@@ -1158,7 +1158,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1006.0914</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1006.1023</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1677,7 +1677,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1006.0914"); }catch(e){}
+try{ console.log("[lastcall] build b1006.1023"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -6201,7 +6201,9 @@ async function filterStart(name){
     // failure in here has already cleaned up after itself and latched the
     // lens off — the camera was never touched, so there is nothing to restore.
     const L=await camkitSessionOpen(name, prep, clone, s.facingMode);
-    const moved=!!(L && (FILTER.active || FILTER_KILLED || !DAILY || !DAILY_JOINED || (FILTER_SYNC && filterWantNow()!==name)));
+    /* (clone.readyState: the start can now wait on a person reading Snap's
+       terms for as long as he likes — the camera we cloned may be gone) */
+    const moved=!!(L && (FILTER.active || FILTER_KILLED || !DAILY || !DAILY_JOINED || clone.readyState!=="live" || (FILTER_SYNC && filterWantNow()!==name)));
     if(!L || moved){
       if(L){ vdbg("lens '"+name+"' ready but no longer wanted — not publishing it"); camkitSessionClose(L); }
       try{ clone.stop(); }catch(e){}
@@ -6351,18 +6353,41 @@ async function applyFilter(){
    dies mid-render (the SDK removes the lens itself and keeps rendering the
    bare source).  A source object can be attached to a session only once, so
    every start builds a new source and a new session.
-   THE LEGAL PROMPT (first real-SDK run, 2026-10-06 — tools/camkit-smoke.js;
-   dist/session/lensState.js + dist/legal/ in 1.22.0).  The real applyLens
-   does nothing until Snap's terms are accepted.  Unless Snap's config
-   disables it for the app, the first applyLens appends a modal dialog to
-   <body> (<div data-testid="tos-dialog">, "Dismiss" / "I Agree") and waits
-   with no timeout of its own; "I Agree" is remembered for 12 hours,
-   "Dismiss" rejects applyLens with a LegalError.  The staging token gets the
-   prompt.  NOTHING HERE HANDLES IT SPECIALLY: the wait is inside
-   camkitSessionOpen's applyLens, so startMs (20s) is how long a first-time
-   wearer has to answer — after that the lens is latched off for the call
-   and Snap's dialog is still on screen.  Gate 77 block L pins exactly that;
-   whether the ceiling should count a human reading terms is Nick's call.
+   SNAP'S TERMS (first real-SDK run, 2026-10-06 — tools/camkit-smoke.js;
+   dist/session/lensState.js + dist/legal/ + dist/common/dialog.js in 1.22.0).
+   The real applyLens does nothing until Snap's terms are accepted.  Unless
+   Snap's config disables it for the app, the first applyLens appends a modal
+   dialog to <body> (<div data-testid="tos-dialog">, "Dismiss" / "I Agree")
+   and waits with no timeout of its own; "I Agree" is remembered for 12 hours,
+   "Dismiss" rejects applyLens with a LegalError and the next applyLens asks
+   again.  The staging token gets the prompt.  NICK'S RULING (2026-10-06):
+     1. THE WAIT NEVER COUNTS AGAINST THE START CEILING.  startMs is a
+        ceiling on the machine, not on a person reading terms: applyLens is
+        timed with the clock stopped for as long as the dialog is on screen
+        (camkitTimed's hold, camkitTermsOpen).
+     2. ASK EARLY, NOT MID-SHOW.  The first time the shelf is opened on a
+        ?camkit page the terms are asked there and then (camkitTermsEarly),
+        so the answer is already given by the time a lens starts.  It is
+        done with the SDK's PUBLIC API only: applyLens is the one documented
+        thing that raises the prompt, so the first ✦ lens is applied on a
+        HIDDEN session — no source, never played, its canvases never in the
+        DOM, nothing to do with the call — and that session is destroyed as
+        soon as he has answered.  Checked against the real SDK 2026-10-06
+        (scratch probe, Codespace Chromium): the dialog appears; after "I
+        Agree" a second, real session's applyLens asks nothing; after
+        "Dismiss" it asks once more; two sessions in a row on one kit work.
+        (An internal route also exists — kit.container.get("legalState") —
+        and was NOT used: Nick's call was public API first.)  The price: with
+        ?camkit the SDK, and the first ✦ lens, now load at first SIGHT of the
+        shelf, not at first use of a lens.
+     3. DISMISS FAILS CLEANLY.  The SDK closes its dialog; applyLens rejects;
+        at a lens start the lens is latched off for the call and he publishes
+        the bare camera, which was never touched.  A Dismiss at the EARLY
+        prompt latches nothing — the SDK asks once more at the first lens
+        start.
+   One LensCore, one session at a time: a lens start waits for the hidden
+   terms session to be answered and gone before it opens its own, and the
+   hidden one is never opened while a real session exists or is opening.
 
    config:
      ?camkit      the URL flag (CAMKIT_FLAG) — absent = inert, whatever is below
@@ -6403,7 +6428,7 @@ const CAMKIT={
    ready[slug]: {mod,kit,lens} once a lens is fetched.  dead / lensDead[slug]:
    failure latches — a failed SDK or lens is NOT retried on every roster
    commit; the latches clear with the call (camkitReset, from videoLeave). */
-let CAMKIT_RT={ kitP:null, mod:null, kit:null, ready:{}, warming:{}, dead:null, lensDead:{}, sdkLoads:0 };
+let CAMKIT_RT={ kitP:null, mod:null, kit:null, ready:{}, warming:{}, dead:null, lensDead:{}, sdkLoads:0, real:0 };
 function camkitOn(){
   return !!(CAMKIT_FLAG && CAMKIT.sdkUrl && CAMKIT.apiToken && CAMKIT.lensGroupId && CAMKIT.looks && Object.keys(CAMKIT.looks).length);
 }
@@ -6435,34 +6460,39 @@ function filterWantNow(){
 function camkitState(){
   return { on:camkitOn(), flag:CAMKIT_FLAG, sdkLoads:CAMKIT_RT.sdkLoads, booted:!!CAMKIT_RT.kit, dead:CAMKIT_RT.dead,
            lensDead:{...CAMKIT_RT.lensDead}, ready:Object.keys(CAMKIT_RT.ready), warming:Object.keys(CAMKIT_RT.warming),
-           looks:camkitLooks().map(l=>l.id), target:(CAMKIT.target==="live"?"live":"capture") };
+           looks:camkitLooks().map(l=>l.id), target:(CAMKIT.target==="live"?"live":"capture"),
+           terms:CAMKIT_TERMS.how, termsAsked:CAMKIT_TERMS.asked, termsOpen:camkitTermsOpen() };
 }
 function camkitReset(){
   CAMKIT_RT.dead=null; CAMKIT_RT.lensDead={};
   if(!CAMKIT_RT.kit) CAMKIT_RT.kitP=null;   // a load that never booted may be tried again; a booted SDK is kept
+  if(!CAMKIT_RT.kit && !CAMKIT_TERMS.p) CAMKIT_TERMS={ asked:false, how:null, p:null };   // …and so may the early ask that needed it
 }
-function camkitTimed(p, ms, what){
-  let timer=null;
-  const limit=new Promise((_,rej)=>{ timer=setTimeout(()=>rej(new Error(what+" timed out after "+ms+"ms")), ms); });
-  return Promise.race([Promise.resolve(p), limit]).finally(()=>clearTimeout(timer));
+/* is one of Snap's terms dialogs on screen?  (the SDK's own elements —
+   dist/common/dialog.js: the terms themselves, and the two age-gate steps
+   that can precede them) */
+function camkitTermsOpen(){
+  try{ return !!document.querySelector('[data-testid="tos-dialog"],[data-testid="adult-or-child-dialog"],[data-testid="find-guardian-dialog"]'); }
+  catch(e){ return false; }
+}
+/* a ceiling on p.  holdForTerms: the clock only runs while NO terms dialog
+   is on screen — the ceiling is on the machine, never on a person reading */
+function camkitTimed(p, ms, what, holdForTerms){
+  let timer=null, ticker=null;
+  const limit=new Promise((_,rej)=>{
+    const out=()=>rej(new Error(what+" timed out after "+ms+"ms"));
+    if(!holdForTerms){ timer=setTimeout(out, ms); return; }
+    let spent=0, last=Date.now();
+    ticker=setInterval(()=>{ const now=Date.now(); if(!camkitTermsOpen()) spent+=now-last; last=now; if(spent>=ms) out(); }, 100);
+  });
+  return Promise.race([Promise.resolve(p), limit]).finally(()=>{ clearTimeout(timer); clearInterval(ticker); });
 }
 function camkitErr(e){ return ((e && e.name && e.name!=="Error") ? e.name+": " : "")+((e && e.message) || e); }
-/* camkitPrepare(slug): SDK module → bootstrap → lens.  Lazy (never at boot),
-   single-flight, cached.  Resolves { mod, kit, lens }, or null with the
-   reason latched and logged — it never throws and never touches the camera.
-   The four ways it says no, each leaving the bare camera publishing:
-     - unsupported browser (no canvas.captureStream, or the SDK's own
-       PlatformNotSupportedError out of bootstrap)
-     - the SDK module failing to load
-     - bootstrap rejecting (a bad or missing token — BootstrapError /
-       ConfigurationError)
-     - the lens fetch failing (unknown lens or group, or the network) */
-async function camkitPrepare(slug){
-  const look=camkitLook(slug);
-  if(!look) return null;
-  if(CAMKIT_RT.dead || CAMKIT_RT.lensDead[slug]) return null;
-  if(CAMKIT_RT.ready[slug]) return CAMKIT_RT.ready[slug];
-  let base=null;
+/* camkitBoot: the SDK module → bootstrap.  Single-flight, cached, never at
+   page boot.  Resolves { mod, kit }, or null with the reason latched on the
+   SDK and logged. */
+async function camkitBoot(){
+  if(CAMKIT_RT.dead) return null;
   try{
     if(!CAMKIT_RT.kitP){
       CAMKIT_RT.kitP=(async()=>{
@@ -6478,7 +6508,7 @@ async function camkitPrepare(slug){
         return { mod, kit };
       })();
     }
-    base=await CAMKIT_RT.kitP;
+    return await CAMKIT_RT.kitP;
   }catch(e){
     if(!CAMKIT_RT.dead){
       CAMKIT_RT.dead=camkitErr(e);
@@ -6486,6 +6516,67 @@ async function camkitPrepare(slug){
     }
     return null;
   }
+}
+/* SNAP'S TERMS, EARLY (ruling 2 in the header).  Called by ONE thing: the
+   shelf button, the first time it opens the shelf on a ?camkit page.  Public
+   API only: the first ✦ lens is applied on a hidden session — which is what
+   makes the SDK show its dialog, if the terms are not already accepted — and
+   the session is destroyed the moment he has answered.  Fire-and-forget: it
+   never blocks the shelf, never touches the camera or the call, and never
+   latches a lens off for something that happened here (a Dismiss, or the
+   hidden session failing); the lens start will simply ask for itself.
+   CAMKIT_TERMS.p is the hidden session's whole life — camkitSessionOpen
+   waits on it, because LensCore runs one session at a time. */
+let CAMKIT_TERMS={ asked:false, how:null, p:null };
+function camkitTermsEarly(){
+  if(CAMKIT_TERMS.asked || !camkitOn() || CAMKIT_RT.dead) return;
+  const first=camkitLooks()[0];
+  if(!first) return;
+  CAMKIT_TERMS.asked=true;
+  // a real session already exists (or is opening): its own applyLens has
+  // asked, or is about to — never a second session beside it
+  if(CAMKIT_RT.real>0){ CAMKIT_TERMS.how="a lens start is asking"; return; }
+  CAMKIT_TERMS.how="asking";
+  CAMKIT_TERMS.p=(async()=>{
+    let session=null;
+    try{
+      const prep=await camkitPrepare(first.id);
+      if(!prep){ CAMKIT_TERMS.how="sdk or lens unavailable"; return; }
+      if(CAMKIT_RT.real>0){ CAMKIT_TERMS.how="a lens start is asking"; return; }
+      session=await camkitTimed(prep.kit.createSession(), CAMKIT.startMs, "terms session");
+      await camkitTimed(session.applyLens(prep.lens), CAMKIT.startMs, "terms applyLens", true);
+      CAMKIT_TERMS.how="agreed";
+      vdbg("camera kit: Snap's terms are accepted — asked at first sight of the shelf");
+    }catch(e){
+      if(e && e.name==="LegalError"){
+        CAMKIT_TERMS.how="dismissed";
+        vdbg("camera kit: Snap's terms were dismissed at the shelf — they will be asked again at the first lens start");
+      }else{
+        CAMKIT_TERMS.how="not asked ("+camkitErr(e)+")";
+        vdbg("camera kit: Snap's terms could not be asked at the shelf ("+camkitErr(e)+") — they will be asked at the first lens start");
+      }
+    }finally{
+      if(session) await camkitSessionEnd(session);
+    }
+  })().catch(()=>{}).then(()=>{ CAMKIT_TERMS.p=null; });
+}
+/* camkitPrepare(slug): SDK module → bootstrap → lens.  Lazy (never at boot),
+   single-flight, cached.  Resolves { mod, kit, lens }, or null with the
+   reason latched and logged — it never throws and never touches the camera.
+   The four ways it says no, each leaving the bare camera publishing:
+     - unsupported browser (no canvas.captureStream, or the SDK's own
+       PlatformNotSupportedError out of bootstrap)
+     - the SDK module failing to load
+     - bootstrap rejecting (a bad or missing token — BootstrapError /
+       ConfigurationError)
+     - the lens fetch failing (unknown lens or group, or the network) */
+async function camkitPrepare(slug){
+  const look=camkitLook(slug);
+  if(!look) return null;
+  if(CAMKIT_RT.dead || CAMKIT_RT.lensDead[slug]) return null;
+  if(CAMKIT_RT.ready[slug]) return CAMKIT_RT.ready[slug];
+  const base=await camkitBoot();
+  if(!base) return null;
   try{
     const lens=await camkitTimed(base.kit.lensRepository.loadLens(look.lensId, CAMKIT.lensGroupId), CAMKIT.loadMs, "lens fetch");
     if(!lens) throw new Error("the lens repository returned nothing");
@@ -6540,13 +6631,20 @@ function camkitFrameWatch(video){
    it made and latched the lens off, so the caller only has to stop the clone. */
 async function camkitSessionOpen(slug, prep, clone, facingMode){
   let session=null, canvasTrack=null, video=null;
+  CAMKIT_RT.real++;   // a real session now exists or is opening (camkitSessionEnd gives it back)
   try{
+    /* one session at a time: if the hidden terms session is up (he opened the
+       shelf and is still reading), wait for his answer and its teardown */
+    if(CAMKIT_TERMS.p) await CAMKIT_TERMS.p;
     session=await camkitTimed(prep.kit.createSession(), CAMKIT.startMs, "createSession");
+    CAMKIT_REAL.add(session);
     const opts={ cameraType:(facingMode==="environment") ? "environment" : "user" };
     if(CAMKIT.mirror && prep.mod.Transform2D && prep.mod.Transform2D.MirrorX) opts.transform=prep.mod.Transform2D.MirrorX;
     const source=prep.mod.createMediaStreamSource(new MediaStream([clone]), opts);
     await camkitTimed(session.setSource(source), CAMKIT.startMs, "setSource");
-    const applied=await camkitTimed(session.applyLens(prep.lens), CAMKIT.startMs, "applyLens");
+    /* Snap's terms (header): a person reading them is never counted against
+       the start ceiling */
+    const applied=await camkitTimed(session.applyLens(prep.lens), CAMKIT.startMs, "applyLens", true);
     if(applied===false) throw new Error("applyLens was interrupted");
     const target=(CAMKIT.target==="live") ? "live" : "capture";
     await camkitTimed(session.play(target), CAMKIT.startMs, "play");
@@ -6571,13 +6669,18 @@ async function camkitSessionOpen(slug, prep, clone, facingMode){
     return L;
   }catch(e){
     CAMKIT_RT.lensDead[slug]=camkitErr(e);
-    vdbg("lens '"+slug+"' could not start — camera unaffected ("+CAMKIT_RT.lensDead[slug]+")", true);
+    if(e && e.name==="LegalError") vdbg("lens '"+slug+"' not started — Snap's terms were dismissed; camera unaffected ("+CAMKIT_RT.lensDead[slug]+")", true);
+    else vdbg("lens '"+slug+"' could not start — camera unaffected ("+CAMKIT_RT.lensDead[slug]+")", true);
+    if(!session) CAMKIT_RT.real--;   // it never got as far as a session for camkitSessionEnd to give back
     camkitSessionClose({ session, canvasTrack, video });
     return null;
   }
 }
+/* real (call-facing) sessions, so the hidden terms session is not counted */
+const CAMKIT_REAL=new WeakSet();
 async function camkitSessionEnd(session){
   if(!session) return;
+  if(CAMKIT_REAL.delete(session)) CAMKIT_RT.real=Math.max(0, CAMKIT_RT.real-1);
   try{ await camkitTimed(session.pause("live"), 3000, "pause"); }catch(e){}
   try{ await camkitTimed(session.pause("capture"), 3000, "pause"); }catch(e){}
   try{ await camkitTimed(session.destroy(), 5000, "destroy"); }catch(e){ vdbg("camera kit: session destroy failed ("+camkitErr(e)+")", true); }
@@ -6789,8 +6892,12 @@ function filterPaintComposer(){
 $("rt_filterbtn").onclick=()=>{
   if($("rt_filterbtn").classList.contains("is-inert")){ toast("Not while you're on the spot."); return; }
   const sh=$("rt_shelf");
-  filterShelfOpen(!(sh && sh.classList.contains("is-open")));
+  const opening=!(sh && sh.classList.contains("is-open"));
+  filterShelfOpen(opening);
   filterPaintComposer();
+  // first sight of the shelf on a ?camkit page: Snap's terms are asked NOW,
+  // not in the middle of a lens start (no-op without the flag, and after once)
+  if(opening) camkitTermsEarly();
 };
 $("rt_filterdrop").onclick=()=>{ filterDrop(); };
 /* the app's OWN publish switch: byUser attribution stays truthful — every
@@ -7450,6 +7557,7 @@ window.__lc = {
   get CAMKIT(){ return CAMKIT; },
   get CAMKIT_FLAG(){ return CAMKIT_FLAG; },
   get CAMKIT_STATE(){ return camkitState(); },
+  camkitTermsEarly, camkitTermsOpen,
   get FILTER_ROOM(){ return filterRoom(); },
   get FILTER_STATE(){ return { active:FILTER.active, name:FILTER.name, kind:FILTER.kind, killed:FILTER_KILLED,
                                rawTrackAlive:!!(FILTER.raw && FILTER.raw.readyState==="live"),

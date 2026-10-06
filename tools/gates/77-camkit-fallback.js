@@ -8,8 +8,9 @@
  * keeps publishing and setInputDevicesAsync({ videoSource }) is never called.
  * A lens that dies AFTER it went live is taken down by the reconciler, the
  * only thing that stops a look.  Each case below is one real chair in one
- * real room: the server accepts his pick (the double's allow-list widened —
- * standing in for DDL that HAS NOT BEEN RUN), his row says 'foxears', and
+ * real room: the server accepts his pick (the double's allow-list widened for
+ * the harness's shim-only slug — no production DDL names it), his row says
+ * 'foxears', and
  * his own client's reconciler has to cope.
  *
  * WHAT THE HARNESS MUST MODEL, OR THIS GATE PROVES NOTHING.  The failures
@@ -37,17 +38,42 @@
  *      camera by device switch
  *   k. a fresh call is a fresh chance: after videoLeave + rejoin (and the
  *      token fixed) the same look goes live
- *   L. SNAP'S LEGAL PROMPT (feat/camera-kit-staging — the real SDK's first
- *      applyLens shows a modal terms dialog and waits; found by the first
- *      real-SDK run, modelled by the shim's legal:"prompt"):
- *      L1. answered "I Agree" inside the start ceiling — the lens goes live;
- *          while the dialog is up the camera publishes untouched
- *      L2. left unanswered past the start ceiling — the app gives up on the
- *          start (bare camera, latched) and the SDK's dialog is STILL on
- *          screen, modal, over the app; answering it late changes nothing
- *      L3. answered "Dismiss" — LegalError, bare camera, latched
- *      This pins what the app does TODAY.  Whether the start ceiling should
- *      count a human reading Snap's terms is Nick's call (PR body).
+ *   L. SNAP'S TERMS AT A LENS START (feat/camera-kit-staging — the real SDK's
+ *      first applyLens shows a modal terms dialog and waits; found by the
+ *      first real-SDK run, modelled by the shim's legal:"prompt").  Nick's
+ *      ruling: the wait never counts against the start ceiling; Dismiss
+ *      fails cleanly.
+ *      L1. answered "I Agree" — the lens goes live; while the dialog is up
+ *          the camera publishes untouched
+ *      L2. left unanswered for nearly three times the start ceiling —
+ *          NOTHING is latched and nothing is torn down; then "I Agree", and
+ *          the lens goes live
+ *      L3. answered "Dismiss" — the dialog closes, LegalError, bare camera,
+ *          latched, and the log line says why
+ *      L4. the ceiling is still a ceiling: with the terms accepted, an
+ *          applyLens that hangs is given up on at startMs
+ *      L5. ASKED while he is reading the terms: the ask clears his field;
+ *          when he then agrees the lens is NOT published, not for a frame
+ *   E. SNAP'S TERMS, ASKED EARLY (ruling 2): the first time the real shelf
+ *      button opens the shelf on a ?camkit page, the first ✦ lens is applied
+ *      on a HIDDEN session — public API only; no source, never played,
+ *      nothing to do with the call — which is what raises the dialog; the
+ *      session is destroyed as soon as he has answered
+ *      E1. agreed at the shelf — then the ✦ tile: the lens starts with NO
+ *          second dialog, no second SDK request, no second lens fetch; the
+ *          hidden session was never given a source and never played
+ *      E2. dismissed at the shelf — nothing latched, the dialog closes, the
+ *          hidden session is destroyed, and re-opening the shelf does not
+ *          ask again; the first lens start asks once more; dismissed again
+ *          → bare camera, latched
+ *      E3. the lens start arrives while he is still reading at the shelf —
+ *          it waits for his answer AND for the hidden session to be gone:
+ *          never a second dialog, never two sessions alive at once
+ *      E4. the hidden session cannot be opened — nothing is asked, nothing
+ *          is latched, nothing breaks; the dialog appears at the lens start
+ *          instead, off the clock
+ *      E5. a lens is already live when the shelf is first opened — no hidden
+ *          session is opened beside it; the live lens is undisturbed
  * For a–h: same camera track before and after, playable; zero videoSource
  * swaps; the pipeline idle; the reason latched; the diagnostic line logged;
  * three more roster commits cause NO further SDK request / bootstrap / lens
@@ -104,7 +130,7 @@ module.exports = {
       const D = h.double;
       const hostU = D.addUser({ id: "u_host", name: "Hostess", email: "host@fallback.test" });
       D.loginClient("host", hostU);       // the host acts through the double only (her RPCs); no host page is needed here
-      D.allowFilterLook("foxears");       // DDL NOT RUN in production — see the header
+      D.allowFilterLook("foxears");       // the shim-only slug: no production DDL names it — see the header
       let n = 0;
       /* one chair, one room, one fresh page per case */
       const seat = async (label, cfg) => {
@@ -237,58 +263,225 @@ module.exports = {
           "h · session start fails: the one session it opened was destroyed and the clone it was fed was stopped");
         await S.c.close();
       }
-      /* ---------- L1. the legal prompt, accepted ---------- */
+      const LENS_LIVE = () => window.__lc.FILTER_STATE.active === true && window.__lc.FILTER_STATE.kind === "lens";
+      const dialogUp = (S, label) => waitFor(() => S.c.page.evaluate(LEGAL).then((d) => d.open), 8000, label + ": Snap's terms dialog to be on screen");
+      const quiet = (S, label) => { const errs = S.c.errors.filter((e) => !/favicon/.test(e)); t.ok(errs.length === 0, `${label}: zero console errors — ${errs.slice(0, 2).join(" | ")}`); };
+      /* the real controls: the shelf button, and a tile on the shelf */
+      const openShelf = (S) => S.c.page.evaluate(() => { const sh = document.getElementById("rt_shelf");
+        if (!sh.classList.contains("is-open")) document.getElementById("rt_filterbtn").click(); return sh.classList.contains("is-open"); });
+      const closeShelf = (S) => S.c.page.evaluate(() => { const sh = document.getElementById("rt_shelf");
+        if (sh.classList.contains("is-open")) document.getElementById("rt_filterbtn").click(); return !sh.classList.contains("is-open"); });
+      const tapTile = (S, look) => S.c.page.evaluate((look) => { const b = document.querySelector('#rt_shelfrack .lc-shelf__tile[data-look="' + look + '"]'); if (!b) return false; b.click(); return true; }, look);
+
+      /* ---------- L1. terms at the lens start, accepted ---------- */
       {
         const S = await seat("l1");
         await S.c.camkitFault("legal", "prompt");
-        const before = await pick(S);
-        await waitFor(() => S.c.page.evaluate(LEGAL).then((d) => d.open), 8000, "L1: the legal prompt to be on screen");
+        const before = await pick(S);          // filterPick, not the shelf: nothing has asked for the terms yet
+        await dialogUp(S, "L1");
         const d = await S.c.page.evaluate(LEGAL);
         t.ok(d.open && d.modal && d.inBody && d.buttons.join("|") === "Dismiss|I Agree" && d.shim.shown === 1,
-          `L1 · legal prompt: the first applyLens put Snap's terms dialog on screen — in <body>, modal, two answers (${d.buttons.join(" / ")})`);
+          `L1 · terms at the lens start: the first applyLens put Snap's terms dialog on screen — in <body>, modal, two answers (${d.buttons.join(" / ")})`);
         await S.c.page.waitForTimeout(700);
         const mid = await S.c.page.evaluate(SNAP);
         t.ok(mid.F.active === false && mid.trackId === before.trackId && mid.trackId === mid.camId && mid.state === "playable" && mid.swaps === 0 && !mid.K.lensDead.foxears && mid.K.dead === null,
-          "L1 · legal prompt: while it waits, the camera publishes untouched and nothing is latched");
-        t.ok(await S.c.page.evaluate(LEGAL_TAP, "I Agree"), "L1 · legal prompt: he taps I Agree");
-        await waitFor(() => S.c.page.evaluate(() => window.__lc.FILTER_STATE.active === true && window.__lc.FILTER_STATE.kind === "lens"), 10_000, "L1: the lens to go live after the answer");
+          "L1 · terms at the lens start: while it waits, the camera publishes untouched and nothing is latched");
+        t.ok(await S.c.page.evaluate(LEGAL_TAP, "I Agree"), "L1 · terms at the lens start: he taps I Agree");
+        await waitFor(() => S.c.page.evaluate(LENS_LIVE), 10_000, "L1: the lens to go live after the answer");
         const a = await S.c.page.evaluate(SNAP);
         const d2 = await S.c.page.evaluate(LEGAL);
         t.ok(a.trackId === a.F.canvasTrackId && a.swaps === 1 && a.shim.sessions.length === 1 && a.shim.sessions[0].lens === "lens-fox" && d2.open === false && d2.shim.state === "accepted",
-          `L1 · legal prompt: accepted inside the ceiling — the lens goes live and is what the call publishes; the dialog is gone (swaps=${a.swaps})`);
-        const errs = S.c.errors.filter((e) => !/favicon/.test(e));
-        t.ok(errs.length === 0, `L1 · legal prompt: zero console errors — ${errs.slice(0, 2).join(" | ")}`);
+          `L1 · terms at the lens start: accepted — the lens goes live and is what the call publishes; the dialog is gone (swaps=${a.swaps})`);
+        quiet(S, "L1 · terms at the lens start");
         await S.c.close();
       }
-      /* ---------- L2. the legal prompt, left unanswered ---------- */
+      /* ---------- L2. the wait never counts against the start ceiling ---------- */
       {
         const S = await seat("l2", { startMs: 1500 });
         await S.c.camkitFault("legal", "prompt");
         const before = await pick(S);
-        await waitFor(() => S.c.page.evaluate(LEGAL).then((d) => d.open), 8000, "L2: the legal prompt to be on screen");
-        const a = await assertBare("L2 · legal prompt unanswered", S, before, { lens: true, settled: () => !!window.__lc.CAMKIT_STATE.lensDead.foxears, reason: /applyLens timed out after 1500ms/, line: /lens 'foxears' could not start/ });
+        await dialogUp(S, "L2");
+        await S.c.page.waitForTimeout(4200);   // nearly three start ceilings, reading
+        const mid = await S.c.page.evaluate(SNAP);
         const d = await S.c.page.evaluate(LEGAL);
-        t.ok(d.open && d.modal && a.shim.sessions.length === 1 && a.shim.sessions[0].destroyed === true,
-          "L2 · legal prompt unanswered: the app gave up at its start ceiling and destroyed the session — and Snap's dialog is STILL on screen, modal, over the app");
-        t.ok(await S.c.page.evaluate(LEGAL_TAP, "I Agree"), "L2 · legal prompt unanswered: he taps I Agree, late");
-        await S.c.page.waitForTimeout(900);
-        const z = await S.c.page.evaluate(SNAP);
-        const d2 = await S.c.page.evaluate(LEGAL);
-        t.ok(d2.open === false && z.F.active === false && z.trackId === before.trackId && z.swaps === 0 && /applyLens timed out/.test(z.K.lensDead.foxears) && z.shim.sessions.length === 1,
-          "L2 · legal prompt unanswered: a late answer clears the dialog and changes nothing else — still the bare camera, still latched for this call, no second session");
-        const errs = S.c.errors.filter((e) => !/favicon/.test(e));
-        t.ok(errs.length === 0, `L2 · legal prompt unanswered: zero console errors after the late answer — ${errs.slice(0, 2).join(" | ")}`);
+        t.ok(d.open && d.modal && !mid.K.lensDead.foxears && mid.K.dead === null,
+          `L2 · the wait is off the clock: 4.2s into a 1.5s start ceiling with the terms on screen, NOTHING is latched (lensDead=${JSON.stringify(mid.K.lensDead)})`);
+        t.ok(mid.F.active === false && mid.trackId === before.trackId && mid.trackId === mid.camId && mid.state === "playable" && mid.swaps === 0 && mid.shim.sessions.length === 1 && mid.shim.sessions[0].destroyed === false,
+          "L2 · the wait is off the clock: the camera publishes untouched and the session is still open, waiting for his answer");
+        t.ok(!said(S.c, /timed out/), "L2 · the wait is off the clock: no timeout was logged");
+        t.ok(await S.c.page.evaluate(LEGAL_TAP, "I Agree"), "L2 · the wait is off the clock: he taps I Agree, in his own time");
+        await waitFor(() => S.c.page.evaluate(LENS_LIVE), 10_000, "L2: the lens to go live after the late answer");
+        const a = await S.c.page.evaluate(SNAP);
+        t.ok(a.trackId === a.F.canvasTrackId && a.swaps === 1 && a.shim.sessions.length === 1 && (await S.c.page.evaluate(LEGAL)).open === false,
+          "L2 · the wait is off the clock: the SAME session carried on — the lens is live and published, one swap, the dialog gone");
+        quiet(S, "L2 · the wait is off the clock");
         await S.c.close();
       }
-      /* ---------- L3. the legal prompt, dismissed ---------- */
+      /* ---------- L3. dismissed at the lens start ---------- */
       {
         const S = await seat("l3");
         await S.c.camkitFault("legal", "prompt");
         const before = await pick(S);
-        await waitFor(() => S.c.page.evaluate(LEGAL).then((d) => d.open), 8000, "L3: the legal prompt to be on screen");
-        t.ok(await S.c.page.evaluate(LEGAL_TAP, "Dismiss"), "L3 · legal prompt dismissed: he taps Dismiss");
-        await assertBare("L3 · legal prompt dismissed", S, before, { lens: true, settled: () => !!window.__lc.CAMKIT_STATE.lensDead.foxears, reason: /LegalError.*terms were not accepted/, line: /lens 'foxears' could not start/ });
-        t.ok((await S.c.page.evaluate(LEGAL)).open === false, "L3 · legal prompt dismissed: the dialog is gone");
+        await dialogUp(S, "L3");
+        t.ok(await S.c.page.evaluate(LEGAL_TAP, "Dismiss"), "L3 · terms dismissed: he taps Dismiss");
+        await assertBare("L3 · terms dismissed", S, before, { lens: true, settled: () => !!window.__lc.CAMKIT_STATE.lensDead.foxears, reason: /LegalError.*terms were not accepted/, line: /lens 'foxears' not started — Snap's terms were dismissed/ });
+        const d = await S.c.page.evaluate(LEGAL);
+        t.ok(d.open === false && d.shim.open === 0 && d.shim.shown === 1, "L3 · terms dismissed: the dialog is closed, and it was shown exactly once");
+        await S.c.close();
+      }
+      /* ---------- L4. the ceiling is still a ceiling ---------- */
+      {
+        const S = await seat("l4", { startMs: 1500 });
+        await S.c.camkitFault("applyLens", "hang");   // terms already accepted (the shim's default): nothing on screen to wait for
+        const before = await pick(S);
+        const t0 = Date.now();
+        await assertBare("L4 · applyLens hangs", S, before, { lens: true, settled: () => !!window.__lc.CAMKIT_STATE.lensDead.foxears, reason: /applyLens timed out after 1500ms/, line: /lens 'foxears' could not start/ });
+        t.ok((await S.c.page.evaluate(LEGAL)).shim.shown === 0, `L4 · applyLens hangs: no dialog was ever up, so the clock ran — given up on at the start ceiling (settled within ${Date.now() - t0}ms of the pick, checks included)`);
+        await S.c.close();
+      }
+      /* ---------- L5. asked while he reads the terms ---------- */
+      {
+        const S = await seat("l5");
+        await S.c.camkitFault("legal", "prompt");
+        const before = await pick(S);
+        await dialogUp(S, "L5");
+        const ask = D.rpc("host", "ask_question", { room_id: S.room, target: S.uid });
+        t.ok(D.rooms.get(S.room).spotlight_target === S.uid && D.memberRow(S.room, S.uid).filter === null,
+          `L5 · asked while reading: the host's ask landed and cleared his field inside itself (${JSON.stringify(ask).slice(0, 40)})`);
+        await waitFor(() => S.c.page.evaluate((u) => !(window.__lc.FILTER_ROOM[u] || {}).name, S.uid), 8000, "L5: his client to observe the cleared field");
+        t.ok(await S.c.page.evaluate(LEGAL_TAP, "I Agree"), "L5 · asked while reading: he taps I Agree, now on the spot");
+        await waitFor(() => S.c.page.evaluate(() => window.__camkitControl.sessions().length === 1 && window.__camkitControl.sessions()[0].destroyed === true), 8000, "L5: the session that is no longer wanted to be torn down");
+        await S.c.page.waitForTimeout(700);
+        const a = await S.c.page.evaluate(SNAP);
+        t.ok(a.swaps === 0 && a.log.length === before.log.length && a.trackId === before.trackId && a.trackId === a.camId && a.state === "playable" && a.F.active === false,
+          `L5 · asked while reading: the lens was NEVER published — not for a frame (videoSource swaps=${a.swaps}); an asked face stays bare`);
+        t.ok(!a.K.lensDead.foxears && a.K.dead === null && a.hiddenVideos === 0 && a.shim.sources[0].trackReady === "ended" && said(S.c, /no longer wanted/),
+          "L5 · asked while reading: nothing latched, nothing left behind, and the log says the look was no longer wanted");
+        quiet(S, "L5 · asked while reading");
+        await S.c.close();
+      }
+      const OVERLAPS = () => window.__camkitControl.overlaps();
+      /* ---------- E1. asked early at the shelf, agreed ---------- */
+      {
+        const S = await seat("e1");
+        await S.c.camkitFault("legal", "prompt");
+        const before = await S.c.page.evaluate(SNAP);
+        t.ok(sdkRequests(S.c) === 0 && before.K.termsAsked === false, "E1 · asked early: (before) nothing has requested the SDK, nothing has asked for the terms");
+        t.ok(await openShelf(S), "E1 · asked early: he opens the shelf with the real 🎭 button");
+        await dialogUp(S, "E1");
+        const d = await S.c.page.evaluate(LEGAL);
+        const mid = await S.c.page.evaluate(SNAP);
+        t.ok(d.open && d.modal && d.shim.shown === 1 && sdkRequests(S.c) === 1 && mid.shim.bootstraps === 1 && mid.K.terms === "asking",
+          `E1 · asked early: first sight of the shelf loaded the SDK once and put Snap's terms on screen — before any look was picked (terms: "${mid.K.terms}")`);
+        t.ok(mid.shim.sessions.length === 1 && mid.shim.sessions[0].sourceId === null && mid.shim.sessions[0].played.length === 0 && mid.shim.sources.length === 0 && mid.shim.lensLoads === 1,
+          "E1 · asked early: it is the HIDDEN session doing the asking — one session, given no source, never played; one lens fetched (the first ✦) to ask with");
+        t.ok(mid.swaps === 0 && mid.log.length === before.log.length && mid.trackId === before.trackId && mid.F.active === false && D.memberRow(S.room, S.uid).filter == null && !mid.K.lensDead.foxears && mid.K.dead === null && mid.hiddenVideos === 0,
+          "E1 · asked early: and it has nothing to do with the call — no pick on his row, the camera untouched, the pipeline idle, nothing latched");
+        t.ok(await S.c.page.evaluate(LEGAL_TAP, "I Agree"), "E1 · asked early: he taps I Agree");
+        await waitFor(() => S.c.page.evaluate(() => window.__lc.CAMKIT_STATE.terms === "agreed" && window.__camkitControl.sessions()[0].destroyed === true), 8000, "E1: the hidden session to be destroyed");
+        const aft = await S.c.page.evaluate(SNAP);
+        t.ok(aft.shim.sessions.length === 1 && aft.shim.sessions[0].destroyed === true && aft.shim.sessions[0].played.length === 0 && (await S.c.page.evaluate(LEGAL)).open === false && aft.swaps === 0,
+          "E1 · asked early: answered — the dialog is gone and the hidden session is destroyed, still never played, never published");
+        t.ok(await tapTile(S, "foxears"), "E1 · asked early: then he taps the ✦ tile");
+        await waitFor(() => S.c.page.evaluate(LENS_LIVE), 10_000, "E1: the lens to go live");
+        const a = await S.c.page.evaluate(SNAP);
+        const d2 = await S.c.page.evaluate(LEGAL);
+        t.ok(a.trackId === a.F.canvasTrackId && a.swaps === 1 && a.shim.sessions.length === 2 && a.shim.sessions[1].lens === "lens-fox" && a.shim.sessions[1].played.join(",") === "capture" && a.shim.sources.length === 1 && a.shim.sources[0].trackId === a.F.cloneTrackId,
+          `E1 · asked early: the lens went live on a SECOND session — fed his clone, playing capture, published (swaps=${a.swaps})`);
+        t.ok(d2.shim.shown === 1 && d2.open === false && sdkRequests(S.c) === 1 && a.shim.bootstraps === 1 && a.shim.lensLoads === 1 && (await S.c.page.evaluate(OVERLAPS)) === 0,
+          `E1 · asked early: with NO second dialog, no second SDK request, no second lens fetch, and never two sessions alive at once (dialogs shown=${d2.shim.shown}, SDK requests=${sdkRequests(S.c)})`);
+        quiet(S, "E1 · asked early");
+        await S.c.close();
+      }
+      /* ---------- E2. asked early at the shelf, dismissed ---------- */
+      {
+        const S = await seat("e2");
+        await S.c.camkitFault("legal", "prompt");
+        await openShelf(S);
+        await dialogUp(S, "E2");
+        t.ok(await S.c.page.evaluate(LEGAL_TAP, "Dismiss"), "E2 · early, dismissed: he taps Dismiss at the shelf");
+        await waitFor(() => S.c.page.evaluate(() => window.__lc.CAMKIT_STATE.terms === "dismissed" && window.__camkitControl.sessions()[0].destroyed === true), 8000, "E2: the hidden session to be destroyed");
+        const a = await S.c.page.evaluate(SNAP);
+        const d = await S.c.page.evaluate(LEGAL);
+        t.ok(d.open === false && d.shim.state === "rejected" && !a.K.lensDead.foxears && a.K.dead === null && a.swaps === 0 && a.F.active === false && a.shim.sessions.length === 1 && a.shim.sessions[0].destroyed,
+          "E2 · early, dismissed: the dialog closed, the hidden session is destroyed, and NOTHING is latched — no look was asked for, so no look failed");
+        t.ok(said(S.c, /dismissed at the shelf/), "E2 · early, dismissed: one diagnostic line says the terms will be asked again at the first lens start");
+        t.ok(await closeShelf(S) && await openShelf(S), "E2 · early, dismissed: he closes the shelf and opens it again");
+        await S.c.page.waitForTimeout(600);
+        const d1 = await S.c.page.evaluate(LEGAL);
+        t.ok(d1.open === false && d1.shim.shown === 1 && (await S.c.page.evaluate(SNAP)).shim.sessions.length === 1, `E2 · early, dismissed: re-opening the shelf does not ask again — once per page (dialogs shown=${d1.shim.shown})`);
+        const before = await S.c.page.evaluate(SNAP);
+        t.ok(await tapTile(S, "foxears"), "E2 · early, dismissed: he taps the ✦ tile anyway");
+        await dialogUp(S, "E2 (lens start)");
+        t.ok((await S.c.page.evaluate(LEGAL)).shim.shown === 2, "E2 · early, dismissed: the first lens start asks once more (the SDK's own rule after a Dismiss)");
+        t.ok(await S.c.page.evaluate(LEGAL_TAP, "Dismiss"), "E2 · early, dismissed: he dismisses again");
+        await assertBare("E2 · early, dismissed, then dismissed at the lens start", S, before, { lens: true, settled: () => !!window.__lc.CAMKIT_STATE.lensDead.foxears, reason: /LegalError.*terms were not accepted/, line: /Snap's terms were dismissed; camera unaffected/ });
+        t.ok((await S.c.page.evaluate(LEGAL)).open === false && (await S.c.page.evaluate(OVERLAPS)) === 0, "E2 · early, dismissed: the dialog is closed; never two sessions alive at once");
+        await S.c.close();
+      }
+      /* ---------- E3. the lens start arrives while he is still reading at the shelf ---------- */
+      {
+        const S = await seat("e3", { startMs: 1500 });
+        await S.c.camkitFault("legal", "prompt");
+        await openShelf(S);
+        await dialogUp(S, "E3");
+        const before = await pick(S);          // the pick lands while he is still reading (a modal stops taps, not the server's row)
+        await S.c.page.waitForTimeout(3200);   // more than twice the start ceiling
+        const mid = await S.c.page.evaluate(SNAP);
+        const d = await S.c.page.evaluate(LEGAL);
+        t.ok(d.shim.shown === 1 && d.shim.open === 1 && d.open && mid.shim.sessions.length === 1 && mid.shim.sessions[0].destroyed === false && (await S.c.page.evaluate(OVERLAPS)) === 0,
+          `E3 · lens start while he reads at the shelf: it WAITS — no second dialog stacked on the first, no second session opened beside the hidden one (shown=${d.shim.shown}, sessions=${mid.shim.sessions.length})`);
+        t.ok(!mid.K.lensDead.foxears && mid.K.dead === null && mid.F.active === false && mid.swaps === 0 && mid.trackId === before.trackId && !said(S.c, /timed out/),
+          "E3 · lens start while he reads at the shelf: nothing latched past the start ceiling, no timeout logged, the camera untouched");
+        t.ok(await S.c.page.evaluate(LEGAL_TAP, "I Agree"), "E3 · lens start while he reads at the shelf: he taps I Agree");
+        await waitFor(() => S.c.page.evaluate(LENS_LIVE), 10_000, "E3: the lens to go live");
+        const a = await S.c.page.evaluate(SNAP);
+        const d2 = await S.c.page.evaluate(LEGAL);
+        t.ok(a.trackId === a.F.canvasTrackId && a.swaps === 1 && d2.shim.shown === 1 && a.shim.sessions.length === 2 && a.shim.sessions[0].destroyed === true && a.shim.sessions[1].destroyed === false && (await S.c.page.evaluate(OVERLAPS)) === 0,
+          "E3 · lens start while he reads at the shelf: then the hidden session went, the real one came, and the lens is live — one dialog start to finish, one session at a time");
+        quiet(S, "E3 · lens start while he reads at the shelf");
+        await S.c.close();
+      }
+      /* ---------- E4. the hidden session cannot be opened ---------- */
+      {
+        const S = await seat("e4", { startMs: 1500 });
+        await S.c.camkitFault("legal", "prompt");
+        await S.c.camkitFault("createSession", "reject");
+        await openShelf(S);
+        await waitFor(() => S.c.page.evaluate(() => /^not asked/.test(window.__lc.CAMKIT_STATE.terms || "")), 8000, "E4: the early ask to fail");
+        const a0 = await S.c.page.evaluate(SNAP);
+        const d0 = await S.c.page.evaluate(LEGAL);
+        t.ok(d0.open === false && d0.shim.shown === 0 && a0.K.booted === true && a0.K.dead === null && !a0.K.lensDead.foxears && a0.shim.sessions.length === 0 && a0.swaps === 0 && sdkRequests(S.c) === 1,
+          `E4 · hidden session fails: opening the shelf asked nothing, latched nothing and broke nothing (terms: "${a0.K.terms}")`);
+        t.ok(said(S.c, /could not be asked at the shelf/), "E4 · hidden session fails: one diagnostic line says the terms will be asked at the first lens start");
+        await S.c.camkitFault("createSession", null);
+        t.ok(await tapTile(S, "foxears"), "E4 · hidden session fails: he taps the ✦ tile");
+        await dialogUp(S, "E4 (lens start)");
+        await S.c.page.waitForTimeout(2600);   // past the start ceiling, off the clock
+        t.ok(!(await S.c.page.evaluate(SNAP)).K.lensDead.foxears, "E4 · hidden session fails: the dialog appears at the lens start instead, and the wait is still off the clock");
+        t.ok(await S.c.page.evaluate(LEGAL_TAP, "I Agree"), "E4 · hidden session fails: he taps I Agree");
+        await waitFor(() => S.c.page.evaluate(LENS_LIVE), 10_000, "E4: the lens to go live");
+        t.ok((await S.c.page.evaluate(SNAP)).swaps === 1 && (await S.c.page.evaluate(LEGAL)).shim.shown === 1, "E4 · hidden session fails: the lens goes live — the fallback is the lens start asking for itself");
+        quiet(S, "E4 · hidden session fails");
+        await S.c.close();
+      }
+      /* ---------- E5. a lens is already live when the shelf is first opened ---------- */
+      {
+        const S = await seat("e5");
+        await S.c.camkitFault("legal", "prompt");
+        await pick(S);                         // no shelf: the lens start asks for itself
+        await dialogUp(S, "E5 (lens start)");
+        t.ok(await S.c.page.evaluate(LEGAL_TAP, "I Agree"), "E5 · shelf opened under a live lens: (setup) he agreed at the lens start");
+        await waitFor(() => S.c.page.evaluate(LENS_LIVE), 10_000, "E5: the lens to go live");
+        const live = await S.c.page.evaluate(SNAP);
+        t.ok(await openShelf(S), "E5 · shelf opened under a live lens: now he opens the shelf for the first time");
+        await S.c.page.waitForTimeout(900);
+        const a = await S.c.page.evaluate(SNAP);
+        const d = await S.c.page.evaluate(LEGAL);
+        t.ok(a.shim.sessions.length === 1 && a.shim.sessions[0].destroyed === false && (await S.c.page.evaluate(OVERLAPS)) === 0 && d.shim.shown === 1 && d.open === false && a.K.terms === "a lens start is asking",
+          `E5 · shelf opened under a live lens: NO hidden session was opened beside the live one and nothing was asked again (sessions=${a.shim.sessions.length}, dialogs shown=${d.shim.shown}, terms: "${a.K.terms}")`);
+        t.ok(a.F.active && a.trackId === live.trackId && a.trackId === a.F.canvasTrackId && a.swaps === 1, "E5 · shelf opened under a live lens: the live lens is undisturbed — same published track, no second swap");
+        quiet(S, "E5 · shelf opened under a live lens");
         await S.c.close();
       }
       /* ---------- i. dropped while the lens is still starting ---------- */

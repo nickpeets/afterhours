@@ -33,11 +33,21 @@
  *      list; an unlisted ck- slug is still "no such filter"
  *   1. ?camkit, config as shipped: CAMKIT_STATE.on, the rack is teal then the
  *      two shipped looks, their tiles amber with the shipped names — and
- *      zero SDK requests from showing them; every PARTIAL config is inert
+ *      zero SDK requests from painting them; every PARTIAL config is inert
  *      even with the flag
+ *   T. THE SDK LOADS ON FIRST SHELF OPEN WITH ?camkit, NEVER ON A FLAGLESS
+ *      PAGE (Nick's ruling on Snap's terms; this gate used to claim "with
+ *      the flag the SDK still loads on first USE, not on first sight").  The
+ *      first time the real 🎭 button opens the shelf on a ?camkit page the
+ *      SDK is loaded — one request, to the shipped address — and Snap's
+ *      terms dialog is on screen before any look is picked, raised by a
+ *      hidden session that is never given a source, never played and never
+ *      published; he agrees there and the hidden session is destroyed.  The
+ *      phone without ?camkit opens its shelf too: no request, no dialog
  *   2. pick, through the real ✦ tile: the server accepts the shipped slug,
- *      the lens goes live and is what the call publishes; ONE SDK request,
- *      from the wearer, to the shipped address; amber badge on every flagged
+ *      the lens goes live on a SECOND session and is what the call
+ *      publishes, with NO dialog at the lens start; still ONE SDK request
+ *      from the wearer and one lens fetch; amber badge on every flagged
  *      client
  *   3. THE PHONE WITHOUT ?camkit, same room, same moment: two teal tiles and
  *      no ✦; no badge it has no name for; zero SDK requests — and its own
@@ -150,12 +160,9 @@ module.exports = {
       t.ok(amber1.every((x, i) => x.name === shipped.looks[i].name && x.icon === shipped.looks[i].icon && x.name !== x.look),
         `each ✦ tile carries its shipped name and icon ("${amber1.map((x) => x.name).join('", "')}")`);
       t.ok(/Amber = face-tracked/.test(s1.foot), `the foot line names the amber set ("${s1.foot}")`);
-      await A.page.evaluate(() => { document.getElementById("rt_filterbtn").click(); });
-      await A.page.waitForTimeout(800);
-      const s1b = await A.page.evaluate(() => ({ open: document.getElementById("rt_shelf").classList.contains("is-open"), st: window.__lc.CAMKIT_STATE }));
-      t.ok(s1b.open === true && s1b.st.sdkLoads === 0 && h.camkitRequests.length === 0,
-        `shelf open, ✦ tiles on screen — and zero SDK requests: with the flag the SDK still loads on first USE, not on first sight (requests=${h.camkitRequests.length})`);
-      await A.page.evaluate(() => { document.getElementById("rt_filterbtn").click(); });
+      await A.page.waitForTimeout(600);
+      t.ok(s1.state.sdkLoads === 0 && s1.state.termsAsked === false && h.camkitRequests.length === 0,
+        `the rack is painted and nothing has been requested: with the flag the SDK is still not loaded at boot or by painting tiles — only by the shelf being OPENED (requests=${h.camkitRequests.length})`);
       /* the flag is necessary, not sufficient: any field missing is still inert */
       const live = await B.page.evaluate(() => ({ sdkUrl: window.__lc.CAMKIT.sdkUrl, apiToken: window.__lc.CAMKIT.apiToken, lensGroupId: window.__lc.CAMKIT.lensGroupId, looks: { ...window.__lc.CAMKIT.looks } }));
       for (const missing of ["sdkUrl", "apiToken", "lensGroupId", "looks"]) {
@@ -171,6 +178,31 @@ module.exports = {
       const shimLooks = { [S1]: { ...shipped.looks[0], lensId: "lens-fox" }, [S2]: { ...shipped.looks[1], lensId: "lens-halo" } };
       for (const c of flagged) await c.camkitConfigure({ sdkUrl: shipped.sdkUrl, looks: shimLooks });
 
+      /* ---------- T. first sight of the shelf ---------- */
+      const DIALOG = () => { const el = document.querySelector('[data-testid="tos-dialog"]'), dg = el && el.shadowRoot && el.shadowRoot.querySelector("dialog");
+        return { open: !!(dg && dg.open), modal: !!(dg && dg.matches(":modal")), buttons: dg ? [...dg.querySelectorAll("button")].map((b) => b.textContent.trim()) : [],
+                 shim: window.__camkitControl ? window.__camkitControl.legal() : null, K: window.__lc.CAMKIT_STATE }; };
+      const openShelf = (c) => c.page.evaluate(() => { const sh = document.getElementById("rt_shelf"); if (!sh.classList.contains("is-open")) document.getElementById("rt_filterbtn").click(); return sh.classList.contains("is-open"); });
+      await A.camkitFault("legal", "prompt");   // u_a has never accepted Snap's terms on this phone
+      t.ok(await openShelf(A), "u_a opens the shelf with the real 🎭 button");
+      await waitFor(() => A.page.evaluate(DIALOG).then((d) => d.open), 8000, "Snap's terms dialog at first sight of the shelf");
+      const dT = await A.page.evaluate(DIALOG);
+      t.ok(dT.open && dT.modal && dT.buttons.join("|") === "Dismiss|I Agree" && dT.shim.shown === 1 && dT.K.terms === "asking",
+        `first shelf open with ?camkit: Snap's terms are on screen before any look is picked (${dT.buttons.join(" / ")})`);
+      const hid = await A.page.evaluate(PIPE);
+      t.ok(hid.shim.sessions.length === 1 && hid.shim.sessions[0].sourceId === null && hid.shim.sessions[0].played.length === 0 && hid.swaps === 0 && hid.F.active === false && hid.trackId === hid.camId,
+        "…raised by a HIDDEN session — given no source, never played — while the call goes on publishing his untouched camera");
+      t.ok(h.camkitRequests.length === 1 && requestsBy("a") === 1 && h.camkitRequests[0].url === shipped.sdkUrl && D.memberRow(room, "u_a").filter == null,
+        `…the SDK was loaded for it — ONE request, from u_a, to the page's shipped address — and nothing has been picked (${h.camkitRequests.map((r) => r.client + " → " + r.url.slice(0, 44) + "…").join(", ")})`);
+      t.ok(await openShelf(C), "u_c (no ?camkit) opens his shelf too");
+      await C.page.waitForTimeout(700);
+      const dC = await C.page.evaluate(DIALOG);
+      t.ok(dC.open === false && dC.K.termsAsked === false && requestsBy("c") === 0, "…and on the phone without ?camkit that asks nothing and loads nothing");
+      t.ok(await A.page.evaluate(() => { const el = document.querySelector('[data-testid="tos-dialog"]'); const b = el && [...el.shadowRoot.querySelectorAll("button")].find((x) => x.textContent.trim() === "I Agree"); if (!b) return false; b.click(); return true; }),
+        "u_a taps I Agree");
+      await waitFor(() => A.page.evaluate(() => window.__lc.CAMKIT_STATE.terms === "agreed" && window.__camkitControl.sessions()[0].destroyed === true), 8000, "the hidden session to be destroyed");
+      t.ok((await A.page.evaluate(DIALOG)).open === false && (await A.page.evaluate(PIPE)).swaps === 0, "the dialog is gone and the hidden session destroyed — it was never published");
+
       /* ---------- 2. pick, through the real ✦ tile ---------- */
       const tap = await tapTile(A, S1);
       t.ok(tap.found && tap.amber, `u_a taps the ✦ tile for '${S1}'`);
@@ -180,10 +212,12 @@ module.exports = {
       const a2 = await A.page.evaluate(PIPE);
       t.ok(a2.F.kind === "lens" && a2.F.name === S1 && a2.trackId === a2.F.canvasTrackId && a2.swaps === 1,
         `wearer: the pipeline came up as a LENS and the call publishes it — one videoSource swap (kind=${a2.F.kind}, swaps=${a2.swaps})`);
-      t.ok(h.camkitRequests.length === 1 && requestsBy("a") === 1 && h.camkitRequests[0].url === shipped.sdkUrl,
-        `exactly ONE SDK request, from the wearer, to the page's shipped address (${h.camkitRequests.map((r) => r.client + " → " + r.url.slice(0, 44) + "…").join(", ")})`);
-      t.ok(a2.shim.bootstraps === 1 && a2.shim.lensLoads.length === 1 && a2.shim.lensLoads[0].groupId === CAMKIT_TEST.lensGroupId && a2.shim.sessions.length === 1 && a2.shim.sessions[0].played.join(",") === "capture",
-        "…one bootstrap, one lens fetch, one session, playing the CAPTURE target");
+      const d2 = await A.page.evaluate(DIALOG);
+      t.ok(h.camkitRequests.length === 1 && requestsBy("a") === 1 && d2.shim.shown === 1 && d2.open === false,
+        `still exactly ONE SDK request, the one made at the shelf — and NO dialog at the lens start: the terms were already answered (dialogs shown=${d2.shim.shown})`);
+      t.ok(a2.shim.bootstraps === 1 && a2.shim.lensLoads.length === 1 && a2.shim.lensLoads[0].groupId === CAMKIT_TEST.lensGroupId && a2.shim.sessions.length === 2 && a2.shim.sessions[0].destroyed === true
+          && a2.shim.sessions[1].destroyed === false && a2.shim.sessions[1].played.join(",") === "capture" && (await A.page.evaluate(() => window.__camkitControl.overlaps())) === 0,
+        "…one bootstrap, one lens fetch (the terms were asked with this same lens), and a SECOND session — the hidden one gone before it came — playing the CAPTURE target");
       await A.page.waitForTimeout(1100);
       const dbg = await A.page.evaluate(() => { const el = document.getElementById("vfilter"); return { text: el ? el.textContent : null, frames: window.__lc.FILTER_STATE.framesDrawn }; });
       await A.page.waitForTimeout(700);
@@ -215,7 +249,7 @@ module.exports = {
       t.ok(p4a.ok === false && /locked for this show/.test(p4a.error) && p4b.ok === false && /locked for this show/.test(p4b.error),
         `one per show: u_a's second pick is rejected whether it is the other ✦ or a teal ("${p4a.error}")`);
       const a4 = await A.page.evaluate(PIPE);
-      t.ok(a4.F.active && a4.F.name === S1 && a4.swaps === 1 && a4.shim.sessions.length === 1 && D.memberRow(room, "u_a").filter === S1, "…and his lens is undisturbed — same session, no second swap");
+      t.ok(a4.F.active && a4.F.name === S1 && a4.swaps === 1 && a4.shim.sessions.length === 2 && a4.shim.sessions[1].destroyed === false && D.memberRow(room, "u_a").filter === S1, "…and his lens is undisturbed — same live session, no second swap");
 
       /* ---------- 5. DROP ON ASK ---------- */
       await host.page.evaluate(() => window.__lc.egOpenDrawer("u_a"));
@@ -224,7 +258,7 @@ module.exports = {
       t.ok(D.memberRow(room, "u_a").filter === null && D.memberRow(room, "u_a").filter_pick === S1, "ASK: the server cleared his field inside the ask (lock kept)");
       await waitFor(() => A.page.evaluate(CAMERA_BACK), 10_000, "u_a asked, unmasked, camera back");
       const a5 = await A.page.evaluate(PIPE);
-      t.ok(a5.F.active === false && a5.trackId === a5.camId && a5.state === "playable" && a5.shim.sessions[0].destroyed === true,
+      t.ok(a5.F.active === false && a5.trackId === a5.camId && a5.state === "playable" && a5.shim.sessions.every((x) => x.destroyed === true),
         "…the lens is down, its session destroyed, and the bare camera is what the call publishes");
       await badgeGone(flagged, 0);
       t.ok(true, "badge gone from seat 0 on every ?camkit client");
@@ -237,14 +271,17 @@ module.exports = {
       await waitFor(() => D.memberRow(room, "u_b").filter === S2, 5000, "u_b's pick to land");
       await waitFor(() => B.page.evaluate(LENS_UP), 10_000, "u_b's lens to go live");
       const b6 = await B.page.evaluate(PIPE);
-      t.ok(b6.F.name === S2 && b6.shim.lensLoads.length === 1 && b6.shim.lensLoads[0].lensId === "lens-halo" && requestsBy("b") === 1 && h.camkitRequests.length === 2,
-        `the second shipped look goes live on its own lens; u_b's client is the second (and only other) SDK request (${h.camkitRequests.map((r) => r.client).join(",")})`);
+      const dB = await B.page.evaluate(DIALOG);
+      t.ok(b6.F.name === S2 && b6.shim.lensLoads.map((l) => l.lensId).join(",") === "lens-fox,lens-halo" && b6.shim.sessions.length === 2 && b6.shim.sessions[0].destroyed === true && b6.shim.sessions[0].played.length === 0 && dB.shim.shown === 0 && (await B.page.evaluate(() => window.__camkitControl.overlaps())) === 0,
+        "u_b's shelf opening asked the terms too — with the first ✦ lens, on a hidden session, and silently, because on his phone they were already accepted — and then his own look went live on its own lens, on a second session");
+      t.ok(requestsBy("b") === 1 && h.camkitRequests.length === 2,
+        `u_b's client is the second (and only other) SDK request, made when he opened his shelf (${h.camkitRequests.map((r) => r.client).join(",")})`);
       const hc = await A.page.evaluate(() => window.__lc.hostClearFilter("u_b"));
       t.ok(hc.ok === false && /only the host/.test(hc.error) && D.memberRow(room, "u_b").filter === S2, `host_clear_filter from a chair is rejected ("${hc.error}")`);
       t.ok((await host.page.evaluate(() => window.__lc.hostClearFilter("u_b"))).ok === true, "the host forces u_b's lens off");
       await waitFor(() => B.page.evaluate(CAMERA_BACK), 10_000, "u_b's camera back");
       const b6b = await B.page.evaluate(PIPE);
-      t.ok(b6b.shim.sessions[0].destroyed && b6b.trackId === b6b.camId && D.memberRow(room, "u_b").filter === null && D.memberRow(room, "u_b").filter_pick === S2,
+      t.ok(b6b.shim.sessions.every((x) => x.destroyed) && b6b.trackId === b6b.camId && D.memberRow(room, "u_b").filter === null && D.memberRow(room, "u_b").filter_pick === S2,
         "host force-off: lens down, session destroyed, camera back; his lock stays");
       await badgeGone(flagged, 1);
       t.ok(requestsBy("c") === 0 && requestsBy("host") === 0, "through all of it: zero SDK requests from the flagless client, and zero from the host (a viewer paints a badge from the row)");

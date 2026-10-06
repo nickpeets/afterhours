@@ -31,7 +31,11 @@
  *      import in the file and it is import(CAMKIT.sdkUrl); no <script> tag
  *      names a Camera Kit host and the ONE string literal that names the
  *      package is the config's sdkUrl; the loader has exactly the callers it
- *      should; a CSP, if one ever appears, must name the runtime hosts
+ *      should — a lens being started or warmed, and the shelf button asking
+ *      Snap's terms on its first opening (public API only, nothing from the
+ *      kit's internals) — and nothing at boot; the two applyLens calls, and
+ *      only they, stop their clock for the terms dialog; a CSP, if one ever
+ *      appears, must name the runtime hosts
  *   1. flagless, config FILLED IN: CAMKIT_STATE.on false, the rack is the two
  *      teal looks, two tiles, none amber, the foot line unchanged, zero SDK
  *      requests
@@ -41,7 +45,10 @@
  *      shipped one the server accepts: he publishes RAW, no badge, no request
  *   4. no configuration turns a flagless page on: every partial one, and the
  *      harness's complete one
- *   5. flagless with the shelf open: still two teal tiles, still no request
+ *   5. THE SDK LOADS ON FIRST SHELF OPEN WITH ?camkit, NEVER ON A FLAGLESS
+ *      PAGE — this is the flagless half: shelf open, still two teal tiles,
+ *      no request, no terms asked (the ?camkit half is gate 77 block E and
+ *      gate 79 block T)
  *   6. zero console errors, zero leaked requests
  */
 "use strict";
@@ -123,8 +130,25 @@ module.exports = {
     const warmBody = body(/function camkitWarm\(slug\)\{[\s\S]*?\n\}/);
     t.ok(callers("camkitWarm") === 2 && /camkitWarm\(want\)/.test(syncBody),
       `camkitWarm has ONE caller — the reconciler (declaration + ${callers("camkitWarm") - 1} call)`);
-    t.ok(callers("camkitPrepare") === 3 && /camkitPrepare\(name\)/.test(startBody) && /camkitPrepare\(slug\)/.test(warmBody),
-      `camkitPrepare has TWO callers — filterStart and camkitWarm (declaration + ${callers("camkitPrepare") - 1} calls); nothing at boot`);
+    /* feat/camera-kit-staging, Nick's ruling on Snap's terms: THE SDK LOADS ON
+       FIRST SHELF OPEN WITH ?camkit, NEVER ON A FLAGLESS PAGE.  So the loader
+       has a third caller — camkitTermsEarly, which the shelf button calls
+       when it OPENS the shelf, and which returns at once unless camkitOn()
+       (false without the flag).  Still nothing at boot. */
+    const prepBody = body(/async function camkitPrepare\(slug\)\{[\s\S]*?\n\}/), earlyBody = body(/function camkitTermsEarly\(\)\{[\s\S]*?\n\}/);
+    const btnBody = body(/\$\("rt_filterbtn"\)\.onclick=\(\)=>\{[\s\S]*?\n\};/);
+    t.ok(callers("camkitPrepare") === 4 && /camkitPrepare\(name\)/.test(startBody) && /camkitPrepare\(slug\)/.test(warmBody) && /camkitPrepare\(first\.id\)/.test(earlyBody),
+      `camkitPrepare has THREE callers — filterStart, camkitWarm and camkitTermsEarly (declaration + ${callers("camkitPrepare") - 1} calls); nothing at boot`);
+    t.ok(callers("camkitBoot") === 2 && /camkitBoot\(\)/.test(prepBody),
+      `camkitBoot (SDK load + bootstrap) has ONE caller — camkitPrepare (declaration + ${callers("camkitBoot") - 1} call)`);
+    t.ok(callers("camkitTermsEarly") === 2 && /if\(opening\) camkitTermsEarly\(\);/.test(btnBody) && /if\(CAMKIT_TERMS\.asked \|\| !camkitOn\(\) \|\| CAMKIT_RT\.dead\) return;/.test(earlyBody),
+      `camkitTermsEarly has ONE caller — the shelf button, when it OPENS the shelf — and returns at once unless camkitOn() (declaration + ${callers("camkitTermsEarly") - 1} call)`);
+    t.ok(!/\.container\b/.test(earlyBody) && !/legalState/.test(code) && /prep\.kit\.createSession\(\)/.test(earlyBody) && /session\.applyLens\(prep\.lens\)/.test(earlyBody) && /camkitSessionEnd\(session\)/.test(earlyBody)
+        && !/setSource|\.play\(|captureStream|setInputDevicesAsync/.test(earlyBody),
+      "the early ask is the SDK's PUBLIC API only — createSession, applyLens, then the session ended — with no source, no play, no capture and no call in it, and nothing reaches into the kit's internals");
+    const held = [...code.matchAll(/camkitTimed\(([^;]*), true\);/g)].map((m) => m[1]).sort();
+    t.ok(held.length === 2 && held[0] === 'session.applyLens(prep.lens), CAMKIT.startMs, "applyLens"' && held[1] === 'session.applyLens(prep.lens), CAMKIT.startMs, "terms applyLens"',
+      `exactly TWO timed calls hold their clock while Snap's terms are on screen, and both are applyLens under the start ceiling — the lens start's and the hidden terms session's (${held.length})`);
     const csp = (html.match(/<meta[^>]+http-equiv=["']Content-Security-Policy["'][^>]*>/i) || [null])[0];
     t.ok(!csp || (/snapar\.com/.test(csp) && /sc-cdn\.net/.test(csp)),
       csp ? "a CSP meta exists and names Snap's runtime hosts (*.snapar.com, *.sc-cdn.net)" : "no CSP meta in index.html — nothing blocks the SDK's runtime hosts (if one is ever added it must allow *.snapar.com and *.sc-cdn.net)");
@@ -187,8 +211,8 @@ module.exports = {
       /* ---------- 3. a lens slug on the row while the client is inert ---------- */
       const before3 = await B.page.evaluate(PIPE);
       const rej = await B.page.evaluate(() => window.__lc.filterPick("foxears"));
-      t.ok(rej.ok === false && /no such filter/.test(rej.error), `production today: a lens slug is rejected by set_filter ("${rej.error}")`);
-      D.allowFilterLook("foxears");   // the DDL that has NOT been run in production
+      t.ok(rej.ok === false && /no such filter/.test(rej.error), `a lens slug in no production list is rejected by set_filter ("${rej.error}")`);
+      D.allowFilterLook("foxears");   // the shim-only slug: no production DDL names it
       t.ok((await B.page.evaluate(() => window.__lc.filterPick("foxears"))).ok === true, "(server widened) u_b: the server now accepts 'foxears' — the client is still inert");
       await waitFor(() => B.page.evaluate(() => (window.__lc.FILTER_ROOM.u_b || {}).name === "foxears"), 8000, "u_b's client to observe his field");
       await B.page.waitForTimeout(1200);
@@ -239,6 +263,9 @@ module.exports = {
       t.ok(s5.open === true && s5.tiles.length === 2 && s5.tiles.every((x) => !x.amber) && s5.foot === "Teal = free, no tracking.",
         `the shelf, open, on a flagless page with a lens slug on the row: two teal tiles, no amber, the old foot line (${s5.tiles.map((x) => x.look).join(",")})`);
       t.ok(s5.st.sdkLoads === 0 && h.camkitRequests.length === 0, `…and still zero SDK requests (requests=${h.camkitRequests.length})`);
+      const terms5 = await C.page.evaluate(() => ({ asked: window.__lc.CAMKIT_STATE.termsAsked, open: window.__lc.camkitTermsOpen(), dialog: !!document.querySelector('[data-testid="tos-dialog"]') }));
+      t.ok(terms5.asked === false && terms5.open === false && terms5.dialog === false,
+        "…and nothing asked for Snap's terms: opening the shelf is the one thing that loads the SDK on a ?camkit page, and without the flag it loads nothing and asks nothing");
 
       /* ---------- 6. quiet ---------- */
       for (const c of [A, B, C]) {

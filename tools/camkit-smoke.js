@@ -12,7 +12,8 @@
  * double, the Daily shim, Chromium's fake camera) with ONE thing changed:
  * Harness.camkitReal lets the SDK address and Snap's runtime hosts through to
  * the network instead of serving camera-kit-shim.js.  A host, two chairs,
- * each chair loaded with ?camkit&debug.  Each chair picks one of the two
+ * each chair loaded with ?camkit&debug.  Each chair opens the shelf with the
+ * real button (where the app asks Snap's terms), then picks one of the two
  * shipped looks through the app's own filterPick; the tool then reports what
  * the app's own state says — bootstrap, lens fetch, the frame counter over
  * three seconds, whether the published track is the session's output — plus
@@ -20,13 +21,16 @@
  * published frame per look.  Then the wearer drops the look and it reports
  * the camera coming back.
  *
- * SNAP'S LEGAL PROMPT.  The real SDK's first applyLens shows a modal terms
- * dialog ("Dismiss" / "I Agree") and waits for an answer; nobody is there to
- * give one in a headless browser, so by default this tool reports the dialog
- * and lets the app's own start ceiling (CAMKIT.startMs) do what it does.
- * --accept-legal makes the tool tap "I Agree" — that is accepting Snap's
- * terms in this throwaway browser profile, so it is a flag a person passes,
- * never a default.
+ * SNAP'S TERMS.  The real SDK shows a modal terms dialog ("Dismiss" / "I
+ * Agree") before it will apply any lens, and waits for an answer.  The app
+ * asks for it at first sight of the shelf, so this tool opens the shelf with
+ * the real button first and reports whether the dialog came up there, then
+ * picks, and reports whether it came up again at the lens start.  Nobody is
+ * there to answer in a headless browser: by default the tool reports the
+ * dialog, waits past the app's start ceiling to show that nothing is latched
+ * (the wait is off the clock), and stops there.  --accept-legal makes the
+ * tool tap "I Agree" — that is accepting Snap's terms in this throwaway
+ * browser profile, so it is a flag a person passes, never a default.
  *
  * WHAT IT CANNOT PROVE.  Headless Chromium on SwiftShader with a synthetic
  * camera is not a phone: there is no face in the fake camera's test pattern,
@@ -112,44 +116,63 @@ async function main() {
       for (const c of [A, B]) await c.camkitConfigure({ sdkUrl: cfg.sdkUrl, looks });
     }
 
+    /* Snap's terms dialog, found the way the app's own camkitTermsOpen finds it */
+    const DIALOG = () => { const el = document.querySelector('[data-testid="tos-dialog"]'), dg = el && el.shadowRoot && el.shadowRoot.querySelector("dialog");
+      return (dg && dg.open) ? { modal: dg.matches(":modal"), buttons: [...dg.querySelectorAll("button")].map((b) => b.textContent.trim()), text: dg.textContent.replace(/\s+/g, " ").trim().slice(0, 260) } : null; };
+    const AGREE = () => { const el = document.querySelector('[data-testid="tos-dialog"]'); const b = el && [...el.shadowRoot.querySelectorAll("button")].find((x) => /agree/i.test(x.textContent)); if (!b) return null; b.click(); return b.textContent.trim(); };
+    const TERMS = () => ({ terms: window.__lc.CAMKIT_STATE.terms, asked: window.__lc.CAMKIT_STATE.termsAsked, loads: window.__lc.CAMKIT_STATE.sdkLoads });
     const wearers = [[A, cfg.looks[0]], [B, cfg.looks[1]]];
     for (const [c, look] of wearers) {
       if (!look) continue;
       say("LOOK " + look.slug + " (lens " + look.lensId + ") on client " + c.name);
+      /* 1. first sight of the shelf, through the real button: the app loads the
+            SDK here and asks Snap's terms on a hidden session */
+      const t00 = Date.now();
+      await c.page.evaluate(() => { const sh = document.getElementById("rt_shelf"); if (!sh.classList.contains("is-open")) document.getElementById("rt_filterbtn").click(); });
+      let early = null, unanswered = false;
+      /* until the dialog is up, or the app says its early ask is over without one */
+      try { early = await waitFor(async () => (await c.page.evaluate(DIALOG)) || ((await c.page.evaluate(TERMS)).terms !== "asking" ? "none" : null), 30_000, "Snap's terms at the shelf"); } catch (e) {}
+      if (early === "none") early = null;
+      const st0 = await c.page.evaluate(TERMS);
+      if (early) {
+        say("  SHELF OPEN ", "Snap's terms dialog appeared " + (Date.now() - t00) + "ms after the shelf opened — modal=" + early.modal + ", buttons: " + early.buttons.join(" / ") + "  (app: terms \"" + st0.terms + "\", SDK loads " + st0.loads + ")");
+        say("             ", JSON.stringify(early.text));
+        if (ACCEPT_LEGAL) {
+          say("             ", "--accept-legal: tapped \"" + (await c.page.evaluate(AGREE)) + "\"");
+          try { await waitFor(() => c.page.evaluate(() => window.__lc.CAMKIT_STATE.terms === "agreed" && !window.__lc.camkitTermsOpen()), 30_000, "the hidden terms session to finish"); } catch (e) { say("             ", "the app did not report the terms agreed within 30s ✕"); failed++; }
+          say("             ", "app: terms \"" + (await c.page.evaluate(TERMS)).terms + "\" — dialog gone, hidden session ended");
+        } else { unanswered = true; say("             ", "NOT ANSWERED (nobody here to; --accept-legal taps I Agree)"); }
+      } else say("  SHELF OPEN ", "no terms dialog at the shelf  (app: terms \"" + st0.terms + "\", SDK loads " + st0.loads + ")");
+      /* 2. the pick */
       const t0 = Date.now();
       const pick = await c.page.evaluate((s) => window.__lc.filterPick(s), look.slug);
       say("  filterPick →", JSON.stringify(pick));
-      if (!pick.ok) { failed++; continue; }
-      let outcome, legal = null;
+      if (!pick.ok) { failed++; say("-".repeat(72)); continue; }
+      let outcome, late = null;
       try {
         outcome = await waitFor(async () => {
           const r = await c.page.evaluate((s) => {
             const K = window.__lc.CAMKIT_STATE, F = window.__lc.FILTER_STATE;
-            const el = document.querySelector('[data-testid="tos-dialog"]'), dg = el && el.shadowRoot && el.shadowRoot.querySelector("dialog");
-            const dialog = (dg && dg.open) ? { modal: dg.matches(":modal"), buttons: [...dg.querySelectorAll("button")].map((b) => b.textContent.trim()),
-              text: dg.textContent.replace(/\s+/g, " ").trim().slice(0, 260) } : null;
-            return { dialog, done: (F.active && F.kind === "lens" && F.name === s) ? "live" : K.dead ? "sdk-dead" : K.lensDead[s] ? "lens-dead" : null };
+            return { open: window.__lc.camkitTermsOpen(), done: (F.active && F.kind === "lens" && F.name === s) ? "live" : K.dead ? "sdk-dead" : K.lensDead[s] ? "lens-dead" : null };
           }, look.slug);
-          if (r.dialog && !legal) {
-            legal = { ...r.dialog, atMs: Date.now() - t0, answered: null };
-            if (ACCEPT_LEGAL) {
-              legal.answered = await c.page.evaluate(() => { const el = document.querySelector('[data-testid="tos-dialog"]');
-                const b = el && [...el.shadowRoot.querySelectorAll("button")].find((x) => /agree/i.test(x.textContent)); if (!b) return null; b.click(); return b.textContent.trim(); });
-            }
-          }
+          if (r.open && !unanswered && !late) { late = { atMs: Date.now() - t0, answered: ACCEPT_LEGAL ? await c.page.evaluate(AGREE) : null }; if (!late.answered) unanswered = true; }
           return r.done;
-        }, WAIT_MS, "the lens to go live or fail");
-      } catch (e) { outcome = "TIMEOUT after " + WAIT_MS + "ms"; }
-      if (legal) {
-        say("  LEGAL PROMPT", "Snap's terms dialog appeared " + legal.atMs + "ms after the pick — modal=" + legal.modal + ", buttons: " + legal.buttons.join(" / "));
-        say("              ", JSON.stringify(legal.text));
-        say("              ", legal.answered ? "--accept-legal: tapped \"" + legal.answered + "\"" : "NOT ANSWERED (nobody here to; --accept-legal taps I Agree) — what follows is the app's start ceiling, " + cfg.startMs + "ms");
-      }
+        }, unanswered ? cfg.startMs + 8000 : WAIT_MS, "the lens to go live or fail");
+      } catch (e) { outcome = unanswered ? "STILL WAITING" : "TIMEOUT after " + WAIT_MS + "ms"; }
+      if (late) say("  LENS START ", "Snap's terms dialog appeared at the lens start, " + late.atMs + "ms after the pick" + (late.answered ? " — --accept-legal: tapped \"" + late.answered + "\"" : " — NOT ANSWERED"));
+      else if (!unanswered) say("  LENS START ", "no terms dialog at the lens start" + (early ? " — the answer given at the shelf held ✓" : ""));
       const ms = Date.now() - t0;
       const st1 = await c.page.evaluate(() => ({ K: window.__lc.CAMKIT_STATE, F: window.__lc.FILTER_STATE }));
-      say("  outcome   ", outcome, "after " + ms + "ms");
-      say("  CAMKIT_STATE", JSON.stringify(st1.K));
-      if (outcome !== "live") { failed++; say("  FILTER_STATE", JSON.stringify(st1.F)); }
+      if (outcome === "STILL WAITING") {
+        const latched = !!(st1.K.dead || st1.K.lensDead[look.slug]);
+        say("  outcome   ", "the terms are unanswered and the app is still waiting " + ms + "ms after the pick — past its " + cfg.startMs + "ms start ceiling, " + (latched ? "but something LATCHED ✕" : "nothing latched ✓ (the wait is off the clock)"));
+        say("  CAMKIT_STATE", JSON.stringify(st1.K));
+        failed++;   // not a fault: the run simply cannot finish without an answer
+      } else {
+        say("  outcome   ", outcome, "after " + ms + "ms");
+        say("  CAMKIT_STATE", JSON.stringify(st1.K));
+      }
+      if (outcome !== "live") { if (outcome !== "STILL WAITING") { failed++; say("  FILTER_STATE", JSON.stringify(st1.F)); } }
       else {
         await sleep(3000);
         const st2 = await c.page.evaluate(() => {
@@ -190,10 +213,13 @@ async function main() {
       const panel = await c.page.evaluate(() => { const p = document.getElementById("vdebug"); return p ? p.innerText : ""; });
       const lines = panel.split("\n").filter((l) => /camera kit|lens|filter/i.test(l)).slice(-12);
       if (lines.length) { say("  ?debug panel:"); for (const l of lines) say("    | " + l.slice(0, 220)); }
+      /* the lens engine prints its own "WARNING: …" lines through console.error;
+         they are listed, but they are the SDK talking, not a failure of the page */
       const bad = c.logs.filter((m) => m.type === "error" || m.type === "warning").filter((m) => !/favicon/.test(m.text));
-      say("  console   ", bad.length + " error/warning message(s)" + (bad.length ? ":" : ""));
+      const sdkWarn = bad.filter((m) => /^WARNING: /.test(m.text)), real = bad.filter((m) => !/^WARNING: /.test(m.text));
+      say("  console   ", real.length + " error/warning message(s)" + (sdkWarn.length ? " + " + sdkWarn.length + " \"WARNING:\" line(s) from the lens engine" : "") + (bad.length ? ":" : ""));
       for (const m of bad.slice(0, 15)) say("    | [" + m.type + "] " + m.text.slice(0, 300));
-      if (c.errors.length) failed++;
+      if (real.length || c.errors.filter((e) => !/^WARNING: /.test(e) && !/favicon/.test(e)).length) failed++;
       say("-".repeat(72));
     }
 

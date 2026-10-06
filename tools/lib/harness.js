@@ -19,13 +19,18 @@ const REPO = path.resolve(__dirname, "..", "..");
 const ORIGIN = "https://lastcall.test";
 const SHIMS = path.join(__dirname, "shims");
 
-/* CAMERA KIT (feat/camera-kit).  index.html ships CAMKIT with no SDK address
-   and no token — inert — so there is no pinned production URL to intercept
-   yet.  Gates configure the app's own CAMKIT object (window.__lc.CAMKIT, the
-   live export) with these values; the SDK address is routed to
+/* CAMERA KIT (feat/camera-kit).  index.html shipped CAMKIT with no SDK address
+   and no token — inert — so there was no pinned production URL to intercept.
+   Gates configure the app's own CAMKIT object (window.__lc.CAMKIT, the live
+   export) with these values; the SDK address is routed to
    shims/camera-kit-shim.js below, exactly as the supabase-js and daily-js
    CDN bundles are.  ANY @snap/camera-kit address is routed too, so the day a
    real pinned URL lands in index.html the battery stays offline.
+   (feat/camera-kit-staging: that day came — index.html now ships a pinned
+   esm.sh address, live only on a page loaded with ?camkit.  It matches
+   isCamkitUrl, so a ?camkit client that asks for it gets the shim and is
+   counted in camkitRequests; gate 79 leaves the shipped address in place and
+   reads exactly that off the wire.)
    The token / group / lens ids are the shim's — a different token makes its
    bootstrap reject, an unknown lens makes its loadLens reject. */
 const CAMKIT_TEST = {
@@ -35,6 +40,9 @@ const CAMKIT_TEST = {
   looks: { foxears: { lensId: "lens-fox", name: "Fox Ears", icon: "\u{1F98A}" }, halo: "lens-halo" },
 };
 const isCamkitUrl = (url) => url.startsWith("https://camkit.test/") || /@snap\/camera-kit/.test(url);
+/* the real SDK's hosts, for the smoke tool only (Harness.camkitReal): the
+   module CDN, and Snap's two runtime host families (gate 75's CSP note) */
+const isCamkitRealHost = (url) => /^https:\/\/(esm\.sh|([\w-]+\.)*snapar\.com|([\w-]+\.)*sc-cdn\.net)\//.test(url);
 
 /* BROWSER RESOLUTION (wave 9).  Returns {path} on success or {error, hint}
  * on failure — it never throws, because a throw from here lands inside a
@@ -181,6 +189,15 @@ class Harness {
        but is not the SDK). */
     this.camkitRequests = [];
     this.camkitLoadFault = null;
+    /* camkitReal — NEVER set by a gate.  tools/camkit-smoke.js sets it to run
+       the page against the REAL SDK: the SDK address (esm.sh) and Snap's
+       runtime hosts are let through to the network and recorded here, in
+       request order.  Everything else is still aborted and still lands in
+       unexpectedRequests, which is how the smoke learns of a host nobody
+       listed.  The battery stays offline: with this false (the default) the
+       SDK address is the shim, as before. */
+    this.camkitReal = false;
+    this.camkitRealRequests = [];
     this.mutedRealtime = new Set();
     this.double.onChange((evt) => {
       for (const c of this.clients) {
@@ -196,7 +213,7 @@ class Harness {
      is its only event channel, exactly the prod worst case. */
   muteRealtime(name, on = true) { if (on) this.mutedRealtime.add(name); else this.mutedRealtime.delete(name); }
 
-  static async launch() {
+  static async launch(opts = {}) {
     const executablePath = requireChromium();
     const browser = await chromium.launch({
       executablePath,
@@ -205,6 +222,7 @@ class Harness {
         "--use-fake-ui-for-media-stream",
         "--use-fake-device-for-media-stream",
         "--autoplay-policy=no-user-gesture-required",
+        ...(opts.args || []),   // the smoke tool adds GL flags; no gate passes any
       ],
     });
     return new Harness(browser, executablePath);
@@ -250,6 +268,10 @@ class Harness {
       return route.fulfill({ status: 200, contentType: "text/javascript", body: fs.readFileSync(path.join(SHIMS, "supabase-shim.js")) });
     if (url.includes("daily-js") && url.includes("unpkg.com"))
       return route.fulfill({ status: 200, contentType: "text/javascript", body: fs.readFileSync(path.join(SHIMS, "daily-shim.js")) });
+    if (this.camkitReal && isCamkitRealHost(url)) {
+      this.camkitRealRequests.push({ client: _clientName, url });
+      return route.continue();
+    }
     if (isCamkitUrl(url)) {
       this.camkitRequests.push({ client: _clientName, url });
       const cors = { "access-control-allow-origin": "*" };   // a cross-origin module import needs it, like any CDN serves

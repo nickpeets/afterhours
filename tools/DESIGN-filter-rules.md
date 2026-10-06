@@ -87,11 +87,217 @@ pass the SAME three places a teal look does, and nothing else changes shape:
 the field whatever it holds, so they need no change.  Token pricing (the
 design's "✦20") is not designed for the server and is not part of this.
 
+(2026-10-05, feat/camera-kit-staging: the first two slugs are picked and
+their DDL is the next section.)
+
 Until that DDL runs, production answers a lens slug with `no such filter`
 (gate 78 block 0 asserts exactly that through the real tile).  The double
 models the widening per test with `allowFilterLook(slug)` — a stand-in for
 DDL that has NOT been run, labelled as such at every call site (gates 75, 77,
 78).  It is not evidence about production.
+
+## Lens slugs ck-objects / ck-express (feat/camera-kit-staging, 2026-10-05)
+
+STATUS: **RUN IN PRODUCTION 2026-10-06** (Supabase project
+doqtfyxgzlfvglfdkphx, branch main, on Nick's go), as written below.  The run
+log and read-back are at the end of this section.  Production now accepts
+both slugs.
+
+`feat/camera-kit-staging` fills `CAMKIT` in with a staging config behind the
+`?camkit` test flag, with two looks.  The slug is what goes in
+`room_members.filter`, so each has to pass the three places a teal look does:
+
+| slug | lens | Snap lens id | group |
+|------|------|--------------|-------|
+| `ck-objects` | CamKit 2D Objects | 43309500875 | 45bbe1dc-c791-4130-8b8f-e007bc22137d |
+| `ck-express` | Face Expressions  | 50507980875 | 45bbe1dc-c791-4130-8b8f-e007bc22137d |
+
+The server knows nothing about lenses, tokens, groups or the test flag: to it
+these are two more curated names.  A member on a page WITHOUT `?camkit` can
+therefore be given one (by RPC), and his client publishes raw with no badge —
+the standing "a look this client cannot draw" rule, gate 75 block 3b.  No
+token pricing; `drop_filter`, `host_clear_filter` and the clear inside
+`ask_question` act on the field whatever it holds and are not touched.
+
+**What this was written against.**  When this text was written Supabase
+Studio had not been opened for this branch, so there was no fresh
+`pg_get_functiondef` read behind it (the run's own preflight, below, is that
+read).  It is written against the SOURCE section at the bottom of this file
+(the 2026-09-28 read-back).  That section reproduces its recorded fingerprint
+exactly — de-indented, with the trailing newline `pg_get_functiondef` emits,
+it is 1203 chars, md5 `de4678378f689f78ffd688bf129aaf3a` (recomputed
+2026-10-05) — and the DDL makes that the server's problem rather than a
+matter of trust: step 2 reads the live function itself and REFUSES TO RUN
+unless its md5 is that value.  If production has moved since 09-28 the whole
+transaction rolls back and says so.
+
+Dependency order, as before: constraints → function → grants (confirmed, not
+changed: `create or replace` keeps the owner and the ACL).
+
+### 0. Preflight — read-only, run first, record the output
+
+    select md5(pg_get_functiondef('public.set_filter(uuid,text)'::regprocedure))    as set_filter_md5,
+           length(pg_get_functiondef('public.set_filter(uuid,text)'::regprocedure)) as set_filter_chars;
+    -- expect: de4678378f689f78ffd688bf129aaf3a | 1203
+
+    select conname, pg_get_constraintdef(oid)
+      from pg_constraint
+     where conrelid = 'public.room_members'::regclass
+       and conname like 'room_members_filter%'
+     order by conname;
+    -- expect two rows, each listing 'grade' and 'noir' and nothing else
+
+    select p.proname, p.proacl
+      from pg_proc p
+     where p.pronamespace = 'public'::regnamespace
+       and p.proname in ('set_filter','drop_filter','host_clear_filter','ask_question','active_members')
+     order by p.proname;
+    -- expect five rows, each {=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+
+### 1–2. The change — one transaction
+
+    begin;
+
+    -- 1. constraints: the curated rack, widened by the two lens slugs
+    alter table public.room_members drop constraint room_members_filter_curated;
+    alter table public.room_members add  constraint room_members_filter_curated
+      check (filter is null or filter in ('grade','noir','ck-objects','ck-express'));
+    alter table public.room_members drop constraint room_members_filter_pick_curated;
+    alter table public.room_members add  constraint room_members_filter_pick_curated
+      check (filter_pick is null or filter_pick in ('grade','noir','ck-objects','ck-express'));
+
+    -- 2. set_filter: a server-side splice of the ONE allow-list line (the way
+    --    ask_question was amended, divergence 4) — the body is never re-typed
+    do $do$
+    declare
+      v_before text := pg_get_functiondef('public.set_filter(uuid,text)'::regprocedure);
+      v_old constant text := $a$if name not in ('grade','noir') then raise exception 'no such filter'; end if;$a$;
+      v_new constant text := $a$if name not in ('grade','noir','ck-objects','ck-express') then raise exception 'no such filter'; end if;$a$;
+      v_after text;
+      v_hits  int;
+    begin
+      if md5(v_before) <> 'de4678378f689f78ffd688bf129aaf3a' then
+        raise exception 'set_filter is not the 2026-09-28 read-back (% chars, md5 %) - nothing changed; re-read it first',
+          length(v_before), md5(v_before);
+      end if;
+      v_hits := (length(v_before) - length(replace(v_before, v_old, ''))) / length(v_old);
+      if v_hits <> 1 then
+        raise exception 'the allow-list line occurs % times in set_filter, expected exactly 1 - nothing changed', v_hits;
+      end if;
+      execute replace(v_before, v_old, v_new);
+      v_after := pg_get_functiondef('public.set_filter(uuid,text)'::regprocedure);
+      if replace(v_after, v_new, v_old) <> v_before then
+        raise exception 'post-check failed: set_filter differs by more than the one line - rolling back';
+      end if;
+      if md5(v_after) <> 'a9d3bf79f637cf84c3017b616dfd9ec5' then
+        raise exception 'post-check failed: set_filter is % chars, md5 % (expected 1229, a9d3bf79f637cf84c3017b616dfd9ec5) - rolling back',
+          length(v_after), md5(v_after);
+      end if;
+      raise notice 'set_filter: % chars md5 %  ->  % chars md5 %',
+        length(v_before), md5(v_before), length(v_after), md5(v_after);
+    end
+    $do$;
+
+    commit;
+
+Expected after: 1229 chars (1203 + the 26 of `,'ck-objects','ck-express'`), md5
+`a9d3bf79f637cf84c3017b616dfd9ec5` — computed from the SOURCE section with the
+one line replaced, and asserted by the block itself.  If Studio runs the
+statements one at a time rather than as a script, a raised exception leaves
+the transaction open: run `rollback;` before anything else.
+
+### Dry run — NOT production (2026-10-05)
+
+The text above was run, as written, against a throwaway local PostgreSQL
+16.15 holding a stand-in schema (`rooms`, `room_members` with the two
+`('grade','noir')` constraints, a stub `auth.uid()`) and `set_filter` created
+from the SOURCE section verbatim.  It says nothing about production's
+current state; it says the SQL parses, does what it claims, and guards
+itself:
+
+- preflight before: `de4678378f689f78ffd688bf129aaf3a | 1203`
+- the change: `NOTICE: set_filter: 1203 chars md5 de4678378f689f78ffd688bf129aaf3a
+  -> 1229 chars md5 a9d3bf79f637cf84c3017b616dfd9ec5`
+- after: both constraints list the four names; the function's ACL is unchanged
+- `set_filter(room,'ck-objects')` → `{"ok": true, "filter": "ck-objects"}`; a
+  second pick → `filter locked for this show`; `ck-nope` → `no such filter`;
+  `noir` still accepted
+- running the change a SECOND time: `ERROR: set_filter is not the 2026-09-28
+  read-back (1229 chars, md5 a9d3bf79…) - nothing changed; re-read it first`,
+  and the transaction left everything as it was
+
+### 3. Read back — read-only, record the output under "Run log"
+
+Run the three preflight queries again.  Expect: `a9d3bf79f637cf84c3017b616dfd9ec5
+| 1229`; both constraints listing the four names; the five ACLs unchanged
+(four entries each, no `anon`).  Then, as `authenticated` through the app on
+a `?camkit` page: tapping a ✦ tile sets the field (gate 79 block 2 is this,
+against the double).
+
+### Run log 2026-10-06 — production
+
+Run in Supabase Studio's SQL editor (project `afterhours`, branch `main`,
+PRODUCTION), signed in as Nick, on his explicit go.  The statements were
+loaded into the editor from the same file the dry run used, not typed.
+(Studio was showing a platform banner, "We are investigating a technical
+issue", and the project's status tile read "Unhealthy" at the time; every
+query returned normally.)
+
+Preflight, each query run on its own, BEFORE the change:
+
+    set_filter_md5                    | set_filter_chars
+    de4678378f689f78ffd688bf129aaf3a  | 1203
+
+    room_members_filter_curated       | CHECK (((filter IS NULL) OR (filter = ANY (ARRAY['grade'::text, 'noir'::text]))))
+    room_members_filter_pick_curated  | CHECK (((filter_pick IS NULL) OR (filter_pick = ANY (ARRAY['grade'::text, 'noir'…  (cell cut off by the grid)
+
+    active_members / ask_question / drop_filter / host_clear_filter / set_filter — five rows, each beginning
+    {=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/…  (cells cut off by the grid)
+
+So production's `set_filter` was still byte-for-byte the 09-28 read-back.
+
+The change (the `begin; … commit;` block above, as one run): `Success. No rows
+returned`.
+
+Read back, the same three queries, AFTER (cell text read from the grid's DOM,
+so nothing is cut off):
+
+    set_filter_md5                    | set_filter_chars
+    a9d3bf79f637cf84c3017b616dfd9ec5  | 1229
+
+    room_members_filter_curated       | CHECK (((filter IS NULL) OR (filter = ANY (ARRAY['grade'::text, 'noir'::text, 'ck-objects'::text, 'ck-express'::text]))))
+    room_members_filter_pick_curated  | CHECK (((filter_pick IS NULL) OR (filter_pick = ANY (ARRAY['grade'::text, 'noir'::text, 'ck-objects'::text, 'ck-express'::text]))))
+
+    active_members     | {=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+    ask_question       | {=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+    drop_filter        | {=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+    host_clear_filter  | {=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+    set_filter         | {=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+
+The md5 and length are the ones this document predicted and the block
+asserts; both constraints carry the four names; the five ACLs are identical,
+four entries each, no `anon`.  NOT done: a behavioural check through the app
+(a ✦ pick on a `?camkit` page setting the field) — that is the phone test.
+`set_filter`'s production text is now the SOURCE section's with the one
+allow-list line reading `('grade','noir','ck-objects','ck-express')`.
+
+### Undo
+
+    begin;
+    update public.room_members set filter = null      where filter      in ('ck-objects','ck-express');
+    update public.room_members set filter_pick = null where filter_pick in ('ck-objects','ck-express');
+    -- then the same two drop/add pairs with ('grade','noir'), and the same DO
+    -- block with v_old / v_new swapped and the two md5s swapped
+    commit;
+
+### The double
+
+`backend-double.js` `FILTER_LOOKS` is `["grade","noir","ck-objects","ck-express"]`
+— the server as this DDL leaves it, which since 2026-10-06 is the server as
+it is.  Gate 79 block S fails if the page ships a lens slug the double's list
+does not carry, or the reverse.
+`allowFilterLook()` remains for the harness's shim-only slugs (`foxears`,
+`halo`), which are not production names.
 
 ## The rule, in one sentence
 

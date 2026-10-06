@@ -31,6 +31,31 @@
  *       - after destroy() every call rejects
  *   session.events "error" with a LensExecutionError: the lens is removed
  *       and the bare source keeps rendering (__camkitControl.lensCrash())
+ *   THE LEGAL PROMPT (found by the first real-SDK run, 2026-10-06 —
+ *       tools/camkit-smoke.js; read in 1.22.0's dist/session/lensState.js and
+ *       dist/legal/*.js).  The real applyLens does nothing until Snap's terms
+ *       are accepted: unless Snap's config disables it for the app, the FIRST
+ *       applyLens puts a dialog on screen — a <div data-testid="tos-dialog">
+ *       appended to document.body, a shadow root, a <dialog> opened with
+ *       showModal() (top layer, modal: the page under it takes no input),
+ *       two buttons, "Dismiss" and "I Agree" — and WAITS, with no timeout of
+ *       its own.  "I Agree": applyLens carries on, and the answer is
+ *       remembered (in the SDK: for the bootstrap, and in IndexedDB for 12
+ *       hours).  "Dismiss": applyLens rejects with a LegalError, and the
+ *       next applyLens asks again.  The staging token gets this prompt.
+ *       The shim had modelled applyLens as immediate, which is the
+ *       ALREADY-ACCEPTED case and stays the default; the fault
+ *       legal:"prompt" models a first-time viewer.
+ *       THE PROMPT BELONGS TO THE KIT, NOT THE SESSION (checked against the
+ *       real SDK 2026-10-06, scratch probe): applyLens on a session with no
+ *       source that is never played raises it just the same; after "I
+ *       Agree" there, a SECOND session's applyLens asks nothing; after
+ *       "Dismiss" there, the second session's applyLens asks again; and a
+ *       kit runs session after session.  The app uses exactly that to ask
+ *       at first sight of the shelf (index.html, camkitTermsEarly) — a
+ *       hidden session, public API only.  Here the answer lives in a
+ *       module-level LEGAL, shared by every FakeSession, for the same
+ *       reason.
  *
  * FAULTS — the shim's setFault, same idea as backend-double's.  Read LIVE
  * from window.__camkitFaults on every call, so a gate can arm one before the
@@ -39,6 +64,8 @@
  *     loadLens:       "reject" | "hang"
  *     createSession:  "reject"
  *     applyLens:      "reject" | "interrupted" | "hang" | "slow" (900ms, then applies)
+ *     legal:          "prompt" (the terms are not yet accepted: the first applyLens,
+ *                     on ANY session, shows the dialog and waits)
  * (The module failing to LOAD at all is a network fact, not an SDK one — that
  * fault lives in harness.js: Harness.camkitLoadFault.)
  *
@@ -47,6 +74,8 @@
  *     captureStream() on iOS Safari — these canvases are 2D
  *   - face tracking, lens content, WASM download time, thermal/battery cost
  *   - the real token / lens-group / lens-ID handshake with Snap's servers
+ *   - whether Snap's config shows the legal prompt for a given token, its
+ *     real wording, and its 12-hour memory (the shim remembers per page)
  *   - the real error names for an unknown lens (modelled as a rejection)
  *   - that the real session's `capture` target renders what a given lens
  *     author intended for other viewers
@@ -60,9 +89,45 @@ const named = (name, message) => Object.assign(new Error(message), { name });
 const faults = () => (window.__camkitFaults = window.__camkitFaults || {});
 const never = () => new Promise(() => {});
 
-const LOG = { bootstraps: [], lensLoads: [], sessions: [], sources: [] };
+const LOG = { bootstraps: [], lensLoads: [], sessions: [], sources: [], overlaps: 0 };
 let SEQ = 1;
 
+/* THE LEGAL PROMPT — see the header.  Same DOM shape as the SDK's (the app
+   and the gates can only find it the way they would find the real one), same
+   two answers, no timeout.  One state for the whole kit, every session:
+     - not prompting (no legal:"prompt" fault): a request is accepted at once,
+       no dialog — the SDK finding its own 12-hour-old "I Agree" in IndexedDB
+     - "accepted": a request does nothing
+     - "unknown" / "rejected": a request puts a dialog up.  A SECOND request
+       while one is still up STACKS ANOTHER DIALOG, as the SDK's switchMap
+       does — the app must never cause that, and `shown` / `open` are how a
+       gate sees whether it did */
+const LEGAL = { state: "unknown", shown: 0, open: 0 };
+function legalRequest() {
+  if (LEGAL.state === "accepted") return Promise.resolve(true);
+  if (faults().legal !== "prompt") { LEGAL.state = "accepted"; return Promise.resolve(true); }
+  LEGAL.state = "unknown";
+  LEGAL.shown++; LEGAL.open++;
+  return new Promise((resolve) => {
+    const host = document.createElement("div");
+    host.setAttribute("data-testid", "tos-dialog");
+    const dialog = document.createElement("dialog");
+    const p = document.createElement("p");
+    p.textContent = "(shim) By using Lenses, you acknowledge reading Snap's Privacy Policy and agree to Snap's Terms of Service.";
+    dialog.appendChild(p);
+    const answer = (text, accepted) => {
+      const b = document.createElement("button");
+      b.textContent = text;
+      b.onclick = () => { dialog.close(); host.remove(); LEGAL.open--; LEGAL.state = accepted ? "accepted" : "rejected"; resolve(accepted); };
+      dialog.appendChild(b);
+    };
+    answer("Dismiss", false);
+    answer("I Agree", true);
+    host.attachShadow({ mode: "open" }).appendChild(dialog);
+    document.body.appendChild(host);
+    dialog.showModal();
+  });
+}
 export class Transform2D {
   constructor(matrix, label) { this.matrix = matrix; this.label = label || "custom"; }
 }
@@ -117,6 +182,10 @@ class FakeSession {
     return source;
   }
   async applyLens(lens) {
+    this._alive();
+    /* terms first, as the SDK does: nothing about the lens happens until the
+       viewer has answered, however long that takes */
+    if (!(await legalRequest())) throw named("LegalError", "Failed to apply lens " + (lens && lens.id) + ". Required legal terms were not accepted.");
     this._alive();
     const f = faults().applyLens;
     if (f === "hang") return never();
@@ -193,6 +262,9 @@ class FakeKit {
   }
   async createSession() {
     if (faults().createSession === "reject") throw named("Error", "render engine failed to start (fault)");
+    /* the real kit drives ONE render engine: a session opened while another
+       is still alive is the app's mistake.  Counted, so a gate can see it. */
+    if (LOG.sessions.some((r) => !r.destroyed)) LOG.overlaps++;
     return new FakeSession();
   }
   async destroy() { for (const r of LOG.sessions) if (!r.destroyed) await r.session.destroy(); }
@@ -218,8 +290,11 @@ window.__camkitControl = {
   bootstraps: () => LOG.bootstraps.slice(),
   lensLoads: () => LOG.lensLoads.slice(),
   sessions: () => LOG.sessions.map(plain),
+  overlaps: () => LOG.overlaps,   // sessions opened while another was still alive (must stay 0)
   sources: () => LOG.sources.map((r) => Object.assign(plain(r), { trackReady: r.track ? r.track.readyState : null })),
   liveSession: () => { const r = LOG.sessions.filter((x) => !x.destroyed).pop(); return r ? r.session : null; },
+  /* the legal prompt: how many times it was shown, and what was last answered */
+  legal: () => ({ state: LEGAL.state, shown: LEGAL.shown, open: LEGAL.open }),
   /* a lens dying mid-render: the SDK removes it, keeps rendering the bare
      source, and says so on session.events */
   lensCrash: (message) => {

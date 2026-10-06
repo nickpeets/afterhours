@@ -32,6 +32,15 @@ tools/verify.sh --update-golden  # regenerate the golden regression baseline
 First run does `npm install` inside `tools/` (playwright-core, css-tree,
 acorn, pixelmatch, pngjs — no browsers are downloaded).
 
+**Not part of the battery:** `node camkit-smoke.js` (from `tools/`) runs the
+same harness against the REAL Camera Kit SDK — it lets esm.sh and Snap's
+hosts through to the network, picks each shipped ✦ look on a `?camkit&debug`
+page, and reports bootstrap, lens fetch, the frame counter and the published
+track, plus a PNG of a published frame per look.  It needs the network and
+the staging token in `index.html`, so no gate may depend on it; `--shim`
+runs the tool itself offline.  Its header lists what headless Chromium
+cannot prove (that is the phone test's).
+
 **Chromium**: the harness resolves the binary at launch, in order:
 `$LC_CHROMIUM` (explicit override) → `/opt/pw-browsers/chromium` (the
 preinstalled symlink in this container, which currently resolves to

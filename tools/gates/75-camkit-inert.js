@@ -1,39 +1,47 @@
-/* GATE 75 — camkit-inert: Camera Kit ships INERT.  Ships with feat/camera-kit
- * (the foundation of filter step 3).
+/* GATE 75 — camkit-inert: without ?camkit, Camera Kit is INERT.  Shipped with
+ * feat/camera-kit (the foundation of filter step 3) as "Camera Kit ships
+ * inert"; REVISED by feat/camera-kit-staging, which fills the config in.
  *
- * THE CLAIM.  index.html carries a CAMKIT config with no SDK address, no API
- * token, no lens group and no looks.  In that state nothing Camera Kit-related
- * is ever requested, no amber tile renders, and the two teal looks behave
- * exactly as they did before this branch.  And "configured" is not "loaded":
- * even with every field set, the SDK is requested by the first lens look a
- * member's row asks this client to draw — never at boot, never by painting
- * the shelf.
+ * THE CLAIM.  index.html now carries a real STAGING configuration (a pinned
+ * SDK address, Snap's staging token, a lens group, two looks) — and Snap
+ * watermarks every staging lens — so the feature is test-flagged: a page is
+ * Camera Kit-capable only when its URL carries ?camkit.  A page loaded
+ * WITHOUT the flag behaves exactly as the empty config did before: nothing
+ * Camera Kit-related is ever requested, no amber tile renders, a lens slug on
+ * a row is a look the client cannot name, and the two teal looks are
+ * untouched.  Every client in this gate is a flagless page.  (What the flag
+ * turns ON is gate 79's; the lens itself is gates 76-78's.)
  *
  * WHAT THE HARNESS MUST MODEL, OR THIS GATE PROVES NOTHING.  harness.js
  * records EVERY request for the SDK module (Harness.camkitRequests) at the
  * network route, so "nothing loaded" is read off the wire, not off the app's
  * own counter; the app's counter (CAMKIT_STATE.sdkLoads) is checked against
- * it.  A lens slug is only wearable once the server allows it, so the blocks
- * that put one on a row first widen the double's allow-list
- * (allowFilterLook) — standing in for production DDL that HAS NOT BEEN RUN.
+ * it.  The route matches ANY @snap/camera-kit address, so the shipped esm.sh
+ * URL would be counted (and served the shim) if anything asked for it.  The
+ * double's allow-list carries the two shipped slugs (the DDL in
+ * tools/DESIGN-filter-rules.md); the shim-only slug 'foxears' is widened per
+ * test with allowFilterLook, as before.
  *
  * The claims, through window.__lc against the real index.html:
- *   S. STATIC: the shipped literal is null/empty; there is exactly ONE
- *      dynamic import in the file and it is import(CAMKIT.sdkUrl); no
- *      <script> tag or string literal names a Camera Kit host; the loader has
- *      exactly the callers it should (the reconciler warms, filterStart
- *      prepares — nothing at boot); a CSP, if one ever appears, must name
- *      Snap's two runtime hosts
- *   1. shipped state: CAMKIT_STATE.on false, the rack is the two teal looks,
- *      two tiles, none amber, the foot line unchanged, zero SDK requests
+ *   S. STATIC: the shipped literal is a complete staging config — the SDK
+ *      address pins the SDK AND every dependency to an exact version, the
+ *      token is a real token (never printed here), the group is a UUID, the
+ *      looks are two `ck-` slugs; the flag is read once from the URL and
+ *      camkitOn() cannot be true without it; there is exactly ONE dynamic
+ *      import in the file and it is import(CAMKIT.sdkUrl); no <script> tag
+ *      names a Camera Kit host and the ONE string literal that names the
+ *      package is the config's sdkUrl; the loader has exactly the callers it
+ *      should; a CSP, if one ever appears, must name the runtime hosts
+ *   1. flagless, config FILLED IN: CAMKIT_STATE.on false, the rack is the two
+ *      teal looks, two tiles, none amber, the foot line unchanged, zero SDK
+ *      requests
  *   2. a teal look still goes on and off through the real pick → reconcile
  *      path, as a 2D source
- *   3. a lens slug on the row while inert (the server allowing it, the
- *      client not configured): he publishes RAW, no badge, no request
- *   4. every PARTIAL configuration is still inert (any one of sdkUrl /
- *      apiToken / lensGroupId / looks missing)
- *   5. full configuration: the amber tiles render with the design's amber —
- *      and there is STILL no SDK request until a look is wanted
+ *   3. a lens slug on the row of a flagless client — an unknown one AND a
+ *      shipped one the server accepts: he publishes RAW, no badge, no request
+ *   4. no configuration turns a flagless page on: every partial one, and the
+ *      harness's complete one
+ *   5. flagless with the shelf open: still two teal tiles, still no request
  *   6. zero console errors, zero leaked requests
  */
 "use strict";
@@ -70,9 +78,26 @@ module.exports = {
   async run(t, ctx) {
     /* ---------- S. STATIC ---------- */
     const html = ctx.html;
-    const lit = (html.match(/const CAMKIT=\{([^}]*looks:\{\}[^}]*)\};/) || [])[1] || "";
-    t.ok(/sdkUrl:null/.test(lit) && /apiToken:null/.test(lit) && /lensGroupId:null/.test(lit) && /looks:\{\}/.test(lit),
-      "the shipped CAMKIT literal has no SDK address, no token, no lens group and no looks (" + (lit ? lit.slice(0, 70) + "…" : "LITERAL NOT FOUND") + ")");
+    const lit = (html.match(/\nconst CAMKIT=\{\n([\s\S]*?)\n\};/) || [])[1] || "";
+    const field = (re) => (lit.match(re) || [])[1] || null;
+    const sdkUrl = field(/sdkUrl:"([^"]*)"/), token = field(/apiToken:"([^"]*)"/), group = field(/lensGroupId:"([^"]*)"/);
+    const exact = /^\d+\.\d+\.\d+$/;
+    const sdkM = (sdkUrl || "").match(/^https:\/\/esm\.sh\/@snap\/camera-kit@([^?\/]+)\?bundle&deps=(.+)$/);
+    const deps = sdkM ? sdkM[2].split(",").map((d) => { const i = d.lastIndexOf("@"); return { name: d.slice(0, i), ver: d.slice(i + 1) }; }) : [];
+    t.ok(!!sdkM && exact.test(sdkM[1]),
+      `the shipped SDK address is esm.sh's ?bundle build of ONE exact SDK version (${sdkM ? "@snap/camera-kit@" + sdkM[1] : "NOT FOUND: " + String(sdkUrl).slice(0, 60)})`);
+    t.ok(deps.length >= 10 && deps.every((d) => d.name && exact.test(d.ver)) && new Set(deps.map((d) => d.name)).size === deps.length,
+      `…and ?deps= pins every dependency inside the bundle to an exact version — no ranges, no tags (${deps.length}: ${deps.map((d) => d.name + "@" + d.ver).join(", ")})`);
+    /* the token is Snap's STAGING token and is public by construction — but a
+       gate log is no place for it: only its SHAPE is asserted and printed */
+    t.ok(!!token && /^[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,}$/.test(token) && !/PASTE/.test(token),
+      `the shipped apiToken is a real three-part token, not a placeholder (${token ? token.length + " chars, " + token.split(".").length + " parts" : "MISSING"})`);
+    t.ok(!!group && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(group), `the shipped lensGroupId is a lens-group UUID (${group})`);
+    const looksSrc = (lit.match(/looks:\{([\s\S]*?)\n  \},/) || [])[1] || "";
+    const shippedLooks = [...looksSrc.matchAll(/"([^"]+)":\{ lensId:"(\d+)", name:"([^"]+)", icon:"([^"]+)" \}/g)].map((m) => ({ slug: m[1], lensId: m[2], name: m[3] }));
+    t.ok(shippedLooks.length === 2 && shippedLooks.every((l) => /^ck-[a-z0-9-]+$/.test(l.slug)) && shippedLooks[0].lensId !== shippedLooks[1].lensId,
+      `two looks ship, each a lowercase ck- slug onto its own lens id, each with a name and an icon (${shippedLooks.map((l) => l.slug + "→" + l.lensId + " \"" + l.name + "\"").join(", ")})`);
+    t.ok(/target:"capture"/.test(lit) && /mirror:false/.test(lit), "target is still \"capture\" and mirror still false, as #87 set them");
     const scripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join("\n");
     const code = scripts.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/[^\n]*/g, "$1");   // prose is not code
     const imports = [...code.matchAll(/(?<![\w.$])import\s*\(([^)]*)\)/g)].map((m) => m[1].trim());
@@ -80,8 +105,18 @@ module.exports = {
       `exactly one dynamic import in the file, and it is import(CAMKIT.sdkUrl) (found: ${JSON.stringify(imports)})`);
     const tags = [...html.matchAll(/<script[^>]*\bsrc=["']([^"']+)["']/g)].map((m) => m[1]);
     t.ok(tags.every((s) => !/camera-kit|snapar|sc-cdn|snapchat/i.test(s)), `no <script> tag loads Camera Kit (${tags.length} external script tag(s) scanned)`);
-    t.ok(!/["'`][^"'`\n]*(@snap\/camera-kit|snapar\.com|sc-cdn\.net)[^"'`\n]*["'`]/.test(code),
-      "no string literal in the code names a Camera Kit package or host — the address exists only as configuration");
+    const named = [...code.matchAll(/["'`][^"'`\n]*(@snap\/camera-kit|snapar\.com|sc-cdn\.net)[^"'`\n]*["'`]/g)].map((m) => m[0]);
+    t.ok(named.length === 1 && named[0] === JSON.stringify(sdkUrl),
+      `exactly ONE string literal in the code names a Camera Kit package or host, and it is the config's sdkUrl — the address exists only as configuration (found ${named.length})`);
+    /* the flag: read once from the URL into a const; camkitOn() is gated on it;
+       and nothing else can switch it — it has exactly five mentions */
+    const flagDecl = [...code.matchAll(/const CAMKIT_FLAG\s*=\s*new URLSearchParams\(location\.search\)\.has\("camkit"\);/g)].length;
+    const onBody = (code.match(/function camkitOn\(\)\{[\s\S]*?\n\}/) || [""])[0];
+    const flagUses = [...code.matchAll(/(?<![\w.$])CAMKIT_FLAG(?![\w$])/g)].length;
+    t.ok(flagDecl === 1 && /return !!\(CAMKIT_FLAG && /.test(onBody),
+      "the test flag is a const read once from the URL (?camkit), and camkitOn() cannot be true without it");
+    t.ok(flagUses === 5 && !/CAMKIT_FLAG\s*=[^=]/.test(code.replace(/const CAMKIT_FLAG\s*=/, "")),
+      `CAMKIT_FLAG is never assigned again — its declaration, camkitOn, the state readout, and the export's getter name + return (${flagUses} mentions)`);
     const callers = (fn) => [...code.matchAll(new RegExp("(?<![\\w.$])" + fn + "\\(", "g"))].length;
     const body = (re) => (code.match(re) || [""])[0];
     const syncBody = body(/async function filterSyncOnce\(\)\{[\s\S]*?\n\}/), startBody = body(/async function filterStart\(name\)\{[\s\S]*?\n\}/);
@@ -121,18 +156,19 @@ module.exports = {
       const C = await boot("c", "u_c");
       await A.page.waitForTimeout(800);   // let anything a boot would request get requested
 
-      /* ---------- 1. shipped state ---------- */
+      /* ---------- 1. flagless, with the config filled in ---------- */
       const s1 = await A.page.evaluate(SHELF);
-      t.ok(s1.state.on === false && s1.state.sdkLoads === 0 && s1.state.booted === false && s1.state.looks.length === 0,
-        `shipped: CAMKIT_STATE.on false, nothing loaded, no lens looks (${JSON.stringify(s1.state)})`);
+      t.ok(s1.state.on === false && s1.state.flag === false && s1.state.sdkLoads === 0 && s1.state.booted === false && s1.state.looks.length === 0,
+        `no ?camkit: CAMKIT_STATE.on false, nothing loaded, no lens looks (${JSON.stringify(s1.state)})`);
       t.ok(s1.looks.join(",") === "grade,noir", `the rack is the two teal looks and nothing else (${s1.looks})`);
       t.ok(s1.tiles.length === 2 && s1.tiles.every((x) => !x.amber) && s1.tiles.every((x) => x.cost === "FREE"),
         `two tiles on the shelf, none amber, both FREE (${s1.tiles.map((x) => x.look + (x.amber ? "*" : "")).join(",")})`);
       t.ok(s1.foot === "Teal = free, no tracking.", `the shelf's foot line is unchanged ("${s1.foot}")`);
       t.ok(h.camkitRequests.length === 0, `zero requests for the SDK after three clients booted and joined (${h.camkitRequests.length})`);
-      const shippedCfg = await A.page.evaluate(() => ({ ...window.__lc.CAMKIT, looks: Object.keys(window.__lc.CAMKIT.looks).length }));
-      t.ok(shippedCfg.sdkUrl === null && shippedCfg.apiToken === null && shippedCfg.lensGroupId === null && shippedCfg.looks === 0,
-        "the LIVE config object the page booted with matches the shipped literal (all null / empty)");
+      const shippedCfg = await A.page.evaluate(() => ({ sdkUrl: window.__lc.CAMKIT.sdkUrl, hasToken: !!window.__lc.CAMKIT.apiToken, lensGroupId: window.__lc.CAMKIT.lensGroupId,
+        looks: Object.keys(window.__lc.CAMKIT.looks), flag: window.__lc.CAMKIT_FLAG }));
+      t.ok(shippedCfg.sdkUrl === sdkUrl && shippedCfg.hasToken && shippedCfg.lensGroupId === group && shippedCfg.looks.join(",") === shippedLooks.map((l) => l.slug).join(",") && shippedCfg.flag === false,
+        `…and that is WITH the config filled in: the LIVE config object the page booted with is the complete shipped literal (${shippedCfg.looks.join(", ")}); only the flag is missing`);
 
       /* ---------- 2. a teal look, unchanged ---------- */
       t.ok((await A.page.evaluate(() => window.__lc.filterPick("grade"))).ok === true, "u_a: filterPick('grade') accepted");
@@ -164,39 +200,45 @@ module.exports = {
       const badge3 = await A.page.evaluate(() => document.getElementById("rt_seat1").classList.contains("has-filter"));
       t.ok(badge3 === false, "…and no client paints a badge for a look it has no name for");
       t.ok(h.camkitRequests.length === 0, "zero SDK requests — an inert client does not go looking for the SDK because a row named a lens");
+      /* 3b. the same, for a slug the page SHIPS and the server ACCEPTS (no
+         widening: the double's list mirrors the DDL).  This is the phone
+         without ?camkit whose row names a staging lens. */
+      const real = shippedLooks[0].slug;
+      const before3b = await C.page.evaluate(PIPE);
+      const acc = await C.page.evaluate((s) => window.__lc.filterPick(s), real);
+      t.ok(acc.ok === true && D.memberRow(room, "u_c").filter === real, `u_c (no ?camkit): the server accepts the shipped slug '${real}' with no widening — it is on his row`);
+      await waitFor(() => C.page.evaluate((s) => (window.__lc.FILTER_ROOM.u_c || {}).name === s, real), 8000, "u_c's client to observe his field");
+      await C.page.waitForTimeout(1200);
+      const c3 = await C.page.evaluate(PIPE);
+      t.ok(c3.F.active === false && c3.trackId === before3b.trackId && c3.trackId === c3.camId && c3.swaps === 0 && c3.state === "playable",
+        `…and his flagless client publishes RAW — same camera track, no swap (swaps=${c3.swaps})`);
+      t.ok((await C.page.evaluate((s) => window.__lc.filterStart(s), real)) === false, `filterStart('${real}') declines outright on a flagless page`);
+      const badge3b = [];
+      for (const c of [A, B, C]) badge3b.push(await c.page.evaluate(() => document.getElementById("rt_seat2").classList.contains("has-filter")));
+      t.ok(badge3b.every((x) => x === false), "no flagless client paints a badge for it");
+      t.ok(h.camkitRequests.length === 0, "zero SDK requests — a filled-in config and a lens slug on the row still load nothing without the flag");
 
-      /* ---------- 4. every partial configuration is still inert ---------- */
+      /* ---------- 4. no configuration turns a flagless page on ---------- */
       const full = { sdkUrl: CAMKIT_TEST.sdkUrl, apiToken: CAMKIT_TEST.apiToken, lensGroupId: CAMKIT_TEST.lensGroupId, looks: CAMKIT_TEST.looks };
-      for (const missing of ["sdkUrl", "apiToken", "lensGroupId", "looks"]) {
-        await B.camkitConfigure({ ...full, [missing]: missing === "looks" ? {} : null });
+      for (const missing of ["sdkUrl", "apiToken", "lensGroupId", "looks", null]) {
+        await B.camkitConfigure(missing ? { ...full, [missing]: missing === "looks" ? {} : null } : full);
         await B.page.evaluate(() => window.__lc.filterReconcile());
         await B.page.waitForTimeout(400);
         const s4 = await B.page.evaluate(SHELF);
         const p4 = await B.page.evaluate(PIPE);
         t.ok(s4.state.on === false && s4.tiles.length === 2 && !s4.tiles.some((x) => x.amber) && p4.F.active === false && h.camkitRequests.length === 0,
-          `without ${missing}: still inert — on=false, two teal tiles, his lens row publishes raw, zero requests`);
+          (missing ? `without ${missing}` : "the harness's COMPLETE config (his row names its 'foxears')") + ": still inert on a flagless page — on=false, two teal tiles, his lens row publishes raw, zero requests");
       }
 
-      /* ---------- 5. full configuration: tiles, and STILL no request ---------- */
-      await C.camkitConfigure();
-      const s5 = await C.page.evaluate(SHELF);
-      t.ok(s5.state.on === true && s5.looks.join(",") === "grade,noir,foxears,halo",
-        `fully configured: CAMKIT_STATE.on true and the rack is teal then amber (${s5.looks})`);
-      const amber = s5.tiles.filter((x) => x.amber);
-      t.ok(s5.tiles.length === 4 && amber.length === 2 && amber.map((x) => x.look).join(",") === "foxears,halo",
-        `four tiles, the two lens looks amber (${s5.tiles.map((x) => x.look + (x.amber ? "*" : "")).join(",")})`);
-      t.ok(amber[0].name === "Fox Ears" && amber[1].name === "halo" && amber.every((x) => x.cost === "✦"),
-        `a look configured with a name shows it, a bare lens id falls back to its slug ("${amber[0].name}", "${amber[1].name}")`);
-      t.ok(amber.every((x) => x.border === "rgba(255, 194, 77, 0.6)" && x.bg === "rgba(255, 194, 77, 0.14)" && x.costInk === "rgb(255, 217, 138)"),
-        `the amber tile carries the design's values — border ${amber[0].border}, fill ${amber[0].bg}, cost ink ${amber[0].costInk}`);
-      const teal = s5.tiles.filter((x) => !x.amber);
-      t.ok(teal.every((x) => x.border === "rgba(45, 227, 208, 0.7)"), "the teal tiles are untouched beside them");
-      t.ok(/Amber = face-tracked/.test(s5.foot), `the foot line names the amber set once there is one ("${s5.foot}")`);
+      /* ---------- 5. flagless, shelf open ---------- */
       await C.page.evaluate(() => { document.getElementById("rt_filterbtn").click(); });
       await C.page.waitForTimeout(800);
-      const s5b = await C.page.evaluate(() => ({ open: document.getElementById("rt_shelf").classList.contains("is-open"), st: window.__lc.CAMKIT_STATE }));
-      t.ok(s5b.open === true && s5b.st.sdkLoads === 0 && h.camkitRequests.length === 0,
-        `configured, shelf open, amber tiles on screen — and STILL zero SDK requests: the SDK loads on first USE, not on first sight (requests=${h.camkitRequests.length})`);
+      const s5 = await C.page.evaluate(() => ({ open: document.getElementById("rt_shelf").classList.contains("is-open"), st: window.__lc.CAMKIT_STATE,
+        tiles: [...document.querySelectorAll("#rt_shelfrack .lc-shelf__tile")].map((b) => ({ look: b.dataset.look, amber: b.classList.contains("is-amber") })),
+        foot: document.getElementById("rt_shelffoot").textContent }));
+      t.ok(s5.open === true && s5.tiles.length === 2 && s5.tiles.every((x) => !x.amber) && s5.foot === "Teal = free, no tracking.",
+        `the shelf, open, on a flagless page with a lens slug on the row: two teal tiles, no amber, the old foot line (${s5.tiles.map((x) => x.look).join(",")})`);
+      t.ok(s5.st.sdkLoads === 0 && h.camkitRequests.length === 0, `…and still zero SDK requests (requests=${h.camkitRequests.length})`);
 
       /* ---------- 6. quiet ---------- */
       for (const c of [A, B, C]) {

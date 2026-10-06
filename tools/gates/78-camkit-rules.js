@@ -104,7 +104,7 @@ module.exports = {
       D.addMember(room, "u_bench", "line");
       D.addMember(room, "u_watch", "spectator");
       const boot = async (name, uid) => {
-        const c = await h.newClient(name); c.login(uid); await c.goto();
+        const c = await h.newClient(name); c.login(uid); await c.goto("?camkit");   // feat/camera-kit-staging: lens looks exist only on a page loaded with ?camkit
         await c.page.waitForSelector("#lobby:not([style*='display: none']), #room.show", { state: "visible", timeout: 15000 });
         if (!(await c.page.evaluate(() => !!window.__lc.CURRENT_ROOM)))
           await c.page.evaluate((r) => window.__lc.openRoom(r), { ...D.rooms.get(room) });

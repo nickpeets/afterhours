@@ -97,7 +97,7 @@ module.exports = {
       const room = D.addRoom({ id: "r_lens", host_id: hostU, name: "Lens Night", phase: "spotlight", round: 1 });
       D.rooms.get(room).phase_deadline = D.iso(D.now() + 600_000);
       D.addMember(room, "u_a", "chair", { seat_index: 0 });
-      const host = await h.newClient("host"); host.login(hostU); await host.goto();
+      const host = await h.newClient("host"); host.login(hostU); await host.goto("?camkit");   // feat/camera-kit-staging: lens looks exist only on a page loaded with ?camkit
       await host.page.waitForSelector("#lobby:not([style*='display: none']), #room.show", { state: "visible", timeout: 15000 });
       const join = async () => {
         if (!(await host.page.evaluate(() => !!window.__lc.CURRENT_ROOM)))

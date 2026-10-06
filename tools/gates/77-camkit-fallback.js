@@ -37,6 +37,17 @@
  *      camera by device switch
  *   k. a fresh call is a fresh chance: after videoLeave + rejoin (and the
  *      token fixed) the same look goes live
+ *   L. SNAP'S LEGAL PROMPT (feat/camera-kit-staging — the real SDK's first
+ *      applyLens shows a modal terms dialog and waits; found by the first
+ *      real-SDK run, modelled by the shim's legal:"prompt"):
+ *      L1. answered "I Agree" inside the start ceiling — the lens goes live;
+ *          while the dialog is up the camera publishes untouched
+ *      L2. left unanswered past the start ceiling — the app gives up on the
+ *          start (bare camera, latched) and the SDK's dialog is STILL on
+ *          screen, modal, over the app; answering it late changes nothing
+ *      L3. answered "Dismiss" — LegalError, bare camera, latched
+ *      This pins what the app does TODAY.  Whether the start ceiling should
+ *      count a human reading Snap's terms is Nick's call (PR body).
  * For a–h: same camera track before and after, playable; zero videoSource
  * swaps; the pipeline idle; the reason latched; the diagnostic line logged;
  * three more roster commits cause NO further SDK request / bootstrap / lens
@@ -69,6 +80,22 @@ const SNAP = () => {
   };
 };
 
+/* Snap's legal dialog, found the way the real one would be: by its test id,
+   through its shadow root */
+const LEGAL = () => {
+  const el = document.querySelector('[data-testid="tos-dialog"]');
+  const dg = el && el.shadowRoot && el.shadowRoot.querySelector("dialog");
+  return { open: !!(dg && dg.open), modal: !!(dg && dg.matches(":modal")), inBody: !!(el && el.parentElement === document.body),
+           buttons: dg ? [...dg.querySelectorAll("button")].map((b) => b.textContent.trim()) : [],
+           shim: window.__camkitControl ? window.__camkitControl.legal() : null };
+};
+const LEGAL_TAP = (text) => {
+  const el = document.querySelector('[data-testid="tos-dialog"]');
+  const b = el && [...el.shadowRoot.querySelectorAll("button")].find((x) => x.textContent.trim() === text);
+  if (!b) return false;
+  b.click(); return true;
+};
+
 module.exports = {
   name: "camkit-fallback",
   async run(t, ctx) {
@@ -86,7 +113,7 @@ module.exports = {
         const room = D.addRoom({ id: rid, host_id: hostU, name: "Fallback " + label, phase: "spotlight", round: 1 });
         D.rooms.get(room).phase_deadline = D.iso(D.now() + 600_000);
         D.addMember(room, uid, "chair", { seat_index: 0 });
-        const c = await h.newClient(label); c.login(uid); await c.goto();
+        const c = await h.newClient(label); c.login(uid); await c.goto("?camkit");   // feat/camera-kit-staging: lens looks exist only on a page loaded with ?camkit
         await c.page.waitForSelector("#lobby:not([style*='display: none']), #room.show", { state: "visible", timeout: 15000 });
         if (!(await c.page.evaluate(() => !!window.__lc.CURRENT_ROOM)))
           await c.page.evaluate((r) => window.__lc.openRoom(r), { ...D.rooms.get(room) });
@@ -208,6 +235,60 @@ module.exports = {
         const a = await assertBare("h · session start fails", S, before, { lens: true, settled: () => !!window.__lc.CAMKIT_STATE.lensDead.foxears, reason: /LensError/, line: /lens 'foxears' could not start/ });
         t.ok(a.shim.sessions.length === 1 && a.shim.sessions[0].destroyed === true && a.shim.sources.length === 1 && a.shim.sources[0].trackReady === "ended",
           "h · session start fails: the one session it opened was destroyed and the clone it was fed was stopped");
+        await S.c.close();
+      }
+      /* ---------- L1. the legal prompt, accepted ---------- */
+      {
+        const S = await seat("l1");
+        await S.c.camkitFault("legal", "prompt");
+        const before = await pick(S);
+        await waitFor(() => S.c.page.evaluate(LEGAL).then((d) => d.open), 8000, "L1: the legal prompt to be on screen");
+        const d = await S.c.page.evaluate(LEGAL);
+        t.ok(d.open && d.modal && d.inBody && d.buttons.join("|") === "Dismiss|I Agree" && d.shim.shown === 1,
+          `L1 · legal prompt: the first applyLens put Snap's terms dialog on screen — in <body>, modal, two answers (${d.buttons.join(" / ")})`);
+        await S.c.page.waitForTimeout(700);
+        const mid = await S.c.page.evaluate(SNAP);
+        t.ok(mid.F.active === false && mid.trackId === before.trackId && mid.trackId === mid.camId && mid.state === "playable" && mid.swaps === 0 && !mid.K.lensDead.foxears && mid.K.dead === null,
+          "L1 · legal prompt: while it waits, the camera publishes untouched and nothing is latched");
+        t.ok(await S.c.page.evaluate(LEGAL_TAP, "I Agree"), "L1 · legal prompt: he taps I Agree");
+        await waitFor(() => S.c.page.evaluate(() => window.__lc.FILTER_STATE.active === true && window.__lc.FILTER_STATE.kind === "lens"), 10_000, "L1: the lens to go live after the answer");
+        const a = await S.c.page.evaluate(SNAP);
+        const d2 = await S.c.page.evaluate(LEGAL);
+        t.ok(a.trackId === a.F.canvasTrackId && a.swaps === 1 && a.shim.sessions.length === 1 && a.shim.sessions[0].lens === "lens-fox" && d2.open === false && d2.shim.state === "accepted",
+          `L1 · legal prompt: accepted inside the ceiling — the lens goes live and is what the call publishes; the dialog is gone (swaps=${a.swaps})`);
+        const errs = S.c.errors.filter((e) => !/favicon/.test(e));
+        t.ok(errs.length === 0, `L1 · legal prompt: zero console errors — ${errs.slice(0, 2).join(" | ")}`);
+        await S.c.close();
+      }
+      /* ---------- L2. the legal prompt, left unanswered ---------- */
+      {
+        const S = await seat("l2", { startMs: 1500 });
+        await S.c.camkitFault("legal", "prompt");
+        const before = await pick(S);
+        await waitFor(() => S.c.page.evaluate(LEGAL).then((d) => d.open), 8000, "L2: the legal prompt to be on screen");
+        const a = await assertBare("L2 · legal prompt unanswered", S, before, { lens: true, settled: () => !!window.__lc.CAMKIT_STATE.lensDead.foxears, reason: /applyLens timed out after 1500ms/, line: /lens 'foxears' could not start/ });
+        const d = await S.c.page.evaluate(LEGAL);
+        t.ok(d.open && d.modal && a.shim.sessions.length === 1 && a.shim.sessions[0].destroyed === true,
+          "L2 · legal prompt unanswered: the app gave up at its start ceiling and destroyed the session — and Snap's dialog is STILL on screen, modal, over the app");
+        t.ok(await S.c.page.evaluate(LEGAL_TAP, "I Agree"), "L2 · legal prompt unanswered: he taps I Agree, late");
+        await S.c.page.waitForTimeout(900);
+        const z = await S.c.page.evaluate(SNAP);
+        const d2 = await S.c.page.evaluate(LEGAL);
+        t.ok(d2.open === false && z.F.active === false && z.trackId === before.trackId && z.swaps === 0 && /applyLens timed out/.test(z.K.lensDead.foxears) && z.shim.sessions.length === 1,
+          "L2 · legal prompt unanswered: a late answer clears the dialog and changes nothing else — still the bare camera, still latched for this call, no second session");
+        const errs = S.c.errors.filter((e) => !/favicon/.test(e));
+        t.ok(errs.length === 0, `L2 · legal prompt unanswered: zero console errors after the late answer — ${errs.slice(0, 2).join(" | ")}`);
+        await S.c.close();
+      }
+      /* ---------- L3. the legal prompt, dismissed ---------- */
+      {
+        const S = await seat("l3");
+        await S.c.camkitFault("legal", "prompt");
+        const before = await pick(S);
+        await waitFor(() => S.c.page.evaluate(LEGAL).then((d) => d.open), 8000, "L3: the legal prompt to be on screen");
+        t.ok(await S.c.page.evaluate(LEGAL_TAP, "Dismiss"), "L3 · legal prompt dismissed: he taps Dismiss");
+        await assertBare("L3 · legal prompt dismissed", S, before, { lens: true, settled: () => !!window.__lc.CAMKIT_STATE.lensDead.foxears, reason: /LegalError.*terms were not accepted/, line: /lens 'foxears' could not start/ });
+        t.ok((await S.c.page.evaluate(LEGAL)).open === false, "L3 · legal prompt dismissed: the dialog is gone");
         await S.c.close();
       }
       /* ---------- i. dropped while the lens is still starting ---------- */

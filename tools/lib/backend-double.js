@@ -73,8 +73,15 @@ const SWEEP_MS = 180_000;   // sweep_stale_members: now() - interval '3 minutes'
    The amber ✦ set is not in this PR and is not in this list, so a client that
    asks for it is rejected the way production will reject it.  Deliberately
    NOT imported from index.html: the double is the server's copy of the list,
-   and a gate that watches the two disagree is a gate doing its job. */
-const FILTER_LOOKS = ["grade", "noir"];
+   and a gate that watches the two disagree is a gate doing its job.
+   feat/camera-kit-staging (2026-10-05): the first two lens slugs join the
+   list — 'ck-objects' and 'ck-express', the two Camera Kit staging test
+   looks.  This MIRRORS THE DDL in tools/DESIGN-filter-rules.md ("Lens slugs
+   ck-objects / ck-express"); that section's STATUS line says whether
+   production has run it.  Still no token pricing: on the server a lens slug
+   is one more curated name, and every rule below treats it exactly like a
+   teal one. */
+const FILTER_LOOKS = ["grade", "noir", "ck-objects", "ck-express"];
 
 let _seq = 1;
 const nid = (p) => p + "_" + (_seq++).toString(36).padStart(6, "0");
@@ -95,14 +102,16 @@ class BackendDouble {
     this.opLog = [];             // EVERY dispatched op, in arrival order, across auth/rpc/table — for ORDER assertions (gate 73)
     this.swaps = {};             // room_id -> { uid: contact_text } (backstage swap offers)
     this.clockSkew = 0;          // ms added to "now" (staleness tests)
-    /* set_filter's allow-list, per double.  Starts as production's ('grade',
-       'noir').  allowFilterLook() widens it for ONE double — it stands in for
-       DDL that HAS NOT BEEN RUN (feat/camera-kit: a lens slug must be added
-       to production's two CHECK constraints and to set_filter before anyone
-       can wear it; tools/DESIGN-filter-rules.md, "Lens looks").  A gate that
-       calls it is testing the client against the server AS IT WILL BE, and
-       says so; without the call a lens slug is rejected here exactly the way
-       production rejects it today. */
+    /* set_filter's allow-list, per double.  Starts as the server's curated
+       list (FILTER_LOOKS above: the two teal looks and the two staging lens
+       slugs).  allowFilterLook() widens it for ONE double — it stands in for
+       DDL that HAS NOT BEEN WRITTEN (the harness's shim-only slugs 'foxears'
+       and 'halo' are not production names and never will be; a future real
+       slug must be added to production's two CHECK constraints and to
+       set_filter before anyone can wear it — tools/DESIGN-filter-rules.md,
+       "Lens looks").  A gate that calls it is testing the client against a
+       server that does not exist, and says so; without the call an unlisted
+       slug is rejected here exactly the way production rejects it. */
     this.filterLooks = FILTER_LOOKS.slice();
   }
   allowFilterLook(name) { if (!this.filterLooks.includes(name)) this.filterLooks.push(name); return this.filterLooks.slice(); }

@@ -2,8 +2,9 @@
  * throw, who can be hit, what a throw does and does not touch, and the ways
  * it comes off.  Ships with feat/throwables.
  * SOURCE: tools/DESIGN-throwables-and-mask.md (the ruling);
- * tools/DESIGN-throwables-server.md (the server side — PENDING PRODUCTION
- * DDL; the double is a model of DDL that has NOT run, and says so).
+ * tools/DESIGN-throwables-server.md (the server side — RUN IN PRODUCTION
+ * 2026-10-08; the double mirrors the DDL as it ran, md5s in that doc's run
+ * log).
  *
  * THE SHAPE UNDER TEST.  A throw is TARGET-ROW state the server owns
  * (room_members.throw_kind / throw_at / throw_until, plus throwables_on; the

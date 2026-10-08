@@ -1,14 +1,15 @@
 # DESIGN — throwables: the server side
 
-STATUS: **NOT RUN IN PRODUCTION.**  Written with `feat/throwables` (step 2 of
-the build brief) against the ruling in `DESIGN-throwables-and-mask.md`.  Same
+STATUS: **RUN IN PRODUCTION 2026-10-08** (Supabase project doqtfyxgzlfvglfdkphx,
+branch main, on Nick's go), as written under "The DDL" below, with the
+2026-10-08 thrower-row lock.  The run log and read-back are at the bottom.
+Written with `feat/throwables` (step 2 of the build brief) against the ruling
+in `DESIGN-throwables-and-mask.md`.  Same
 pattern as the 10/6 slug run in `DESIGN-filter-rules.md`: preflight reads
 first, one transaction, md5-guarded splice of `ask_question`, refuses on
-drift.  The SQL under "The DDL" is the posting.  The dry run at the bottom
-was against a throwaway local PostgreSQL 16.15 with a stand-in schema, and
-says nothing about production's state — it says the SQL parses, does what it
-claims, and guards itself.  Nothing runs in production until Nick's go; when
-it has run, the read-back goes under "Run log" and the STATUS line changes.
+drift.  The SQL under "The DDL" is what ran.  The dry run further down was
+against a throwaway local PostgreSQL 16.15 with a stand-in schema; the "Run
+log" is production.
 
 ## What this was written against (Step 1 findings, approved)
 
@@ -655,6 +656,92 @@ and wipes on leaving chair/kept (the trigger's second half); a direct
 are the server's copies.  The Moment refusal and wipe exist in the double
 ONLY (labelled at the call sites).
 
-## Run log
+## Run log 2026-10-08 — production
 
-(empty — not run)
+Run in Supabase Studio's SQL editor (project `afterhours`
+doqtfyxgzlfvglfdkphx, branch `main`, PRODUCTION), signed in as Nick, on his
+explicit go (with the thrower-row lock, his fix 2).  The change block was
+loaded into the editor from the file the dry run used (through the editor's
+API, not typed) and run as ONE script; Studio raised its "Potential issue
+detected" prompt for the `drop trigger if exists` lines and was confirmed.
+
+Preflight, each query on its own, BEFORE the change (cell text read from the
+grid's DOM, nothing cut off):
+
+- 0a: `48bb7506152d8403ba142aeb7b7db672 | 2509` — the 09-28 read-back, unchanged.
+- 0b: zero rows — no throw column, no ledger.
+- 0c: `rooms` relrowsecurity true / force false; `room_members` true / false.
+  Policies (all of them):
+  - `room_members_insert_own` INSERT [authenticated] check `(auth.uid() =
+    user_id) AND NOT EXISTS (blocks b JOIN rooms r ON r.id = room_members.room_id
+    WHERE b.blocker_id = r.host_id AND b.blocked_id = auth.uid())`
+  - `room_members_select_in_room` SELECT [public] using
+    `is_room_member(room_id, auth.uid()) OR EXISTS (rooms WHERE rooms.id =
+    room_members.room_id AND rooms.host_id = auth.uid())`
+  - **`room_members_update_own` UPDATE [authenticated] using / check
+    `auth.uid() = user_id`** — so a member CAN update his own row directly
+    today.  This is the answer to the added rule's question, and it is why the
+    guard trigger is load-bearing rather than belt-and-braces: without it,
+    `sb.from("room_members").update({throw_until: …})` from his own client
+    would have gone through.  (A member can also INSERT his own row directly;
+    the trigger's INSERT branch covers that.)
+  - `rooms_insert_host` INSERT [authenticated] check `auth.uid() = host_id`
+  - `rooms_select_live` SELECT [authenticated] using `status = 'live' OR
+    host_id = auth.uid()`
+  - `rooms_update_host` UPDATE [authenticated] using / check `auth.uid() =
+    host_id` — the host's direct writes (status, host_seen_at) ride this;
+    `rooms_throwables_guard` is what keeps `throwables_on` out of them.
+- 0d: `anon`, `authenticated`, `service_role` each hold
+  DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE on both tables (the
+  Supabase default; RLS above is the gate).
+- 0e: all 19 functions asked for exist (`ask_question`, `active_members`,
+  `set_filter`, `drop_filter`, `host_clear_filter`, `seat_member`,
+  `keep_member`, `pass_member`, `timeout_member`, `sweep_stale_members`,
+  `step_down`, `join_line`, `leave_room`, `decide_keep`, `decide_pass`,
+  `decide_clear`, `seat_pick`, `join_room`, `heartbeat`): owner `postgres`,
+  SECURITY DEFINER, every one.  ACLs: the 09-28 four-entry shape on most;
+  `keep_member` / `pass_member` / `seat_member` / `timeout_member` lack the
+  PUBLIC entry; `step_down` has an explicit `anon`.  Not changed.
+- 0f: `supabase_realtime` carries `room_events`, `room_members`, `rooms` (3).
+
+The change, one script: `Success. No rows returned`.
+
+Read back, AFTER:
+
+| function | md5 | chars | owner | definer | ACL |
+|---|---|---|---|---|---|
+| ask_question | e7eab394ff015d05b862af2488edf4c8 | 2621 | postgres | yes | 09-28 shape |
+| throw_at | 2d89b8e0fff960634f280523015ed916 | 3120 | postgres | yes | 09-28 shape |
+| throw_counts | f0ffefea3d7d29aaf60360bb595c149f | 754 | postgres | yes | 09-28 shape |
+| set_throwables | 474979fb246ea2263c17a3d172d88a15 | 824 | postgres | yes | 09-28 shape |
+| host_clear_throw | c2d049acff03ff73b258d964039b0411 | 935 | postgres | yes | 09-28 shape |
+| host_set_throwables | 1552b450127929080a3e9e8d47592496 | 862 | postgres | yes | 09-28 shape |
+| throw_limits | 77a819eb64491e24708b3b7d002027c1 | 203 | postgres | no | default (incl. anon) |
+| throw_class | 7c2314efd4215c0d3083ea1b6fe9fa0e | 289 | postgres | no | default (incl. anon) |
+| room_members_throw_guard | 35ab1411f492782eb961aae3878e7392 | 1130 | postgres | no | default (incl. anon) |
+| rooms_throwables_guard | dfdef710af209e2b12cdf45afb481799 | 345 | postgres | no | default (incl. anon) |
+
+The five RPCs are byte-identical to the dry run's (same md5s and lengths).
+`ask_question`: 2509 → 2621 chars (+112, as predicted); the byte-level proof
+of the splice, run read-only after: `md5(replace(after, <the inserted
+fragment>, 'set filter = null'))` = `48bb7506152d8403ba142aeb7b7db672`, the
+09-28 read-back, and `position('throw_until') < position('update public.rooms
+r')` = true.  (The verbatim text could not be copied out of the grid by the
+tool used — the md5 identity above is the stronger record.)  The two trigger
+functions and the two pure functions carry the default ACL with an explicit
+`anon`, as the 09-28 run observed for new functions; a trigger function cannot
+be called directly and the two pure functions hold no data, so they were
+left alone.
+
+Triggers: `room_members_throw_guard` on `room_members`, `rooms_throwables_guard`
+on `rooms`, both enabled (`O`).  Columns: `room_members.throwables_on`
+boolean not null default true; `throw_kind` text null; `throw_at` /
+`throw_until` timestamptz null; `rooms.throwables_on` boolean not null
+default true; `throw_ledger` (id, room_id, thrower_id, cls, kind, target_id,
+at).  Constraint `room_members_throw_kind_curated`: `CHECK (((throw_kind IS
+NULL) OR (throw_class(throw_kind) IS NOT NULL)))`.  `throw_ledger`: RLS on,
+0 policies, grants to `postgres` and `service_role` only (no `anon`, no
+`authenticated`), not in `supabase_realtime`.
+
+NOT done here: a behavioural check through the app (a throw from a crowd
+phone) — that is the phone test in the PR body.

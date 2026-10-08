@@ -289,6 +289,73 @@
 .chair.has-filter--paid .chair__filter{ background:rgba(255,194,77,.2); border-color:rgba(255,194,77,.8); }
 .chair.has-filter--paid .chair__filter-t{ color:#ffd98a; }
 
+/* --- THROWABLES (feat/throwables): the overlay on a chair's tile.  NOT a lens,
+   NOT in his track — every device draws this from the member row's server
+   start/expiry (throw_at / throw_until) over whatever his tile shows.  Jeer
+   splats land ON THE GLASS at a fixed spot (upper-middle, where a face
+   usually is), the same on every device, then drip off; the cheers and the
+   boo/cricket are screen effects.  No face detection anywhere.  Placeholder
+   art: emoji + CSS keyframes, final art later.  pointer-events:none: the
+   heart target and the host controls underneath keep working. --- */
+.chair__throw{ position:absolute; inset:0; z-index:2; display:none; overflow:hidden; pointer-events:none; }
+.chair.has-throw:not(.is-empty):not(.is-strip) .chair__throw{ display:block; }
+.chair__throw-fx{ position:absolute; inset:0; }
+.chair__throw-fx i{ position:absolute; font-style:normal; line-height:1; will-change:transform,opacity; }
+/* the splat: lands upper-middle, then slides/drips down and fades over the window */
+.chair__throw-fx i.fx-splat{ left:50%; top:28%; font-size:52px; transform:translate(-50%,-50%); animation:lc-splat var(--throw-secs,10s) ease-in forwards; filter:drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+@keyframes lc-splat{ 0%{ transform:translate(-50%,-50%) scale(.2); opacity:0 } 6%{ transform:translate(-50%,-50%) scale(1.25); opacity:1 } 12%{ transform:translate(-50%,-50%) scale(1) } 70%{ transform:translate(-50%,10%) scale(1,1.15); opacity:1 } 100%{ transform:translate(-50%,160%) scale(.9,1.3); opacity:0 } }
+/* falling things (petals, confetti) — eight lanes, fixed per lane so every device agrees */
+.chair__throw-fx i.fx-fall{ top:-14%; font-size:18px; animation:lc-fall var(--throw-secs,10s) linear forwards; }
+@keyframes lc-fall{ 0%{ transform:translateY(0) rotate(0deg); opacity:0 } 8%{ opacity:1 } 90%{ opacity:1 } 100%{ transform:translateY(130%) rotate(300deg); opacity:0 } }
+.chair__throw-fx i.fx-fall:nth-child(1){ left:6%;  animation-duration:calc(var(--throw-secs,10s) * .9); }
+.chair__throw-fx i.fx-fall:nth-child(2){ left:20%; animation-duration:calc(var(--throw-secs,10s) * 1); }
+.chair__throw-fx i.fx-fall:nth-child(3){ left:33%; animation-duration:calc(var(--throw-secs,10s) * .8); }
+.chair__throw-fx i.fx-fall:nth-child(4){ left:46%; animation-duration:calc(var(--throw-secs,10s) * .95); }
+.chair__throw-fx i.fx-fall:nth-child(5){ left:58%; animation-duration:calc(var(--throw-secs,10s) * .85); }
+.chair__throw-fx i.fx-fall:nth-child(6){ left:70%; animation-duration:calc(var(--throw-secs,10s) * 1); }
+.chair__throw-fx i.fx-fall:nth-child(7){ left:82%; animation-duration:calc(var(--throw-secs,10s) * .9); }
+.chair__throw-fx i.fx-fall:nth-child(8){ left:92%; animation-duration:calc(var(--throw-secs,10s) * .8); }
+/* the heart burst — out from the centre, five directions */
+.chair__throw-fx i.fx-burst{ left:50%; top:50%; font-size:26px; animation:lc-burst var(--throw-secs,10s) ease-out forwards; }
+@keyframes lc-burst{ 0%{ transform:translate(-50%,-50%) scale(.3); opacity:0 } 10%{ opacity:1 } 100%{ transform:translate(calc(-50% + var(--bx)),calc(-50% + var(--by))) scale(1.2); opacity:0 } }
+.chair__throw-fx i.fx-burst:nth-child(1){ --bx:0px;   --by:-70px }
+.chair__throw-fx i.fx-burst:nth-child(2){ --bx:60px;  --by:-30px }
+.chair__throw-fx i.fx-burst:nth-child(3){ --bx:-60px; --by:-30px }
+.chair__throw-fx i.fx-burst:nth-child(4){ --bx:40px;  --by:50px }
+.chair__throw-fx i.fx-burst:nth-child(5){ --bx:-40px; --by:50px }
+/* the sparkle — six points twinkling in place */
+.chair__throw-fx i.fx-twinkle{ font-size:20px; animation:lc-twinkle 1.2s ease-in-out infinite alternate; }
+@keyframes lc-twinkle{ 0%{ transform:scale(.4) rotate(0deg); opacity:.2 } 100%{ transform:scale(1.2) rotate(40deg); opacity:1 } }
+.chair__throw-fx i.fx-twinkle:nth-child(1){ left:12%; top:18% } .chair__throw-fx i.fx-twinkle:nth-child(2){ left:70%; top:12%; animation-delay:.3s }
+.chair__throw-fx i.fx-twinkle:nth-child(3){ left:40%; top:40%; animation-delay:.6s } .chair__throw-fx i.fx-twinkle:nth-child(4){ left:80%; top:55%; animation-delay:.2s }
+.chair__throw-fx i.fx-twinkle:nth-child(5){ left:18%; top:66%; animation-delay:.8s } .chair__throw-fx i.fx-twinkle:nth-child(6){ left:55%; top:78%; animation-delay:.5s }
+/* the boo cloud — drifts up and across, three puffs */
+.chair__throw-fx i.fx-cloud{ left:50%; bottom:10%; font-size:30px; animation:lc-cloud var(--throw-secs,10s) ease-out forwards; }
+@keyframes lc-cloud{ 0%{ transform:translate(-50%,0) scale(.6); opacity:0 } 12%{ opacity:.95 } 100%{ transform:translate(calc(-50% + var(--cx)),-170%) scale(1.5); opacity:0 } }
+.chair__throw-fx i.fx-cloud:nth-child(1){ --cx:-50px } .chair__throw-fx i.fx-cloud:nth-child(2){ --cx:0px; animation-delay:.4s } .chair__throw-fx i.fx-cloud:nth-child(3){ --cx:50px; animation-delay:.8s }
+.chair__throw-fx i.fx-boo{ left:50%; top:30%; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:22px; color:#d6cdff; letter-spacing:.1em; animation:lc-boo var(--throw-secs,10s) ease-out forwards; }
+@keyframes lc-boo{ 0%{ transform:translate(-50%,0) scale(.5); opacity:0 } 10%{ opacity:1 } 100%{ transform:translate(-50%,-60px) scale(1.4); opacity:0 } }
+/* the cricket — hops along the bottom */
+.chair__throw-fx i.fx-hop{ left:-12%; bottom:8%; font-size:28px; animation:lc-hop var(--throw-secs,10s) linear forwards; }
+@keyframes lc-hop{ 0%{ transform:translate(0,0) } 10%{ transform:translate(12%,-40px) } 20%{ transform:translate(24%,0) } 30%{ transform:translate(36%,-40px) } 40%{ transform:translate(48%,0) } 50%{ transform:translate(60%,-40px) } 60%{ transform:translate(72%,0) } 70%{ transform:translate(84%,-40px) } 80%{ transform:translate(96%,0) } 90%{ transform:translate(108%,-40px) } 100%{ transform:translate(120%,0) } }
+/* the still badge (reduced motion): a small emoji, upper-middle, for the same window */
+.chair__throw-badge{ position:absolute; left:50%; top:10px; transform:translateX(-50%); display:none; width:34px; height:34px; align-items:center; justify-content:center; font-size:20px; border-radius:50%; background:rgba(6,8,24,.72); border:1px solid rgba(185,168,255,.55); }
+@media (prefers-reduced-motion: reduce){
+  .chair.has-throw .chair__throw-fx{ display:none; }
+  .chair.has-throw .chair__throw-badge{ display:flex; }
+}
+/* THE TRAY (crowd) and the seat's switch, in the composer like the shelf */
+.lc-throwtray__targets{ display:flex; gap:6px; overflow-x:auto; }
+.lc-throwtray__target{ flex:none; padding:6px 10px; border-radius:14px; cursor:pointer; font-family:Archivo,sans-serif; font-weight:700; font-size:11px; color:#eef0ff; background:rgba(185,168,255,.12); border:1.5px solid rgba(185,168,255,.45); }
+.lc-throwtray__target.is-picked{ background:rgba(255,45,143,.22); border-color:rgba(255,45,143,.85); }
+.lc-throwtray__target.is-blocked{ opacity:.4; cursor:default; }
+.lc-throwtray__target small{ display:block; font-family:'Azeret Mono',monospace; font-weight:700; font-size:7px; letter-spacing:.1em; color:rgba(238,240,255,.6); }
+.lc-throwtray .lc-shelf__tile.is-jeer{ background:rgba(255,45,143,.12); border-color:rgba(255,45,143,.6); }
+.lc-throwtray .lc-shelf__tile.is-jeer .lc-shelf__cost{ color:#ff8ac2; }
+.lc-throwtray .lc-shelf__tile.is-spent, .lc-throwtray.is-blocked .lc-shelf__tile{ opacity:.35; cursor:default; }
+#room #rt_throwbtn, #room #rt_throwtoggle{ display:none; }
+#room #rt_throwtoggle.is-off{ opacity:.6; }
+
 /* --- spectator heart tap (44px target; the transform is on the glyph) --- */
 .lc-hearttap{
   position:absolute; right:6px; bottom:6px; z-index:3;
@@ -1158,7 +1225,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">Pilot build · play money · this is a private test with friends.</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1006.1023</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1008.0916</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1272,6 +1339,7 @@
             <div class="cclock"><span class="cclock__t">0:00</span><span class="cclock__pause">❙❙</span></div>
             <div class="kepttag">KEPT</div>
             <div class="chair__filter lc-over-video"><span class="chair__filter-i"></span><span class="chair__filter-t"></span></div>
+            <div class="chair__throw" aria-hidden="true"><span class="chair__throw-fx"></span><span class="chair__throw-badge"></span></div>
             <div class="chair__name lc-over-video">
               <span class="chair__mic" aria-hidden="true"><i></i><i></i><i></i></span>
               <span class="chair__name-t"></span>
@@ -1300,6 +1368,7 @@
             <div class="cclock"><span class="cclock__t">0:00</span><span class="cclock__pause">❙❙</span></div>
             <div class="kepttag">KEPT</div>
             <div class="chair__filter lc-over-video"><span class="chair__filter-i"></span><span class="chair__filter-t"></span></div>
+            <div class="chair__throw" aria-hidden="true"><span class="chair__throw-fx"></span><span class="chair__throw-badge"></span></div>
             <div class="chair__name lc-over-video">
               <span class="chair__mic" aria-hidden="true"><i></i><i></i><i></i></span>
               <span class="chair__name-t"></span>
@@ -1328,6 +1397,7 @@
             <div class="cclock"><span class="cclock__t">0:00</span><span class="cclock__pause">❙❙</span></div>
             <div class="kepttag">KEPT</div>
             <div class="chair__filter lc-over-video"><span class="chair__filter-i"></span><span class="chair__filter-t"></span></div>
+            <div class="chair__throw" aria-hidden="true"><span class="chair__throw-fx"></span><span class="chair__throw-badge"></span></div>
             <div class="chair__name lc-over-video">
               <span class="chair__mic" aria-hidden="true"><i></i><i></i><i></i></span>
               <span class="chair__name-t"></span>
@@ -1410,11 +1480,28 @@
           <button class="lc-shelf__drop" id="rt_filterdrop" style="display:none">🎭 DROP IT · free, any time</button>
           <div class="lc-shelf__foot" id="rt_shelffoot">Teal = free, no tracking.</div>
         </div>
+        <!-- THE TRAY (feat/throwables) — the crowd's cheers and jeers, risen out
+             of the 🍅 THROW button.  Four cheers, four jeers, the counts
+             remaining, and the seated men to aim at; every disabled state is
+             painted from the room (his opt-out, a live throw, the cooldown,
+             the host's switch) and the server is still the referee. -->
+        <div class="lc-shelf lc-throwtray" id="rt_throwtray" role="dialog" aria-label="Throw a cheer or a jeer">
+          <div class="lc-shelf__head">
+            <span class="lc-shelf__kicker">THROW SOMETHING</span>
+            <span style="flex:1"></span>
+            <span class="lc-shelf__meta" id="rt_throwmeta"></span>
+          </div>
+          <div class="lc-throwtray__targets" id="rt_throwtargets"></div>
+          <div class="lc-shelf__rack" id="rt_throwrack"></div>
+          <div class="lc-shelf__foot" id="rt_throwfoot">Anonymous. Lands on his tile for about ten seconds.</div>
+        </div>
         <div id="inputbar">
           <input type="text" id="rt_chatinput" placeholder="Say something…" maxlength="140" enterkeyhint="send">
           <button id="rt_chatsend" hidden>➤</button>
           <button id="rt_endshow" style="display:none">🎬 LAST CALL</button>
           <button id="rt_filterbtn" style="display:none" aria-haspopup="dialog" aria-controls="rt_shelf">🎭 FILTER</button>
+          <button id="rt_throwbtn" aria-haspopup="dialog" aria-controls="rt_throwtray">🍅 THROW</button>
+          <button id="rt_throwtoggle" title="The crowd can throw cheers and jeers at you. Tap to turn that off or on.">🍅 ON</button>
           <button id="rt_joinline">♥ TAKE A BENCH SEAT</button>
         </div>
       </div>
@@ -1677,7 +1764,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1006.1023"); }catch(e){}
+try{ console.log("[lastcall] build b1008.0916"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -3012,6 +3099,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
     setText(el.querySelector(".chair__strip-names"),"");
   }
   filterPaintTiles(chairBySeat);   // the badge: painted from the row's server-owned field, every viewer alike
+  throwPaintTiles();               // the throw overlay: from the row's server start/expiry, every viewer alike (feat/throwables)
 
   /* ---- SPOTLIGHT: the quad breaks to a two-up split.  The rivals collapse
      into ONE muted strip so nobody vanishes — first rival carries the strip,
@@ -3402,6 +3490,7 @@ function startClockTick(){
   stopClockTick();
   CLOCK_TICK=setInterval(()=>{
     if(!CURRENT_ROOM) return;   // left the room; a stale tick must not fire RPCs
+    try{ throwTick(); }catch(e){}   // a throw's expiry is a comparison, not a timer (feat/throwables)
     // the pill's section timer: label from renderRoom, countdown from the engine
     try{
       const ph=$("rt_phase");
@@ -4738,6 +4827,11 @@ $("rt_safebtn").onclick=()=>{
      says are wearing one, and it is one RPC the server alone honours */
   const wearing=AMHOST ? (st.members||[]).filter(m=>m && m.filter).map(m=>({user_id:m.user_id,
       nm:(((st.profs||{})[m.user_id])?.display_name||"someone"), look:filterLookOf(m.filter)})) : [];
+  /* and her two throwables controls (feat/throwables): the show switch, and a
+     clear for any throw the room says is live right now — each one RPC the
+     server alone honours */
+  const hit=AMHOST ? (st.members||[]).filter(m=>m && (m.role==="chair"||m.role==="kept") && (throwStateOf(m)||{}).live)
+      .map(m=>({user_id:m.user_id, nm:(((st.profs||{})[m.user_id])?.display_name||"someone"), kind:throwKindOf(m.throw_kind)})) : [];
   const overlay=document.createElement("div");
   overlay.className="modal show"; overlay.id="reportmodal"; overlay.style.zIndex="300";
   overlay.addEventListener("click",(e)=>{ if(e.target===overlay) overlay.remove(); });
@@ -4746,11 +4840,16 @@ $("rt_safebtn").onclick=()=>{
     <div id="rp_who">${people.map(p=>`<button class="fbtn ghost" data-uid="${p.user_id}" style="display:block;width:100%;margin:4px 0">${escapeHtml(p.nm)}</button>`).join("")||'<div class="emptyrole">nobody else here</div>'}</div>
     <div id="rp_why" style="display:none"></div>
     ${AMHOST?`<div id="rp_filterhead" style="margin-top:12px;font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.16em;color:#d6cdff">🎭 FORCE A FILTER OFF</div>
-    <div id="rp_filters">${wearing.map(p=>`<button class="fbtn ghost" data-uid="${p.user_id}" style="display:block;width:100%;margin:4px 0">${escapeHtml(p.nm)} · ${p.look?escapeHtml(p.look.name):escapeHtml(String(p.user_id))}</button>`).join("")||'<div class="emptyrole">nobody is wearing one</div>'}</div>`:""}
+    <div id="rp_filters">${wearing.map(p=>`<button class="fbtn ghost" data-uid="${p.user_id}" style="display:block;width:100%;margin:4px 0">${escapeHtml(p.nm)} · ${p.look?escapeHtml(p.look.name):escapeHtml(String(p.user_id))}</button>`).join("")||'<div class="emptyrole">nobody is wearing one</div>'}</div>
+    <div id="rp_throwhead" style="margin-top:12px;font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.16em;color:#d6cdff">🍅 THROWABLES</div>
+    <button class="fbtn ghost" id="rp_throwswitch" style="display:block;width:100%;margin:4px 0">${throwRoomOn()?"Turn throwables OFF for this show":"Turn throwables back ON"}</button>
+    <div id="rp_throws">${hit.map(p=>`<button class="fbtn ghost" data-uid="${p.user_id}" style="display:block;width:100%;margin:4px 0">Clear ${p.kind?escapeHtml(p.kind.emoji):""} on ${escapeHtml(p.nm)}</button>`).join("")||'<div class="emptyrole">nothing is flying</div>'}</div>`:""}
     <button class="fbtn ghost" id="rp_cancel" style="width:100%;margin-top:8px">Cancel</button></div>`;
   document.body.appendChild(overlay);
   overlay.querySelector("#rp_cancel").onclick=()=>overlay.remove();
   overlay.querySelectorAll("#rp_filters button").forEach(b=>b.onclick=async()=>{ await hostClearFilter(b.dataset.uid); overlay.remove(); });
+  const sw=overlay.querySelector("#rp_throwswitch"); if(sw) sw.onclick=async()=>{ await hostSetThrowables(!throwRoomOn()); overlay.remove(); };
+  overlay.querySelectorAll("#rp_throws button").forEach(b=>b.onclick=async()=>{ await hostClearThrow(b.dataset.uid); overlay.remove(); });
   overlay.querySelectorAll("#rp_who button").forEach(b=>b.onclick=()=>{
     const uid=b.dataset.uid;
     const why=overlay.querySelector("#rp_why");
@@ -5652,6 +5751,9 @@ function subscribeRoom(roomId){
       // the filter columns fold synchronously (feat/filter-rules) — the
       // forced drop must land on this client no later than the ask does
       if(payload && payload.eventType==="UPDATE") filterFoldMemberRow(payload.new);
+      // the throw columns fold the same way (feat/throwables): the ASK's wipe
+      // rides the same member statement as the filter clear, and lands first
+      if(payload && payload.eventType==="UPDATE") throwFoldMemberRow(payload.new);
       loadRoomState();
     })
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"room_events",filter:"room_id=eq."+roomId},(payload)=>{
@@ -5792,6 +5894,7 @@ $("rt_joinline").onclick=async()=>{
 };
 function updateJoinBtn(){
   filterPaintComposer();   // 🎭 FILTER shares the composer; painted on every path below
+  throwPaintComposer();    // 🍅 THROW / the seat's switch share it too (feat/throwables)
   const btn=$("rt_joinline"), end=$("rt_endshow");
   // HER verb is ASK, and it lives in the composer — not floating over the video.
   if(AMHOST){
@@ -6900,6 +7003,308 @@ $("rt_filterbtn").onclick=()=>{
   if(opening) camkitTermsEarly();
 };
 $("rt_filterdrop").onclick=()=>{ filterDrop(); };
+
+/* ============================================================================
+   THROWABLES (feat/throwables) — cheers and jeers the crowd throws at a seated
+   man.  SOURCE: tools/DESIGN-throwables-and-mask.md (the ruling); the server
+   side is tools/DESIGN-throwables-server.md (PENDING PRODUCTION DDL; the
+   local double models the same rejections).
+
+   THE SHAPE.  A throw is TARGET-ROW state, server-owned, on room_members:
+     throwables_on   his opt-in (default on)
+     throw_kind      what landed (one of the eight below)
+     throw_at        server start
+     throw_until     server expiry — a WIPE is throw_until = now()
+   and rooms.throwables_on is the host's show switch.  Live means
+   serverNow() < throw_until; cooldown means serverNow() < throw_until + 20s.
+   Nothing here is a timer: the overlay is painted from those two stamps on
+   every render and every clock tick, so a late joiner sees the time that is
+   left and a phone whose clock is wrong is corrected by SERVER_OFFSET.
+   Five doors, all RPCs:
+     throw_at(target, kind)      the crowd only — returns the thrower's counts
+     throw_counts()              my own remaining rations (the tray's numbers)
+     set_throwables(on)          my opt-in; off wipes what is on me
+     host_clear_throw(uid)       the host, any chair, any time
+     host_set_throwables(on)     the host's switch; off wipes every live throw
+   and ask_question / leaving the chair wipe inside the server.
+   THE CLIENT OBSERVES.  It never writes a throw column (gate 80 block G
+   proves the server refuses it even if it tried), never decides a throw is
+   over on its own authority, and never touches his camera, his track or the
+   filter pipeline: the overlay is a DOM layer over the tile.
+   THE THROWER IS ANONYMOUS: his id lives in a server-only ledger; the row
+   that reaches this client carries no thrower, and the feed line names none.
+   ========================================================================= */
+/* the set (ruling: curated, closed, silly never degrading) and the numbers —
+   the PR's proposed defaults in ONE object.  The server's throw_limits() is
+   the referee; throw_counts() carries it and overwrites the numbers here. */
+const THROWABLES={
+  live_secs:10, cooldown_secs:20, cheers:5, jeers:2,
+  kinds:[
+    { id:"petals",   cls:"cheer", emoji:"🌹", name:"Rose petals" },
+    { id:"hearts",   cls:"cheer", emoji:"💗", name:"Heart burst" },
+    { id:"confetti", cls:"cheer", emoji:"🎉", name:"Confetti" },
+    { id:"sparkle",  cls:"cheer", emoji:"✨", name:"Sparkle" },
+    { id:"tomato",   cls:"jeer",  emoji:"🍅", name:"Tomato" },
+    { id:"pie",      cls:"jeer",  emoji:"🥧", name:"Cream pie" },
+    { id:"boo",      cls:"jeer",  emoji:"☁️", name:"Boo cloud" },
+    { id:"cricket",  cls:"jeer",  emoji:"🦗", name:"Cricket" }
+  ]
+};
+function throwKindOf(id){ return THROWABLES.kinds.find(k=>k.id===id)||null; }
+let THROW_COUNTS=null;      // {cheers_left, jeers_left} — MINE, from the server; null until read
+let THROW_COUNTS_SYNC=null; // one read in flight at a time
+let THROW_TARGET=null;      // the crowd's picked target (uid)
+const THROW_SEEN={};        // uid -> throw_at already announced in the feed (one line per throw)
+/* what the ROOM says about one man's tile — read straight off his row and
+   the server clock, nothing local mixed in */
+function throwStateOf(m){
+  if(!m) return null;
+  const until=m.throw_until?Date.parse(m.throw_until):null, at=m.throw_at?Date.parse(m.throw_at):null;
+  const now=serverNow();
+  const live=until!=null && now<until;
+  const cooling=until!=null && !live && now<until+THROWABLES.cooldown_secs*1000;
+  const paired=!!(CURRENT_ROOM && (CURRENT_ROOM.moment_a===m.user_id || CURRENT_ROOM.moment_b===m.user_id));
+  return { kind:m.throw_kind||null, at, until, live, cooling, paired, on:m.throwables_on!==false,
+           remainingMs: live?(until-now):0, elapsedMs:(live && at!=null)?Math.max(0,now-at):0 };
+}
+function throwRoom(){
+  const out={};
+  for(const m of ((ROOM_STATE&&ROOM_STATE.members)||[])){
+    if(!m || !(m.role==="chair"||m.role==="kept")) continue;
+    out[m.user_id]=throwStateOf(m);
+  }
+  return out;
+}
+function throwRoomOn(){ return !!(CURRENT_ROOM && CURRENT_ROOM.throwables_on!==false); }
+/* why a target can't be hit right now, in the tray's words — or null */
+function throwBlockedWhy(st){
+  if(!throwRoomOn()) return "OFF FOR THE SHOW";
+  if(!st) return "NOBODY";
+  if(!st.on) return "OPTED OUT";
+  if(st.paired) return "THE MOMENT";
+  if(st.live) return "HIT";
+  if(st.cooling) return "COOLING";
+  return null;
+}
+
+/* ---- the verbs — each is one RPC; the rejection is the SERVER's, shown as said ---- */
+async function throwAt(uid, kind){
+  if(!CURRENT_ROOM) return { ok:false, error:"no room" };
+  const {data,error}=await sb.rpc("throw_at",{room_id:CURRENT_ROOM.id,target:uid,kind});
+  if(error){ toast("Didn't land: "+error.message); throwPaintTray(); return { ok:false, error:error.message }; }
+  if(data && data.cheers_left!=null) THROW_COUNTS={ cheers_left:data.cheers_left, jeers_left:data.jeers_left };
+  throwPaintTray();
+  loadRoomState();
+  return { ok:true, ...(data||{}) };
+}
+async function throwCountsSync(){
+  if(!CURRENT_ROOM || !ME) return null;
+  if(THROW_COUNTS_SYNC) return THROW_COUNTS_SYNC;
+  THROW_COUNTS_SYNC=(async()=>{
+    try{
+      const {data,error}=await sb.rpc("throw_counts",{room_id:CURRENT_ROOM.id});
+      if(error || !data) return null;
+      THROW_COUNTS={ cheers_left:data.cheers_left, jeers_left:data.jeers_left };
+      if(data.limits){ for(const k of ["live_secs","cooldown_secs","cheers","jeers"]) if(data.limits[k]!=null) THROWABLES[k]=data.limits[k]; }
+      throwPaintTray();
+      return THROW_COUNTS;
+    } finally { THROW_COUNTS_SYNC=null; }
+  })();
+  return THROW_COUNTS_SYNC;
+}
+async function setThrowables(on){
+  if(!CURRENT_ROOM) return { ok:false, error:"no room" };
+  const {error}=await sb.rpc("set_throwables",{room_id:CURRENT_ROOM.id,on:!!on});
+  if(error){ toast("Couldn't change that: "+error.message); return { ok:false, error:error.message }; }
+  loadRoomState();
+  return { ok:true };
+}
+async function hostClearThrow(uid){
+  if(!CURRENT_ROOM) return { ok:false, error:"no room" };
+  const {error}=await sb.rpc("host_clear_throw",{room_id:CURRENT_ROOM.id,user_id:uid});
+  if(error){ toast("Couldn't clear it: "+error.message); return { ok:false, error:error.message }; }
+  loadRoomState();
+  return { ok:true };
+}
+async function hostSetThrowables(on){
+  if(!CURRENT_ROOM) return { ok:false, error:"no room" };
+  const {error}=await sb.rpc("host_set_throwables",{room_id:CURRENT_ROOM.id,on:!!on});
+  if(error){ toast("Couldn't switch that: "+error.message); return { ok:false, error:error.message }; }
+  loadRoomState();
+  return { ok:true };
+}
+
+/* a room_members realtime row lands here BEFORE the roster refetch, like the
+   filter columns: the four throw columns fold onto the local row
+   synchronously, so the ask's wipe (same member statement as its filter
+   clear) is on this client before the rooms row that says he is asked.
+   Observation of a server row — nothing here sets a value the server did
+   not send. */
+function throwFoldMemberRow(row){
+  if(!row || !CURRENT_ROOM || row.room_id!==CURRENT_ROOM.id) return;
+  if(!("throw_until" in row) && !("throwables_on" in row)) return;
+  const m=filterRowOf(row.user_id);
+  if(!m) return;
+  const next={ throw_until:row.throw_until??null, throw_at:row.throw_at??null, throw_kind:row.throw_kind??null, throwables_on:row.throwables_on!==false };
+  const changed=(m.throw_until??null)!==next.throw_until || (m.throw_at??null)!==next.throw_at
+             || (m.throw_kind??null)!==next.throw_kind || (m.throwables_on!==false)!==next.throwables_on;
+  Object.assign(m,next);
+  if(!changed) return;
+  throwPaintTiles();
+  throwPaintComposer();
+}
+
+/* ---- painters ---- */
+/* placeholder art, one fragment per kind (emoji + the keyframes above).
+   Lanes and directions are fixed in CSS, so every device draws the same
+   picture; nothing here looks at his face or his frame. */
+function throwFxHtml(k){
+  const n=(c,cls,em)=>Array.from({length:c},()=>`<i class="${cls}">${em}</i>`).join("");
+  switch(k.id){
+    case "tomato": case "pie": return `<i class="fx-splat">${k.emoji}</i>`;
+    case "petals": case "confetti": return n(8,"fx-fall",k.emoji);
+    case "hearts": return n(5,"fx-burst",k.emoji);
+    case "sparkle": return n(6,"fx-twinkle",k.emoji);
+    case "boo": return n(3,"fx-cloud",k.emoji)+`<i class="fx-boo">BOO</i>`;
+    case "cricket": return `<i class="fx-hop">${k.emoji}</i>`;
+    default: return `<i class="fx-splat">${k.emoji}</i>`;
+  }
+}
+/* the overlay on each seat: on, with its kind, exactly while the ROOM says a
+   throw is live on that man; the animation is rewound by the elapsed server
+   time so a late joiner (or a reload) sees only what is left */
+function throwPaintTiles(){
+  for(let i=0;i<3;i++){
+    const el=$("rt_seat"+i); if(!el) continue;
+    const uid=el.dataset.heartuid||null;
+    const m=uid?filterRowOf(uid):null;
+    const st=m?throwStateOf(m):null;
+    const k=(st && st.live && st.kind)?throwKindOf(st.kind):null;
+    const live=!!k;
+    const ov=el.querySelector(".chair__throw");
+    const key=live?(uid+"@"+st.at):"";
+    if(ov && ov.dataset.key!==key){
+      ov.dataset.key=key;
+      const fx=ov.querySelector(".chair__throw-fx"), badge=ov.querySelector(".chair__throw-badge");
+      if(live){
+        ov.style.setProperty("--throw-secs", Math.max(1,Math.round((st.until-st.at)/1000))+"s");
+        fx.innerHTML=throwFxHtml(k);
+        fx.querySelectorAll("i").forEach(s=>{ s.style.animationDelay=(-Math.round(st.elapsedMs))+"ms"; });
+        badge.textContent=k.emoji;
+        if(THROW_SEEN[uid]!==st.at){   // the feed: its emoji and cheer/jeer, no name — once per throw
+          THROW_SEEN[uid]=st.at;
+          addFeedLine(`${k.emoji} a ${k.cls} landed`, k.cls==="cheer"?"gold":"cool");
+        }
+      } else { fx.innerHTML=""; badge.textContent=""; }
+    }
+    el.classList.toggle("has-throw", live);
+    el.classList.toggle("has-throw--cheer", live && k.cls==="cheer");
+    el.classList.toggle("has-throw--jeer", live && k.cls==="jeer");
+    el.classList.toggle("throw-cooling", !!(st && st.cooling));
+    el.classList.toggle("throw-off", !!(st && !st.on));
+    if(el.dataset.throw!==(live?k.id:"")) el.dataset.throw=live?k.id:"";
+  }
+}
+function throwTrayOpen(on){
+  const tr=$("rt_throwtray"), b=$("rt_throwbtn");
+  if(tr) tr.classList.toggle("is-open", !!on);
+  if(b) b.classList.toggle("is-open", !!on);
+  if(on) throwPaintTray();
+}
+function throwPaintTray(){
+  const tr=$("rt_throwtray"); if(!tr) return;
+  const seated=((ROOM_STATE&&ROOM_STATE.members)||[]).filter(m=>m && (m.role==="chair"||m.role==="kept"))
+    .sort((a,b)=>(a.seat_index||0)-(b.seat_index||0));
+  const profs=(ROOM_STATE&&ROOM_STATE.profs)||{};
+  const roomOn=throwRoomOn();
+  tr.classList.toggle("is-blocked", !roomOn);
+  const meta=$("rt_throwmeta");
+  if(meta){
+    const c=THROW_COUNTS;
+    meta.textContent = !roomOn ? "THE HOST TURNED THROWABLES OFF"
+      : c ? `${c.cheers_left} CHEER${c.cheers_left===1?"":"S"} · ${c.jeers_left} JEER${c.jeers_left===1?"":"S"} LEFT` : "…";
+  }
+  // targets
+  if(!seated.some(m=>m.user_id===THROW_TARGET)) THROW_TARGET=null;
+  if(!THROW_TARGET){ const first=seated.find(m=>!throwBlockedWhy(throwStateOf(m)))||seated[0]; THROW_TARGET=first?first.user_id:null; }
+  const tg=$("rt_throwtargets");
+  if(tg){
+    tg.innerHTML = seated.length ? seated.map(m=>{
+      const why=throwBlockedWhy(throwStateOf(m));
+      const nm=(profs[m.user_id]||{}).display_name||"someone";
+      return `<button type="button" class="lc-throwtray__target${m.user_id===THROW_TARGET?" is-picked":""}${why?" is-blocked":""}" data-uid="${escapeHtml(m.user_id)}">${escapeHtml(nm)}<small>${why||("SEAT "+((m.seat_index||0)+1))}</small></button>`;
+    }).join("") : '<div class="emptyrole">nobody in a chair yet</div>';
+    tg.querySelectorAll(".lc-throwtray__target").forEach(b=>b.onclick=()=>{ THROW_TARGET=b.dataset.uid; throwPaintTray(); });
+  }
+  // the rack
+  const rack=$("rt_throwrack");
+  if(rack){
+    if(!rack.dataset.sig){
+      rack.dataset.sig="1";
+      rack.innerHTML=THROWABLES.kinds.map(k=>`<button class="lc-shelf__tile${k.cls==="jeer"?" is-jeer":""}" data-kind="${k.id}" type="button"><span class="lc-shelf__icon">${k.emoji}</span><span class="lc-shelf__name">${escapeHtml(k.name)}</span><span class="lc-shelf__cost"></span></button>`).join("");
+      rack.querySelectorAll(".lc-shelf__tile").forEach(t=>t.onclick=()=>{
+        const k=throwKindOf(t.dataset.kind); if(!k) return;
+        if(!throwRoomOn()){ toast("The host turned throwables off."); return; }
+        const tgt=THROW_TARGET ? seatedRowOf(THROW_TARGET) : null;
+        const why=throwBlockedWhy(throwStateOf(tgt));
+        if(!tgt){ toast("Pick someone in a chair."); return; }
+        if(why){ toast("Not right now: "+why.toLowerCase()+"."); return; }
+        if(THROW_COUNTS && (k.cls==="cheer"?THROW_COUNTS.cheers_left:THROW_COUNTS.jeers_left)<=0){ toast("No "+k.cls+"s left this show."); return; }
+        throwAt(THROW_TARGET, k.id);
+      });
+    }
+    const c=THROW_COUNTS;
+    rack.querySelectorAll(".lc-shelf__tile").forEach(t=>{
+      const k=throwKindOf(t.dataset.kind);
+      const left=c ? (k.cls==="cheer"?c.cheers_left:c.jeers_left) : null;
+      const cost=t.querySelector(".lc-shelf__cost");
+      if(cost) cost.textContent = left==null ? (k.cls==="cheer"?"CHEER":"JEER") : `${k.cls==="cheer"?"CHEER":"JEER"} ×${left}`;
+      t.classList.toggle("is-spent", left!=null && left<=0);
+    });
+  }
+  const foot=$("rt_throwfoot");
+  if(foot) foot.textContent=`Anonymous. Lands on his tile for about ${THROWABLES.live_secs} seconds. ${THROWABLES.cheers} cheers and ${THROWABLES.jeers} jeers per show.`;
+}
+function seatedRowOf(uid){ const m=filterRowOf(uid); return (m && (m.role==="chair"||m.role==="kept"))?m:null; }
+/* the composer: 🍅 THROW for the crowd (a spectator row — not the host, not
+   seated, not benched, not passed); the switch for a man with a seat or a
+   bench place (default on, said plainly the first time) */
+function throwPaintComposer(){
+  const b=$("rt_throwbtn"), tog=$("rt_throwtoggle"); if(!b || !tog) return;
+  const me=(!AMHOST && ME && CURRENT_ROOM) ? filterRowOf(ME.id) : null;
+  const crowd=!!(me && me.role==="spectator" && !I_WAS_PASSED);
+  const seatedish=!!(me && (me.role==="chair"||me.role==="kept"||me.role==="line") && !I_WAS_PASSED);
+  b.style.display=crowd?"flex":"none";
+  if(!crowd) throwTrayOpen(false); else { if(THROW_COUNTS==null) throwCountsSync(); throwPaintTray(); }
+  tog.style.display=seatedish?"flex":"none";
+  if(seatedish){
+    const on=me.throwables_on!==false;
+    tog.textContent=on?"🍅 ON":"🚫 OFF";
+    tog.classList.toggle("is-off", !on);
+    tog.setAttribute("aria-pressed", on?"true":"false");
+    if((me.role==="chair"||me.role==="kept") && on && !window.__THROW_TOLD){
+      window.__THROW_TOLD=true;   // the opt-in, stated plainly, once, at the seat
+      toast("The crowd can throw cheers and jeers at you. Tap 🍅 to turn that off.");
+    }
+  }
+}
+/* every clock tick: a throw ends when the server's expiry passes — a
+   comparison on the next beat, never a timer set when it landed */
+function throwTick(){
+  throwPaintTiles();
+  const tr=$("rt_throwtray");
+  if(tr && tr.classList.contains("is-open")) throwPaintTray();
+}
+$("rt_throwbtn").onclick=()=>{
+  const tr=$("rt_throwtray");
+  const opening=!(tr && tr.classList.contains("is-open"));
+  if(opening) filterShelfOpen(false);
+  throwTrayOpen(opening);
+};
+$("rt_throwtoggle").onclick=()=>{
+  const me=ME?filterRowOf(ME.id):null; if(!me) return;
+  setThrowables(me.throwables_on===false);
+};
 /* the app's OWN publish switch: byUser attribution stays truthful — every
    programmatic off is recorded here, so diagnostics can say "off (by the
    app)" instead of blaming a user who touched nothing (audit F6). */
@@ -7500,7 +7905,7 @@ window.__lc = {
   get HOST_STALE_MS(){ return HOST_STALE_MS; },
   get STALE_RESUME(){ return STALE_RESUME; },
   startHeartbeat, stopHeartbeat, startHostPoll, stopHostPoll,
-  startClockTick, stopClockTick, serverNow,
+  startClockTick, stopClockTick, serverNow, syncServerClock,
   /* finale */
   showLastCall, confirmWinner, endShow, renderFinale, enterPhotoWait,
   /* backstage (wave 5/6) — decision/swap layer + call-truth presence,
@@ -7548,6 +7953,18 @@ window.__lc = {
      rows), FILTER_STATE is what the PIPELINE says (this client); the
      reconciler is the one thing that makes the second follow the first. */
   filterPick, filterDrop, hostClearFilter, filterReconcile,
+  /* throwables (feat/throwables) — the five verbs are the client's only
+     doors and each is one RPC; THROW_ROOM is what the ROOM says per seated
+     man (kind / live / cooling / on, from his row and the server clock);
+     THROW_COUNTS is MY rations as the server last said; THROWABLES is the
+     live config object (the set + the numbers, overwritten by the server's
+     throw_limits via throw_counts). */
+  throwAt, setThrowables, hostClearThrow, hostSetThrowables, throwCountsSync, throwPaintTiles, throwTick, throwTrayOpen,
+  get THROW_ROOM(){ return throwRoom(); },
+  get THROW_COUNTS(){ return THROW_COUNTS ? { ...THROW_COUNTS } : null; },
+  get THROW_TARGET(){ return THROW_TARGET; },
+  get THROWABLES(){ return THROWABLES; },
+  get SERVER_OFFSET(){ return SERVER_OFFSET; },
   get FILTER_LOOKS(){ return filterLooks().map(l=>({...l})); },
   /* Camera Kit (feat/camera-kit) — CAMKIT is the LIVE config object (null
      token = inert; gates configure it, never reimplement it), CAMKIT_FLAG is

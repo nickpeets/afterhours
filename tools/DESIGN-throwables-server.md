@@ -35,7 +35,7 @@ it has run, the read-back goes under "Run log" and the STATUS line changes.
   from those through `serverNow()`.  The double's `clockSkew` is what the
   30-second gate drives.
 
-## rooms.round — READ THIS BEFORE THE SHIELD (Nick #3)
+## rooms.round, and the shield (Nick #3) — NOT IN THIS PR
 
 Nick's rule: a shield lasts until `rooms.round` next changes, *if* production
 doesn't bump it on every ask.  **It does.**  SOURCE, `ask_question` read back
@@ -54,12 +54,12 @@ exists in production (`ask_question` emits `v_r.cycle`) but nothing in this
 repo reads or writes it and its meaning is unread.
 
 So "until `rooms.round` next changes" would mean "until the next ask of
-anybody", which is probably one question's worth of immunity.  The shield is
-**held**: no column, no function, no check in `throw_at`, until Nick rules
-which of these it should be — the next ask (`round + 1`), a fixed number of
-asks, the rest of the show, or a server-side cycle that would have to be
-built first.  Adding it later is one nullable column, one host function and
-one `if` in `throw_at`, in a second md5-guarded run.
+anybody", which is probably one question's worth of immunity.  **Nick's
+ruling (2026-10-08): launch without the shield.**  It is not in this PR: no
+column, no function, no check in `throw_at`, nothing in the client.  When it
+is wanted, it is one nullable column, one host function and one `if` in
+`throw_at`, in a second md5-guarded run, after a ruling on what "a round"
+means on the server.
 
 ## How room_members and rooms are writable today (the added rule)
 
@@ -117,7 +117,9 @@ carries the member row with the four columns and NO thrower on it.
 ## The doors (rejection order is the contract; the double keeps it)
 
 - `throw_at(room_id, target, kind)` → `{ok, kind, cls, at, until, cheers_left,
-  jeers_left}`.  Order: not authenticated → no room → no such throw → the host
+  jeers_left}`.  The THROWER's own row is `select … for update` first (Nick,
+  2026-10-08): two of his throws arriving at once serialise on it, so the
+  second counts the ledger after the first committed and his ration holds.  Order: not authenticated → no room → no such throw → the host
   does not throw → not a member of this room → only the crowd throws →
   throwables are off for this show → no such member → target is not in a
   chair → he has throwables off → a throw is already live → cooling down →
@@ -359,7 +361,8 @@ begin
   if v_cls is null then raise exception 'no such throw'; end if;
   if v_room.host_id = v_uid then raise exception 'the host does not throw'; end if;
   select * into v_me from room_members m
-    where m.room_id = throw_at.room_id and m.user_id = v_uid;
+    where m.room_id = throw_at.room_id and m.user_id = v_uid
+    for update;                                  -- one ration per thrower: two of his throws can't race past it
   if not found or v_me.role = 'gone' then raise exception 'not a member of this room'; end if;
   if v_me.role <> 'spectator' then raise exception 'only the crowd throws'; end if;
   if not v_room.throwables_on then raise exception 'throwables are off for this show'; end if;
@@ -618,11 +621,19 @@ the dry run substituted that md5 into the guard and nothing else.
 - running the change a SECOND time: `ERROR: ask_question is not the
   2026-09-28 read-back (2597 chars, md5 9c02d285…) - nothing changed; re-read
   it first`, from the pre-check, before any DDL.
+- CONCURRENCY (the 2026-10-08 fix: the thrower's row is locked `for update`
+  before his ration is counted).  Eight `psql` processes at once, one
+  thrower with a ration of 2 jeers, eight different chairs: exactly 2 `{"ok":
+  true}` and 6 `no jeers left this show`, 2 ledger rows, 2 live throws — the
+  same on every run (three runs).  Eight simultaneous cheers (ration 5): 5
+  land, 3 refused.  (Before the lock, each concurrent call could count the
+  ledger before the others committed and all eight could land.)
 - read-back: ten functions, owner `postgres`; the five RPCs `prosecdef t` with
   ACL `{=X/postgres,postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}`
   (the 09-28 shape, no `anon`); `throw_ledger` has no `anon` / `authenticated`
   grant.  Stand-in md5s (NOT production's): throw_at
-  9a9246f9fce9df3f214641a52573c9e7 / 3008 chars, throw_counts
+  2d89b8e0fff960634f280523015ed916 / 3120 chars (with the thrower lock;
+  9a9246f9fce9df3f214641a52573c9e7 / 3008 before it), throw_counts
   f0ffefea3d7d29aaf60360bb595c149f / 754, set_throwables
   474979fb246ea2263c17a3d172d88a15 / 824, host_clear_throw
   c2d049acff03ff73b258d964039b0411 / 935, host_set_throwables

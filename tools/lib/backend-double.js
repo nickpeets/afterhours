@@ -83,6 +83,24 @@ const SWEEP_MS = 180_000;   // sweep_stale_members: now() - interval '3 minutes'
    teal one. */
 const FILTER_LOOKS = ["grade", "noir", "ck-objects", "ck-express"];
 
+/* THROWABLES (feat/throwables, step 2) — the SERVER's numbers and set,
+   MIRRORING THE DDL in tools/DESIGN-throwables-server.md (its STATUS line
+   says whether production has run it; until then this is a model of DDL
+   that has not run, and gate 80 says so).  throw_limits() on the server is
+   the one place the numbers live; THROW_LIMITS is its copy.  Deliberately
+   NOT imported from index.html — the double is the server's copy, and a
+   gate that watches the two disagree is a gate doing its job.
+   The set is the ruling's eight (DESIGN-throwables-and-mask.md "The set");
+   cls is DERIVED from kind (throw_class), never stored on the member row. */
+const THROW_LIMITS = { cheers: 5, jeers: 2, live_secs: 10, cooldown_secs: 20 };
+const THROW_KINDS = { petals: "cheer", hearts: "cheer", confetti: "cheer", sparkle: "cheer",
+                      tomato: "jeer", pie: "jeer", boo: "jeer", cricket: "jeer" };
+const THROW_COLS = ["throwables_on", "throw_kind", "throw_at", "throw_until"];
+/* the guard trigger's one message (room_members_throw_guard) and the rooms
+   one (rooms_throwables_guard) — what a DIRECT client write gets back */
+const THROW_GUARD_MSG = "throw state changes only through throw_at, set_throwables and host_clear_throw";
+const ROOMS_THROW_GUARD_MSG = "throwables_on changes only through host_set_throwables";
+
 let _seq = 1;
 const nid = (p) => p + "_" + (_seq++).toString(36).padStart(6, "0");
 
@@ -113,6 +131,12 @@ class BackendDouble {
        server that does not exist, and says so; without the call an unlisted
        slug is rejected here exactly the way production rejects it. */
     this.filterLooks = FILTER_LOOKS.slice();
+    /* THROWABLES: the ledger (throw_ledger) — rations and the thrower's
+       identity.  Server-only: table() refuses to read it for ANY client, it
+       is never emitted over realtime, and only throw_at writes it.  A gate
+       that wants to see who threw reads it HERE, off the double in Node —
+       exactly as production's service role could and a member never can. */
+    this.throwLedger = [];
   }
   allowFilterLook(name) { if (!this.filterLooks.includes(name)) this.filterLooks.push(name); return this.filterLooks.slice(); }
 
@@ -137,6 +161,7 @@ class BackendDouble {
       status, phase, round, spotlight_target: null, phase_deadline: null,
       winner_id: null, created_at: this.iso(), host_seen_at: this.iso(),
       moment_a: null, moment_b: null,   // the Moment seam — see start_moment
+      throwables_on: true,              // THROWABLES: the host's show switch (rooms.throwables_on, default true)
     });
     return id;
   }
@@ -203,9 +228,58 @@ class BackendDouble {
          and it leaves the door open for the design's "resumes after the
          moment" note without a schema change (not built — see the doc). */
       filter: null, filter_pick: null,
+      /* THROWABLES (feat/throwables, step 2).  Four server-owned columns on
+         the TARGET's row, PENDING PRODUCTION DDL (tools/
+         DESIGN-throwables-server.md):
+           throwables_on  his opt-in (default true; off = nobody can hit him)
+           throw_kind     what landed last (one of THROW_KINDS)
+           throw_at       server start
+           throw_until    server expiry.  A WIPE is throw_until = now():
+                          live = now < throw_until; cooldown = now <
+                          throw_until + 20s.  No timers anywhere.
+         The thrower is NOT here — he is in throwLedger, server-only. */
+      throwables_on: true, throw_kind: null, throw_at: null, throw_until: null,
     };
     this.members.push(row);
     return row;
+  }
+  /* ---------- THROWABLES helpers (mirror the DDL; every one labelled) ---------- */
+  /* the wipe: throw_until := now() ONLY if a throw is live — a wipe with
+     nothing live changes nothing, so it can never shorten a cooldown
+     (host_clear_throw / set_throwables / host_set_throwables / ask_question
+     all write `where throw_until > now()` or the equivalent case) */
+  wipeThrow(row) {
+    if (!row || row.throw_until == null) return false;
+    if (Date.parse(row.throw_until) <= this.now()) return false;
+    row.throw_until = this.iso();
+    return true;
+  }
+  throwLive(row) { return !!(row && row.throw_until != null && this.now() < Date.parse(row.throw_until)); }
+  throwCooling(row) {
+    return !!(row && row.throw_until != null && !this.throwLive(row) &&
+      this.now() < Date.parse(row.throw_until) + THROW_LIMITS.cooldown_secs * 1000);
+  }
+  /* the caller's OWN remaining rations — the ledger's only read path, and it
+     is keyed to (room, user), never the membership row (leave+rejoin keeps it) */
+  throwCounts(room_id, uid) {
+    let cheers = 0, jeers = 0;
+    for (const l of this.throwLedger) {
+      if (l.room_id !== room_id || l.thrower_id !== uid) continue;
+      if (l.cls === "cheer") cheers++; else jeers++;
+    }
+    return { cheers_left: THROW_LIMITS.cheers - cheers, jeers_left: THROW_LIMITS.jeers - jeers };
+  }
+  /* THE ONE role writer.  Mirrors trigger room_members_throw_guard's wipe
+     half: a row whose role leaves chair/kept loses its live throw the same
+     instant, whoever moved it (seat / keep / pass / timeout / sweep /
+     step_down / decide_* / join_line all come through here).  chair→kept is
+     NOT a wipe — kept is a target (Nick #1). */
+  setRole(row, role, seat_index) {
+    const wasSeated = row.role === "chair" || row.role === "kept";
+    const nowSeated = role === "chair" || role === "kept";
+    row.role = role;
+    if (seat_index !== undefined) row.seat_index = seat_index;
+    if (wasSeated && !nowSeated) this.wipeThrow(row);
   }
   /* the ONE server-side clear, used by every path that strips a filter:
      drop_filter, host_clear_filter, ask_question, start_moment.  Emits the
@@ -441,7 +515,7 @@ class BackendDouble {
            propagated — "back of the queue" went out as a finding on the
            strength of this comment before the server was ever read. */
         const prevRole = row.role, prevPos = row.line_position;
-        row.role = "line"; row.last_seen = this.iso();
+        this.setRole(row, "line"); row.last_seen = this.iso();
         row.line_position = (prevRole === "line" && prevPos != null)
           ? prevPos
           : this.nextLinePosition();
@@ -477,7 +551,7 @@ class BackendDouble {
         for (const m of this.members) {
           if (m.room_id === a.room_id && m.role !== "gone" && m.role !== "kept" &&
               Date.parse(m.last_seen) < cutoff) {
-            m.role = "gone";
+            this.setRole(m, "gone");
             this.emit("room_members", "UPDATE", { ...m });
           }
         }
@@ -486,7 +560,7 @@ class BackendDouble {
       case "seat_member": {
         const row = this.memberRow(a.room_id, a.user_id);
         if (!row) throw new Error("no such member");
-        row.role = "chair"; row.seat_index = a.seat_index; row.last_seen = this.iso();
+        this.setRole(row, "chair", a.seat_index); row.last_seen = this.iso();
         this.pushEvent(a.room_id, uid, "seat", { target_user: a.user_id, seat: a.seat_index });
         this.emit("room_members", "UPDATE", { ...row });
         return null;
@@ -494,7 +568,7 @@ class BackendDouble {
       case "keep_member": {
         const row = this.memberRow(a.room_id, a.user_id);
         if (!row) throw new Error("no such member");
-        row.role = "kept";
+        this.setRole(row, "kept");
         this.pushEvent(a.room_id, uid, "keep", { target_user: a.user_id });
         this.emit("room_members", "UPDATE", { ...row });
         return null;
@@ -502,14 +576,14 @@ class BackendDouble {
       case "pass_member": {
         const row = this.memberRow(a.room_id, a.user_id);
         if (!row) throw new Error("no such member");
-        row.role = "spectator"; row.seat_index = null;
+        this.setRole(row, "spectator", null);
         this.pushEvent(a.room_id, uid, "pass", { target_user: a.user_id });
         this.emit("room_members", "UPDATE", { ...row });
         return null;
       }
       case "timeout_member": {
         const row = this.memberRow(a.room_id, a.user_id);
-        if (row) { row.role = "spectator"; row.seat_index = null; this.pushEvent(a.room_id, uid, "timeout", { target_user: a.user_id }); this.emit("room_members", "UPDATE", { ...row }); }
+        if (row) { this.setRole(row, "spectator", null); this.pushEvent(a.room_id, uid, "timeout", { target_user: a.user_id }); this.emit("room_members", "UPDATE", { ...row }); }
         return null;
       }
       case "start_show": return this.setPhase(a.room_id, "showstart", 20);
@@ -611,8 +685,7 @@ class BackendDouble {
         if (!row) throw new Error("no such member");
         const r = this.rooms.get(a.room_id);
         const passed = !!(r && r.phase === "spotlight" && r.spotlight_target === uid);
-        row.role = passed ? "gone" : "spectator";
-        row.seat_index = null;
+        this.setRole(row, passed ? "gone" : "spectator", null);
         this.pushEvent(a.room_id, uid, passed ? "pass" : "stepdown",
           { target_user: uid, actor: "self", source: "step_down", was_spotlight: passed });
         this.emit("room_members", "UPDATE", { ...row });
@@ -633,7 +706,7 @@ class BackendDouble {
         // engine-mode self-seat: claimant takes the named seat
         const row = this.memberRow(a.room_id, uid);
         if (!row) throw new Error("no such member");
-        row.role = "chair"; row.seat_index = a.seat_index ?? 0;
+        this.setRole(row, "chair", a.seat_index ?? 0);
         this.emit("room_members", "UPDATE", { ...row });
         return null;
       }
@@ -657,7 +730,17 @@ class BackendDouble {
            transaction in production (DESIGN-filter-rules.md), same
            statement here.  Never a separate step, never the client's call:
            a double that let the client clear it would prove nothing. */
-        this.clearFilterRow(a.room_id, a.target);
+        /* THROWABLES: the ASK wipe rides the SAME member statement as the
+           filter clear (DDL 1l splices `throw_until = case … now()` onto
+           `set filter = null`), so it lands on every client BEFORE the rooms
+           row that says he is asked.  One emit for both: clearFilterRow emits
+           only when the filter changed, so the wipe emits itself if not. */
+        {
+          const tr = this.memberRow(a.room_id, a.target);
+          const wiped = this.wipeThrow(tr);
+          const filtered = this.clearFilterRow(a.room_id, a.target);
+          if (wiped && !filtered) this.emit("room_members", "UPDATE", { ...tr });
+        }
         this.emit("rooms", "UPDATE", { ...r });
         // prod engine_emit parity (8/9): the spotlight event carries the
         // question text and the answer deadline, so EVERY role paints the
@@ -746,8 +829,16 @@ class BackendDouble {
         /* both member fields (where a member row exists) clear INSIDE the
            pairing, then the rooms row carries the pair — one update, no
            beat where paired && filtered can be observed */
-        this.clearFilterRow(a.room_id, uid);
-        this.clearFilterRow(a.room_id, other);
+        /* THROWABLES, DOUBLE ONLY (no production counterpart — the ruling's
+           "The Moment wipes throws on both faces" is modelled here so the
+           client path is proven; the DDL carries NO moment check, as
+           DESIGN-filter-rules.md divergence 1 already records for filters) */
+        for (const who of [uid, other]) {
+          const mr = this.memberRow(a.room_id, who);
+          const wiped = this.wipeThrow(mr);
+          const filtered = this.clearFilterRow(a.room_id, who);
+          if (wiped && !filtered) this.emit("room_members", "UPDATE", { ...mr });
+        }
         this.emit("rooms", "UPDATE", { ...r });
         return { ok: true, pair: [uid, other] };
       }
@@ -758,12 +849,85 @@ class BackendDouble {
         this.emit("rooms", "UPDATE", { ...r });
         return { ok: true };
       }
+      /* ---------- THROWABLES (feat/throwables, step 2) ----------
+         Every rejection below is the SERVER's rejection, mirrored word for
+         word and IN ORDER from the DDL in tools/DESIGN-throwables-server.md
+         (PENDING PRODUCTION), so gate 80 can assert the message a client
+         will really see.  The client never writes a throw column; these are
+         the only doors, and ask_question / start_moment / setRole wipe
+         inside themselves. */
+      case "throw_at": {
+        if (!uid) throw new Error("not authenticated");
+        const r = this.rooms.get(a.room_id);
+        if (!r) throw new Error("no room");
+        const cls = THROW_KINDS[a.kind] || null;
+        if (!cls) throw new Error("no such throw");
+        if (r.host_id === uid) throw new Error("the host does not throw");
+        const me = this.memberRow(a.room_id, uid);
+        if (!me || me.role === "gone") throw new Error("not a member of this room");
+        if (me.role !== "spectator") throw new Error("only the crowd throws");
+        if (!r.throwables_on) throw new Error("throwables are off for this show");
+        const tgt = this.memberRow(a.room_id, a.target);
+        if (!tgt) throw new Error("no such member");
+        if (tgt.role !== "chair" && tgt.role !== "kept") throw new Error("target is not in a chair");
+        if (!tgt.throwables_on) throw new Error("he has throwables off");
+        /* DOUBLE ONLY: the Moment refusal (ruling: "any new throw at either
+           of them is refused until The Moment ends").  Not in the DDL —
+           rooms.moment_* does not exist in production. */
+        if (r.moment_a === a.target || r.moment_b === a.target) throw new Error("no throws during a moment");
+        if (this.throwLive(tgt)) throw new Error("a throw is already live");
+        if (this.throwCooling(tgt)) throw new Error("cooling down");
+        const counts = this.throwCounts(a.room_id, uid);
+        if ((cls === "cheer" ? counts.cheers_left : counts.jeers_left) <= 0)
+          throw new Error("no " + cls + "s left this show");
+        const at = this.now();
+        tgt.throw_kind = a.kind; tgt.throw_at = this.iso(at);
+        tgt.throw_until = this.iso(at + THROW_LIMITS.live_secs * 1000);
+        this.throwLedger.push({ room_id: a.room_id, thrower_id: uid, cls, kind: a.kind, target_id: a.target, at: tgt.throw_at });
+        this.emit("room_members", "UPDATE", { ...tgt });   // the row: no thrower on it
+        const left = this.throwCounts(a.room_id, uid);
+        return { ok: true, kind: a.kind, cls, at: tgt.throw_at, until: tgt.throw_until, ...left };
+      }
+      case "throw_counts": {
+        if (!uid) throw new Error("not authenticated");
+        return { ...this.throwCounts(a.room_id, uid), limits: { ...THROW_LIMITS } };
+      }
+      case "set_throwables": {
+        if (!uid) throw new Error("not authenticated");
+        const row = this.memberRow(a.room_id, uid);
+        if (!row || row.role === "gone") throw new Error("not a member of this room");
+        row.throwables_on = !!a.on;
+        if (!a.on) this.wipeThrow(row);            // opt-out mid-show wipes what is on him
+        this.emit("room_members", "UPDATE", { ...row });
+        return { ok: true, throwables_on: row.throwables_on };
+      }
+      case "host_clear_throw": {
+        if (!uid) throw new Error("not authenticated");
+        const r = this.rooms.get(a.room_id);
+        if (!r || r.host_id !== uid) throw new Error("only the host can clear a throw");
+        const row = this.memberRow(a.room_id, a.user_id);
+        if (!row) throw new Error("no such member");
+        if (this.wipeThrow(row)) this.emit("room_members", "UPDATE", { ...row });
+        return { ok: true };
+      }
+      case "host_set_throwables": {
+        if (!uid) throw new Error("not authenticated");
+        const r = this.rooms.get(a.room_id);
+        if (!r || r.host_id !== uid) throw new Error("only the host can switch throwables");
+        r.throwables_on = !!a.on;
+        if (!a.on) {
+          for (const m of this.members)
+            if (m.room_id === a.room_id && this.wipeThrow(m)) this.emit("room_members", "UPDATE", { ...m });
+        }
+        this.emit("rooms", "UPDATE", { ...r });
+        return { ok: true, throwables_on: r.throwables_on };
+      }
       case "decide_keep": {
         // her decision verbs (egDecideTap) — same shape as keep_member /
         // pass_member but keyed by `target`, mirroring prod's decide_* RPCs
         const row = this.memberRow(a.room_id, a.target);
         if (!row) throw new Error("no such member");
-        row.role = "kept";
+        this.setRole(row, "kept");
         this.pushEvent(a.room_id, uid, "keep", { target_user: a.target });
         this.emit("room_members", "UPDATE", { ...row });
         return null;
@@ -771,14 +935,14 @@ class BackendDouble {
       case "decide_pass": {
         const row = this.memberRow(a.room_id, a.target);
         if (!row) throw new Error("no such member");
-        row.role = "spectator"; row.seat_index = null;
+        this.setRole(row, "spectator", null);
         this.pushEvent(a.room_id, uid, "pass", { target_user: a.target });
         this.emit("room_members", "UPDATE", { ...row });
         return null;
       }
       case "decide_clear": {
         for (const m of this.members) {
-          if (m.room_id === a.room_id && m.role === "chair") { m.role = "spectator"; m.seat_index = null; this.emit("room_members", "UPDATE", { ...m }); }
+          if (m.room_id === a.room_id && m.role === "chair") { this.setRole(m, "spectator", null); this.emit("room_members", "UPDATE", { ...m }); }
         }
         return null;
       }
@@ -862,6 +1026,10 @@ class BackendDouble {
       if (table === "profiles") return [...this.profiles.values()];
       if (table === "room_events") return [...this.events];
       if (table === "room_members") return this.members.map((m) => ({ ...m }));
+      /* THROWABLES: the ledger has RLS on with NO policies and no API grants
+         — production answers a member's read with "permission denied for
+         table throw_ledger" (dry run, DESIGN-throwables-server.md) */
+      if (table === "throw_ledger") throw new Error("permission denied for table throw_ledger");
       if (table === "questions") return [...this.questions];
       if (table === "question_decks") return [...this.decks];
       throw new Error("double: unknown table " + table);
@@ -927,12 +1095,24 @@ class BackendDouble {
         return null;
       }
       if (table === "rooms") {
+        /* THROWABLES: trigger rooms_throwables_guard — the host writes her
+           own rooms row directly today (status, host_seen_at), so the switch
+           is guarded by column, not by RLS */
+        if (values && "throwables_on" in values) throw new Error(ROOMS_THROW_GUARD_MSG);
         let n = 0;
         for (const r of this.rooms.values()) {
           if (match(r)) { Object.assign(r, values); n++; this.emit("rooms", "UPDATE", { ...r }); }
         }
         return null;
       }
+      /* THROWABLES: trigger room_members_throw_guard.  A direct client write
+         that touches a throw column is refused with the trigger's message
+         WHATEVER RLS says (the dry run proved it under a permissive update
+         policy).  Any OTHER direct member write stays "not supported" here —
+         the production UPDATE policy on room_members is UNREAD (preflight 0c
+         in the DDL is the read), and the client makes none (gate 71 block 8). */
+      if (table === "room_members" && values && THROW_COLS.some((c) => c in values))
+        throw new Error(THROW_GUARD_MSG);
       throw new Error("double: update on " + table + " not supported");
     }
     if (action === "delete") throw new Error("double: delete not supported");
@@ -940,4 +1120,4 @@ class BackendDouble {
   }
 }
 
-module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, FILTER_LOOKS };
+module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, FILTER_LOOKS, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG };

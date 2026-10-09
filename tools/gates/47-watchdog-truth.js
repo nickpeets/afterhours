@@ -140,16 +140,25 @@ module.exports = {
       await spec.page.evaluate(() => window.__lc.videoJoin && window.__lc.videoJoin());
       await waitFor(() => spec.page.evaluate(() => !!window.__lc.DAILY), 12000, "back in the call (B)");
 
-      /* room is NOT ended — the host really did vanish */
+      /* the host really did vanish: his beat is 180s old.  RULING 10/8: the
+         SERVER ends such a room (end_stale_rooms runs on the spectator's own
+         heartbeat, which rides the 4s poll) — long before the client's 80s
+         video watchdog would.  So the spectator's night ends as an ENDED
+         show (the finale door), never a bare lobby; the watchdog remains as
+         the belt for a host who drops inside the 120s window. */
       D.rooms.get(roomB).host_seen_at = D.iso(D.now() - 180_000);
       await spec.page.evaluate(() => { window.__lc.HOST_LAST_SEEN = Date.now() - 90_000; });
 
-      await waitFor(() => spec.page.evaluate(() => !window.__lc.CURRENT_ROOM), 30000,
+      await waitFor(() => Promise.resolve(D.rooms.get(roomB).status === "ended"), 15000,
+        "the server to end the vanished host's room on the spectator's heartbeat");
+      t.ok(D.events.some((e) => e.room_id === roomB && e.type === "finale" && e.payload.by === "stale_host"),
+        "a genuinely vanished host is ended by end_stale_rooms (finale by='stale_host'), not by the client");
+      await waitFor(() => spec.page.evaluate(() => !document.getElementById("room").classList.contains("show") ||
+        document.getElementById("finale").classList.contains("show")), 30000,
         "a genuinely vanished host to end his night");
       const gone = await spec.page.evaluate(SCREEN);
-      t.ok(!gone.inRoom, "a vanished host on a LIVE room still returns him to the lobby — the fix did not swallow the real case");
-      t.ok(/host left|show/i.test(gone.toast),
-        `and he is told why (${JSON.stringify(gone.toast.slice(0, 60))})`);
+      t.ok(!(gone.lobby && !gone.finale && !gone.snap) || !gone.room,
+        "a vanished host on a LIVE room still ends his night — through the ended-show door, never a stranded live room");
 
       const errs = spec.errors.filter((e) => !/favicon/.test(e));
       t.ok(errs.length === 0, "zero console errors — " + errs.slice(0, 2).join(" | "));

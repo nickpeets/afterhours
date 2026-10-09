@@ -1225,7 +1225,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1008.1658</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1009.0942</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1264,23 +1264,6 @@
       <div id="whoami" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding:8px 12px;border-radius:10px;background:rgba(17,22,52,.7);border:1px solid rgba(185,168,255,.18);font-family:'Azeret Mono',monospace;font-size:10px;letter-spacing:.08em">
         <span id="whoami_who" style="color:#b9a8ff">—</span>
         <span id="whoami_slot" style="color:rgba(242,240,255,.45)"></span>
-      </div>
-      <!-- STALE-HOST RESUME CARD (RULING Q1 v2).  Static markup, hidden until
-           enterApp finds the host's own live room with a stale beat.  No mock
-           exists for this card; the shell is the lilac notice row from
-           design/Last Call Lobby.dc.html (L3), the buttons are .fbtn. -->
-      <div id="staleresume" style="display:none;flex-direction:column;gap:10px;margin-bottom:14px;padding:14px 16px;border-radius:16px;background:rgba(6,8,24,.6);border:1px solid rgba(185,168,255,.4)">
-        <div style="display:flex;align-items:flex-start;gap:10px">
-          <span style="font-size:15px;color:#b9a8ff">◔</span>
-          <div style="flex:1;min-width:0">
-            <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:15px;color:#d6cdff">You have a show still running</div>
-            <div id="staleresume_name" style="font-family:Archivo,sans-serif;font-size:12.5px;line-height:1.55;color:rgba(214,205,255,.85);margin-top:3px"></div>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <button class="fbtn neon" id="staleresume_go" style="flex:1;margin:0">Resume</button>
-          <button class="fbtn ghost" id="staleresume_end" style="flex:1;margin:0">End it</button>
-        </div>
       </div>
       <button class="golive" id="golive">● GO LIVE — Host Your Room</button>
       <div class="sectlabel">LIVE NOW</div>
@@ -1764,7 +1747,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1008.1658"); }catch(e){}
+try{ console.log("[lastcall] build b1009.0942"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2333,15 +2316,17 @@ async function enterApp(){
   // without her; the 120s zombie rule ends truly abandoned rooms).  A
   // booting host who finds her own live room walks straight back into it —
   // host UI, phase, and clocks restore from server state via openRoom.
-  // RULING Q1 v2 (9/30): that holds for a REAL reload — a host heartbeat
-  // no older than HOST_STALE_MS.  A live room whose host beat is STALE is
-  // not a reload, it is a show she left running: no auto-resume, the lobby
-  // asks (staleResumeShow, below).
-  staleResumeClear();
+  // RULING 10/8 (stale rooms END): a live room whose host beat is older
+  // than HOST_STALE_MS is ENDED by the server (end_stale_rooms: pg_cron every
+  // minute, and on touch inside heartbeat / list_live_rooms).  So a live row
+  // the boot read returns IS a reload — the stale case no longer exists on
+  // the client, and the 9/30 resume card (Resume / End it) is gone with it.
+  // list_live_rooms sweeps before it answers: it never returns a stale room.
+  await lcConfigLoad();
   let RESUME_ROOM=null;
   try{
-    const {data:mine}=await sb.from("rooms").select("*").eq("host_id",user.id).eq("status","live");
-    RESUME_ROOM=(mine||[])[0]||null;
+    const {data:live}=await sb.rpc("list_live_rooms");
+    RESUME_ROOM=(live||[]).find(r=>r.host_id===user.id)||null;
   }catch(e){}
   // winner session restore: if this user is the winner of an active backstage session, take them back
   try{
@@ -2376,69 +2361,39 @@ async function enterApp(){
     const lb=$("lobby");
     if(lb && getComputedStyle(lb).display!=="none" && !CURRENT_ROOM) loadRooms();
   },15000);
-  // …and the resumed show takes the stage over the lobby (RULING Q1) —
-  // unless her beat is stale, in which case she is ASKED (Q1 v2)
-  if(RESUME_ROOM){
-    if(hostBeatStale(RESUME_ROOM)) staleResumeShow(RESUME_ROOM);
-    else { try{ await openRoom(RESUME_ROOM); }catch(e){} }
-  }
+  // …and the resumed show takes the stage over the lobby (RULING Q1).  The
+  // server has already ended anything stale, so whatever is here is hers
+  // and fresh.
+  if(RESUME_ROOM){ try{ await openRoom(RESUME_ROOM); }catch(e){} }
 }
 
-/* ============ STALE-HOST RESUME CARD (RULING Q1 v2, 9/30) ============
-   HOST_STALE_MS is THE number for "the host has been gone too long": the
-   lobby's ghost filter, openRoom's zombie janitor, and the boot-time resume
-   decision all read it.  The beat is host_seen_at, else created_at (rooms
-   born before the heartbeat column). */
-const HOST_STALE_MS=120000;
-function hostBeatStale(r){
-  const beat=Date.parse((r&&(r.host_seen_at||r.created_at))||0);
-  return Date.now()-beat>HOST_STALE_MS;
-}
-let STALE_RESUME=null;   // the live room the booting host was NOT walked into
-function staleResumeShow(r){
-  STALE_RESUME=r;
+/* ============ HOST_STALE_MS — the ONE number (RULING 10/8) ============
+   "The host has been gone too long" is decided on the SERVER: end_stale_rooms
+   ends any live room whose beat (host_seen_at, else created_at) is older
+   than lc_host_stale_ms().  The client keeps the same number for display
+   and gates, read from lc_config() at boot; 120000 is the fallback when the
+   RPC is unreachable.  Nothing on the client hides, filters or ends a stale
+   room any more — the ghost filter, the openRoom janitor and the resume card
+   are gone. */
+let HOST_STALE_MS=120000;
+let LC_CONFIG=null;
+async function lcConfigLoad(){
   try{
-    $("staleresume_name").textContent=r.contestant_name||"Untitled Room";
-    $("staleresume_go").disabled=false; $("staleresume_end").disabled=false;
-    $("staleresume").style.display="flex";
-  }catch(e){}
+    const {data,error}=await sb.rpc("lc_config");
+    if(!error && data && Number.isFinite(data.host_stale_ms)){ LC_CONFIG=data; HOST_STALE_MS=data.host_stale_ms; }
+  }catch(e){ /* keep the fallback */ }
+  return LC_CONFIG;
 }
-function staleResumeClear(){
-  STALE_RESUME=null;
-  try{ $("staleresume").style.display="none"; }catch(e){}
-}
-$("staleresume_go").onclick=async()=>{
-  const r=STALE_RESUME; if(!r) return;
-  staleResumeClear();
-  try{ await openRoom(r); }catch(e){ console.log("stale resume: openRoom threw:",String((e&&e.message)||e)); }
-};
-$("staleresume_end").onclick=async()=>{
-  const r=STALE_RESUME; if(!r) return;
-  $("staleresume_go").disabled=true; $("staleresume_end").disabled=true;
-  const ok=await hostEndRoom(r.id);
-  if(ok) staleResumeClear();
-  else{
-    // never silent: the card stays, and she is told
-    $("staleresume_go").disabled=false; $("staleresume_end").disabled=false;
-    toast("Couldn't end that show \u2014 it's still LIVE.  Try again.");
-  }
-  loadRooms();
-};
 
 /* ============ LOBBY ============ */
 async function loadRooms(){
   const list=$("roomlist");
   list.innerHTML='<div class="spinner"></div>';
-  const {data:allrooms,error}=await sb.from("rooms").select("*").eq("status","live").order("created_at",{ascending:false});
+  // RULING 10/8: list_live_rooms sweeps stale rooms server-side before it
+  // answers, so every row here is live AND fresh.  No client ghost filter.
+  const {data:allrooms,error}=await sb.rpc("list_live_rooms");
   if(error){list.innerHTML='<div class="empty">Couldn\'t load rooms: '+error.message+'</div>';return;}
-  // ghost filter: a "live" room needs a host heartbeat inside 2 min (or be brand new)
-  // the resume card never outlives its room: ended here, ended elsewhere,
-  // or resumed and then left — if the row is no longer live, the card goes
-  if(STALE_RESUME && !(allrooms||[]).some(r=>r.id===STALE_RESUME.id)) staleResumeClear();
-  let rooms=(allrooms||[]).filter(r=>{
-    const beat=Date.parse(r.host_seen_at||r.created_at||0);
-    return !beat || Date.now()-beat<HOST_STALE_MS || r.host_id===ME.id;
-  });
+  let rooms=(allrooms||[]);
   // matching: fetch host profiles; filter by mutual seeking + age window (degrades if columns absent)
   let HOSTP={};
   try{
@@ -2540,18 +2495,14 @@ let ROOM_STATE={members:[],profs:{}};
 let I_WAS_PASSED=false; // pass is final for this show — set by pass event or 'passed' RPC error, reset on room entry
 
 async function openRoom(r){
-  // zombie check: live rooms must have a recent host heartbeat (2 min grace;
-  // rooms created before the heartbeat column treat created_at as the beat)
-  if(r && r.status==="live" && r.host_id!==ME.id){
-    const beat = Date.parse(r.host_seen_at||r.created_at||0);
-    if(beat && Date.now()-beat > HOST_STALE_MS){
-      sb.from("rooms").update({status:"ended"}).eq("id",r.id).then(()=>{});  // janitor: best effort
-      toast("That show already ended 🌙");
-      loadRooms();
-      return;
-    }
+  // RULING 10/8: the client never ends or hides a room on its own clock.
+  // A stale room is ended by the server; a tap on a card that has since
+  // ended is answered from the row's status, with no client write.
+  if(r && r.status!=="live" && r.host_id!==ME.id){
+    toast("That show already ended 🌙");
+    loadRooms();
+    return;
   }
-  if(STALE_RESUME && r && r.id===STALE_RESUME.id) staleResumeClear();   // she walked in by another door (her YOUR ROOM card)
   CURRENT_ROOM=r;
   I_WAS_PASSED=false;
   AMHOST=r.host_id===ME.id;
@@ -7898,12 +7849,13 @@ window.__lc = {
   /* room lifecycle — syncRoomTruth is the role-agnostic truth poll,
      showEnded the ONE end-of-show door (wave 3) */
   enterApp, openRoom, leaveRoom, subscribeRoom, handleEvent, syncRoomTruth, showEnded,
-  /* sign-out + stale-host resume (RULING Q1 v2) — endMyLiveRooms is the ONE
-     sweep of rooms I still host live, hostEndRoom the ONE stubborn ending,
-     signOutForSure the ONE sign-out; HOST_STALE_MS is the ONE number. */
-  endMyLiveRooms, hostEndRoom, signOutForSure, hostBeatStale, staleResumeShow, staleResumeClear,
+  /* sign-out (RULING Q1) — endMyLiveRooms is the ONE sweep of rooms I still
+     host live, hostEndRoom the ONE stubborn ending, signOutForSure the ONE
+     sign-out.  RULING 10/8: HOST_STALE_MS is the ONE number and the SERVER
+     owns it (lc_host_stale_ms); the client reads it via lc_config. */
+  endMyLiveRooms, hostEndRoom, signOutForSure, lcConfigLoad,
   get HOST_STALE_MS(){ return HOST_STALE_MS; },
-  get STALE_RESUME(){ return STALE_RESUME; },
+  get LC_CONFIG(){ return LC_CONFIG; },
   startHeartbeat, stopHeartbeat, startHostPoll, stopHostPoll,
   startClockTick, stopClockTick, serverNow, syncServerClock,
   /* finale */

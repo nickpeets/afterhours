@@ -188,7 +188,16 @@ module.exports = {
          between two real heartbeats, and a chair swept to 'gone' mid-gate is
          the harness's artefact, not the show's.  Observation of a server
          clock, not a client decision — nothing here touches a throw column. */
-      const jump = async (ms, cs) => { D.clockSkew += ms; for (const m of D.members) m.last_seen = D.iso(); await resync(cs || all); };
+      /* the clock jump moves the SERVER's now; everyone present keeps beating
+         across it — members' last_seen (sweep_stale_members) and, since
+         RULING 10/8, the host's host_seen_at (end_stale_rooms would otherwise
+         end a room whose host is sitting right there, 120s of jumps later) */
+      const jump = async (ms, cs) => {
+        D.clockSkew += ms;
+        for (const m of D.members) m.last_seen = D.iso();
+        for (const r of D.rooms.values()) if (r.status === "live") r.host_seen_at = D.iso();
+        await resync(cs || all);
+      };
       const host = await boot("host", hostU);
       const A = await boot("a", "u_a");
       const B = await boot("b", "u_b");

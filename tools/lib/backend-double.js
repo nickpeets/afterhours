@@ -65,6 +65,13 @@
 /* Read from the server 2026-08-12, not derived from index.html. */
 const FRESH_MS = 60_000;    // active_members: last_seen > now() - interval '60 seconds'
 const SWEEP_MS = 180_000;   // sweep_stale_members: now() - interval '3 minutes'
+/* STALE ROOMS END (RULING 10/8).  SOURCE: tools/DESIGN-stale-rooms.md DDL —
+   lc_host_stale_ms() = 120000.  end_stale_rooms() ends every live room whose
+   beat (host_seen_at, else created_at) is older than this; it runs from
+   pg_cron every minute and on touch at the top of heartbeat and
+   list_live_rooms.  SOURCE: run in production 2026-10-08 and read back (md5s
+   in tools/DESIGN-stale-rooms.md). */
+const HOST_STALE_MS = 120_000;
 
 /* FILTER SHOW RULES — the curated rack the SERVER accepts (set_filter's
    allow-list, PENDING PRODUCTION DDL in tools/DESIGN-filter-rules.md).  This
@@ -117,7 +124,8 @@ class BackendDouble {
     this.listeners = [];         // fn(evt) — harness fans out to pages
     this.rpcLog = [];            // every rpc call, for gate assertions
     this.authLog = [];           // every auth op, for gate assertions (retry counting)
-    this.opLog = [];             // EVERY dispatched op, in arrival order, across auth/rpc/table — for ORDER assertions (gate 73)
+    this.opLog = [];
+    this.sweepLog = [];          // every end_stale_rooms() run (cron tick or on-touch), for gate assertions             // EVERY dispatched op, in arrival order, across auth/rpc/table — for ORDER assertions (gate 73)
     this.swaps = {};             // room_id -> { uid: contact_text } (backstage swap offers)
     this.clockSkew = 0;          // ms added to "now" (staleness tests)
     /* set_filter's allow-list, per double.  Starts as the server's curated
@@ -537,6 +545,9 @@ class BackendDouble {
            `role` is left alone either way, so a swept man's last_seen keeps
            moving while active_members goes on excluding him for `role <>
            'gone'`. */
+        /* RULING 10/8: end-on-touch — the sweep runs at the top of heartbeat
+           (DDL step 4), before the member's own beat. */
+        this.sweepStaleRooms();
         const row = this.memberRow(a.room_id, uid);
         if (row) { row.last_seen = this.iso(); }
         return null;
@@ -692,15 +703,30 @@ class BackendDouble {
         return { passed, role: row.role };
       }
       case "end_show": {
+        /* SOURCE: production end_show read 2026-10-08 (md5 e70916a6…):
+           raises 'not authenticated' with no auth.uid(), 'not host' when the
+           caller is not rooms.host_id; then the ending.  RULING 10/8 moved
+           the ending itself into end_room() (one path ends a show) and
+           end_show delegates — see endRoom below. */
+        if (!uid) throw new Error("not authenticated");
         const r = this.rooms.get(a.room_id);
-        if (!r) throw new Error("no room");
-        r.status = "ended"; r.winner_id = a.winner_id || null;
-        this.emit("rooms", "UPDATE", { ...r });
-        // wave 3: the ending is a LEDGER fact too — the finale event is the
-        // fast explicit channel (prod: engine_emit in end_show; PR notes),
-        // the rooms row remains the polled fallback.
-        this.pushEvent(a.room_id, uid, "finale", { winner_id: a.winner_id || null });
+        const vHost = r ? r.host_id : null;
+        if (vHost !== uid) throw new Error(`not host (room host=${vHost}, caller=${uid})`);
+        this.endRoom(a.room_id, a.winner_id || null, uid, "host");
         return null;
+      }
+      case "end_stale_rooms":
+        /* revoked from anon/authenticated in the DDL: a client call is refused */
+        throw new Error("permission denied for function end_stale_rooms");
+      case "end_room":
+        throw new Error("permission denied for function end_room");
+      case "lc_config":
+        return { host_stale_ms: HOST_STALE_MS };
+      case "list_live_rooms": {
+        if (!uid) throw new Error("permission denied for function list_live_rooms");
+        this.sweepStaleRooms();
+        return [...this.rooms.values()].filter((r) => r.status === "live")
+          .sort((x, y) => Date.parse(y.created_at) - Date.parse(x.created_at)).map((r) => ({ ...r }));
       }
       case "seat_pick": {
         // engine-mode self-seat: claimant takes the named seat
@@ -989,6 +1015,34 @@ class BackendDouble {
     this.emit("rooms", "UPDATE", { ...r });
     return null;
   }
+  /* ---------- STALE ROOMS END (RULING 10/8) ---------- */
+  /* end_room(p_room, p_winner, p_actor, p_by): THE one ending.  Only a live
+     row ends (a second End-it is a no-op, no second finale); the finale
+     event names the actor and why. */
+  endRoom(room_id, winner_id, actor, by) {
+    const r = this.rooms.get(room_id);
+    if (!r || r.status !== "live") return false;
+    r.status = "ended"; r.winner_id = winner_id || null;
+    this.emit("rooms", "UPDATE", { ...r });
+    this.pushEvent(room_id, actor, "finale", { winner_id: winner_id || null, by });
+    return true;
+  }
+  /* end_stale_rooms(): coalesce(host_seen_at, created_at) < now() - HOST_STALE_MS,
+     status='live', NO phase predicate (warm-up rooms included).  Called by the
+     cron tick (gates call D.sweepStaleRooms() directly to stand in for
+     pg_cron) and on touch from heartbeat / list_live_rooms. */
+  sweepStaleRooms() {
+    const cutoff = this.now() - HOST_STALE_MS;
+    let n = 0;
+    for (const r of this.rooms.values()) {
+      if (r.status !== "live") continue;
+      const beat = Date.parse(r.host_seen_at || r.created_at || 0);
+      if (beat && beat < cutoff) { if (this.endRoom(r.id, null, r.host_id, "stale_host")) n++; }
+    }
+    this.sweepLog.push({ at: this.now(), ended: n });
+    return n;
+  }
+
   pushEvent(room_id, user_id, type, payload) {
     const ev = { id: nid("e"), room_id, user_id, type, payload, created_at: this.iso() };
     this.events.push(ev);
@@ -1120,4 +1174,4 @@ class BackendDouble {
   }
 }
 
-module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, FILTER_LOOKS, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG };
+module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, HOST_STALE_MS, FILTER_LOOKS, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG };

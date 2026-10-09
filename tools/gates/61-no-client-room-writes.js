@@ -76,15 +76,19 @@ module.exports = {
       "...and NOT end_deliberation — that function is retired and dropped from production (DDL, 2026-08-22)");
 
     // logged, not fixed — same disease, different scope, PR2-style residue note
-    t.ok((html.match(/sb\.from\("rooms"\)\.update\(\{status:"ended"\}\)/g) || []).length === 2,
-      "the two status:'ended' raw writes are UNTOUCHED — out of this branch's named scope, logged not fixed");
+    /* RULING 10/8 (stale rooms END server-side): openRoom's client janitor —
+       one of the two status:'ended' raw writes — is DELETED; a stale room is
+       ended by end_stale_rooms on the server.  The other (hostEndRoom's
+       stubborn fallback behind end_show) stays, logged not fixed. */
+    t.ok((html.match(/sb\.from\("rooms"\)\.update\(\{status:"ended"\}\)/g) || []).length === 1,
+      "exactly ONE status:'ended' raw write remains (hostEndRoom's fallback); the openRoom janitor is gone");
     t.ok(/sb\.from\("rooms"\)\.update\(\{host_seen_at:new Date\(\)\.toISOString\(\)\}\)/.test(html),
       "...and the host_seen_at heartbeat raw write is UNTOUCHED for the same reason");
 
     // scope: prove the four-function trail doesn't quietly widen — exactly
-    // three sb.from("rooms").update( call sites should remain in source
+    // two sb.from("rooms").update( call sites should remain in source (was three before RULING 10/8)
     const remaining = (html.match(/sb\.from\("rooms"\)\.update\(/g) || []).length;
-    t.ok(remaining === 3, `exactly 3 raw rooms.update( call sites remain (the logged-not-fixed ones) — got ${remaining}`);
+    t.ok(remaining === 2, `exactly 2 raw rooms.update( call sites remain (hostEndRoom fallback + host_seen_at beat) — got ${remaining}`);
 
     /* AUDIT 2026-08-21: the allowlist was stated only as a COUNT of leftovers.
        The claim this gate is named for — "no client writes to rooms outside

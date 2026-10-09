@@ -16,8 +16,9 @@
  *     with host UI (AMHOST) without touching the lobby.
  *   - a spectator's view survives the reload: no ending beat, same phase.
  *   - true absence still ends the show: a room whose host_seen_at is
- *     older than the 120s zombie threshold gets ended by the janitor when
- *     a viewer opens it.
+ *     older than HOST_STALE_MS is ended by the SERVER (end_stale_rooms, on
+ *     the lobby read).  RULING 10/8 flipped this scene from "the viewer's
+ *     client janitor ends it" to "the viewer writes nothing".
  */
 "use strict";
 const { Harness } = require("../lib/harness");
@@ -83,16 +84,26 @@ module.exports = {
         !document.getElementById("finale").classList.contains("show"));
       t.ok(watcherInRoom, "the crowd's night was never interrupted — no finale, still in the room");
 
-      /* --- true absence is still fatal: the 120s zombie janitor holds --- */
+      /* --- true absence is still fatal — but RULING 10/8 moved the ending
+         to the SERVER.  openRoom's client janitor (a rooms.update from the
+         viewer) is deleted; a stale room is ended by end_stale_rooms, which
+         runs on touch at the top of heartbeat / list_live_rooms and from
+         pg_cron.  The watcher never writes rooms. --- */
       const ghost = D.addRoom({ id: "r_ghost", host_id: "u_s1", name: "Ghost Night", phase: "openfloor", round: 1 });
       D.rooms.get(ghost).host_seen_at = D.iso(D.now() - 180_000);   // host gone 3 minutes
       D.rooms.get(ghost).created_at = D.iso(D.now() - 300_000);
       await watcher.page.evaluate(() => window.__lc.leaveRoom());
       await watcher.page.waitForSelector("#lobby", { state: "visible", timeout: 10000 });
-      await watcher.page.evaluate((r) => window.__lc.openRoom(r), { ...D.rooms.get(ghost) });
+      const w0 = D.opLog.length;
+      await watcher.page.evaluate(() => window.__lc.loadRooms());   // the lobby read: list_live_rooms sweeps first
       await waitFor(() => D.rooms.get(ghost).status === "ended", 10000,
-        "the zombie janitor ends a room whose host has been absent past the 120s rule");
-      t.ok(true, "genuine absence still ends the show — the janitor's job is untouched");
+        "the SERVER ends a room whose host has been absent past the HOST_STALE_MS rule, on the lobby read");
+      const watcherWrites = D.opLog.slice(w0).filter((e) => e.clientId === "watch" &&
+        ((e.op === "table" && e.table === "rooms" && e.action === "update") || (e.op === "rpc" && e.name === "end_show")));
+      t.ok(watcherWrites.length === 0, "genuine absence still ends the show — and the viewer wrote nothing: the janitor is the server's now");
+      await waitFor(() => watcher.page.evaluate(() => ![...document.querySelectorAll("#roomlist .roomcard")].some((c) => /Ghost Night/.test(c.textContent))), 8000,
+        "the lobby to list no ghost");
+      t.ok(true, "the ended ghost is off the lobby list without any client-side ghost filter");
 
       const errs = [host, watcher].flatMap((c) => c.errors).filter((e) => !/favicon/.test(e));
       t.ok(errs.length === 0, "zero console errors — " + errs.slice(0, 2).join(" | "));

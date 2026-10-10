@@ -160,12 +160,14 @@ Deno.test("EXISTING PATH backstage: host (owner) and winner both get in AFTER th
   eq(Object.keys(winner.minted[0]).sort(), ["exp", "is_owner", "room_name", "user_name"], "a backstage token carries no preview limits");
 });
 
-Deno.test("3. preview: hidden, receive-only, short-lived — and only while the room is live", async () => {
+Deno.test("3. preview: hidden, receive-only, five minutes to join — and only while the room is live", async () => {
   const r = await ask("jwt-guest", { room_id: LIVE, mode: "preview", user_name: "lobby-preview", is_owner: false });
   eq(r.status, 200, "status");
   const p = r.minted[0];
   eq(p.permissions, { hasPresence: false, canSend: false }, "permissions");
-  eq([p.eject_at_token_exp, p.start_video_off, p.start_audio_off, p.enable_screenshare], [true, true, true, false], "eject / devices / screenshare");
+  eq([p.start_video_off, p.start_audio_off, p.enable_screenshare], [true, true, false], "devices / screenshare");
+  eq(Object.keys(p).sort(), ["enable_screenshare", "exp", "is_owner", "permissions", "room_name", "start_audio_off", "start_video_off", "user_name"],
+    "preview token properties — and NO eject_at_token_exp: exp limits joining, not watching");
   eq([p.is_owner, p.user_name, p.room_name], [false, "lobby-preview", "ah-" + LIVE], "never an owner, never a user's name");
   ok((p.exp as number) <= NOW() + 300 && (p.exp as number) > NOW() + 240, "exp is five minutes out, got +" + ((p.exp as number) - NOW()) + "s");
   eq([r.data.preview, r.data.is_owner], [true, false], "response says it is a preview");

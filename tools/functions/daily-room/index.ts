@@ -2,6 +2,42 @@
 // Required secrets (Supabase Dashboard > Edge Functions > Secrets):
 //   DAILY_API_KEY   - Daily REST API key (never committed to the repo)
 //   DAILY_SUBDOMAIN - e.g. "afterhours"
+// Provided by Supabase to every function (nothing to set):
+//   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+//
+// WHO MAY HAVE A TOKEN (fix/daily-token-auth, 2026-10-10)
+//   1. Only a signed-in user.  The caller's Supabase session JWT (the
+//      Authorization header the app already sends) is checked with the Auth
+//      server on every request; anything else is refused with 401.
+//      NOTE: the dashboard's "Verify JWT with legacy secret" switch must
+//      stay OFF.  This project signs sessions with an ECC (P-256) key, and
+//      that switch only accepts tokens signed with the legacy secret - it
+//      would turn every signed-in user away.  The check is done here.
+//   2. An OWNER token (is_owner: true) only for the room's host - the caller
+//      must be rooms.host_id for that room.  Anyone else asking is refused.
+//   3. mode: "preview" - the lobby's live feed.  A hidden, receive-only
+//      token, short-lived, issued only while the room's row is 'live'.
+//   4. Every other request is what it always was: a member token for the
+//      room, named as the caller asked.
+//
+// Meeting-token properties used, all from Daily's reference
+// (https://docs.daily.co/reference/rest-api/meeting-tokens/create-meeting-token):
+//   room_name   "The room for which this token is valid."
+//   exp         "Users cannot join a meeting with this token after this time."
+//   is_owner    "The user has meeting owner privileges."
+//   user_name   "The user's name in this meeting."
+//   eject_at_token_exp  "Kick this user out of the meeting at the time this
+//                        meeting token expires."
+//   start_video_off / start_audio_off  "Disable the default behavior of
+//                        automatically turning on a participant's camera /
+//                        microphone on a direct join()".
+//   enable_screenshare  "Sets whether or not the user is allowed to screen
+//                        share."
+//   permissions.hasPresence  "Whether the participant appears as "present"
+//                        in the call, i.e. whether they appear in
+//                        participants()."
+//   permissions.canSend "Which types of media a participant should be
+//                        permitted to send." - false means none.
 
 const DAILY_API = "https://api.daily.co/v1";
 
@@ -12,6 +48,12 @@ const DAILY_API = "https://api.daily.co/v1";
 const ROOM_TTL_SEC = 60 * 60 * 6;
 const EXP_REFRESH_SEC = 60 * 10;
 const TOKEN_TTL_SEC = 60 * 60 * 4;
+// A lobby preview's token: good for this long, and Daily ejects the viewer
+// when it runs out (eject_at_token_exp).  The lobby asks again while the
+// room is still live; once the room has ended there is no new token, so a
+// preview cannot outlive the show by more than this.
+const PREVIEW_TTL_SEC = 60 * 5;
+const PREVIEW_NAME = "lobby-preview";
 
 const CORS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -58,6 +100,50 @@ async function createRoom(
   return res;
 }
 
+// The signed-in user behind a session JWT, or null.  Asked of the Auth
+// server, so signature, expiry and a revoked session are all its call.
+async function signedInUser(
+  supaUrl: string,
+  anonKey: string,
+  jwt: string,
+): Promise<{ id: string } | null> {
+  if (!jwt) return null;
+  try {
+    const res = await fetch(supaUrl + "/auth/v1/user", {
+      headers: { "Authorization": "Bearer " + jwt, "apikey": anonKey },
+    });
+    if (!res.ok) return null;
+    const user = await res.json();
+    return user && typeof user.id === "string" && user.id ? { id: user.id } : null;
+  } catch {
+    return null;
+  }
+}
+
+// The room's row as the database has it.  { row } when the read worked
+// (row is null if there is no such room), { failed: true } when it did not -
+// the two are different answers and are never confused: a read that failed
+// refuses, it does not guess.
+async function roomRow(
+  supaUrl: string,
+  serviceKey: string,
+  roomId: string,
+): Promise<{ row: { id: string; host_id: string; status: string } | null; failed?: boolean }> {
+  try {
+    const res = await fetch(
+      supaUrl + "/rest/v1/rooms?select=id,host_id,status&id=eq." + encodeURIComponent(roomId),
+      { headers: { "Authorization": "Bearer " + serviceKey, "apikey": serviceKey } },
+    );
+    // 400: the id is not one this table could hold - there is no such room
+    if (res.status === 400) return { row: null };
+    if (!res.ok) return { row: null, failed: true };
+    const rows = await res.json();
+    return { row: Array.isArray(rows) && rows.length ? rows[0] : null };
+  } catch {
+    return { row: null, failed: true };
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
@@ -65,6 +151,17 @@ Deno.serve(async (req: Request) => {
   const apiKey = Deno.env.get("DAILY_API_KEY");
   const subdomain = Deno.env.get("DAILY_SUBDOMAIN") || "afterhours";
   if (!apiKey) return json({ error: "DAILY_API_KEY not configured" }, 500);
+  const supaUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supaUrl || !anonKey || !serviceKey) {
+    return json({ error: "supabase environment not configured" }, 500);
+  }
+
+  // 0. Only a signed-in user gets any further.
+  const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  const caller = await signedInUser(supaUrl, anonKey, jwt);
+  if (!caller) return json({ error: "not signed in" }, 401);
 
   let body: Record<string, unknown>;
   try {
@@ -81,9 +178,25 @@ Deno.serve(async (req: Request) => {
   if (!slug) return json({ error: "room_id required" }, 400);
 
   const roomName = "ah-" + slug;
-  const isOwner = body.is_owner === true;
-  const userName = String(body.user_name ?? "guest").slice(0, 60);
+  const isPreview = body.mode === "preview";
+  // A preview is never an owner, whatever it asks for.
+  const isOwner = !isPreview && body.is_owner === true;
+  const userName = isPreview ? PREVIEW_NAME : String(body.user_name ?? "guest").slice(0, 60);
   const now = Math.floor(Date.now() / 1000);
+
+  // An owner token and a preview token both depend on the room's own row.
+  // (A plain member token does not, and is issued as before.)
+  if (isOwner || isPreview) {
+    const { row, failed } = await roomRow(supaUrl, serviceKey, slug);
+    if (failed) return json({ error: "could not read the room" }, 503);
+    if (!row) return json({ error: "no such room" }, 404);
+    if (isOwner && row.host_id !== caller.id) {
+      return json({ error: "only the host may be owner" }, 403);
+    }
+    if (isPreview && row.status !== "live") {
+      return json({ error: "room is not live" }, 403);
+    }
+  }
 
   const headers = {
     "Authorization": "Bearer " + apiKey,
@@ -97,7 +210,13 @@ Deno.serve(async (req: Request) => {
   if (roomRes.ok) {
     const existing = await roomRes.json();
     const exp = Number(existing?.config?.exp ?? 0);
-    if (!exp || exp <= now + EXP_REFRESH_SEC) {
+    if (isPreview && exp > now) {
+      // A lobby viewer never deletes a room: it watches the one that is
+      // there, for as long as it lasts.
+      room = existing;
+    } else if (isPreview) {
+      return json({ error: "room is not live" }, 403);
+    } else if (!exp || exp <= now + EXP_REFRESH_SEC) {
       // Dead or dying: burn it down and re-create with the same config.
       await fetch(DAILY_API + "/rooms/" + roomName, { method: "DELETE", headers });
       roomRes = await createRoom(roomName, headers, now);
@@ -122,17 +241,27 @@ Deno.serve(async (req: Request) => {
   const roomExp = Number(room?.config?.exp ?? 0) || null;
 
   // 2. Mint a meeting token scoped to this room + participant.
+  const ttl = isPreview ? PREVIEW_TTL_SEC : TOKEN_TTL_SEC;
+  const tokenExp = roomExp ? Math.min(now + ttl, roomExp) : now + ttl;
+  const properties: Record<string, unknown> = {
+    room_name: roomName,
+    is_owner: isOwner,
+    user_name: userName,
+    exp: tokenExp,
+  };
+  if (isPreview) {
+    // Hidden and receive-only: not in anyone's participants(), may send no
+    // audio, video or screen, camera and mic start off, and out at exp.
+    properties.eject_at_token_exp = true;
+    properties.start_video_off = true;
+    properties.start_audio_off = true;
+    properties.enable_screenshare = false;
+    properties.permissions = { hasPresence: false, canSend: false };
+  }
   const tokenRes = await fetch(DAILY_API + "/meeting-tokens", {
     method: "POST",
     headers,
-    body: JSON.stringify({
-      properties: {
-        room_name: roomName,
-        is_owner: isOwner,
-        user_name: userName,
-        exp: roomExp ? Math.min(now + TOKEN_TTL_SEC, roomExp) : now + TOKEN_TTL_SEC,
-      },
-    }),
+    body: JSON.stringify({ properties }),
   });
 
   if (!tokenRes.ok) {
@@ -149,7 +278,8 @@ Deno.serve(async (req: Request) => {
     room_name: roomName,
     token: minted.token,
     is_owner: isOwner,
-    expires_at: roomExp ? Math.min(now + TOKEN_TTL_SEC, roomExp) : now + TOKEN_TTL_SEC,
+    preview: isPreview,
+    expires_at: tokenExp,
     room_exp: roomExp,
   });
 });

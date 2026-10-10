@@ -198,6 +198,8 @@ class Harness {
        SDK address is the shim, as before. */
     this.camkitReal = false;
     this.camkitRealRequests = [];
+    this.dailyRoomRequests = [];   // every /functions/v1/daily-room request: { client, body }
+    this.dailyRoomFault = null;    // (client, body) => { status, body } to refuse one, or null
     this.mutedRealtime = new Set();
     this.double.onChange((evt) => {
       for (const c of this.clients) {
@@ -285,6 +287,14 @@ class Harness {
     if (url.startsWith("https://fonts.gstatic.com")) return route.abort();
     if (url.includes("/functions/v1/daily-room")) {
       const body = route.request().postDataJSON() || {};
+      /* every token request, by client, exactly as the page sent it — a
+         lobby preview is recognised by what it ASKS for (mode, name), and
+         "the viewer never asked to be an owner / a member" is a claim about
+         this list.  dailyRoomFault models the function refusing: return
+         { status, body } to answer that request with a refusal. */
+      this.dailyRoomRequests.push({ client: _clientName, body });
+      const refuse = this.dailyRoomFault ? this.dailyRoomFault(_clientName, body) : null;
+      if (refuse) return route.fulfill({ status: refuse.status || 403, contentType: "application/json", body: JSON.stringify(refuse.body || { error: "refused" }) });
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ url: "https://daily.fake/" + (body.room_id || "room"), token: "fake-token" }) });
     }
     // Everything else is a leak: the battery must run fully offline.

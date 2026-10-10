@@ -7,21 +7,56 @@
  * Per-page: each window has its own call; remote participants are injected
  * by gates via window.__dailyControl.  (Documented limitation in README —
  * streams are synthesized locally, not transported between windows.)
+ *
+ * 2026-10-10 (feat/lobby-live-feeds) — WHAT THE SHIM NOW MODELS, BECAUSE
+ * THE LOBBY PREVIEWS LEAN ON IT:
+ *   - MULTIPLE CALL INSTANCES, by daily-js 0.91.0's actual rule (read from
+ *     the 0.91.0 bundle): a NEW call object created WITHOUT
+ *     allowMultipleCallInstances throws "Duplicate DailyIframe instances are
+ *     not allowed" while ANY other instance is alive; one created WITH the
+ *     flag never throws.  Strict instances (the room, the winner's room)
+ *     keep window.__dailyControl and the `created` count exactly as before;
+ *     flagged instances (lobby previews) are reached through
+ *     window.__dailyPreview(roomId) and counted separately.
+ *   - TEARDOWN TAKES TIME.  Real leave()/destroy() are network round trips;
+ *     the shim's were instant, so "create before the old instance is gone"
+ *     could not happen here.  window.__dailyLatency = { leave, destroy } (ms,
+ *     default 0) makes an instance stay ALIVE for that long after it is asked
+ *     to go — which is what makes a missing await visible to a gate.
+ *   - DEVICES AT JOIN, for flagged instances only.  Real daily-js acquires
+ *     the camera and mic at join() unless told not to (videoSource:false /
+ *     audioSource:false / startVideoOff / startAudioOff).  A preview that
+ *     forgot those would prompt for the camera on a real phone, so a flagged
+ *     instance that does not turn a device off REALLY calls getUserMedia for
+ *     it here.  (Strict instances are left as they were: the app drives
+ *     their publish explicitly and a dozen gates count those calls.)
+ *   - A FEED THAT NEVER STARTS: addRemote(uid, { frozen:true }) hands out a
+ *     live video track that never produces a frame.
+ *   - A CALL THAT ENDS UNDER THE APP: control.drop() leaves the meeting
+ *     without the app asking (what a network drop or an ejection looks like
+ *     from the page: 'left-meeting' with nobody having called leave()).
+ * Still NOT modelled: media between windows, simulcast layers beyond the
+ * recorded receive settings, hidden participants (permissions.hasPresence),
+ * token expiry itself (only its effect, via drop()), and what a real
+ * browser does with autoplay.
  */
 (() => {
   "use strict";
 
   let SEQ = 1;
   const sid = () => "sid-" + (SEQ++);
+  const LOG = [];            // creation / destruction order across every instance
 
-  function canvasTrack(label) {
+  function canvasTrack(label, frozen) {
     const c = document.createElement("canvas");
     c.width = 160; c.height = 120;
     const g = c.getContext("2d");
     let hue = (label || "x").split("").reduce((a, ch) => a + ch.charCodeAt(0), 0) % 360;
     const paint = () => { g.fillStyle = "hsl(" + hue + ",70%,50%)"; g.fillRect(0, 0, 160, 120); g.fillStyle = "#fff"; g.font = "14px monospace"; g.fillText(String(label).slice(0, 12), 8, 60); };
-    paint();
-    const iv = setInterval(paint, 500);   // keep frames flowing
+    // frozen: a live track that never delivers a frame (nothing is ever
+    // painted, so captureStream has nothing to send)
+    if (!frozen) paint();
+    const iv = frozen ? null : setInterval(paint, 500);   // keep frames flowing
     const stream = c.captureStream(5);
     const track = stream.getVideoTracks()[0];
     track.addEventListener("ended", () => clearInterval(iv));
@@ -43,7 +78,11 @@
       this._customVideo = null;  // a MediaStreamTrack handed in via setInputDevicesAsync({ videoSource })
       this._inputLog = [];       // every setInputDevicesAsync call, for gates
       this._destroyed = false;
-      window.__dailyControl = {
+      this._opts = opts || {};
+      this._multi = !!(opts && opts.allowMultipleCallInstances);
+      this._url = null;          // the room url handed to join()
+      this._gum = [];            // devices this instance acquired at join (flagged instances only)
+      const control = {
         call: this,
         addRemote: (uid, opts) => this.addRemote(uid, opts),
         removeRemote: (uid) => this.removeRemote(uid),
@@ -58,7 +97,18 @@
         // watchdog exists for).  Only a DEVICE SWITCH — recoverCamera's
         // setInputDevicesAsync({ videoDeviceId }) — clears it.
         stallLocalVideo: () => { this._stalled = true; this._localVideoOn = false; },
+        opts: () => { const o = { ...this._opts }; delete o.dailyConfig; return o; },
+        gum: () => this._gum.slice(),
+        url: () => this._url,
+        joined: () => this._joined,
+        // the call ends UNDER the app (a network drop, an ejection): the
+        // meeting is left without the app having asked for it
+        drop: () => { this._joined = false; this._emit("left-meeting", {}); },
       };
+      this._control = control;
+      // the room's call object owns window.__dailyControl, as always; a
+      // flagged (preview) instance must never take it over
+      if (!this._multi) window.__dailyControl = control;
     }
     on(ev, cb) { (this._handlers[ev] = this._handlers[ev] || []).push(cb); return this; }
     off(ev, cb) { this._handlers[ev] = (this._handlers[ev] || []).filter((f) => f !== cb); return this; }
@@ -90,6 +140,19 @@
     }
 
     async join(_opts) {
+      this._url = (_opts && _opts.url) || null;
+      this._leaving = false;
+      if (this._multi) {
+        // real daily-js acquires camera + mic at join unless told not to
+        const o = this._opts;
+        const wantV = !(o.videoSource === false || o.startVideoOff === true);
+        const wantA = !(o.audioSource === false || o.startAudioOff === true);
+        if (wantV || wantA) {
+          this._gum.push({ video: wantV, audio: wantA });
+          try { this._localStream = await navigator.mediaDevices.getUserMedia({ video: wantV, audio: wantA }); } catch (e) {}
+        }
+      }
+      if (this._destroyed || this._leaving) return this.participants();   // left while joining
       this._joined = true;
       this._emit("joined-meeting", { participants: this.participants() });
       return this.participants();
@@ -111,9 +174,19 @@
       return on;
     }
     async setLocalAudio(_on) { return _on; }
-    async leave() { this._joined = false; this._emit("left-meeting", {}); }
+    async leave() {
+      this._leaving = true;
+      const ms = (window.__dailyLatency && window.__dailyLatency.leave) || 0;
+      if (ms) await new Promise((r) => setTimeout(r, ms));
+      this._joined = false; this._emit("left-meeting", {});
+    }
     async destroy() {
+      // the instance is ALIVE until destroy() has finished — the registry
+      // (and so the duplicate-instance rule) sees it for the whole latency
+      const ms = (window.__dailyLatency && window.__dailyLatency.destroy) || 0;
+      if (ms) await new Promise((r) => setTimeout(r, ms));
       this._destroyed = true;
+      LOG.push((this._multi ? "multi" : "strict") + "-destroyed " + (this._url || ""));
       if (this._localStream) { this._localStream.getTracks().forEach((t) => t.stop()); this._localStream = null; }
       for (const uid of Object.keys(this._byUid())) this.removeRemote(uid);
     }
@@ -201,10 +274,10 @@
       for (const p of Object.values(this._parts)) m[p.user_name] = p;
       return m;
     }
-    addRemote(uid, { video = true } = {}) {
+    addRemote(uid, { video = true, frozen = false } = {}) {
       const existing = this._byUid()[uid];
       if (existing) return existing;
-      const track = video ? canvasTrack(uid) : null;
+      const track = video ? canvasTrack(uid, frozen) : null;
       const subbed = this._autoSub;   // manual mode: no pixels until the app subscribes
       const p = {
         local: false, user_name: uid, session_id: sid(),
@@ -225,6 +298,8 @@
       const st = opts && opts.setSubscribedTracks;
       if (!st) return;
       this._subs[sessionId] = { video: !!st.video, audio: !!st.audio };
+      if (st.screenVideo !== undefined) this._subs[sessionId].screenVideo = !!st.screenVideo;
+      if (st.screenAudio !== undefined) this._subs[sessionId].screenAudio = !!st.screenAudio;
       if (!p) return;
       const track = p._pendingTrack;
       const had = !!p.tracks.video.track;
@@ -262,23 +337,47 @@
     }
   }
 
-  /* Real daily-js allows ONE live call object per page: a second
-   * createCallObject while another undestroyed instance exists throws
-   * "Duplicate DailyIframe instances are not allowed".  The shim enforces
-   * the same rule (finding 7 hit it in prod; a permissive fake would let
-   * the app regress silently) and counts creations so gates can assert
-   * singleton discipline. */
+  /* THE DUPLICATE-INSTANCE RULE, as daily-js 0.91.0 implements it: a new
+   * call object created WITHOUT allowMultipleCallInstances throws "Duplicate
+   * DailyIframe instances are not allowed" while ANY other instance — strict
+   * or flagged — is still alive; one created WITH the flag never throws.
+   * (Finding 7 hit the throw in prod; a permissive fake would let the app
+   * regress silently.)  `created` / `liveNow` keep meaning what they always
+   * meant — the STRICT instance, i.e. the room's call object — so the
+   * singleton gates read the same numbers; flagged instances (lobby
+   * previews) are counted beside them.  LOG is the order things happened
+   * in, for the gates that are about order. */
   let LIVE = null;
   let CREATED = 0;
+  const MULTI = [];          // every flagged instance ever created
+  let MULTI_CREATED = 0;
+  const liveMulti = () => MULTI.filter((c) => !c._destroyed);
+  window.__dailyLatency = window.__dailyLatency || { leave: 0, destroy: 0 };
   window.DailyIframe = {
     createCallObject: (opts) => {
-      if (LIVE && !LIVE._destroyed) throw new Error("Duplicate DailyIframe instances are not allowed");
-      CREATED++;
-      LIVE = new FakeCall(opts);
-      return LIVE;
+      const flagged = !!(opts && opts.allowMultipleCallInstances);
+      const others = (LIVE && !LIVE._destroyed ? 1 : 0) + liveMulti().length;
+      if (!flagged && others) {
+        LOG.push("strict-create REFUSED (" + liveMulti().length + " preview(s) alive)");
+        throw new Error("Duplicate DailyIframe instances are not allowed");
+      }
+      const call = new FakeCall(opts);
+      if (flagged) { MULTI_CREATED++; MULTI.push(call); LOG.push("multi-created"); }
+      else { CREATED++; LIVE = call; LOG.push("strict-created (" + liveMulti().length + " preview(s) alive)"); }
+      return call;
     },
     supportedBrowser: () => ({ supported: true }),
   };
   window.Daily = window.DailyIframe;
-  window.__dailyInstances = () => ({ created: CREATED, liveNow: !!(LIVE && !LIVE._destroyed) });
+  window.__dailyInstances = () => ({ created: CREATED, liveNow: !!(LIVE && !LIVE._destroyed),
+    multiCreated: MULTI_CREATED, multiLive: liveMulti().length, log: LOG.slice() });
+  /* the control surface of the live preview that joined `roomId` (the
+     harness serves https://daily.fake/<room_id> as the room url) */
+  window.__dailyPreview = (roomId) => {
+    const c = liveMulti().find((x) => x._url && x._url.split("/").pop() === String(roomId));
+    return c ? c._control : null;
+  };
+  window.__dailyPreviews = () => liveMulti().map((x) => ({ url: x._url, joined: x._joined, opts: x._control.opts(), gum: x._gum.slice(),
+    subs: JSON.parse(JSON.stringify(x._subs)), recv: JSON.parse(JSON.stringify(x._recv)),
+    parts: Object.values(x._parts).map((p) => p.user_name) }));
 })();

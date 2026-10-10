@@ -16,7 +16,9 @@
 //   2. An OWNER token (is_owner: true) only for the room's host - the caller
 //      must be rooms.host_id for that room.  Anyone else asking is refused.
 //   3. mode: "preview" - the lobby's live feed.  A hidden, receive-only
-//      token, short-lived, issued only while the room's row is 'live'.
+//      token, issued only while the room's row is 'live', and good for
+//      JOINING for five minutes.  (It is not ejected at expiry: the lobby
+//      takes its previews down when a room leaves list_live_rooms.)
 //   4. Every other request is what it always was: a member token for the
 //      room, named as the caller asked.
 //
@@ -26,8 +28,6 @@
 //   exp         "Users cannot join a meeting with this token after this time."
 //   is_owner    "The user has meeting owner privileges."
 //   user_name   "The user's name in this meeting."
-//   eject_at_token_exp  "Kick this user out of the meeting at the time this
-//                        meeting token expires."
 //   start_video_off / start_audio_off  "Disable the default behavior of
 //                        automatically turning on a participant's camera /
 //                        microphone on a direct join()".
@@ -48,10 +48,10 @@ const DAILY_API = "https://api.daily.co/v1";
 const ROOM_TTL_SEC = 60 * 60 * 6;
 const EXP_REFRESH_SEC = 60 * 10;
 const TOKEN_TTL_SEC = 60 * 60 * 4;
-// A lobby preview's token: good for this long, and Daily ejects the viewer
-// when it runs out (eject_at_token_exp).  The lobby asks again while the
-// room is still live; once the room has ended there is no new token, so a
-// preview cannot outlive the show by more than this.
+// A lobby preview's token may be used to JOIN for this long.  exp limits
+// joining, not watching: a viewer already in the call is not ejected when it
+// passes (no eject_at_token_exp - RULING 10/10).  The lobby itself takes a
+// preview down when its room leaves list_live_rooms.
 const PREVIEW_TTL_SEC = 60 * 5;
 const PREVIEW_NAME = "lobby-preview";
 
@@ -251,8 +251,7 @@ Deno.serve(async (req: Request) => {
   };
   if (isPreview) {
     // Hidden and receive-only: not in anyone's participants(), may send no
-    // audio, video or screen, camera and mic start off, and out at exp.
-    properties.eject_at_token_exp = true;
+    // audio, video or screen, and camera and mic start off.
     properties.start_video_off = true;
     properties.start_audio_off = true;
     properties.enable_screenshare = false;

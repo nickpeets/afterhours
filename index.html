@@ -330,55 +330,59 @@
    start/expiry (throw_at / throw_until) over whatever his tile shows.  Jeer
    splats land ON THE GLASS at a fixed spot (upper-middle, where a face
    usually is), the same on every device, then drip off; the cheers and the
-   boo/cricket are screen effects.  No face detection anywhere.  Placeholder
-   art: emoji + CSS keyframes, final art later.  pointer-events:none: the
-   heart target and the host controls underneath keep working. --- */
+   boo/cricket are screen effects.  No face detection anywhere.
+   THE ART (feat/overlay-art, ruling 10/11): one canvas per tile, drawn by
+   throwDrawFrame() from the throw's own seed — the same picture on every
+   phone.  pointer-events:none: the heart target and the host controls
+   underneath keep working. --- */
 .chair__throw{ position:absolute; inset:0; z-index:2; display:none; overflow:hidden; pointer-events:none; }
 .chair.has-throw:not(.is-empty):not(.is-strip) .chair__throw{ display:block; }
 .chair__throw-fx{ position:absolute; inset:0; }
-.chair__throw-fx i{ position:absolute; font-style:normal; line-height:1; will-change:transform,opacity; }
-/* the splat: lands upper-middle, then slides/drips down and fades over the window */
-.chair__throw-fx i.fx-splat{ left:50%; top:28%; font-size:52px; transform:translate(-50%,-50%); animation:lc-splat var(--throw-secs,10s) ease-in forwards; filter:drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
-@keyframes lc-splat{ 0%{ transform:translate(-50%,-50%) scale(.2); opacity:0 } 6%{ transform:translate(-50%,-50%) scale(1.25); opacity:1 } 12%{ transform:translate(-50%,-50%) scale(1) } 70%{ transform:translate(-50%,10%) scale(1,1.15); opacity:1 } 100%{ transform:translate(-50%,160%) scale(.9,1.3); opacity:0 } }
-/* falling things (petals, confetti) — eight lanes, fixed per lane so every device agrees */
-.chair__throw-fx i.fx-fall{ top:-14%; font-size:18px; animation:lc-fall var(--throw-secs,10s) linear forwards; }
-@keyframes lc-fall{ 0%{ transform:translateY(0) rotate(0deg); opacity:0 } 8%{ opacity:1 } 90%{ opacity:1 } 100%{ transform:translateY(130%) rotate(300deg); opacity:0 } }
-.chair__throw-fx i.fx-fall:nth-child(1){ left:6%;  animation-duration:calc(var(--throw-secs,10s) * .9); }
-.chair__throw-fx i.fx-fall:nth-child(2){ left:20%; animation-duration:calc(var(--throw-secs,10s) * 1); }
-.chair__throw-fx i.fx-fall:nth-child(3){ left:33%; animation-duration:calc(var(--throw-secs,10s) * .8); }
-.chair__throw-fx i.fx-fall:nth-child(4){ left:46%; animation-duration:calc(var(--throw-secs,10s) * .95); }
-.chair__throw-fx i.fx-fall:nth-child(5){ left:58%; animation-duration:calc(var(--throw-secs,10s) * .85); }
-.chair__throw-fx i.fx-fall:nth-child(6){ left:70%; animation-duration:calc(var(--throw-secs,10s) * 1); }
-.chair__throw-fx i.fx-fall:nth-child(7){ left:82%; animation-duration:calc(var(--throw-secs,10s) * .9); }
-.chair__throw-fx i.fx-fall:nth-child(8){ left:92%; animation-duration:calc(var(--throw-secs,10s) * .8); }
-/* the heart burst — out from the centre, five directions */
-.chair__throw-fx i.fx-burst{ left:50%; top:50%; font-size:26px; animation:lc-burst var(--throw-secs,10s) ease-out forwards; }
-@keyframes lc-burst{ 0%{ transform:translate(-50%,-50%) scale(.3); opacity:0 } 10%{ opacity:1 } 100%{ transform:translate(calc(-50% + var(--bx)),calc(-50% + var(--by))) scale(1.2); opacity:0 } }
-.chair__throw-fx i.fx-burst:nth-child(1){ --bx:0px;   --by:-70px }
-.chair__throw-fx i.fx-burst:nth-child(2){ --bx:60px;  --by:-30px }
-.chair__throw-fx i.fx-burst:nth-child(3){ --bx:-60px; --by:-30px }
-.chair__throw-fx i.fx-burst:nth-child(4){ --bx:40px;  --by:50px }
-.chair__throw-fx i.fx-burst:nth-child(5){ --bx:-40px; --by:50px }
-/* the sparkle — six points twinkling in place */
-.chair__throw-fx i.fx-twinkle{ font-size:20px; animation:lc-twinkle 1.2s ease-in-out infinite alternate; }
-@keyframes lc-twinkle{ 0%{ transform:scale(.4) rotate(0deg); opacity:.2 } 100%{ transform:scale(1.2) rotate(40deg); opacity:1 } }
-.chair__throw-fx i.fx-twinkle:nth-child(1){ left:12%; top:18% } .chair__throw-fx i.fx-twinkle:nth-child(2){ left:70%; top:12%; animation-delay:.3s }
-.chair__throw-fx i.fx-twinkle:nth-child(3){ left:40%; top:40%; animation-delay:.6s } .chair__throw-fx i.fx-twinkle:nth-child(4){ left:80%; top:55%; animation-delay:.2s }
-.chair__throw-fx i.fx-twinkle:nth-child(5){ left:18%; top:66%; animation-delay:.8s } .chair__throw-fx i.fx-twinkle:nth-child(6){ left:55%; top:78%; animation-delay:.5s }
-/* the boo cloud — drifts up and across, three puffs */
-.chair__throw-fx i.fx-cloud{ left:50%; bottom:10%; font-size:30px; animation:lc-cloud var(--throw-secs,10s) ease-out forwards; }
-@keyframes lc-cloud{ 0%{ transform:translate(-50%,0) scale(.6); opacity:0 } 12%{ opacity:.95 } 100%{ transform:translate(calc(-50% + var(--cx)),-170%) scale(1.5); opacity:0 } }
-.chair__throw-fx i.fx-cloud:nth-child(1){ --cx:-50px } .chair__throw-fx i.fx-cloud:nth-child(2){ --cx:0px; animation-delay:.4s } .chair__throw-fx i.fx-cloud:nth-child(3){ --cx:50px; animation-delay:.8s }
-.chair__throw-fx i.fx-boo{ left:50%; top:30%; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:22px; color:#d6cdff; letter-spacing:.1em; animation:lc-boo var(--throw-secs,10s) ease-out forwards; }
-@keyframes lc-boo{ 0%{ transform:translate(-50%,0) scale(.5); opacity:0 } 10%{ opacity:1 } 100%{ transform:translate(-50%,-60px) scale(1.4); opacity:0 } }
-/* the cricket — hops along the bottom */
-.chair__throw-fx i.fx-hop{ left:-12%; bottom:8%; font-size:28px; animation:lc-hop var(--throw-secs,10s) linear forwards; }
-@keyframes lc-hop{ 0%{ transform:translate(0,0) } 10%{ transform:translate(12%,-40px) } 20%{ transform:translate(24%,0) } 30%{ transform:translate(36%,-40px) } 40%{ transform:translate(48%,0) } 50%{ transform:translate(60%,-40px) } 60%{ transform:translate(72%,0) } 70%{ transform:translate(84%,-40px) } 80%{ transform:translate(96%,0) } 90%{ transform:translate(108%,-40px) } 100%{ transform:translate(120%,0) } }
-/* the still badge (reduced motion): a small emoji, upper-middle, for the same window */
+.chair__throw-fx canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+/* the still badge (reduced motion): the kind's own sprite, standing still, upper-middle, for the same window */
 .chair__throw-badge{ position:absolute; left:50%; top:10px; transform:translateX(-50%); display:none; width:34px; height:34px; align-items:center; justify-content:center; font-size:20px; border-radius:50%; background:rgba(6,8,24,.72); border:1px solid rgba(185,168,255,.55); }
+.chair__throw-badge canvas{ width:26px; height:26px; display:block; }
 @media (prefers-reduced-motion: reduce){
   .chair.has-throw .chair__throw-fx{ display:none; }
   .chair.has-throw .chair__throw-badge{ display:flex; }
+}
+/* THE ASK WIPE (ruling 10/11, item 6): when she asks him a spotlight sweeps
+   his tile and washes the live throw off it — the fresh start everyone sees.
+   The throw's last frame stays on the glass (is-ghost) just long enough for
+   the beam to take it; a wipe that is NOT an ask (host clear, opt-out) lets
+   the ghost fade instead.  The ROOM's truth never waits for any of this:
+   has-throw drops the instant the row says so (gate 80 block 10). */
+.chair.is-ghost:not(.is-empty):not(.is-strip) .chair__throw,
+.chair.is-held:not(.is-empty):not(.is-strip) .chair__throw,
+.chair.is-wiping:not(.is-empty):not(.is-strip) .chair__throw{ display:block; }
+.chair.is-ghost .chair__throw-fx{ animation:lc-ghost 460ms ease-in forwards; }
+.chair.is-wiping .chair__throw-fx{ animation:lc-wipe-clip var(--wipe-ms,720ms) cubic-bezier(.45,0,.3,1) forwards; }
+.chair.is-ghost .chair__throw-badge, .chair.is-held .chair__throw-badge, .chair.is-wiping .chair__throw-badge{ display:none; }
+.chair__wipe{ position:absolute; inset:0; z-index:2; display:none; overflow:hidden; pointer-events:none; }
+.chair.is-wiping:not(.is-empty):not(.is-strip) .chair__wipe{ display:block; }
+.chair__wipe::before{
+  content:""; position:absolute; top:-12%; bottom:-12%; left:0; width:46%;
+  background:linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,214,234,.2) 26%, rgba(255,250,236,.9) 50%, rgba(255,244,214,.26) 72%, rgba(255,255,255,0) 100%);
+  transform:translateX(-99%) skewX(-14deg);
+  animation:lc-wipe-beam var(--wipe-ms,720ms) cubic-bezier(.45,0,.3,1) forwards;
+}
+@keyframes lc-wipe-beam{ 0%{ transform:translateX(-99%) skewX(-14deg) } 100%{ transform:translateX(216%) skewX(-14deg) } }
+@keyframes lc-wipe-clip{ 0%{ clip-path:polygon(-10% 0,140% 0,140% 100%,-35% 100%) } 100%{ clip-path:polygon(135% 0,140% 0,140% 100%,110% 100%) } }
+@keyframes lc-ghost{ 0%{ opacity:1 } 55%{ opacity:1 } 100%{ opacity:0 } }
+/* THE WIRE (ruling 10/11, item 5): a fuse around the asked man's frame, as
+   long as his answer clock has left to run.  Visual only — it reads the
+   clock, it is not one; nothing happens at zero. */
+.chair__wire{ position:absolute; inset:-2px; width:calc(100% + 4px); height:calc(100% + 4px); z-index:4; display:none; overflow:visible; pointer-events:none; }
+.chair.has-wire:not(.is-empty):not(.is-strip) .chair__wire{ display:block; }
+.chair__wire-ash{ fill:none; stroke:rgba(6,8,24,.55); stroke-width:3; }
+.chair__wire-fuse{ fill:none; stroke:#fff3c4; stroke-width:3.5; stroke-linecap:round; filter:drop-shadow(0 0 3px rgba(255,194,77,.95)) drop-shadow(0 0 7px rgba(255,194,77,.55)); }
+.chair__wire-spark{ fill:#fff8e0; filter:drop-shadow(0 0 5px #ffc24d) drop-shadow(0 0 10px rgba(255,45,143,.8)); }
+.chair__wire-rays{ stroke:#ffc24d; stroke-width:1.6; stroke-linecap:round; transform-box:fill-box; transform-origin:center; animation:lc-wire-spark .32s steps(2) infinite; }
+@keyframes lc-wire-spark{ 0%{ transform:rotate(0deg) scale(1) } 100%{ transform:rotate(45deg) scale(.7) } }
+.chair.has-wire.wire-urgent .chair__wire-fuse{ stroke:#ff8ac2; filter:drop-shadow(0 0 4px rgba(255,45,143,.95)); }
+@media (prefers-reduced-motion: reduce){
+  .chair.is-ghost .chair__throw, .chair.is-held .chair__throw, .chair.is-wiping .chair__throw, .chair.is-wiping .chair__wipe{ display:none !important; }
+  .chair__wire-rays{ animation:none; display:none; }
 }
 /* THE TRAY (crowd) and the seat's switch, in the composer like the shelf */
 .lc-throwtray__targets{ display:flex; gap:6px; overflow-x:auto; }
@@ -812,15 +816,32 @@
    368px row and the input was a sliver that could not show its own
    placeholder.  Wherever the room column is under 500px — every phone, and
    the 430px desktop column — the crowd's two CTAs are 46px icon buttons;
-   the words stay in the markup as the accessible name.  The other verbs
-   (ASK, LEAVE THE BENCH, LEAVE THE CHAIR) keep their words. */
+   the words stay in the markup as the accessible name.
+   THE SEAT'S ROW TOO (ruling 10/11, follow-up).  A chair's row was
+   [input][🎭 FILTER][🍅 ON][↩ LEAVE THE CHAIR] — the input a 20px sliver
+   and LEAVE running off the screen.  Same cure: 🎭, 🍅/🚫 and ↩ are 46px
+   icon buttons with their names kept for a screen reader.  LEAVE is set
+   apart at the end of the row and drawn hollow — a way out, not the next
+   thing to tap — and leaving a chair still asks "Leave the chair?" first.
+   ASK (hers) keeps its word. */
 #room #inputbar .lc-cta__g{ flex:0 0 auto; }
 @media (max-width:499px), (min-width:720px){
   #room #inputbar #rt_throwbtn .lc-cta__t,
-  #room #inputbar #rt_joinline[data-verb="join"] .lc-cta__t{ display:none; }
+  #room #inputbar #rt_filterbtn .lc-cta__t,
+  #room #inputbar #rt_throwtoggle .lc-cta__t,
+  #room #inputbar #rt_joinline[data-verb="join"] .lc-cta__t,
+  #room #inputbar #rt_joinline[data-verb^="leave"] .lc-cta__t{ display:none; }
   #room #inputbar #rt_throwbtn,
-  #room #inputbar #rt_joinline[data-verb="join"]{
+  #room #inputbar #rt_filterbtn,
+  #room #inputbar #rt_throwtoggle,
+  #room #inputbar #rt_joinline[data-verb="join"],
+  #room #inputbar #rt_joinline[data-verb^="leave"]{
     width:46px; padding:0; justify-content:center; font-size:19px;
+  }
+  #room #inputbar #rt_joinline[data-verb^="leave"]{
+    margin-left:8px;                                   /* 16px clear of the switch beside it */
+    background:rgba(6,8,24,.55); border:1.5px solid rgba(238,240,255,.6); box-shadow:none;
+    font-size:21px;
   }
 }
 
@@ -1360,7 +1381,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1011.1247</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1011.1441</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1617,9 +1638,9 @@
           <input type="text" id="rt_chatinput" placeholder="Say something…" maxlength="140" enterkeyhint="send">
           <button id="rt_chatsend" hidden>➤</button>
           <button id="rt_endshow" style="display:none">🎬 LAST CALL</button>
-          <button id="rt_filterbtn" style="display:none" aria-haspopup="dialog" aria-controls="rt_shelf">🎭 FILTER</button>
+          <button id="rt_filterbtn" style="display:none" aria-haspopup="dialog" aria-controls="rt_shelf" aria-label="Filter: choose a look" title="Filter: choose a look"><span class="lc-cta__g" aria-hidden="true">🎭</span><span class="lc-cta__t"> FILTER</span></button>
           <button id="rt_throwbtn" aria-haspopup="dialog" aria-controls="rt_throwtray" aria-label="Throw a cheer or a jeer" title="Throw a cheer or a jeer"><span class="lc-cta__g" aria-hidden="true">🍅</span><span class="lc-cta__t"> THROW</span></button>
-          <button id="rt_throwtoggle" title="The crowd can throw cheers and jeers at you. Tap to turn that off or on.">🍅 ON</button>
+          <button id="rt_throwtoggle" aria-pressed="true" aria-label="Throwables are on. Tap to turn them off" title="The crowd can throw cheers and jeers at you. Tap to turn that off or on."><span class="lc-cta__g" aria-hidden="true">🍅</span><span class="lc-cta__t"> ON</span></button>
           <button id="rt_joinline" data-verb="join" aria-label="Take a bench seat" title="Take a bench seat"><span class="lc-cta__g" aria-hidden="true">♥</span><span class="lc-cta__t"> TAKE A BENCH SEAT</span></button>
         </div>
       </div>
@@ -1882,7 +1903,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1011.1247"); }catch(e){}
+try{ console.log("[lastcall] build b1011.1441"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -3657,6 +3678,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   }
   filterPaintTiles(chairBySeat);   // the badge: painted from the row's server-owned field, every viewer alike
   throwPaintTiles();               // the throw overlay: from the row's server start/expiry, every viewer alike (feat/throwables)
+  try{ askWipeObserve(); }catch(e){}   // the ASK wipe's eyes: every render sees who (if anyone) is asked (feat/overlay-art)
 
   /* ---- SPOTLIGHT: the quad breaks to a two-up split.  The rivals collapse
      into ONE muted strip so nobody vanishes — first rival carries the strip,
@@ -4744,13 +4766,22 @@ function egRoleBits(){
   $("rt_chairs").querySelectorAll(".chair").forEach(el=>{
     el.classList.toggle("is-target", !!t && el.dataset.heartuid===t);
   });
+  try{ askWipeObserve(); if(wirePaint()) overlayKick(); }catch(e){}   // the ASK wipe and the Wire (feat/overlay-art)
   $("room").classList.toggle("is-target", !!t && t===ME.id);
 }
 
 function egTickStart(){
   clearInterval(EG_TICK);
   EG_TICK=setInterval(()=>{
-    const left=Math.max(0,Math.ceil((EG_DEADLINE-Date.now())/1000));
+    /* SERVER TIME (feat/overlay-art).  EG_DEADLINE is the server's stamp; this
+       tick compared it to the phone's own Date.now().  Gate 87 put a phone
+       30s fast in the crowd to test the Wire and found two things wrong on
+       it: the answer card read 0:00 for the whole answer, and — far worse —
+       the resolver below "saw" the deadline pass the moment a man was asked
+       and nudged advance_phase, ending his answer for the whole room.  Both
+       now read serverNow(), like the pill, the throws and the Wire. */
+    const now=serverNow();
+    const left=Math.max(0,Math.ceil((EG_DEADLINE-now)/1000));
     const m=Math.floor(left/60), s=String(left%60).padStart(2,"0");
     const pc=$("eg_phaseclock"); if(pc) pc.textContent=m+":"+s;
     const dc=$("eg_draft_clock"); if(dc && EG_PHASE==="draft") { dc.textContent="0:"+s; dc.classList.toggle("is-urgent",left<=5); }
@@ -4848,7 +4879,7 @@ function egTickStart(){
     // while a pick window is open (wave 5: the pick timer is the only
     // advancing authority — this also silences resolve_draft nudges when
     // prod flips the phase to draft under the window)
-    if(!PASS_PICK && EG_PHASE!=="deciding" && EG_DEADLINE && Date.now()>EG_DEADLINE+400 && Date.now()-EG_ADV_LOCK>2000){
+    if(!PASS_PICK && EG_PHASE!=="deciding" && EG_DEADLINE && now>EG_DEADLINE+400 && Date.now()-EG_ADV_LOCK>2000){
       EG_ADV_LOCK=Date.now();
       const fn = EG_PHASE==="draft" ? "resolve_draft" : "advance_phase";
       sb.rpc(fn,{room_id:CURRENT_ROOM.id}).then(()=>egRefreshRoom()).catch(()=>{});
@@ -6550,6 +6581,7 @@ async function leaveRoom(){
   try{ $("rt_gifts").classList.remove("show"); }catch(e){}
   try{ filterShelfOpen(false); }catch(e){}
   try{ throwTrayOpen(false); egSkipShow(false); }catch(e){}   // sheet-open / has-skip must not outlive the room
+  try{ overlayForget(); }catch(e){}                           // nor a throw's picture, a sweep or a fuse
   try{ ["eg_drawer","eg_decide","eg_question","eg_showstart","eg_drumroll"].forEach(id=>{ const el=$(id); if(el) el.style.display="none"; }); }catch(e){}
   /* NOTHING ABOVE THE HOST'S end_show MAY SKIP IT (2026-09-30).  These
      teardown calls were bare: a throw in any of them left leaveRoom before
@@ -7740,25 +7772,409 @@ function throwFoldMemberRow(row){
   throwPaintComposer();
 }
 
-/* ---- painters ---- */
-/* placeholder art, one fragment per kind (emoji + the keyframes above).
-   Lanes and directions are fixed in CSS, so every device draws the same
-   picture; nothing here looks at his face or his frame. */
-function throwFxHtml(k){
-  const n=(c,cls,em)=>Array.from({length:c},()=>`<i class="${cls}">${em}</i>`).join("");
-  switch(k.id){
-    case "tomato": case "pie": return `<i class="fx-splat">${k.emoji}</i>`;
-    case "petals": case "confetti": return n(8,"fx-fall",k.emoji);
-    case "hearts": return n(5,"fx-burst",k.emoji);
-    case "sparkle": return n(6,"fx-twinkle",k.emoji);
-    case "boo": return n(3,"fx-cloud",k.emoji)+`<i class="fx-boo">BOO</i>`;
-    case "cricket": return `<i class="fx-hop">${k.emoji}</i>`;
-    default: return `<i class="fx-splat">${k.emoji}</i>`;
-  }
+/* =========================================================================
+   THE THROW ART (feat/overlay-art, ruling 10/11 item 1) — real art for the
+   eight throwables, drawn on a canvas over the tile.
+
+   ONE RULE ABOVE ALL: THE SAME THROW IS THE SAME PICTURE ON EVERY PHONE.
+   Every bit of chance in a picture — the splat's outline, where the seeds
+   land, which way each petal drifts — comes from throwRng(throwSeed(target,
+   throw_at)): the throw's own two facts, which every client holds
+   identically.  Nothing in this section may ask the platform for a random
+   number or read a clock of its own (gate 87 reads the section for both).  A frame is a PURE FUNCTION
+   of (kind, seed, elapsed server ms, window ms, canvas size): two phones at
+   the same server instant draw the same frame, and a late joiner draws the
+   frame the room is on, not frame one.
+
+   It is still a DOM layer over the tile.  Nothing here reads his camera, his
+   track, his face or the filter pipeline.
+   ========================================================================= */
+function throwSeed(uid, atMs){
+  const s=String(uid)+"@"+String(atMs); let h=2166136261>>>0;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; }
+  return h>>>0;
 }
+function throwRng(seed){
+  let a=seed>>>0;
+  return function(){ a=(a+0x6D2B79F5)>>>0; let t=a; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; };
+}
+const TFX={
+  c01:(x)=>x<0?0:(x>1?1:x),
+  outCubic:(x)=>{ x=TFX.c01(x); return 1-Math.pow(1-x,3); },
+  inQuad:(x)=>{ x=TFX.c01(x); return x*x; },
+  inOut:(x)=>{ x=TFX.c01(x); return x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2; },
+  outBack:(x)=>{ x=TFX.c01(x); const c1=1.70158,c3=c1+1; return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2); },
+  /* a closed wobbly outline through n seeded radii — the splat's edge */
+  blob(ctx,cx,cy,R,radii,sx,sy){
+    const n=radii.length, P=[];
+    for(let i=0;i<n;i++){ const a=i/n*Math.PI*2; P.push([cx+Math.cos(a)*R*radii[i]*(sx||1), cy+Math.sin(a)*R*radii[i]*(sy||1)]); }
+    ctx.beginPath();
+    for(let i=0;i<n;i++){ const p=P[i], q=P[(i+1)%n], mx=(p[0]+q[0])/2, my=(p[1]+q[1])/2; if(i===0){ const o=P[n-1]; ctx.moveTo((o[0]+p[0])/2,(o[1]+p[1])/2); } ctx.quadraticCurveTo(p[0],p[1],mx,my); }
+    ctx.closePath();
+  },
+  heart(ctx,x,y,s,rot){
+    ctx.save(); ctx.translate(x,y); ctx.rotate(rot||0); ctx.scale(s,s);
+    ctx.beginPath(); ctx.moveTo(0,.34);
+    ctx.bezierCurveTo(-.08,.22,-.5,.02,-.5,-.22); ctx.bezierCurveTo(-.5,-.44,-.16,-.5,0,-.26);
+    ctx.bezierCurveTo(.16,-.5,.5,-.44,.5,-.22); ctx.bezierCurveTo(.5,.02,.08,.22,0,.34); ctx.closePath(); ctx.restore();
+  },
+  petal(ctx,x,y,s,rot,flip){
+    ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.scale(s*flip,s);
+    ctx.beginPath(); ctx.moveTo(0,-.5); ctx.bezierCurveTo(.42,-.38,.46,.2,.06,.5); ctx.quadraticCurveTo(0,.42,-.06,.5); ctx.bezierCurveTo(-.46,.2,-.42,-.38,0,-.5); ctx.closePath(); ctx.restore();
+  },
+  glint(ctx,x,y,s,rot){
+    ctx.save(); ctx.translate(x,y); ctx.rotate(rot||0); ctx.scale(s,s);
+    ctx.beginPath();
+    for(let i=0;i<8;i++){ const a=i/8*Math.PI*2, r=(i%2===0)?(i%4===0?1:.62):.16; ctx[i?"lineTo":"moveTo"](Math.cos(a)*r,Math.sin(a)*r); }
+    ctx.closePath(); ctx.restore();
+  },
+  /* ---- the sprites: each drawn around (0,0) at unit size 1, caller scales ---- */
+  tomato(ctx,x,y,s,rot){
+    ctx.save(); ctx.translate(x,y); ctx.rotate(rot||0); ctx.scale(s,s);
+    const g=ctx.createRadialGradient(-.16,-.2,.05,0,0,.56); g.addColorStop(0,"#ff7a5c"); g.addColorStop(.55,"#e8281f"); g.addColorStop(1,"#a40f18");
+    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(0,.03,.5,.46,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="rgba(255,255,255,.55)"; ctx.beginPath(); ctx.ellipse(-.2,-.17,.11,.06,-.6,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#3f9a3a"; ctx.beginPath();
+    for(let i=0;i<10;i++){ const a=i/10*Math.PI*2-Math.PI/2, r=(i%2===0)?.24:.07; ctx[i?"lineTo":"moveTo"](Math.cos(a)*r,-.36+Math.sin(a)*r*.62); }
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle="#2f7a2c"; ctx.lineWidth=.06; ctx.lineCap="round"; ctx.beginPath(); ctx.moveTo(0,-.38); ctx.quadraticCurveTo(.03,-.5,.1,-.54); ctx.stroke();
+    ctx.restore();
+  },
+  pie(ctx,x,y,s,rot,squash){
+    ctx.save(); ctx.translate(x,y); ctx.rotate(rot||0); ctx.scale(s,s*(squash||1));
+    // the tin, face on: pleated silver rim
+    const g=ctx.createRadialGradient(0,0,.2,0,0,.56); g.addColorStop(0,"#eef0f6"); g.addColorStop(.7,"#b9bfd0"); g.addColorStop(1,"#7b8296");
+    ctx.fillStyle=g; ctx.beginPath();
+    for(let i=0;i<28;i++){ const a=i/28*Math.PI*2, r=(i%2===0)?.56:.51; ctx[i?"lineTo":"moveTo"](Math.cos(a)*r,Math.sin(a)*r); }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle="#d9a05b"; ctx.beginPath(); ctx.arc(0,0,.47,0,Math.PI*2); ctx.fill();
+    const c=ctx.createRadialGradient(-.1,-.12,.04,0,0,.44); c.addColorStop(0,"#ffffff"); c.addColorStop(.7,"#fff3da"); c.addColorStop(1,"#f0d8ac");
+    ctx.fillStyle=c; ctx.beginPath();
+    for(let i=0;i<=40;i++){ const a=i/40*Math.PI*2, r=.4+.035*Math.sin(a*8); ctx[i?"lineTo":"moveTo"](Math.cos(a)*r,Math.sin(a)*r); }
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle="rgba(214,178,120,.7)"; ctx.lineWidth=.035; ctx.lineCap="round"; ctx.beginPath();
+    for(let i=0;i<=30;i++){ const a=i/30*Math.PI*3.2, r=.03+.1*a/Math.PI; ctx[i?"lineTo":"moveTo"](Math.cos(a)*r,Math.sin(a)*r); }
+    ctx.stroke(); ctx.restore();
+  },
+  cloud(ctx,x,y,s,puffs,mood){
+    ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+    const g=ctx.createLinearGradient(0,-.5,0,.34); g.addColorStop(0,"#8f82c9"); g.addColorStop(.55,"#5a4e94"); g.addColorStop(1,"#2c2552");
+    ctx.fillStyle=g; ctx.beginPath();
+    for(const p of puffs){ ctx.moveTo(p[0]+p[2],p[1]); ctx.arc(p[0],p[1],p[2],0,Math.PI*2); }
+    ctx.rect(-.78,0,1.56,.26); ctx.fill();
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(-.78,.13,.13,0,Math.PI*2); ctx.arc(.78,.13,.13,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle="rgba(214,205,255,.55)"; ctx.lineWidth=.03; ctx.beginPath();
+    for(const p of puffs){ ctx.moveTo(p[0]+Math.cos(-2.5)*p[2],p[1]+Math.sin(-2.5)*p[2]); ctx.arc(p[0],p[1],p[2],-2.5,-.9); }
+    ctx.stroke();
+    // the face: a scowl
+    ctx.strokeStyle="#12102a"; ctx.lineWidth=.055; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(-.34,-.12-(mood||0)*.03); ctx.lineTo(-.14,-.04); ctx.moveTo(.34,-.12-(mood||0)*.03); ctx.lineTo(.14,-.04); ctx.stroke();
+    ctx.fillStyle="#12102a"; ctx.beginPath(); ctx.arc(-.22,.03,.045,0,Math.PI*2); ctx.arc(.22,.03,.045,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0,.16,.07+.02*(mood||0),.05+.03*(mood||0),0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  },
+  /* B-O-O in fat round strokes — drawn, not typed: a font would differ per phone */
+  boo(ctx,x,y,s,alpha,col){
+    ctx.save(); ctx.translate(x,y); ctx.scale(s,s); ctx.globalAlpha*=alpha; ctx.lineCap="round"; ctx.lineJoin="round";
+    const draw=()=>{
+      ctx.beginPath();
+      ctx.moveTo(-1.1,-.5); ctx.lineTo(-1.1,.5);
+      ctx.moveTo(-1.1,-.5); ctx.lineTo(-.86,-.5); ctx.bezierCurveTo(-.5,-.5,-.5,0,-.86,0); ctx.lineTo(-1.1,0);
+      ctx.moveTo(-.86,0); ctx.bezierCurveTo(-.42,0,-.42,.5,-.86,.5); ctx.lineTo(-1.1,.5);
+      ctx.moveTo(.3,0); ctx.ellipse(-.02,0,.32,.5,0,0,Math.PI*2);
+      ctx.moveTo(1.14,0); ctx.ellipse(.82,0,.32,.5,0,0,Math.PI*2);
+      ctx.stroke();
+    };
+    ctx.strokeStyle="rgba(18,16,42,.85)"; ctx.lineWidth=.36; draw();
+    ctx.strokeStyle=col||"#d6cdff"; ctx.lineWidth=.2; draw();
+    ctx.restore();
+  },
+  cricket(ctx,x,y,s,squash,legKick,chirp){
+    ctx.save(); ctx.translate(x,y); ctx.scale(s,s*(squash||1)); ctx.lineCap="round"; ctx.lineJoin="round";
+    // hind leg (behind the body)
+    ctx.strokeStyle="#2f7a2c"; ctx.lineWidth=.1; ctx.beginPath(); ctx.moveTo(-.2,-.1); ctx.lineTo(-.52-.1*legKick,-.5+.3*legKick); ctx.lineTo(-.62-.2*legKick,.06); ctx.stroke();
+    // body
+    const g=ctx.createLinearGradient(0,-.36,0,.12); g.addColorStop(0,"#9be86a"); g.addColorStop(1,"#3f9a3a");
+    ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(-.08,-.14,.46,.2,-.08,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle="rgba(47,122,44,.9)"; ctx.lineWidth=.035; ctx.beginPath(); ctx.moveTo(-.46,-.2); ctx.quadraticCurveTo(-.1,-.32,.2,-.2); ctx.stroke();
+    // head + eye
+    ctx.fillStyle="#7bd65a"; ctx.beginPath(); ctx.arc(.38,-.2,.2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(.45,-.26,.085,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#12102a"; ctx.beginPath(); ctx.arc(.47,-.26,.042,0,Math.PI*2); ctx.fill();
+    // antennae
+    ctx.strokeStyle="#2f7a2c"; ctx.lineWidth=.035; ctx.beginPath(); ctx.moveTo(.42,-.38); ctx.quadraticCurveTo(.56,-.72,.84,-.7); ctx.moveTo(.36,-.39); ctx.quadraticCurveTo(.4,-.78,.66,-.86); ctx.stroke();
+    // front legs
+    ctx.lineWidth=.06; ctx.beginPath(); ctx.moveTo(.18,-.04); ctx.lineTo(.26,.08); ctx.moveTo(-.04,-.02); ctx.lineTo(-.02,.08); ctx.stroke();
+    // chirp marks
+    if(chirp>0){ ctx.strokeStyle="rgba(174,247,238,"+(0.9*chirp)+")"; ctx.lineWidth=.045;
+      for(let i=0;i<3;i++){ const r=.3+i*.16; ctx.beginPath(); ctx.arc(-.3,-.36,r,-2.5,-1.5); ctx.stroke(); } }
+    ctx.restore();
+  }
+};
+
+/* the PLAN: every seeded number a throw's picture needs, drawn once from its
+   seed in a FIXED order (adding a draw in the middle would change every
+   picture after it, so new numbers go at the end of a kind's block) */
+const THROW_PLANS={};
+function throwPlan(kind, seed){
+  const key=kind+":"+seed; if(THROW_PLANS[key]) return THROW_PLANS[key];
+  const r=throwRng(seed), R=(a,b)=>a+(b-a)*r(), I=(a,b)=>Math.floor(R(a,b+1)), P={kind,seed};
+  const lobes=(n,lo,hi,spike)=>Array.from({length:n},()=>{ let v=R(lo,hi); if(r()<spike) v+=R(.18,.42); return v; });
+  if(kind==="tomato"){
+    P.from=r()<.5?-1:1; P.lobes=lobes(I(15,19),.74,1.08,.26); P.inner=lobes(11,.42,.6,0);
+    P.drops=Array.from({length:I(9,13)},()=>({a:R(0,Math.PI*2),d:R(1.25,2.3),s:R(.9,2.8),slide:R(.2,1)}));
+    P.seeds=Array.from({length:I(10,14)},()=>({a:R(0,Math.PI*2),d:R(.12,.78),rot:R(0,Math.PI*2),s:R(2.1,3.1),slide:R(.3,1)}));
+    P.drips=Array.from({length:I(4,6)},()=>({x:R(-.72,.72),len:R(.14,.4),w:R(2.2,4.2),delay:R(250,2400),dur:R(2600,5200)}));
+    P.chunks=Array.from({length:3},()=>({a:R(0,Math.PI*2),d:R(.25,.7),s:R(3,5.5),rot:R(0,6.28),sides:lobes(6,.6,1,0)}));
+    P.calyx={x:R(-.3,.3),y:R(-.3,.1),rot:R(-1,1),spin:R(-2,2)};
+  } else if(kind==="pie"){
+    P.lobes=lobes(I(11,14),.84,1.16,.18); P.tinSpin=R(-1.6,1.6); P.tinDrift=R(-10,10);
+    P.dollops=Array.from({length:I(7,10)},()=>({a:R(0,Math.PI*2),d:R(1.15,1.9),s:R(1.6,4),slide:R(.2,1)}));
+    P.crumbs=Array.from({length:I(10,14)},()=>({a:R(-Math.PI,0),v:R(18,46),s:R(.9,2.1),rot:R(0,6.28),spin:R(-6,6),dark:r()<.4}));
+    P.drips=Array.from({length:I(3,5)},()=>({x:R(-.66,.66),len:R(.08,.24),w:R(4,7),delay:R(500,2600),dur:R(3200,6000)}));
+    P.swirls=Array.from({length:4},()=>({a:R(0,6.28),d:R(.1,.55),r:R(.12,.26),a0:R(0,6.28)}));
+  } else if(kind==="boo"){
+    P.puffs=[[-.56,-.02,.26],[-.3,-.22,.3],[.04,-.3,.34],[.36,-.2,.29],[.6,-.02,.24]].map(p=>[p[0]+R(-.04,.04),p[1]+R(-.04,.04),p[2]+R(-.03,.04)]);
+    P.bob=R(0,6.28); P.x=R(-4,4);
+    P.rain=Array.from({length:I(12,16)},()=>({x:R(-.7,.7),period:R(900,1500),phase:R(0,1),len:R(3,6)}));
+    P.echo=[{at:R(900,1500),dx:R(-10,10)},{at:R(3200,4200),dx:R(-10,10)},{at:R(5600,6600),dx:R(-10,10)}];
+  } else if(kind==="cricket"){
+    P.hops=Array.from({length:5},()=>({h:R(14,30),rest:R(.4,.56)}));
+    P.dots=R(0,1); P.dir=r()<.5?1:-1;
+  } else if(kind==="petals"){
+    const cols=[["#ff5fa8","#e0115f"],["#ff2d8f","#b3124a"],["#ff8ac2","#ff2d8f"],["#ff4d7a","#c2103d"],["#ffb3d4","#ff5fa8"]];
+    P.petals=Array.from({length:I(24,28)},()=>({x:R(.03,.97),s:R(8,13.5),delay:R(-.12,.3),fall:R(.4,.68),amp:R(3,9),freq:R(1.2,2.6),ph:R(0,6.28),rot:R(0,6.28),spin:R(-2.4,2.4),flut:R(1.6,3.4),col:cols[I(0,4)],land:r()<.45,rest:R(-.6,.6)}));
+  } else if(kind==="hearts"){
+    const cols=["#ff2d8f","#ff5fa8","#ff8ac2","#ff4d7a","#d6cdff"];
+    P.hearts=Array.from({length:I(13,17)},(_,i,arr)=>({a:(i/15)*Math.PI*2+R(-.2,.2),d:R(24,58),s:R(5,11),delay:R(0,260),rot:R(-.5,.5),wob:R(0,6.28),up:R(4,14),col:cols[I(0,4)]}));
+  } else if(kind==="confetti"){
+    const cols=["#ff2d8f","#2ee6d6","#ffc24d","#b9a8ff","#ffffff","#ff8ac2"];
+    P.bits=Array.from({length:I(58,66)},(_,i)=>{ const side=(i%2===0)?-1:1, late=r()<.4;
+      return {side,late,ang:R(-1.38,-.62),v:R(150,262),w:R(3.6,6.2),h:R(2,3.8),rot:R(0,6.28),spin:R(-9,9),flip:R(3,9),fph:R(0,6.28),col:cols[I(0,5)],shape:I(0,2),drift:R(-8,8),fall:R(15,30)}; });
+  } else if(kind==="sparkle"){
+    const cols=["#ffffff","#ffe9a8","#aef7ee","#ffd6ea"];
+    P.glints=Array.from({length:I(12,15)},()=>({x:R(.08,.92),y:R(.06,.9),s:R(5,12),period:R(900,1700),ph:R(0,1),rot:R(0,.8),col:cols[I(0,3)]}));
+    P.dust=Array.from({length:I(16,22)},()=>({x:R(.05,.95),y:R(.2,1),s:R(.5,1.2),rise:R(.05,.16),ph:R(0,6.28),tw:R(1.5,4)}));
+    P.sheen=R(-.3,.3);
+  }
+  THROW_PLANS[key]=P;
+  const keys=Object.keys(THROW_PLANS); if(keys.length>24) delete THROW_PLANS[keys[0]];   // a show's worth, not forever
+  return P;
+}
+
+/* ONE FRAME.  t = server ms since throw_at; dur = the throw's window in ms. */
+function throwDrawFrame(ctx, W, H, kind, seed, t, dur){
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,W,H);
+  if(!(t>=0) || !(dur>0) || t>=dur) return;
+  const P=throwPlan(kind, seed), u=W/100, e=TFX, cx=W*.5, cy=H*.3;
+  const fade=1-e.inQuad((t-dur*.88)/(dur*.12));   // every picture leaves in its last eighth
+  ctx.globalAlpha=fade; ctx.lineCap="round"; ctx.lineJoin="round";
+  if(kind==="tomato"){
+    const hit=280;
+    if(t<hit){ const k=t/hit, x=cx+P.from*(1-k)*46*u, y=cy+(1-k)*(1-k)*34*u-Math.sin(k*Math.PI)*6*u;
+      e.tomato(ctx,x,y,(10+k*22)*u,P.from*(1-k)*3.2); ctx.globalAlpha=1; return; }
+    const s=t-hit, pop=e.outBack(s/230), R0=21*u*(.35+.65*pop);
+    const slide=e.inQuad((t-dur*.5)/(dur*.5))*H*.1, y0=cy+slide;
+    // the flung drops
+    for(const d of P.drops){ const k=e.outCubic(s/300), x=cx+Math.cos(d.a)*d.d*21*u*k, y=y0+Math.sin(d.a)*d.d*21*u*k+e.inQuad(s/dur)*d.slide*H*.16;
+      ctx.fillStyle="#c8161c"; ctx.beginPath(); ctx.ellipse(x,y,d.s*u*.8,d.s*u*(1+e.inQuad(s/dur)*d.slide),0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="rgba(255,150,130,.6)"; ctx.beginPath(); ctx.arc(x-d.s*u*.25,y-d.s*u*.3,d.s*u*.22,0,Math.PI*2); ctx.fill(); }
+    // the drips, under the splat's body
+    for(const d of P.drips){ const k=e.outCubic((s-d.delay)/d.dur); if(k<=0) continue;
+      const x=cx+d.x*21*u, top=y0+8*u, len=d.len*H*k, w=d.w*u*(1-.25*k);
+      const g=ctx.createLinearGradient(0,top,0,top+len); g.addColorStop(0,"#d81e1f"); g.addColorStop(1,"#a40f18");
+      ctx.fillStyle=g; ctx.beginPath(); ctx.moveTo(x-w/2,top); ctx.lineTo(x-w*.36,top+len); ctx.arc(x,top+len,w*.56,Math.PI,0,true); ctx.lineTo(x+w/2,top); ctx.closePath(); ctx.fill();
+      ctx.fillStyle="rgba(255,170,150,.5)"; ctx.beginPath(); ctx.ellipse(x-w*.14,top+len-w*.1,w*.13,w*.26,0,0,Math.PI*2); ctx.fill(); }
+    // the splat
+    e.blob(ctx,cx,y0,R0,P.lobes,1,1+.12*e.inQuad(s/dur));
+    const g=ctx.createRadialGradient(cx-5*u,y0-6*u,2*u,cx,y0,R0*1.25); g.addColorStop(0,"#ff6a4f"); g.addColorStop(.5,"#e3221f"); g.addColorStop(1,"#9c0d17");
+    ctx.fillStyle=g; ctx.fill();
+    e.blob(ctx,cx+1.5*u,y0+1*u,R0,P.inner); ctx.fillStyle="rgba(255,96,70,.55)"; ctx.fill();
+    // skin chunks, seeds, the calyx
+    for(const c of P.chunks){ const x=cx+Math.cos(c.a)*c.d*R0, y=y0+Math.sin(c.a)*c.d*R0;
+      ctx.save(); ctx.translate(x,y); ctx.rotate(c.rot); e.blob(ctx,0,0,c.s*u*pop,c.sides); ctx.fillStyle="#b3121a"; ctx.fill(); ctx.restore(); }
+    for(const q of P.seeds){ const x=cx+Math.cos(q.a)*q.d*R0, y=y0+Math.sin(q.a)*q.d*R0+e.inQuad(s/dur)*q.slide*H*.07;
+      ctx.save(); ctx.translate(x,y); ctx.rotate(q.rot); ctx.scale(q.s*u*pop,q.s*u*pop);
+      ctx.fillStyle="#ffe9a8"; ctx.strokeStyle="rgba(190,120,40,.75)"; ctx.lineWidth=.14;
+      ctx.beginPath(); ctx.moveTo(0,-.5); ctx.bezierCurveTo(.42,-.1,.3,.5,0,.5); ctx.bezierCurveTo(-.3,.5,-.42,-.1,0,-.5); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
+    { const k=e.inQuad((s-1500)/3200), x=cx+P.calyx.x*R0, y=y0+P.calyx.y*R0+k*H*.7;
+      ctx.fillStyle="#3f9a3a"; ctx.save(); ctx.translate(x,y); ctx.rotate(P.calyx.rot+k*P.calyx.spin); ctx.beginPath();
+      for(let i=0;i<10;i++){ const a=i/10*Math.PI*2, rr=((i%2===0)?5.4:1.7)*u*pop; ctx[i?"lineTo":"moveTo"](Math.cos(a)*rr,Math.sin(a)*rr); }
+      ctx.closePath(); ctx.fill(); ctx.restore(); }
+    // the wet shine and the impact ring
+    ctx.fillStyle="rgba(255,255,255,.5)"; ctx.beginPath(); ctx.ellipse(cx-7*u,y0-8*u,4.2*u*pop,1.9*u*pop,-.6,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+6*u,y0-11*u,1.4*u*pop,.8*u*pop,-.3,0,Math.PI*2); ctx.fill();
+    if(s<260){ ctx.strokeStyle="rgba(255,220,210,"+(.7*(1-s/260))+")"; ctx.lineWidth=1.4*u; ctx.beginPath(); ctx.arc(cx,cy,(14+s/260*26)*u,0,Math.PI*2); ctx.stroke(); }
+  } else if(kind==="pie"){
+    const hit=280;
+    if(t<hit){ const k=t/hit; e.pie(ctx,cx,cy+(1-k)*(1-k)*20*u,(14+k*40)*u,(1-k)*.5,.55+.45*k); ctx.globalAlpha=1; return; }
+    const s=t-hit, pop=e.outBack(s/260), R0=25*u*(.4+.6*pop);
+    const slide=e.inQuad((t-dur*.3)/(dur*.7))*H*.2, y0=cy+slide, stretch=1+.5*e.inQuad((t-dur*.3)/(dur*.7));
+    // the smear it leaves as it slides
+    if(slide>0){ const g=ctx.createLinearGradient(0,cy,0,y0); g.addColorStop(0,"rgba(255,246,226,0)"); g.addColorStop(1,"rgba(255,246,226,.6)");
+      ctx.fillStyle=g; ctx.beginPath(); ctx.moveTo(cx-R0*.62,cy); ctx.lineTo(cx-R0*.78,y0); ctx.lineTo(cx+R0*.78,y0); ctx.lineTo(cx+R0*.62,cy); ctx.closePath(); ctx.fill(); }
+    for(const d of P.dollops){ const k=e.outCubic(s/320), x=cx+Math.cos(d.a)*d.d*25*u*k, y=y0+Math.sin(d.a)*d.d*25*u*k+e.inQuad(s/dur)*d.slide*H*.1;
+      ctx.fillStyle="#fff6e2"; ctx.beginPath(); ctx.ellipse(x,y,d.s*u,d.s*u*(1+.5*e.inQuad(s/dur)*d.slide),0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="rgba(226,196,146,.55)"; ctx.beginPath(); ctx.ellipse(x+d.s*u*.2,y+d.s*u*.3,d.s*u*.5,d.s*u*.3,0,0,Math.PI*2); ctx.fill(); }
+    for(const d of P.drips){ const k=e.outCubic((s-d.delay)/d.dur); if(k<=0) continue;
+      const x=cx+d.x*25*u, top=y0+10*u, len=d.len*H*k, w=d.w*u;
+      ctx.fillStyle="#fff3da"; ctx.beginPath(); ctx.moveTo(x-w/2,top); ctx.lineTo(x-w*.4,top+len); ctx.arc(x,top+len,w*.52,Math.PI,0,true); ctx.lineTo(x+w/2,top); ctx.closePath(); ctx.fill(); }
+    e.blob(ctx,cx,y0,R0,P.lobes,1,stretch);
+    const g=ctx.createRadialGradient(cx-6*u,y0-7*u,2*u,cx,y0,R0*1.3); g.addColorStop(0,"#ffffff"); g.addColorStop(.6,"#fff3da"); g.addColorStop(1,"#ecd09f");
+    ctx.fillStyle=g; ctx.fill();
+    ctx.strokeStyle="rgba(222,190,138,.75)"; ctx.lineWidth=1.3*u;
+    for(const w of P.swirls){ const x=cx+Math.cos(w.a)*w.d*R0, y=y0+Math.sin(w.a)*w.d*R0*stretch; ctx.beginPath(); ctx.arc(x,y,w.r*R0,w.a0,w.a0+3.6); ctx.stroke(); }
+    ctx.fillStyle="rgba(255,255,255,.85)"; ctx.beginPath(); ctx.ellipse(cx-8*u,y0-9*u,5*u*pop,2.2*u*pop,-.5,0,Math.PI*2); ctx.fill();
+    // crust crumbs, thrown up and falling
+    for(const c of P.crumbs){ const tt=s/1000, x=cx+Math.cos(c.a)*c.v*u*(1-Math.exp(-2.4*tt))/2.4, y=cy+Math.sin(c.a)*c.v*u*(1-Math.exp(-2.4*tt))/2.4+26*u*tt*tt;
+      if(y>H+4*u) continue; ctx.save(); ctx.translate(x,y); ctx.rotate(c.rot+c.spin*tt); ctx.fillStyle=c.dark?"#b97a38":"#d9a05b"; ctx.fillRect(-c.s*u,-c.s*u*.7,c.s*u*2,c.s*u*1.4); ctx.restore(); }
+    // the tin sticks, then lets go
+    { const k=e.inQuad((s-650)/1700), y=cy+k*(H*.85), rot=k*P.tinSpin;
+      if(y<H+30*u){ ctx.save(); ctx.globalAlpha=fade*(s<650?1:1); e.pie(ctx,cx+k*P.tinDrift*u,y,19*u*(.8+.2*pop),rot,1); ctx.restore(); } }
+  } else if(kind==="boo"){
+    const drop=e.outBack(t/520), leave=e.inQuad((t-dur*.86)/(dur*.14));
+    const x=cx+P.x*u+Math.sin(t/1400+P.bob)*3*u, y=H*.2*drop-(1-drop)*H*.2+Math.sin(t/900+P.bob)*1.6*u-leave*H*.3, S=38*u;
+    const top=y+S*.36;
+    // the rain it brings
+    ctx.strokeStyle="rgba(174,247,238,.75)"; ctx.lineWidth=.9*u;
+    if(t>500) for(const d of P.rain){ const k=((t-500)/d.period+d.phase)%1, rx=x+d.x*S, ry=top+k*(H-top);
+      ctx.globalAlpha=fade*(1-k)*.9; ctx.beginPath(); ctx.moveTo(rx,ry); ctx.lineTo(rx-.8*u,ry+d.len*u); ctx.stroke(); }
+    ctx.globalAlpha=fade;
+    // the word, falling out of it
+    for(const q of P.echo){ const k=(t-q.at)/2600; if(k<=0||k>=1) continue;
+      e.boo(ctx,x+q.dx*u*k,top+10*u+k*H*.42,(9+k*7)*u,(1-k)*.9,"#ff8ac2"); }
+    const beat=1+.05*Math.sin(t/260);
+    e.cloud(ctx,x,y,S*beat,P.puffs,.5+.5*Math.sin(t/260));
+    e.boo(ctx,x,top+12*u,11.5*u*(.9+.1*Math.sin(t/260)),e.c01((t-380)/260),"#d6cdff");
+  } else if(kind==="cricket"){
+    // five hops across the floor of the tile; he sits and chirps between them
+    const n=P.hops.length, seg=dur/n, i=Math.min(n-1,Math.floor(t/seg)), k=(t-i*seg)/seg, hop=P.hops[i];
+    const xs=[-.16,.16,.36,.56,.78,1.2], x0=xs[i], x1=xs[i+1], air=1-hop.rest;
+    let px, py, squash=1, kick=0, chirp=0;
+    if(k<air){ const j=k/air; px=x0+(x1-x0)*j; py=Math.sin(j*Math.PI)*hop.h; kick=Math.sin(j*Math.PI); squash=1+.12*Math.sin(j*Math.PI); }
+    else{ px=x1; py=0; const c=(k-air)/hop.rest; chirp=.5+.5*Math.sin(c*Math.PI*6); squash=1-.1*e.c01((c-.82)/.18); }
+    const X=(P.dir>0?px:1-px)*W, Y=H*.9-py*u;
+    ctx.fillStyle="rgba(6,8,24,.4)"; ctx.beginPath(); ctx.ellipse(X,H*.9+4*u,12*u*(1-py/60),2.2*u,0,0,Math.PI*2); ctx.fill();
+    ctx.save(); ctx.translate(X,Y); ctx.scale(P.dir,1); e.cricket(ctx,0,0,30*u,squash,kick,chirp); ctx.restore();
+    // the silence above him: three dots, one at a time
+    const d=((t/2200)+P.dots)%1, shown=Math.min(3,Math.floor(d*4)+0);
+    for(let q=0;q<3;q++){ if(q>=shown) break; ctx.fillStyle="rgba(214,205,255,.85)"; ctx.beginPath(); ctx.arc(cx+(q-1)*8*u,H*.1,2.2*u,0,Math.PI*2); ctx.fill(); }
+  } else if(kind==="petals"){
+    for(const p of P.petals){ const k=(t/dur-p.delay)/p.fall; if(k<=0) continue;
+      const endY=p.land?(H-(1.5+Math.abs(p.rest)*2.5)*u):(H+12*u), kk=Math.min(1,k), y=-10*u+(endY+10*u)*kk;
+      const landed=p.land&&k>=1, x=p.x*W+(landed?Math.sin(p.ph+p.freq*6.28)*p.amp*u:Math.sin(p.ph+kk*p.freq*6.28)*p.amp*u);
+      if(!p.land&&k>=1) continue;
+      const rot=landed?(Math.PI/2+p.rest):(p.rot+kk*p.spin*4), flip=landed?1:Math.cos(p.ph+kk*p.flut*6.28)*.85+.15*(Math.cos(p.ph+kk*p.flut*6.28)<0?-1:1);
+      const g=ctx.createLinearGradient(x,y-p.s*u*.5,x,y+p.s*u*.5); g.addColorStop(0,p.col[0]); g.addColorStop(1,p.col[1]);
+      e.petal(ctx,x,y,p.s*u,rot,Math.abs(flip)<.18?(flip<0?-.18:.18):flip); ctx.fillStyle=g; ctx.fill();
+      ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.strokeStyle="rgba(255,255,255,.35)"; ctx.lineWidth=.35*u; ctx.beginPath(); ctx.moveTo(0,-p.s*u*.36); ctx.lineTo(0,p.s*u*.3); ctx.stroke(); ctx.restore(); }
+  } else if(kind==="hearts"){
+    const c0y=H*.46;
+    if(t<700){ ctx.strokeStyle="rgba(255,138,194,"+(.8*(1-t/700))+")"; ctx.lineWidth=1.6*u; ctx.beginPath(); ctx.arc(cx,c0y,(6+e.outCubic(t/700)*44)*u,0,Math.PI*2); ctx.stroke(); }
+    for(const h of P.hearts){ const s=t-h.delay; if(s<=0) continue;
+      const k=e.outCubic(s/1500), drift=e.c01((s-900)/(dur-900)), x=cx+Math.cos(h.a)*h.d*u*k+Math.sin(h.wob+s/700)*1.6*u, y=c0y+Math.sin(h.a)*h.d*u*k-drift*h.up*u;
+      const sc=h.s*u*(.3+.7*e.outBack(s/420))*(1-.25*drift);
+      ctx.globalAlpha=fade*(1-.55*drift);
+      e.heart(ctx,x,y,sc,h.rot+Math.sin(h.wob+s/900)*.18); ctx.fillStyle=h.col; ctx.fill();
+      ctx.fillStyle="rgba(255,255,255,.55)"; ctx.beginPath(); ctx.ellipse(x-sc*.2,y-sc*.2,sc*.1,sc*.06,-.6,0,Math.PI*2); ctx.fill(); }
+    ctx.globalAlpha=fade;
+    { const k=e.outBack(t/380), out=e.inQuad((t-900)/700), sc=30*u*k*(1+out*.5); if(out<1){ ctx.globalAlpha=fade*(1-out);
+        e.heart(ctx,cx,c0y,sc,0); const g=ctx.createRadialGradient(cx-sc*.15,c0y-sc*.2,sc*.05,cx,c0y,sc*.6); g.addColorStop(0,"#ff8ac2"); g.addColorStop(1,"#ff2d8f"); ctx.fillStyle=g; ctx.fill();
+        ctx.fillStyle="rgba(255,255,255,.6)"; ctx.beginPath(); ctx.ellipse(cx-sc*.22,c0y-sc*.22,sc*.09,sc*.05,-.6,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=fade; } }
+  } else if(kind==="confetti"){
+    for(const b of P.bits){ const s=(t-(b.late?dur*.34:0))/1000; if(s<=0) continue;
+      const drag=(1-Math.exp(-1.6*s))/1.6, x=(b.side<0?-2*u:W+2*u)+(-b.side)*Math.cos(b.ang)*b.v*u*drag*.8+Math.sin(b.fph+s*2.1)*b.drift*u*.3;
+      const y=H*1.02+Math.sin(b.ang)*b.v*u*drag+b.fall*u*(s-drag);
+      if(y>H+6*u||y<-12*u) continue;
+      ctx.save(); ctx.translate(x,y); ctx.rotate(b.rot+b.spin*s); ctx.scale(Math.cos(b.fph+b.flip*s),1); ctx.fillStyle=b.col;
+      if(b.shape===0) ctx.fillRect(-b.w*u/2,-b.h*u/2,b.w*u,b.h*u);
+      else if(b.shape===1){ ctx.beginPath(); ctx.arc(0,0,b.h*u*.62,0,Math.PI*2); ctx.fill(); }
+      else{ ctx.beginPath(); ctx.moveTo(-b.w*u*.7,0); ctx.quadraticCurveTo(-b.w*u*.35,-b.h*u,0,0); ctx.quadraticCurveTo(b.w*u*.35,b.h*u,b.w*u*.7,0); ctx.lineWidth=.9*u; ctx.strokeStyle=b.col; ctx.stroke(); }
+      ctx.restore(); }
+  } else if(kind==="sparkle"){
+    // a soft sheen crossing the glass, then the glints
+    { const k=((t/2600)%1), x=(-.4+k*1.8+P.sheen)*W; const g=ctx.createLinearGradient(x-18*u,0,x+18*u,0);
+      g.addColorStop(0,"rgba(255,255,255,0)"); g.addColorStop(.5,"rgba(255,244,214,.16)"); g.addColorStop(1,"rgba(255,255,255,0)");
+      ctx.save(); ctx.transform(1,0,-.35,1,0,0); ctx.fillStyle=g; ctx.fillRect(x-18*u+H*.35,0,36*u,H); ctx.restore(); }
+    for(const d of P.dust){ const k=(t/dur), y=(d.y-k*d.rise*3)*H, a=.35+.35*Math.sin(d.ph+t/1000*d.tw);
+      ctx.fillStyle="rgba(255,233,168,"+a.toFixed(3)+")"; ctx.beginPath(); ctx.arc(d.x*W,y,d.s*u,0,Math.PI*2); ctx.fill(); }
+    for(const q of P.glints){ const k=((t/q.period)+q.ph)%1, tw=Math.pow(Math.sin(k*Math.PI),2.2); if(tw<.02) continue;
+      const x=q.x*W, y=q.y*H, sc=q.s*u*tw;
+      const g=ctx.createRadialGradient(x,y,0,x,y,sc*1.6); g.addColorStop(0,"rgba(255,255,255,"+(.5*tw).toFixed(3)+")"); g.addColorStop(1,"rgba(255,255,255,0)");
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,sc*1.6,0,Math.PI*2); ctx.fill();
+      e.glint(ctx,x,y,sc,q.rot+k*.6); ctx.fillStyle=q.col; ctx.fill(); }
+  }
+  ctx.globalAlpha=1;
+}
+
+/* THE STILL (reduced motion, ruling: "a small tomato, a rose"): the kind's own
+   sprite, standing still in the badge.  No seed — a badge is the same for
+   every throw of its kind. */
+function throwDrawIcon(ctx, S, kind){
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,S,S); ctx.globalAlpha=1; ctx.lineCap="round"; ctx.lineJoin="round";
+  const e=TFX, c=S/2;
+  if(kind==="tomato") e.tomato(ctx,c,c+S*.02,S*.84,-.2);
+  else if(kind==="pie") e.pie(ctx,c,c,S*.82,0,1);
+  else if(kind==="boo"){ e.cloud(ctx,c,c-S*.08,S*.5,[[-.56,-.02,.26],[-.3,-.22,.3],[.04,-.3,.34],[.36,-.2,.29],[.6,-.02,.24]],1); e.boo(ctx,c,c+S*.3,S*.13,1,"#d6cdff"); }
+  else if(kind==="cricket") e.cricket(ctx,c+S*.04,c+S*.2,S*.62,1,0,1);
+  else if(kind==="petals"){ const cols=[["#ff5fa8","#e0115f"],["#ff8ac2","#ff2d8f"],["#ff2d8f","#b3124a"]], at=[[-.17,.06,.5,-.5],[.16,-.06,.56,.45],[.02,.2,.42,2.6]];
+    at.forEach((a,i)=>{ const x=c+a[0]*S, y=c+a[1]*S, g=ctx.createLinearGradient(x,y-S*.25,x,y+S*.25); g.addColorStop(0,cols[i][0]); g.addColorStop(1,cols[i][1]); e.petal(ctx,x,y,a[2]*S,a[3],1); ctx.fillStyle=g; ctx.fill(); }); }
+  else if(kind==="hearts"){ e.heart(ctx,c,c+S*.04,S*.8,0); const g=ctx.createRadialGradient(c-S*.12,c-S*.14,S*.04,c,c,S*.5); g.addColorStop(0,"#ff8ac2"); g.addColorStop(1,"#ff2d8f"); ctx.fillStyle=g; ctx.fill();
+    ctx.fillStyle="rgba(255,255,255,.6)"; ctx.beginPath(); ctx.ellipse(c-S*.17,c-S*.13,S*.07,S*.04,-.6,0,Math.PI*2); ctx.fill(); }
+  else if(kind==="confetti"){ const bits=[[-.24,-.2,.5,"#ff2d8f"],[.2,-.24,-.4,"#2ee6d6"],[0,.02,1.1,"#ffc24d"],[-.2,.22,-.9,"#b9a8ff"],[.24,.16,.3,"#ffffff"],[.02,-.3,2,"#ff8ac2"],[.3,-.02,1.6,"#ffc24d"],[-.32,.02,.2,"#2ee6d6"]];
+    for(const b of bits){ ctx.save(); ctx.translate(c+b[0]*S,c+b[1]*S); ctx.rotate(b[2]); ctx.fillStyle=b[3]; ctx.fillRect(-S*.08,-S*.045,S*.16,S*.09); ctx.restore(); } }
+  else if(kind==="sparkle"){ e.glint(ctx,c-S*.06,c+S*.04,S*.4,0); ctx.fillStyle="#ffe9a8"; ctx.fill(); e.glint(ctx,c+S*.26,c-S*.24,S*.17,.3); ctx.fillStyle="#ffffff"; ctx.fill(); e.glint(ctx,c-S*.28,c-S*.26,S*.11,.1); ctx.fillStyle="#aef7ee"; ctx.fill(); }
+}
+
+/* ---- painters ---- */
+/* what each seat is SHOWING: seat index -> { key, uid, kind, seed, at, until,
+   dur, t (the elapsed server ms of the last frame drawn), ghost }.  Display
+   bookkeeping only — the room's truth is throwStateOf(), never this. */
+const THROW_FX={};
+let THROW_RAF=0;
+let THROW_FREEZE=null;      // gates only: draw every live throw at exactly this elapsed ms
+const THROW_GHOST_MS=460, ASK_WIPE_MS=720;
+const ASK_WIPES=[];         // every sweep this client played: { uid, seat, washed, at }
+function overlayMotionOK(){ try{ return !window.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){ return true; } }
+function throwCanvasOf(el){
+  const fx=el.querySelector(".chair__throw-fx"); if(!fx) return null;
+  let cv=fx.querySelector("canvas");
+  if(!cv){ fx.textContent=""; cv=document.createElement("canvas"); fx.appendChild(cv); }
+  return cv;
+}
+/* one seat, one frame — from the server clock, so every phone is on the same frame */
+function throwFxDraw(i){
+  const fx=THROW_FX[i], el=$("rt_seat"+i); if(!fx || !el) return;
+  const cv=throwCanvasOf(el), box=el.querySelector(".chair__throw"); if(!cv || !box) return;
+  const t=(THROW_FREEZE!=null) ? THROW_FREEZE : (serverNow()-fx.at);
+  fx.t=t;                                                              // the frame the room is on, drawn or not
+  if(THROW_FREEZE==null && !overlayMotionOK()) return;                 // reduced motion: the badge is the picture
+  const w=box.clientWidth, h=box.clientHeight; if(!w || !h) return;   // a hidden tile (a strip): nothing to draw on
+  const dpr=Math.min(2, window.devicePixelRatio||1), W=Math.round(w*dpr), H=Math.round(h*dpr);
+  if(cv.width!==W || cv.height!==H){ cv.width=W; cv.height=H; }
+  throwDrawFrame(cv.getContext("2d"), W, H, fx.kind, fx.seed, t, fx.dur);
+}
+function throwFxClear(i){
+  const el=$("rt_seat"+i); delete THROW_FX[i]; if(!el) return;
+  el.classList.remove("is-ghost","is-held");
+  const cv=el.querySelector(".chair__throw-fx canvas");
+  if(cv){ try{ cv.getContext("2d").clearRect(0,0,cv.width,cv.height); }catch(e){} }
+}
+/* the ONE animation loop for the overlay layer — the throws and the Wire.
+   It runs only while there is something moving to draw, and never under
+   reduced motion (the badge and the stepped wire are painted from the
+   one-second tick instead). */
+function overlayFrame(){
+  THROW_RAF=0;
+  let any=false;
+  for(let i=0;i<3;i++){ const fx=THROW_FX[i]; if(fx && !fx.ghost){ any=true; throwFxDraw(i); } }
+  if(wirePaint()) any=true;
+  if(any && overlayMotionOK()) THROW_RAF=requestAnimationFrame(overlayFrame);
+}
+function overlayKick(){ if(!THROW_RAF && overlayMotionOK()) THROW_RAF=requestAnimationFrame(overlayFrame); }
 /* the overlay on each seat: on, with its kind, exactly while the ROOM says a
-   throw is live on that man; the animation is rewound by the elapsed server
-   time so a late joiner (or a reload) sees only what is left */
+   throw is live on that man; each frame is drawn from the elapsed server
+   time, so a late joiner (or a reload) sees only what is left */
 function throwPaintTiles(){
   for(let i=0;i<3;i++){
     const el=$("rt_seat"+i); if(!el) continue;
@@ -7771,17 +8187,37 @@ function throwPaintTiles(){
     const key=live?(uid+"@"+st.at):"";
     if(ov && ov.dataset.key!==key){
       ov.dataset.key=key;
-      const fx=ov.querySelector(".chair__throw-fx"), badge=ov.querySelector(".chair__throw-badge");
+      const badge=ov.querySelector(".chair__throw-badge");
       if(live){
-        ov.style.setProperty("--throw-secs", Math.max(1,Math.round((st.until-st.at)/1000))+"s");
-        fx.innerHTML=throwFxHtml(k);
-        fx.querySelectorAll("i").forEach(s=>{ s.style.animationDelay=(-Math.round(st.elapsedMs))+"ms"; });
-        badge.textContent=k.emoji;
+        el.classList.remove("is-ghost");
+        THROW_FX[i]={ key, uid, kind:k.id, seed:throwSeed(uid, st.at), at:st.at, until:st.until, dur:Math.max(1000, st.until-st.at), t:0, ghost:false };
+        throwCanvasOf(el);
+        if(badge){   // the still: the kind's own sprite, for the phone that asked for no motion
+          badge.textContent=""; badge.dataset.kind=k.id;
+          const bc=document.createElement("canvas"); bc.width=bc.height=68; throwDrawIcon(bc.getContext("2d"), 68, k.id); badge.appendChild(bc);
+        }
         if(THROW_SEEN[uid]!==st.at){   // the feed: its emoji and cheer/jeer, no name — once per throw
           THROW_SEEN[uid]=st.at;
           addFeedLine(`${k.emoji} a ${k.cls} landed`, k.cls==="cheer"?"gold":"cool");
         }
-      } else { fx.innerHTML=""; badge.textContent=""; }
+        throwFxDraw(i);
+        overlayKick();
+      } else {
+        if(badge){ badge.textContent=""; badge.dataset.kind=""; }
+        const was=THROW_FX[i];
+        /* it ended EARLY — a wipe, not the clock.  Hold the last frame a beat
+           so the ask's sweep (which rides the very next row) has something to
+           wash; if no ask comes, the ghost fades out on its own. */
+        const early=!!was && !was.ghost && serverNow() < was.until-250;
+        if(early && overlayMotionOK()){
+          was.ghost=true;
+          if(!el.classList.contains("is-wiping") && !el.classList.contains("is-held")){
+            el.classList.add("is-ghost");
+            const gk=was.key;
+            setTimeout(()=>{ const cur=THROW_FX[i]; if(cur && cur.ghost && cur.key===gk && el.classList.contains("is-ghost")) throwFxClear(i); }, THROW_GHOST_MS);
+          }
+        } else if(!(was && was.ghost)) throwFxClear(i);
+      }
     }
     el.classList.toggle("has-throw", live);
     el.classList.toggle("has-throw--cheer", live && k.cls==="cheer");
@@ -7790,6 +8226,142 @@ function throwPaintTiles(){
     el.classList.toggle("throw-off", !!(st && !st.on));
     if(el.dataset.throw!==(live?k.id:"")) el.dataset.throw=live?k.id:"";
   }
+}
+
+/* a new room (or none): nothing drawn for the last one may linger */
+function overlayForget(){
+  THROW_FREEZE=null;
+  for(let i=0;i<3;i++){
+    throwFxClear(i);
+    const el=$("rt_seat"+i); if(!el) continue;
+    el.classList.remove("is-wiping","is-held","has-wire","wire-urgent"); el.dataset.wipes="";
+    const ov=el.querySelector(".chair__throw"); if(ov) ov.dataset.key="";
+  }
+}
+/* gates only: hold every live throw on one exact frame / render a frame off
+   screen.  Neither is called by the app. */
+function throwFreeze(ms){
+  THROW_FREEZE=(ms==null)?null:Number(ms);
+  for(let i=0;i<3;i++){ if(THROW_FX[i] && !THROW_FX[i].ghost) throwFxDraw(i); }
+  if(THROW_FREEZE==null) overlayKick();
+}
+function throwSnapshot(kind, uid, atMs, t, w, h){
+  const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+  throwDrawFrame(cv.getContext("2d"), w, h, kind, throwSeed(uid, atMs), t, THROWABLES.live_secs*1000);
+  return cv.toDataURL();
+}
+
+/* ---- THE ASK WIPE (ruling 10/11, item 6) ----
+   egRoleBits() tells this what the room's spotlight target is on every apply
+   path.  A NEW target is an ask: the sweep plays on his tile, on every
+   client, throw or no throw — and if a throw was on him its ghost is what the
+   beam washes away.  The first sighting in a room is not an ask (a late
+   joiner walks into an answer already running) — which is why renderRoom
+   observes too: a client must have SEEN the room without a target before
+   an ask can be news to it.  Nothing here clears a
+   throw: the server did that inside ask_question; this is the picture of it.
+   Cracks (PR B) are not a throw and are not touched. */
+let ASK_WIPE_SEEN=null;   // { room, target } — the last spotlight target this client saw, and in which room
+function askWipeObserve(){
+  const r=CURRENT_ROOM; if(!r) return;
+  const target=(egRoomPhase(r)==="spotlight" && r.spotlight_target) ? r.spotlight_target : null;
+  const prev=ASK_WIPE_SEEN;
+  ASK_WIPE_SEEN={ room:r.id, target };
+  if(!prev || prev.room!==r.id) return;        // the first sighting in a room is not an ask
+  if(target && target!==prev.target) askWipePlay(target);
+}
+function askWipePlay(uid){
+  let seat=-1;
+  for(let i=0;i<3;i++){ const el=$("rt_seat"+i); if(el && el.dataset.heartuid===uid){ seat=i; break; } }
+  if(seat<0) return;
+  const el=$("rt_seat"+seat), fx=THROW_FX[seat];
+  const rec={ uid, seat, washed:!!fx, at:serverNow(), motion:overlayMotionOK(), played:null };
+  ASK_WIPES.push(rec); if(ASK_WIPES.length>20) ASK_WIPES.shift();
+  if(!rec.motion){ if(fx && fx.ghost) throwFxClear(seat); return; }   // reduced motion: no sweep, the still is simply gone
+  /* THE SWEEP WAITS FOR THE ROUND CARD.  An ask raises "ROUND n — HE IS UP"
+     over a dimmed room for a beat and a half; a sweep played under it is a
+     sweep nobody sees.  So the throw's last frame is HELD on the glass
+     (is-held: no fade) until the card is gone, and then the beam takes it. */
+  const n=(el.dataset.wipes=String((Number(el.dataset.wipes)||0)+1));
+  el.classList.remove("is-ghost","is-wiping"); el.classList.add("is-held");
+  const t0=Date.now();
+  const go=()=>{
+    if(el.dataset.wipes!==n) return;                       // she asked again: that ask's sweep owns the tile
+    if(document.querySelector("#room .lc-beat") && Date.now()-t0<6000){ setTimeout(go, 80); return; }
+    const feed=el.querySelector(".chair__feed");
+    if(feed && !feed.querySelector(".chair__wipe")){ const w=document.createElement("div"); w.className="chair__wipe"; w.setAttribute("aria-hidden","true"); feed.appendChild(w); }
+    el.style.setProperty("--wipe-ms", ASK_WIPE_MS+"ms");
+    el.classList.remove("is-held"); void el.offsetWidth;
+    el.classList.add("is-wiping");
+    rec.played=serverNow(); rec.washed=rec.washed || !!THROW_FX[seat];
+    setTimeout(()=>{
+      if(el.dataset.wipes!==n) return;
+      el.classList.remove("is-wiping");
+      const cur=THROW_FX[seat]; if(cur && cur.ghost) throwFxClear(seat);
+    }, ASK_WIPE_MS+40);
+  };
+  setTimeout(go, 200);   // the card is raised by the spotlight event, a hair after the row
+}
+
+/* ---- THE WIRE (ruling 10/11, item 5) ----
+   While he is on the answer clock a fuse burns around his frame, exactly as
+   long as the clock has left.  It READS the existing clock (the rooms row's
+   server deadline through serverNow(), the same one the pill counts) and
+   owns nothing: no timer, no state, no consequence at zero. */
+function wireState(){
+  const r=CURRENT_ROOM; if(!r || !EG_ON) return null;
+  if(egRoomPhase(r)!=="spotlight" || !r.spotlight_target) return null;
+  const total=(lcSectionTotal("spotlight")||30)*1000;
+  let left=null;
+  if(r.phase_deadline){ const dl=parseServerTs(r.phase_deadline); if(dl) left=dl-serverNow(); }
+  if(left==null){   // no server deadline: the same first-seen fallback the pill uses
+    const seen=(window.__PH_SEEN||{})["spotlight:"+(r.round||0)+":"+r.spotlight_target];
+    if(!seen) return null;
+    left=total-(Date.now()-seen);
+  }
+  if(!(left>0)) return null;
+  return { uid:r.spotlight_target, leftMs:left, totalMs:total, frac:Math.min(1, left/total) };
+}
+function wireMake(el){
+  const NS="http://www.w3.org/2000/svg", svg=document.createElementNS(NS,"svg");
+  svg.setAttribute("class","chair__wire"); svg.setAttribute("aria-hidden","true");
+  const mk=(tag,cls)=>{ const n=document.createElementNS(NS,tag); n.setAttribute("class",cls); svg.appendChild(n); return n; };
+  mk("path","chair__wire-ash"); mk("path","chair__wire-fuse");
+  const head=mk("g","chair__wire-head");   // the burning end: the group carries the place, the rays inside it flicker
+  const rays=document.createElementNS(NS,"path"); rays.setAttribute("class","chair__wire-rays"); rays.setAttribute("d","M-8,0H-4.5M4.5,0H8M0,-8V-4.5M0,4.5V8"); head.appendChild(rays);
+  const spark=document.createElementNS(NS,"circle"); spark.setAttribute("class","chair__wire-spark"); spark.setAttribute("r","3.6"); head.appendChild(spark);
+  el.appendChild(svg);
+  return svg;
+}
+/* paints the fuse on the asked man's frame; returns true while one is burning */
+function wirePaint(){
+  const st=wireState(); let burning=false;
+  for(let i=0;i<3;i++){
+    const el=$("rt_seat"+i); if(!el) continue;
+    const on=!!st && el.dataset.heartuid===st.uid && !el.classList.contains("is-empty") && !el.classList.contains("is-strip");
+    el.classList.toggle("has-wire", on);
+    if(!on){ el.classList.remove("wire-urgent"); continue; }
+    const svg=el.querySelector(".chair__wire")||wireMake(el);
+    const W=el.offsetWidth+4, H=el.offsetHeight+4; if(W<20 || H<20) continue;
+    const fuse=svg.querySelector(".chair__wire-fuse"), ash=svg.querySelector(".chair__wire-ash");
+    if(svg.dataset.size!==W+"x"+H){
+      svg.dataset.size=W+"x"+H; svg.setAttribute("viewBox","0 0 "+W+" "+H);
+      // the frame's own outline, from top-centre clockwise: the spark runs the way a clock does
+      const o=3, r=Math.max(4, (parseFloat(getComputedStyle(el).borderTopLeftRadius)||17)-1), x0=o, y0=o, x1=W-o, y1=H-o;
+      const d=`M${W/2},${y0}H${x1-r}A${r},${r} 0 0 1 ${x1},${y0+r}V${y1-r}A${r},${r} 0 0 1 ${x1-r},${y1}H${x0+r}A${r},${r} 0 0 1 ${x0},${y1-r}V${y0+r}A${r},${r} 0 0 1 ${x0+r},${y0}Z`;
+      fuse.setAttribute("d",d); ash.setAttribute("d",d);
+      svg.dataset.len=String(fuse.getTotalLength());
+    }
+    const L=Number(svg.dataset.len)||0; if(!L) continue;
+    const burnt=(1-st.frac)*L, pt=fuse.getPointAtLength(Math.min(L-0.01, burnt));
+    fuse.setAttribute("stroke-dasharray", (L-burnt).toFixed(1)+" "+L.toFixed(1)); fuse.setAttribute("stroke-dashoffset", (-burnt).toFixed(1));
+    ash.setAttribute("stroke-dasharray", burnt.toFixed(1)+" "+L.toFixed(1));
+    svg.querySelector(".chair__wire-head").setAttribute("transform","translate("+pt.x.toFixed(1)+","+pt.y.toFixed(1)+")");
+    svg.dataset.frac=st.frac.toFixed(4); svg.dataset.left=String(Math.round(st.leftMs));
+    el.classList.toggle("wire-urgent", st.leftMs<=10000);
+    burning=true;
+  }
+  return burning;
 }
 /* a sheet is open — the throw tray or the filter shelf.  The room carries it
    as ONE class so the rail can step aside (ruling 10/11: the shield and gift
@@ -7874,7 +8446,14 @@ function throwPaintComposer(){
   tog.style.display=seatedish?"flex":"none";
   if(seatedish){
     const on=me.throwables_on!==false;
-    tog.textContent=on?"🍅 ON":"🚫 OFF";
+    /* glyph + word, like every composer CTA: on a phone the word is hidden
+       and the glyph carries the state (🍅 on, 🚫 off), the name says it aloud */
+    if(tog.dataset.on!==String(on) || !tog.querySelector(".lc-cta__t")){
+      tog.dataset.on=String(on); tog.textContent="";
+      const g=document.createElement("span"); g.className="lc-cta__g"; g.setAttribute("aria-hidden","true"); g.textContent=on?"🍅":"🚫"; tog.appendChild(g);
+      const w=document.createElement("span"); w.className="lc-cta__t"; w.textContent=on?" ON":" OFF"; tog.appendChild(w);
+      tog.setAttribute("aria-label", on?"Throwables are on. Tap to turn them off":"Throwables are off. Tap to turn them on");
+    }
     tog.classList.toggle("is-off", !on);
     tog.setAttribute("aria-pressed", on?"true":"false");
     if((me.role==="chair"||me.role==="kept") && on && !window.__THROW_TOLD){
@@ -7887,6 +8466,7 @@ function throwPaintComposer(){
    comparison on the next beat, never a timer set when it landed */
 function throwTick(){
   throwPaintTiles();
+  if(wirePaint()) overlayKick();   // the Wire: stepped here once a second, smooth in the overlay loop
   const tr=$("rt_throwtray");
   if(tr && tr.classList.contains("is-open")) throwPaintTray();
 }
@@ -8605,6 +9185,14 @@ window.__lc = {
      live config object (the set + the numbers, overwritten by the server's
      throw_limits via throw_counts). */
   throwAt, setThrowables, hostClearThrow, hostSetThrowables, throwCountsSync, throwPaintTiles, throwTick, throwTrayOpen,
+  /* the overlay art, the ASK wipe and the Wire (feat/overlay-art) — THROW_FX
+     is what each seat is DRAWING (kind, seed, the elapsed ms of its last
+     frame); throwFreeze / throwSnapshot are the gates' way to compare one
+     exact frame across clients; ASK_WIPES is every sweep this client
+     played; wireState() is the fuse as the clock says it. */
+  throwSeed, throwFreeze, throwSnapshot, wireState, overlayMotionOK,
+  get THROW_FX(){ const o={}; for(const i of Object.keys(THROW_FX)) o[i]={ ...THROW_FX[i] }; return o; },
+  get ASK_WIPES(){ return ASK_WIPES.map(w=>({ ...w })); },
   get THROW_ROOM(){ return throwRoom(); },
   get THROW_COUNTS(){ return THROW_COUNTS ? { ...THROW_COUNTS } : null; },
   get THROW_TARGET(){ return THROW_TARGET; },

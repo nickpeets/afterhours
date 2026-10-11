@@ -38,6 +38,13 @@
  *   4  "she's heard enough" sits beside the rail, level with the shield, a
  *      full thumb target, and covers none of her chat                  (scene D)
  *
+ * AND THE SEAT'S ROW (ruling 10/11, follow-up — scene G).  A chair's and a
+ * bench-sitter's row was [input][🎭 FILTER][🍅 ON][↩ LEAVE THE CHAIR]: the
+ * input a sliver, LEAVE off the edge of the screen.  At 375 and 360 the three
+ * are icon buttons that keep their names, the input shows its placeholder,
+ * LEAVE sits last and apart, and one tap on it leaves nobody: a chair is
+ * asked first.
+ *
  * NOT HERE, AND WHY: "the Moment" has no layout of its own in index.html —
  * moment_a/moment_b pair two faces inside the same frames (it gates looks and
  * throws), so there is no Moment geometry to assert.
@@ -81,7 +88,7 @@ const measure = (page) => page.evaluate(() => {
       room: inp.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) }; }
   const stripEl = q("#rt_livelayer"), scs = stripEl ? getComputedStyle(stripEl) : null;
   const room = q("#room");
-  return { ph, throwbtn: cta("#rt_throwbtn"), joinbtn: cta("#rt_joinline"), skip: r(q("#eg_skip")), rail: r(q(".lc-rail")), shelf: r(q("#rt_shelf")),
+  return { ph, throwbtn: cta("#rt_throwbtn"), joinbtn: cta("#rt_joinline"), filterbtn: cta("#rt_filterbtn"), togglebtn: cta("#rt_throwtoggle"), skip: r(q("#eg_skip")), rail: r(q(".lc-rail")), shelf: r(q("#rt_shelf")),
     mask: scs ? (scs.maskImage && scs.maskImage !== "none" ? scs.maskImage : scs.webkitMaskImage) || "" : "",
     hasSkip: room.classList.contains("has-skip"), sheetOpen: room.classList.contains("sheet-open"),
     vw: innerWidth, vh: innerHeight, scrollH: document.documentElement.scrollHeight, scrollW: document.documentElement.scrollWidth,
@@ -104,7 +111,7 @@ module.exports = {
       const chairs = [mk("u_c0", "Chair Zero"), mk("u_c1", "Chair One"), mk("u_c2", "Chair Two")];
       const liners = [mk("u_l0", "Liner Zero"), mk("u_l1", "Liner One"), mk("u_l2", "Liner Two")];
       const spec = mk("u_sp", "Watcher");
-      const uid = role === "host" ? host : role === "chair" ? chairs[0] : spec;
+      const uid = role === "host" ? host : role === "chair" ? chairs[0] : role === "line" ? liners[0] : spec;
       const c = await h.newClient("v", { viewport: { width: W, height: H } });
       c.login(uid);
       await c.goto();
@@ -303,6 +310,37 @@ module.exports = {
         t.ok(!!back.shield && Math.abs(back.shield.t - before.shield.t) < 0.5, "F: shelf closed — the rail is back");
         errors.push(...c.errors);
       } finally { await h.close(); }
+    }
+
+    /* ---------- G: the seat's row on narrow phones ---------- */
+    for (const [W, H] of [[375, 667], [360, 780]]) {
+      for (const role of ["chair", "line"]) {
+        const { h, c, D, room } = await stage(W, H, role, "openfloor");
+        try {
+          const who = role === "chair" ? "chair" : "bench-sitter", uid = role === "chair" ? "u_c0" : "u_l0";
+          await waitFor(async () => { const m = await measure(c.page); return m.filterbtn && m.togglebtn && m.joinbtn && /^leave/.test(m.joinbtn.verb || ""); }, 16000, `${W}x${H} ${who}: his three controls`);
+          const m = await measure(c.page), f = m.filterbtn, g = m.togglebtn, l = m.joinbtn, tag = `G ${W}x${H} ${who}`;
+          t.ok(m.ph && m.ph.room >= m.ph.need + 2, `${tag}: the input shows all of "${m.ph && m.ph.text}" (${m.ph && rd(m.ph.room)}px of room for ${m.ph && rd(m.ph.need)}px of words)`);
+          t.ok([f, g, l].every((b) => b.glyph && !b.wordsShown && Math.abs(b.box.w - 46) < 1.5 && b.box.h >= 44), `${tag}: FILTER, the throwables switch and LEAVE are 46px icon buttons (${[f, g, l].map((b) => rd(b.box.w)).join("/")})`);
+          t.ok(/filter/i.test(f.label) && /throwables are on/i.test(g.label) && (role === "chair" ? /leave the chair/i : /leave the bench/i).test(l.label),
+            `${tag}: each keeps its name for a screen reader ("${f.label}" / "${g.label}" / "${l.label}")`);
+          t.ok(l.box.r <= m.vw && l.box.l >= g.box.r + 12 && g.box.l >= f.box.r && f.box.l >= m.input.l, `${tag}: LEAVE is last, whole on the screen, and ${rd(l.box.l - g.box.r)}px clear of the button beside it`);
+          const hit = await c.page.evaluate(() => { const b = document.getElementById("rt_joinline"), r = b.getBoundingClientRect(), el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!el && (el === b || b.contains(el)); });
+          t.ok(hit, `${tag}: LEAVE is reachable — nothing sits on top of it`);
+          if (role === "chair") {
+            /* hard to hit by accident: one tap asks, and "no" leaves him seated */
+            let asked = null;
+            c.page.once("dialog", async (d) => { asked = d.message(); await d.dismiss(); });
+            const before = D.rpcLog.length;
+            await c.page.click("#rt_joinline");
+            await waitFor(async () => asked !== null, 5000, "the leave question");
+            await c.page.waitForTimeout(300);
+            t.ok(/Leave the chair\?/.test(asked) && D.memberRow(room, uid).role === "chair" && !D.rpcLog.slice(before).some((r) => r.name === "leave_room"),
+              `${tag}: one tap on LEAVE asks "${asked}" — and "no" leaves him in his chair, nothing sent`);
+          }
+          errors.push(...c.errors);
+        } finally { await h.close(); }
+      }
     }
 
     const errs = errors.filter((e) => !/favicon/.test(e));

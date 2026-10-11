@@ -35,6 +35,20 @@
  *   - A CALL THAT ENDS UNDER THE APP: control.drop() leaves the meeting
  *     without the app asking (what a network drop or an ejection looks like
  *     from the page: 'left-meeting' with nobody having called leave()).
+ *
+ * 2026-10-11 (fix/spectators-join-devices-off) — WHAT THE SHIM FAKED, AND
+ * NOW DOESN'T.  "Strict instances are left as they were" (above) meant the
+ * ROOM's call object never opened a device at join here, whatever it was
+ * asked — so the app joining every crowd member with camera and mic ON
+ * (live: a phone's camera opened on entering a room as a spectator) was
+ * invisible to every gate.  A strict instance now follows the same rule as
+ * a flagged one: join() really calls getUserMedia for whatever
+ * startVideoOff / startAudioOff / videoSource:false / audioSource:false —
+ * in the factory options or join()'s — did not turn off, records it in
+ * control.gum(), and keeps what join() was handed in control.joinOpts().
+ * Every setLocalAudio(on) is recorded in control.audioLog().  The publish
+ * state is still the app's to drive: opening the device at join does not
+ * by itself publish here (real daily-js does publish a started camera).
  * Still NOT modelled: media between windows, simulcast layers beyond the
  * recorded receive settings, hidden participants (permissions.hasPresence),
  * token expiry itself (only its effect, via drop()), and what a real
@@ -81,7 +95,9 @@
       this._opts = opts || {};
       this._multi = !!(opts && opts.allowMultipleCallInstances);
       this._url = null;          // the room url handed to join()
-      this._gum = [];            // devices this instance acquired at join (flagged instances only)
+      this._gum = [];            // devices this instance acquired at join
+      this._joinOpts = null;     // what join() itself was handed (token removed)
+      this._audioLog = [];       // every setLocalAudio(on) call, in order
       const control = {
         call: this,
         addRemote: (uid, opts) => this.addRemote(uid, opts),
@@ -99,6 +115,8 @@
         stallLocalVideo: () => { this._stalled = true; this._localVideoOn = false; },
         opts: () => { const o = { ...this._opts }; delete o.dailyConfig; return o; },
         gum: () => this._gum.slice(),
+        joinOpts: () => (this._joinOpts ? { ...this._joinOpts } : null),
+        audioLog: () => this._audioLog.slice(),
         url: () => this._url,
         joined: () => this._joined,
         // the call ends UNDER the app (a network drop, an ejection): the
@@ -142,15 +160,30 @@
     async join(_opts) {
       this._url = (_opts && _opts.url) || null;
       this._leaving = false;
+      // real daily-js acquires camera + mic at join unless told not to — in
+      // the factory options OR in join()'s own (both are DailyCallOptions)
+      this._joinOpts = { ...(_opts || {}) }; delete this._joinOpts.token;
+      const o = { ...this._opts, ...(_opts || {}) };
+      const wantV = !(o.videoSource === false || o.startVideoOff === true);
+      const wantA = !(o.audioSource === false || o.startAudioOff === true);
       if (this._multi) {
-        // real daily-js acquires camera + mic at join unless told not to
-        const o = this._opts;
-        const wantV = !(o.videoSource === false || o.startVideoOff === true);
-        const wantA = !(o.audioSource === false || o.startAudioOff === true);
         if (wantV || wantA) {
           this._gum.push({ video: wantV, audio: wantA });
           try { this._localStream = await navigator.mediaDevices.getUserMedia({ video: wantV, audio: wantA }); } catch (e) {}
         }
+      } else if (wantV || wantA) {
+        /* STRICT instances too, since fix/spectators-join-devices-off (see
+           the header).  The device is really opened; the PUBLISH state is
+           still the app's to drive (_localVideoOn is untouched), and the
+           stream is the one setLocalVideo(true) goes on to use, so a host's
+           join costs the same single camera open it always did here. */
+        this._gum.push({ video: wantV, audio: wantA });
+        try {
+          const p = navigator.mediaDevices.getUserMedia({ video: wantV, audio: wantA });
+          if (wantV) this._localStreamP = p;
+          const st = await p;
+          if (wantV) this._localStream = st; else this._micStream = st;
+        } catch (e) { if (wantV) this._localStreamP = null; }
       }
       if (this._destroyed || this._leaving) return this.participants();   // left while joining
       this._joined = true;
@@ -173,7 +206,7 @@
       if (on && lp.tracks.video.track) this._emit("track-started", { participant: lp, track: lp.tracks.video.track });
       return on;
     }
-    async setLocalAudio(_on) { return _on; }
+    async setLocalAudio(_on) { this._audioLog.push(!!_on); return _on; }
     async leave() {
       this._leaving = true;
       const ms = (window.__dailyLatency && window.__dailyLatency.leave) || 0;
@@ -188,6 +221,7 @@
       this._destroyed = true;
       LOG.push((this._multi ? "multi" : "strict") + "-destroyed " + (this._url || ""));
       if (this._localStream) { this._localStream.getTracks().forEach((t) => t.stop()); this._localStream = null; }
+      if (this._micStream) { this._micStream.getTracks().forEach((t) => t.stop()); this._micStream = null; }
       for (const uid of Object.keys(this._byUid())) this.removeRemote(uid);
     }
     /* setInputDevicesAsync — WAS a no-op returning {} (a fake that let a

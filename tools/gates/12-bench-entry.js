@@ -16,6 +16,24 @@
  *   - host tap seats an individual at bench count 1 and 2 (no waiting for
  *     three), and the three-at-once rule survives ONLY as the automatic
  *     curtain-up when 3 sit benched with no host tap.  Both coexist.
+ *
+ * THE PHOTO IS A REAL FRAME OR IT IS NOTHING (fix/bench-headshot-real-frame).
+ * Live run at b1010.1315, an iPhone: capture screen, 3-2-1, save 204 — and
+ * face_json.photo was 320x427 of pure black.  This gate asserted only
+ * `!!face_json.photo`, which a black JPEG satisfies; and the harness camera
+ * always has a frame within milliseconds, so the draw-before-first-frame
+ * race could not be reached.  WHAT THE HARNESS FAKED: a camera that is
+ * instantly live.  Closed with lib/harness.js CAMERA_FAULTS (noframe, black,
+ * late) and the scenes below:
+ *   - the normal capture's photo has LIT pixels (not merely exists)
+ *   - the capture stage is styled again: framed self-view, big countdown,
+ *     the heading not buried under the video
+ *   - a late first frame (3.2s — the old fixed sleep drew at 2.7s) still
+ *     yields a lit photo, and the 3-2-1 never shows before a frame exists
+ *   - no frame at all / black frames: no photo is saved, the photo that WAS
+ *     on file is cleared, the man is still benched, he is told by toast,
+ *     his lane paints no face (the no-photo look), and [bench] names the reason
+ *   - a refused save is read ({error} resolves, it does not throw) and told
  */
 "use strict";
 const acorn = require("acorn");
@@ -172,8 +190,128 @@ module.exports = {
         "auto curtain-up seats all three");
       t.ok(true, "3 simultaneously benched with NO host tap → automatic curtain-up still fires (both mechanics coexist)");
 
-      const errs = [a, b, c, host, h2].flatMap((cl) => cl.errors).filter((e) => !/favicon/.test(e));
-      t.ok(errs.length === 0, "zero console errors across all five windows — " + errs.slice(0, 2).join(" | "));
+      /* ---------- THE PHOTO IS A REAL FRAME OR IT IS NOTHING ---------- */
+      // decoded in the page: a JPEG that exists is not a face
+      const photoStats = (cl, p) => cl.page.evaluate(async (p) => {
+        if (!p) return null;
+        const img = new Image();
+        await new Promise((r) => { img.onload = r; img.onerror = r; img.src = p; });
+        if (!img.naturalWidth) return { w: 0, h: 0, max: 0 };
+        const cv = document.createElement("canvas"); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+        const g = cv.getContext("2d"); g.drawImage(img, 0, 0);
+        const d = g.getImageData(0, 0, cv.width, cv.height).data;
+        let max = 0;
+        for (let i = 0; i < d.length; i += 4) { const l = Math.max(d[i], d[i + 1], d[i + 2]); if (l > max) max = l; }
+        return { w: img.naturalWidth, h: img.naturalHeight, max };
+      }, p);
+      const toastOf = (cl) => cl.page.evaluate(() => { const el = document.getElementById("toast"); return el && el.classList.contains("show") ? el.textContent : ""; });
+      const laneOf = (cl, uid) => cl.page.evaluate((uid) => {
+        const l = [...document.querySelectorAll(".lc-lane")].find((x) => x.dataset.benchuid === uid);
+        if (!l) return null;
+        const f = l.querySelector(".lc-lane__face"), sil = l.querySelector(".lc-lane__sil");
+        return { hasSrc: !!f.dataset.src, bg: getComputedStyle(f).backgroundImage, sil: getComputedStyle(sil).display,
+                 blind: document.getElementById("lineitems").classList.contains("is-blind") };
+      }, uid);
+      const benchLogs = (cl) => cl.logs.map((l) => l.text).filter((x) => x.startsWith("[bench]"));
+
+      // the normal captures above: lit, not merely present
+      const litA = await photoStats(a, D.profiles.get("u_a").face_json.photo);
+      t.ok(!!litA && litA.w === 320 && litA.max > 16, `the ♥ path's photo is a LIT frame, not merely a string (${JSON.stringify(litA)})`);
+
+      // a fresh room: the fixture above counts its bench
+      const host3U = D.addUser({ id: "u_host3", name: "Hostess Three", email: "h3@fix.test" });
+      const h3 = await boot("host3", host3U);
+      const room3 = D.addRoom({ id: "r_cam", host_id: host3U, name: "Camera Night", phase: "spotlight", round: 1 });
+      D.rooms.get(room3).phase_deadline = D.iso(D.now() + 600000);
+      const PRESET3 = "data:image/jpeg;base64,OLDFACEONFILE";
+      const PROBE = `window.__capProbe = { countNoFrame: 0, samples: 0, stage: null };
+        setInterval(() => {
+          const st = document.getElementById("snap_stage"), sn = document.getElementById("snap");
+          if (!st || !sn || !sn.classList.contains("show")) return;
+          const v = st.querySelector("video"), ct = (document.getElementById("snap_count") || {}).textContent || "";
+          window.__capProbe.samples++;
+          if (ct && (!v || !v.videoWidth)) window.__capProbe.countNoFrame++;
+          if (ct && !window.__capProbe.stage) {
+            const r = st.getBoundingClientRect(), h1 = sn.querySelector("h1"), hr = h1.getBoundingClientRect();
+            const top = document.elementFromPoint(hr.left + hr.width / 2, hr.top + hr.height / 2);
+            window.__capProbe.stage = { pos: getComputedStyle(st).position, w: Math.round(r.width), h: Math.round(r.height),
+              countPx: parseFloat(getComputedStyle(document.getElementById("snap_count")).fontSize),
+              headingOnTop: top === h1, videoW: v ? Math.round(v.getBoundingClientRect().width) : 0 };
+          }
+        }, 40);`;
+      const camClient = async (name, uid, kind, ms) => {
+        D.addUser({ id: uid, name });
+        D.profiles.get(uid).face_json = { photo: PRESET3 };
+        const cl = await h.newClient(name);
+        if (kind) await cl.cameraFault(kind, ms);
+        await cl.context.addInitScript(PROBE);
+        cl.login(uid);
+        await cl.goto();
+        await cl.page.waitForSelector("#lobby", { state: "visible", timeout: 15000 });
+        await enter(cl, room3);
+        return cl;
+      };
+      const takeSeat = async (cl, uid, what) => {
+        await cl.page.click("#rt_joinline");
+        await waitFor(() => cl.page.evaluate(() => document.getElementById("snap").classList.contains("show")), 6000, "capture screen (" + what + ")");
+        await waitFor(() => (D.memberRow(room3, uid) || {}).role === "line", 25000, what + " benched");
+      };
+
+      /* --- late first frame: 3.2s, past where the old fixed sleep drew (2.7s) --- */
+      const late = await camClient("lateCam", "u_late", "late", 3200);
+      await takeSeat(late, "u_late", "late-frame camera");
+      const latePhoto = (D.profiles.get("u_late").face_json || {}).photo;
+      const litLate = await photoStats(late, latePhoto);
+      t.ok(!!latePhoto && latePhoto !== PRESET3 && !!litLate && litLate.max > 16,
+        `a first frame 3.2s late still yields a LIT photo — the capture waits for the frame (${JSON.stringify(litLate)})`);
+      const lateProbe = await late.page.evaluate(() => window.__capProbe);
+      t.ok(lateProbe.samples > 10 && lateProbe.countNoFrame === 0,
+        `the 3-2-1 never shows before the camera has a frame (${lateProbe.countNoFrame} of ${lateProbe.samples} samples)`);
+      const st = lateProbe.stage || {};
+      t.ok(st.pos === "relative" && st.w >= 200 && st.h > st.w && st.videoW <= st.w,
+        `the capture stage is a framed portrait again, the self-view inside it (${JSON.stringify(st)})`);
+      t.ok(st.countPx >= 60, `the countdown is display-size, not body text (${st.countPx}px)`);
+      t.ok(st.headingOnTop === true, "FACE THE ROOM is not buried under the self-view");
+      const lateToast = await waitFor(() => toastOf(late), 5000, "bench toast (late camera)");
+      t.ok(/on the bench/.test(lateToast) && !/didn't take/.test(lateToast), "a good photo gets the ordinary bench toast — " + lateToast);
+      await waitFor(async () => { const l = await laneOf(late, "u_late"); return l && l.hasSrc; }, 8000, "his lane shows the photo");
+      t.ok(true, "his own lane (crowd view) carries the photo");
+
+      /* --- no frame at all, and black frames: nothing saved, old photo cleared, he is told --- */
+      for (const [kind, uid, reason] of [["noframe", "u_nof", /no frame from the camera/], ["black", "u_blk", /frames are black/]]) {
+        const cl = await camClient(kind + "Cam", uid, kind);
+        await takeSeat(cl, uid, kind + " camera");
+        t.ok(true, `${kind} camera: he is still benched (graceful degrade)`);
+        const fj = D.profiles.get(uid).face_json || {};
+        t.ok(!fj.photo, `${kind} camera: NO photo is saved, and the photo that was on file is cleared (face_json=${JSON.stringify(fj).slice(0, 60)})`);
+        const tt = await waitFor(() => toastOf(cl), 5000, "toast (" + kind + ")");
+        t.ok(/photo didn't take/.test(tt), `${kind} camera: he is told — "${tt}"`);
+        const logs = benchLogs(cl);
+        t.ok(logs.some((x) => reason.test(x)) && logs.some((x) => /retrying once/.test(x)) && logs.some((x) => /headshot FAILED/.test(x)),
+          `${kind} camera: [bench] names the reason, the one retry, and the failure — ${logs.slice(0, 2).join(" | ").slice(0, 200)}`);
+        t.ok(logs.some((x) => /videoWidth=\d+ readyState=\d/.test(x)), `${kind} camera: the diagnostic carries the element's state (videoWidth, readyState, track)`);
+        const lane = await waitFor(() => laneOf(cl, uid), 8000, "his lane (" + kind + ")");
+        t.ok(!lane.blind && !lane.hasSrc && lane.bg === "none",
+          `${kind} camera: his lane paints NO face — not the black frame, not the stale one (${JSON.stringify(lane)})`);
+        const pr = await cl.page.evaluate(() => window.__capProbe);
+        t.ok(kind !== "noframe" || pr.countNoFrame === 0, `${kind} camera: no countdown ran over an empty stage (${pr.countNoFrame})`);
+        if (kind === "black") late.errors.push(...cl.errors); else h3.errors.push(...cl.errors);
+      }
+
+      /* --- a refused save is READ: {error} resolves, it does not throw --- */
+      const sv = await camClient("saveFail", "u_sav", null);
+      D.setFault("table:profiles.update", "saveFail", { error: "permission denied for table profiles" });
+      await takeSeat(sv, "u_sav", "refused save");
+      const svToast = await waitFor(() => toastOf(sv), 5000, "toast (refused save)");
+      D.setFault("table:profiles.update", "saveFail", null);
+      t.ok(/photo didn't take/.test(svToast), `a refused save is told, not swallowed — "${svToast}"`);
+      t.ok(benchLogs(sv).some((x) => /save failed: permission denied/.test(x)), "[bench] carries the save's error message");
+      t.ok((D.profiles.get("u_sav").face_json || {}).photo === PRESET3, "fixture sanity: the refused writes really did not land");
+      const svCache = await sv.page.evaluate(() => { const p = window.__PROFS_EVER && window.__PROFS_EVER["u_sav"]; return p && p.face_json ? p.face_json.photo || "" : ""; });
+      t.ok(!/^data:image\/jpeg;base64,\/9j/.test(svCache), "the local cache did not run ahead of the table with the unsaved photo");
+
+      const errs = [a, b, c, host, h2, h3, late, sv].flatMap((cl) => cl.errors).filter((e) => !/favicon/.test(e));
+      t.ok(errs.length === 0, "zero console errors across every window — " + errs.slice(0, 2).join(" | "));
     } finally { await h.close(); }
   },
 };

@@ -139,6 +139,42 @@ const SNAP_LATCH = `(() => {
   });
 })();`;
 
+/* CAMERA_FAULTS — what the fake camera could not say (gate 12,
+   fix/bench-headshot-real-frame).  Chromium's --use-fake-device camera has a
+   frame on the element within a few milliseconds, every time, and the
+   harness forces autoplay — so "the capture drew before the camera had a
+   frame" was unreachable in the battery, and a bench headshot of pure black
+   shipped (live run at b1010.1315, an iPhone).  Each fault replaces
+   getUserMedia in ONE client, before index.html runs:
+     noframe  the camera opens and never delivers a frame (videoWidth stays 0)
+     black    real-size frames, every pixel black (a muted capture track)
+     late     the first frame arrives `ms` after the camera opens
+   Arm with client.cameraFault(kind, ms) BEFORE goto.  The Daily shim's own
+   local track comes from the same getUserMedia, so it sees the same camera. */
+const CAMERA_FAULTS = {
+  noframe: () => `navigator.mediaDevices.getUserMedia = async () => {
+    const c = document.createElement("canvas"); c.width = 480; c.height = 640;
+    return c.captureStream(0);
+  };`,
+  black: () => `navigator.mediaDevices.getUserMedia = async () => {
+    const c = document.createElement("canvas"); c.width = 480; c.height = 640;
+    const g = c.getContext("2d");
+    const paint = () => { g.fillStyle = "#000"; g.fillRect(0, 0, 480, 640); };
+    paint(); setInterval(paint, 66);
+    return c.captureStream(15);
+  };`,
+  late: (ms) => `navigator.mediaDevices.getUserMedia = async () => {
+    const c = document.createElement("canvas"); c.width = 480; c.height = 640;
+    const g = c.getContext("2d");
+    const s = c.captureStream(15);
+    setTimeout(() => { let n = 0; setInterval(() => {
+      g.fillStyle = "hsl(" + ((n++ * 7) % 360) + ",70%,55%)"; g.fillRect(0, 0, 480, 640);
+      g.fillStyle = "#fff"; g.beginPath(); g.arc(240, 280, 120, 0, 7); g.fill();
+    }, 66); }, ${Number(ms) || 0});
+    return s;
+  };`,
+};
+
 class Client {
   constructor(harness, name, context, page) {
     this.harness = harness; this.name = name; this.context = context; this.page = page;
@@ -170,6 +206,11 @@ class Client {
       const f = (window.__camkitFaults = window.__camkitFaults || {});
       if (mode) f[name] = mode; else delete f[name];
     }, { name, mode });
+  }
+  /* arm a CAMERA_FAULTS camera for this client — call BEFORE goto */
+  async cameraFault(kind, ms) {
+    if (!CAMERA_FAULTS[kind]) throw new Error("harness: unknown camera fault " + kind);
+    await this.context.addInitScript(CAMERA_FAULTS[kind](ms));
   }
   async close() { await this.context.close(); this.harness.clients = this.harness.clients.filter((c) => c !== this); }
 }
@@ -305,4 +346,4 @@ class Harness {
   async close() { await this.browser.close(); }
 }
 
-module.exports = { Harness, ORIGIN, REPO, resolveChromium, CAMKIT_TEST };
+module.exports = { Harness, ORIGIN, REPO, resolveChromium, CAMKIT_TEST, CAMERA_FAULTS };

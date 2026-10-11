@@ -64,10 +64,46 @@
   --neon-pink:#ff2d8f; --neon-teal:#2de3d0; --lilac:#b9a8ff; --gold:#ffd6e9;
   --lane-amber:#ffc24d; --lane-rose:#ff7ab8; --lastlife:#ff4d6d;
   --video:#141a3a; --cream:#f2f0ff;
-  --cell-h:168px;            /* playing-surface cell */
-  --bench-h:116px;           /* square bench portrait */
+  /* THE STAGE FILLS THE SCREEN (feat/room-fills-screen, ruling 10/11: "the
+     boxes should come all the way down to the top of [the shield]").  The
+     chairs and the bench used to be fixed px (168/116, 136/88 under 800px of
+     height, 76/44 under 560) and everything the phone had left over went to
+     chat — on a 390x844 phone the bench ended 60% of the way down.  Now the
+     two sizes are DERIVED from the visible height: the top bar, the 2x2, the
+     bench label and the bench row together run from the top bar to the top
+     of the rail, and chat keeps the strip beside the rail.
+       --stage-free   what is left for two chair rows + one bench row once
+                      the top bar, the rail-and-composer zone and the fixed
+                      frames/gaps/label are taken out of the visible height
+       --cell-h       free / (2 + ratio), never under the old fixed height
+                      for this screen (the floor), never taller than 4:3
+                      portrait for its own width (the cap)
+       --bench-h      whatever the chairs left, same floor/cap discipline
+     Pure CSS: dvh follows the Safari toolbar showing and hiding, and the
+     keyboard does not resize it (the overlay still rides up by transform). */
+  --room-h:100vh;
+  --top-h:calc(47px + var(--lc-statusbar, env(safe-area-inset-top, 0px)));   /* .lc-top: 14 + 25 + 8 */
+  --rail-btn:44px; --rail-gap:10px; --rail-bottom:78px;
+  --rail-top:calc(var(--rail-bottom) + 2 * var(--rail-btn) + var(--rail-gap));   /* top of the shield, up from the room's bottom edge */
+  --composer-h:66px;         /* the input row (46) + the column's bottom padding (20) */
+  --head-h:12px;             /* the bench label row, pinned so the sum is exact */
+  --stage-air:6px;           /* between the bench and the shield */
+  --stage-fixed:52px;        /* chair frames 9+8, row gap 5, bench margin 8, label, gap 5, lane frame 6 */
+  --stage-ratio:.6;          /* bench height as a share of chair height */
+  --cell-floor:168px; --bench-floor:116px;                     /* the old fixed sizes: never smaller */
+  --cell-cap:calc((min(100vw, 520px) - 39px) * 2 / 3);         /* 4:3 portrait for the chair's own width */
+  --bench-cap:calc((min(100vw, 520px) - 46px) * 4 / 9);        /* same, for a bench seat */
+  --stage-free:calc(var(--room-h) - var(--top-h) - var(--rail-top) - var(--stage-air) - var(--stage-fixed));
+  --cell-h:clamp(var(--cell-floor), calc(var(--stage-free) / (2 + var(--stage-ratio))), var(--cell-cap));
+  --bench-h:clamp(var(--bench-floor), calc(var(--stage-free) - 2 * var(--cell-h)), var(--bench-cap));
+  /* spotlight: two equal frames + the rivals' strip stand exactly where the
+     2x2 stood, so the bench does not move and nothing reaches the rail */
+  --strip-h:max(46px, calc(var(--cell-h) * .274));
+  --spot-h:calc(2 * var(--cell-h) - var(--strip-h));
   --over:0 1px 4px rgba(0,0,0,.95);   /* mandatory text-over-video shadow */
 }
+
+@supports (height:100dvh){ #room{ --room-h:100dvh; } }
 
 /* ---- shell --------------------------------------------------------------- */
 /* The room lives INSIDE #app, which is the centred max-520px column.
@@ -142,11 +178,11 @@
    for it.  Constraint 7 holds: safety is first, same place in every role and
    every phase, present with the keyboard open, never credit-gated. */
 .lc-rail{
-  position:absolute; z-index:4; right:13px; bottom:78px; top:auto;
-  display:flex; flex-direction:column; gap:10px;
+  position:absolute; z-index:4; right:13px; bottom:var(--rail-bottom); top:auto;
+  display:flex; flex-direction:column; gap:var(--rail-gap);
 }
 .lc-rail button{
-  width:44px; height:44px; padding:0; display:flex; align-items:center;
+  width:var(--rail-btn); height:var(--rail-btn); padding:0; display:flex; align-items:center;
   justify-content:center; border-radius:50%; cursor:pointer; font-size:17px;
   background:rgba(8,11,32,.62); border:1px solid rgba(185,168,255,.4);
   color:var(--cream); -webkit-backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
@@ -184,7 +220,7 @@
 /* the face well — also the video placeholder; JS hides it when a track lands */
 .chair__feed .vid{
   position:absolute; left:50%; top:36%; transform:translate(-50%,-50%);
-  width:78px; height:94px; border-radius:50%;
+  width:calc(var(--cell-h) * .464); height:calc(var(--cell-h) * .56); border-radius:50%;   /* 78x94 at the old 168 */
   background:radial-gradient(closest-side, rgba(214,244,255,.16), transparent 72%);
 }
 
@@ -452,7 +488,7 @@
   grid-column:1 / -1; opacity:.55; box-shadow:none;
   background:rgba(6,8,24,.45); border:1px solid rgba(45,227,208,.26);
 }
-.chair.is-strip .chair__feed{ height:46px; background:rgba(16,26,48,.7); -webkit-backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+.chair.is-strip .chair__feed{ height:var(--strip-h); background:rgba(16,26,48,.7); -webkit-backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
 .chair.is-strip .chair__strip{ display:flex; }
 .chair.is-strip .chair__hearts,
 .chair.is-strip .cclock,
@@ -542,10 +578,10 @@
 .chair__sil{ position:absolute; inset:0; z-index:1; display:none; }
 .chair__sil i{ position:absolute; left:50%; transform:translate(-50%,-50%); display:block; }
 .chair__sil-head{
-  top:32%; width:38px; height:38px; border-radius:50%; background:rgba(185,168,255,.34);
+  top:32%; width:calc(var(--cell-h) * .226); height:calc(var(--cell-h) * .226); border-radius:50%; background:rgba(185,168,255,.34);
 }
 .chair__sil-body{
-  top:76%; width:62px; height:70px; border-radius:31px 31px 18px 18px;
+  top:76%; width:calc(var(--cell-h) * .369); height:calc(var(--cell-h) * .417); border-radius:31px 31px 18px 18px;
   background:linear-gradient(rgba(185,168,255,.34), rgba(185,168,255,.1));
 }
 .chair.is-camoff .chair__sil{ display:block; }
@@ -557,7 +593,7 @@
 .is-spotlight .chair.is-target{ grid-column:2; grid-row:1; }
 .is-spotlight .chair.is-strip{ grid-column:1 / -1; grid-row:2; }
 .is-spotlight .chair.is-host  .chair__feed,
-.is-spotlight .chair.is-target .chair__feed{ height:305px; }
+.is-spotlight .chair.is-target .chair__feed{ height:var(--spot-h); }   /* EQUAL frames (rider e) */
 /* POLISH (8/9, item 4c): in the 1-on-1 the frame is ALWAYS full-bleed —
    the placeholder well stretches to the frame instead of floating as a
    small 104×128 bubble (which read as "tiny video" whenever a track was
@@ -595,7 +631,7 @@
   position:relative; z-index:1;
   margin-top:8px; padding:0 9px; display:flex; flex-direction:column; gap:5px;
 }
-.lc-line__head{ display:flex; align-items:center; gap:7px; padding:0 2px; }
+.lc-line__head{ display:flex; align-items:center; gap:7px; padding:0 2px; height:var(--head-h); }
 .lc-kicker{
   font-family:'Azeret Mono',monospace; font-size:8.5px; font-weight:700;
   letter-spacing:.18em; color:var(--gold); white-space:nowrap;
@@ -677,10 +713,10 @@
 .lc-lane__sil{ position:absolute; inset:0; z-index:1; display:none; }
 .lc-lane__sil i{ position:absolute; left:50%; transform:translate(-50%,-50%); display:block; }
 .lc-lane__sil-head{
-  top:32%; width:30px; height:30px; border-radius:50%; background:rgba(185,168,255,.34);
+  top:32%; width:calc(var(--bench-h) * .259); height:calc(var(--bench-h) * .259); border-radius:50%; background:rgba(185,168,255,.34);
 }
 .lc-lane__sil-body{
-  top:76%; width:48px; height:54px; border-radius:24px 24px 14px 14px;
+  top:76%; width:calc(var(--bench-h) * .414); height:calc(var(--bench-h) * .466); border-radius:24px 24px 14px 14px;
   background:linear-gradient(rgba(185,168,255,.34), rgba(185,168,255,.1));
 }
 #lineitems.is-blind .lc-lane:not(.is-empty) .lc-lane__cell{
@@ -702,13 +738,29 @@
   position:relative; z-index:1;
   flex:1 1 0%; min-height:0;
   display:flex; flex-direction:column; gap:7px; padding:8px 11px 20px;
+  /* (feat/room-fills-screen) the column is as tall as the rail zone now, not
+     half the phone.  A shelf or tray that opens here is taller than that, and
+     with the default packing it pushed the COMPOSER off the bottom of the
+     screen.  Packed to the end, the composer holds its place and the sheet
+     rises over the bench instead — "the quad and the bench never move". */
+  justify-content:flex-end;
 }
 #room .chatstrip{
   flex:1 1 0%; min-height:0; max-height:none; padding-right:50px;
   display:flex; flex-direction:column; justify-content:flex-end; gap:4px;
   overflow:hidden;
-  -webkit-mask-image:linear-gradient(to top, #000 60%, transparent);
-  mask-image:linear-gradient(to top, #000 60%, transparent);
+  /* the strip beside the rail is four to five lines tall now, not ten.  The
+     fade is measured in px, a full line deep, and reaches zero BEFORE the
+     strip's edge: a line that only half fits dissolves into the bench's edge
+     instead of being cut by it (ruling 10/11, seen at 375 and 360 wide). */
+  -webkit-mask-image:linear-gradient(to top, #000 calc(100% - 30px), transparent calc(100% - 3px));
+  mask-image:linear-gradient(to top, #000 calc(100% - 30px), transparent calc(100% - 3px));
+}
+/* her skip is up: chat keeps the two lines beside the gift button, under it */
+#room.has-skip .chatstrip{
+  flex:0 0 auto; height:calc(var(--rail-bottom) + var(--rail-btn) + var(--rail-gap) - var(--composer-h) - 13px);
+  -webkit-mask-image:linear-gradient(to top, #000 calc(100% - 14px), transparent calc(100% - 2px));
+  mask-image:linear-gradient(to top, #000 calc(100% - 14px), transparent calc(100% - 2px));
 }
 /* chat lines are an append-only log — the one legitimately dynamic subtree.
    Bound to the app's existing floatMsg shape (.floatmsg > .cu + text). */
@@ -755,6 +807,22 @@
   box-shadow:none; -webkit-backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
 }
 #room #inputbar #rt_chatsend{ display:none; }   /* Enter sends */
+/* THE INPUT HAS PRIORITY (ruling 10/11).  On a phone the crowd's row was
+   [input][🍅 THROW][♥ TAKE A BENCH SEAT]: the two labels took 318px of a
+   368px row and the input was a sliver that could not show its own
+   placeholder.  Wherever the room column is under 500px — every phone, and
+   the 430px desktop column — the crowd's two CTAs are 46px icon buttons;
+   the words stay in the markup as the accessible name.  The other verbs
+   (ASK, LEAVE THE BENCH, LEAVE THE CHAIR) keep their words. */
+#room #inputbar .lc-cta__g{ flex:0 0 auto; }
+@media (max-width:499px), (min-width:720px){
+  #room #inputbar #rt_throwbtn .lc-cta__t,
+  #room #inputbar #rt_joinline[data-verb="join"] .lc-cta__t{ display:none; }
+  #room #inputbar #rt_throwbtn,
+  #room #inputbar #rt_joinline[data-verb="join"]{
+    width:46px; padding:0; justify-content:center; font-size:19px;
+  }
+}
 
 /* --- 🎭 FILTER (feat/filter-rules) — the composer CTA slot, per design/Last
    Call Discovery.dc.html C2 ("both of your paid controls live in the same
@@ -782,7 +850,9 @@
 .lc-shelf{
   position:relative; display:none; flex-direction:column; gap:9px;
   padding:14px 14px 20px; border-radius:24px 24px 0 0;
-  background:linear-gradient(180deg,rgba(10,13,32,.4),rgba(8,10,26,.96) 30%);
+  /* (feat/room-fills-screen) it rises over the BENCH now, not over empty chat
+     band, so the head of the sheet is no longer see-through (.4 -> .9) */
+  background:linear-gradient(180deg,rgba(10,13,32,.9),rgba(8,10,26,.96) 30%);
   border-top:1.5px solid rgba(185,168,255,.35);
 }
 .lc-shelf.is-open{ display:flex; }
@@ -823,12 +893,18 @@
 #room.kb-open .chatstrip{ max-height:96px; }
 #room.kb-open #rt_endshow{ display:none; }
 #room.kb-open .lc-rail{ display:flex; }   /* typing is exactly when you may need to report */
+/* RULING 10/11 (over constraint 7, for this one case): while the throw tray
+   or the filter shelf is open the rail steps aside — it was covering the
+   sheet's last tile and its fine print.  The sheet closes on the same button
+   that opened it, and the shield is back the instant it does. */
+#room.sheet-open .lc-rail{ display:none; }
 
 /* ---- desktop: a centred column, never a stretched room ------------------- */
 @media (min-width:720px){
   #room.lc-room{
     left:50%; right:auto; transform:translateX(-50%);
     width:min(100%, 430px);
+    --cell-cap:calc((430px - 39px) * 2 / 3); --bench-cap:calc((430px - 46px) * 4 / 9);
   }
 }
 
@@ -838,13 +914,29 @@
    became flex items: they stole layout height, squeezed the chat and pushed the
    composer up into the rail.  Take them out of flow and give them panel homes
    that clear both the composer and the rail. */
+/* "she's heard enough" sits BESIDE THE RAIL (ruling 10/11): it used to hang
+   in the middle of the chat band and, once that band was five lines tall, it
+   covered three of them.  Now it is level with the shield, hard against the
+   rail's left edge — the same right-thumb reach as the rail itself — and her
+   chat keeps the lines under it (#room.has-skip .chatstrip). */
 #room > .lc-skip{
-  position:absolute; z-index:5; left:50%; transform:translateX(-50%);
-  bottom:calc(20px + 46px + 14px);
+  position:absolute; z-index:5; left:auto; transform:none;
+  right:calc(13px + var(--rail-btn) + 10px);
+  bottom:calc(var(--rail-bottom) + var(--rail-btn) + var(--rail-gap) - 2px);
 }
 #room > .lc-ask{ position:absolute; z-index:5; right:70px; bottom:calc(20px + 46px + 14px); }
+/* THE QUESTION is a lower third over the interview shot
+   (feat/room-fills-screen).  Its panel home was the tall chat band under the
+   bench (bottom:136px, growing upward).  That band is the bench now: a
+   two-line question would have covered the bench's names and hearts, and a
+   one-line one sat on the chat.  So it goes where a broadcast puts the
+   question — across the foot of the two-up, inside the frames, clear of the
+   face zone (the centre-upper third) and of the bench, which is "still
+   earning".  It is anchored to the frames' own bottom edge, so it follows
+   the screen with them. */
 #room > .lc-question{
-  top:auto; bottom:calc(20px + 46px + 70px); right:70px;
+  top:auto; left:16px; right:16px;
+  bottom:calc(100% - var(--top-h) - var(--spot-h) + 2px);
 }
 
 /* ---- the exit chevron -----------------------------------------------------
@@ -874,10 +966,10 @@
    bench.  Below 800px of height the cells and bench give ground so chat keeps
    5-6 lines and the rail fits its gutter.  844px devices are untouched. */
 @media (max-height:799px){
-  #room.lc-room{ --cell-h:136px; --bench-h:88px; }
-  #room.is-spotlight .chair.is-host .chair__feed,
-  #room.is-spotlight .chair.is-target .chair__feed{ height:241px; }   /* EQUAL frames (rider e) */
-  #room .lc-rail{ gap:8px; bottom:72px; }
+  /* (feat/room-fills-screen) this block used to SET the sizes (136/88, and
+     241 for the spotlight frames).  It now only carries this band's floors
+     and the rail's own tighter stack; the sizes come from the screen. */
+  #room.lc-room{ --cell-floor:136px; --bench-floor:88px; --rail-gap:8px; --rail-bottom:72px; }
 }
 
 /* owner directive (8/5): while the engine runs, pacing is the SHOW's — the
@@ -942,16 +1034,15 @@
    not fit, and the composer ended up 104px below the fold — unreachable.
    Everything gives ground so the composer is always the last thing on screen. */
 @media (max-height:560px){
-  #room.lc-room{ --cell-h:76px; --bench-h:44px; }
+  /* floors only (76/44), the smaller top bar and label margins counted */
+  #room.lc-room{ --cell-floor:76px; --bench-floor:44px; --rail-gap:6px; --rail-bottom:64px;
+    --top-h:calc(35px + var(--lc-statusbar, env(safe-area-inset-top, 0px))); --stage-fixed:57px; }
   #room .lc-top{ padding-top:calc(6px + var(--lc-statusbar, env(safe-area-inset-top, 0px))); padding-bottom:4px; }
   #room .lc-line__head{ margin:2px 0 3px; }
   #room .chatstrip{ max-height:58px; }
   #room .lc-overlay{ padding:6px 11px 10px; }
   #room .chair__empty-t{ font-size:12px; }
   #room .chair__empty-s{ display:none; }
-  #room .lc-rail{ bottom:64px; gap:6px; }
-  #room.is-spotlight .chair.is-host .chair__feed,
-  #room.is-spotlight .chair.is-target .chair__feed{ height:150px; }   /* EQUAL frames (rider e) */
 }
 
 /* ---- the bench headshot ---------------------------------------------------
@@ -1269,7 +1360,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1011.1110</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1011.1247</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1527,9 +1618,9 @@
           <button id="rt_chatsend" hidden>➤</button>
           <button id="rt_endshow" style="display:none">🎬 LAST CALL</button>
           <button id="rt_filterbtn" style="display:none" aria-haspopup="dialog" aria-controls="rt_shelf">🎭 FILTER</button>
-          <button id="rt_throwbtn" aria-haspopup="dialog" aria-controls="rt_throwtray">🍅 THROW</button>
+          <button id="rt_throwbtn" aria-haspopup="dialog" aria-controls="rt_throwtray" aria-label="Throw a cheer or a jeer" title="Throw a cheer or a jeer"><span class="lc-cta__g" aria-hidden="true">🍅</span><span class="lc-cta__t"> THROW</span></button>
           <button id="rt_throwtoggle" title="The crowd can throw cheers and jeers at you. Tap to turn that off or on.">🍅 ON</button>
-          <button id="rt_joinline">♥ TAKE A BENCH SEAT</button>
+          <button id="rt_joinline" data-verb="join" aria-label="Take a bench seat" title="Take a bench seat"><span class="lc-cta__g" aria-hidden="true">♥</span><span class="lc-cta__t"> TAKE A BENCH SEAT</span></button>
         </div>
       </div>
 
@@ -1791,7 +1882,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1011.1110"); }catch(e){}
+try{ console.log("[lastcall] build b1011.1247"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -3895,7 +3986,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
   { const sk=document.getElementById("eg_skip");
     if(sk){ const anySeated=ROOM_STATE.members.some(m=>m.role==="chair"||m.role==="kept");
       const answering = phase==="spotlight" && !!CURRENT_ROOM?.spotlight_target;
-      if(!(AMHOST && anySeated && !PASS_PICK && (answering || ["openfloor","deliberation"].includes(phase||"")))) sk.style.display="none"; } }
+      if(!(AMHOST && anySeated && !PASS_PICK && (answering || ["openfloor","deliberation"].includes(phase||"")))) egSkipShow(false); } }
   root.classList.remove("is-empty");   // panel: an empty chair is a cell, never a strip
 
   const total=Object.values(HEARTS||{}).reduce((a,b)=>a+(+b||0),0);
@@ -4532,6 +4623,12 @@ function lcSectionLeft(){
   return Math.max(0,left);
 }
 function egRoomPhase(r){ return (r && typeof r.phase==="string") ? r.phase : null; }
+/* the ONE switch for "she's heard enough": the button and the room's
+   has-skip class move together, so her chat always knows to leave it room */
+function egSkipShow(on){
+  const sk=document.getElementById("eg_skip"); if(sk) sk.style.display=on?"block":"none";
+  const rm=document.getElementById("room"); if(rm) rm.classList.toggle("has-skip", !!on);
+}
 
 async function egRefreshRoom(){
   if(!CURRENT_ROOM) return;
@@ -4551,6 +4648,7 @@ function egApply(){
     ["is-showstart","is-spotlight","is-mingle","is-deciding","is-drafting","is-asking","eg-on"].forEach(c=>root.classList.remove(c));
     ["eg_showstart","eg_question","eg_decide","eg_drumroll","eg_draft","eg_drawer"].forEach(id=>{const el=$(id);if(el)el.style.display="none";});
     ["eg_phase","eg_skip","eg_ask"].forEach(id=>{const el=$(id);if(el)el.style.display="none";});
+    egSkipShow(false);
   }
   const phase=egRoomPhase(r);
   EG_ON = phase!==null;
@@ -4634,9 +4732,8 @@ function egRoleBits(){
   try{
     const rr=CURRENT_ROOM; const ph=egRoomPhase(rr);
     const anySeated=ROOM_STATE.members.some(m=>m.role==="chair"||m.role==="kept");
-    const sk=$("eg_skip");
-    if(sk) sk.style.display = (AMHOST && anySeated && !PASS_PICK &&
-      ((ph==="spotlight" && !!rr?.spotlight_target) || ph==="openfloor" || ph==="deliberation")) ? "block" : "none";
+    egSkipShow(AMHOST && anySeated && !PASS_PICK &&
+      ((ph==="spotlight" && !!rr?.spotlight_target) || ph==="openfloor" || ph==="deliberation"));
     const dc=$("eg_dcancel");
     if(dc) dc.style.display = (AMHOST && EG_ON && egRoomPhase(CURRENT_ROOM)==="deciding" && !PASS_PICK && EG_DECIDE_MODE) ? "" : "none";
     const ed=$("eg_decide");
@@ -6364,6 +6461,21 @@ $("rt_joinline").onclick=async()=>{
   toast(photoFailed ? BENCH_NOPHOTO_TOAST : "You're on the bench — earn her eye. ♥");
   loadRoomState();
 };
+/* THE COMPOSER'S CTA, PAINTED ONE WAY (feat/room-fills-screen).  The glyph
+   and the words are separate elements so a narrow screen can keep the glyph
+   and drop the words (the input has priority — ruling 10/11) without CSS
+   inventing content.  textContent still reads "♥ TAKE A BENCH SEAT", and the
+   accessible name is the words, with or without them on screen. */
+function ctaPaint(btn, verb, glyph, words){
+  if(!btn) return;
+  if(btn.dataset.verb===verb && btn.querySelector(".lc-cta__t")) return;   // already painted: no DOM churn per render
+  btn.dataset.verb=verb;
+  btn.textContent="";
+  if(glyph){ const g=document.createElement("span"); g.className="lc-cta__g"; g.setAttribute("aria-hidden","true"); g.textContent=glyph; btn.appendChild(g); }
+  const t=document.createElement("span"); t.className="lc-cta__t"; t.textContent=(glyph?" ":"")+words; btn.appendChild(t);
+  const name=words.charAt(0)+words.slice(1).toLowerCase();
+  btn.setAttribute("aria-label", name); btn.title=name;
+}
 function updateJoinBtn(){
   filterPaintComposer();   // 🎭 FILTER shares the composer; painted on every path below
   throwPaintComposer();    // 🍅 THROW / the seat's switch share it too (feat/throwables)
@@ -6375,7 +6487,7 @@ function updateJoinBtn(){
     // finalist board (the KEEP win path dead-ends).  Engine off: LAST CALL.
     const hasKept = ROOM_STATE.members.some(m=>m.role==="kept");
     const seatedCt = ROOM_STATE.members.filter(m=>m.role==="chair").length;
-    if(EG_ON && !hasKept && seatedCt>0){ btn.style.display="flex"; btn.textContent="ASK"; if(end) end.style.display="none"; }
+    if(EG_ON && !hasKept && seatedCt>0){ btn.style.display="flex"; ctaPaint(btn,"ask","","ASK"); if(end) end.style.display="none"; }
     else if(EG_ON && !hasKept){
       // nobody to ask yet — but she must never be left with NO control at all
       // (a host alone in her own fresh room had an empty composer)
@@ -6388,18 +6500,18 @@ function updateJoinBtn(){
   if(I_WAS_PASSED){ btn.style.display="none"; return; } // pass is final for this show
   const me=ROOM_STATE.members.find(m=>m.user_id===ME.id);
   if(me && (me.role==="chair"||me.role==="kept")){
-    btn.style.display="flex"; btn.textContent="\u21a9 LEAVE THE CHAIR";
+    btn.style.display="flex"; ctaPaint(btn,"leave-chair","\u21a9","LEAVE THE CHAIR");
   }
   else if(me && me.role==="line"){
     window.__OPTIMISTIC_BENCH=null;   // the truth confirmed the hint
-    btn.style.display="flex"; btn.textContent="↩ LEAVE THE BENCH";
+    btn.style.display="flex"; ctaPaint(btn,"leave-bench","↩","LEAVE THE BENCH");
   }
   else if(window.__OPTIMISTIC_BENCH && Date.now()-window.__OPTIMISTIC_BENCH<10_000){
     // my own accepted join_line hasn't landed in the roster yet — show the
     // benched verb NOW; the sync confirms (clears above) or the hint expires
-    btn.style.display="flex"; btn.textContent="↩ LEAVE THE BENCH";
+    btn.style.display="flex"; ctaPaint(btn,"leave-bench","↩","LEAVE THE BENCH");
   }
-  else { btn.style.display="flex"; btn.textContent="♥ TAKE A BENCH SEAT"; }
+  else { btn.style.display="flex"; ctaPaint(btn,"join","♥","TAKE A BENCH SEAT"); }
 }
 
 $("roomback").onclick=()=>{
@@ -6437,6 +6549,7 @@ async function leaveRoom(){
        $("room").classList.remove("beat-hold","ask-urgent"); }catch(e){}
   try{ $("rt_gifts").classList.remove("show"); }catch(e){}
   try{ filterShelfOpen(false); }catch(e){}
+  try{ throwTrayOpen(false); egSkipShow(false); }catch(e){}   // sheet-open / has-skip must not outlive the room
   try{ ["eg_drawer","eg_decide","eg_question","eg_showstart","eg_drumroll"].forEach(id=>{ const el=$(id); if(el) el.style.display="none"; }); }catch(e){}
   /* NOTHING ABOVE THE HOST'S end_show MAY SKIP IT (2026-09-30).  These
      teardown calls were bare: a throw in any of them left leaveRoom before
@@ -7431,6 +7544,7 @@ function filterShelfOpen(on){
   const sh=$("rt_shelf"), b=$("rt_filterbtn");
   if(sh) sh.classList.toggle("is-open", !!on);
   if(b) b.classList.toggle("is-open", !!on);
+  if(typeof sheetOpenSync==="function") sheetOpenSync();
 }
 function filterPaintComposer(){
   const b=$("rt_filterbtn"), sh=$("rt_shelf"); if(!b || !sh) return;
@@ -7677,10 +7791,19 @@ function throwPaintTiles(){
     if(el.dataset.throw!==(live?k.id:"")) el.dataset.throw=live?k.id:"";
   }
 }
+/* a sheet is open — the throw tray or the filter shelf.  The room carries it
+   as ONE class so the rail can step aside (ruling 10/11: the shield and gift
+   buttons sat on top of the tray's last tile and its fine print). */
+function sheetOpenSync(){
+  const rm=$("room"); if(!rm) return;
+  const a=$("rt_throwtray"), b=$("rt_shelf");
+  rm.classList.toggle("sheet-open", !!((a && a.classList.contains("is-open")) || (b && b.classList.contains("is-open"))));
+}
 function throwTrayOpen(on){
   const tr=$("rt_throwtray"), b=$("rt_throwbtn");
   if(tr) tr.classList.toggle("is-open", !!on);
   if(b) b.classList.toggle("is-open", !!on);
+  sheetOpenSync();
   if(on) throwPaintTray();
 }
 function throwPaintTray(){

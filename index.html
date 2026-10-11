@@ -816,15 +816,32 @@
    368px row and the input was a sliver that could not show its own
    placeholder.  Wherever the room column is under 500px — every phone, and
    the 430px desktop column — the crowd's two CTAs are 46px icon buttons;
-   the words stay in the markup as the accessible name.  The other verbs
-   (ASK, LEAVE THE BENCH, LEAVE THE CHAIR) keep their words. */
+   the words stay in the markup as the accessible name.
+   THE SEAT'S ROW TOO (ruling 10/11, follow-up).  A chair's row was
+   [input][🎭 FILTER][🍅 ON][↩ LEAVE THE CHAIR] — the input a 20px sliver
+   and LEAVE running off the screen.  Same cure: 🎭, 🍅/🚫 and ↩ are 46px
+   icon buttons with their names kept for a screen reader.  LEAVE is set
+   apart at the end of the row and drawn hollow — a way out, not the next
+   thing to tap — and leaving a chair still asks "Leave the chair?" first.
+   ASK (hers) keeps its word. */
 #room #inputbar .lc-cta__g{ flex:0 0 auto; }
 @media (max-width:499px), (min-width:720px){
   #room #inputbar #rt_throwbtn .lc-cta__t,
-  #room #inputbar #rt_joinline[data-verb="join"] .lc-cta__t{ display:none; }
+  #room #inputbar #rt_filterbtn .lc-cta__t,
+  #room #inputbar #rt_throwtoggle .lc-cta__t,
+  #room #inputbar #rt_joinline[data-verb="join"] .lc-cta__t,
+  #room #inputbar #rt_joinline[data-verb^="leave"] .lc-cta__t{ display:none; }
   #room #inputbar #rt_throwbtn,
-  #room #inputbar #rt_joinline[data-verb="join"]{
+  #room #inputbar #rt_filterbtn,
+  #room #inputbar #rt_throwtoggle,
+  #room #inputbar #rt_joinline[data-verb="join"],
+  #room #inputbar #rt_joinline[data-verb^="leave"]{
     width:46px; padding:0; justify-content:center; font-size:19px;
+  }
+  #room #inputbar #rt_joinline[data-verb^="leave"]{
+    margin-left:8px;                                   /* 16px clear of the switch beside it */
+    background:rgba(6,8,24,.55); border:1.5px solid rgba(238,240,255,.6); box-shadow:none;
+    font-size:21px;
   }
 }
 
@@ -1364,7 +1381,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1011.1405</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1011.1441</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1621,9 +1638,9 @@
           <input type="text" id="rt_chatinput" placeholder="Say something…" maxlength="140" enterkeyhint="send">
           <button id="rt_chatsend" hidden>➤</button>
           <button id="rt_endshow" style="display:none">🎬 LAST CALL</button>
-          <button id="rt_filterbtn" style="display:none" aria-haspopup="dialog" aria-controls="rt_shelf">🎭 FILTER</button>
+          <button id="rt_filterbtn" style="display:none" aria-haspopup="dialog" aria-controls="rt_shelf" aria-label="Filter: choose a look" title="Filter: choose a look"><span class="lc-cta__g" aria-hidden="true">🎭</span><span class="lc-cta__t"> FILTER</span></button>
           <button id="rt_throwbtn" aria-haspopup="dialog" aria-controls="rt_throwtray" aria-label="Throw a cheer or a jeer" title="Throw a cheer or a jeer"><span class="lc-cta__g" aria-hidden="true">🍅</span><span class="lc-cta__t"> THROW</span></button>
-          <button id="rt_throwtoggle" title="The crowd can throw cheers and jeers at you. Tap to turn that off or on.">🍅 ON</button>
+          <button id="rt_throwtoggle" aria-pressed="true" aria-label="Throwables are on. Tap to turn them off" title="The crowd can throw cheers and jeers at you. Tap to turn that off or on."><span class="lc-cta__g" aria-hidden="true">🍅</span><span class="lc-cta__t"> ON</span></button>
           <button id="rt_joinline" data-verb="join" aria-label="Take a bench seat" title="Take a bench seat"><span class="lc-cta__g" aria-hidden="true">♥</span><span class="lc-cta__t"> TAKE A BENCH SEAT</span></button>
         </div>
       </div>
@@ -1886,7 +1903,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1011.1405"); }catch(e){}
+try{ console.log("[lastcall] build b1011.1441"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -8429,7 +8446,14 @@ function throwPaintComposer(){
   tog.style.display=seatedish?"flex":"none";
   if(seatedish){
     const on=me.throwables_on!==false;
-    tog.textContent=on?"🍅 ON":"🚫 OFF";
+    /* glyph + word, like every composer CTA: on a phone the word is hidden
+       and the glyph carries the state (🍅 on, 🚫 off), the name says it aloud */
+    if(tog.dataset.on!==String(on) || !tog.querySelector(".lc-cta__t")){
+      tog.dataset.on=String(on); tog.textContent="";
+      const g=document.createElement("span"); g.className="lc-cta__g"; g.setAttribute("aria-hidden","true"); g.textContent=on?"🍅":"🚫"; tog.appendChild(g);
+      const w=document.createElement("span"); w.className="lc-cta__t"; w.textContent=on?" ON":" OFF"; tog.appendChild(w);
+      tog.setAttribute("aria-label", on?"Throwables are on. Tap to turn them off":"Throwables are off. Tap to turn them on");
+    }
     tog.classList.toggle("is-off", !on);
     tog.setAttribute("aria-pressed", on?"true":"false");
     if((me.role==="chair"||me.role==="kept") && on && !window.__THROW_TOLD){

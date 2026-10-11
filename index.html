@@ -1269,7 +1269,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1011.1054</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1011.1110</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1791,7 +1791,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1011.1054"); }catch(e){}
+try{ console.log("[lastcall] build b1011.1110"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -7899,7 +7899,17 @@ async function _videoJoinOnce(){
          .on("nonfatal-error",(e)=>{ vdbg("nonfatal: "+(e?.errorMsg||JSON.stringify(e)).slice(0,200), true); if(/cam|video|device/i.test(e?.errorMsg||"")) recoverCamera(); })
          .on("left-meeting",()=>{DAILY_JOINED=false;});
 
-    await DAILY.join({url:data.url, token:data.token});
+    // DEVICES AT JOIN (fix/spectators-join-devices-off).  daily-js turns the
+    // camera and the mic ON at join() unless told otherwise, and this call
+    // told it nothing: every crowd member's phone opened its camera and mic
+    // on entering a room, only for the preflight below to switch video off a
+    // moment later.  The host and a man already in a chair still start with
+    // both on, exactly as before; everyone else joins with both OFF and
+    // opens them only when he is seated (syncLocalPublish).  The decision is
+    // the preflight's own, read once here from the roster openRoom loaded.
+    const startOn = !!(AMHOST || amISeated());
+    vdbg("joining with camera+mic "+(startOn?"ON (host / seated)":"OFF (crowd / bench)"));
+    await DAILY.join({url:data.url, token:data.token, startVideoOff:!startOn, startAudioOff:!startOn});
     DAILY_JOINED=true;
     try{ await DAILY.setUserName(ME.id); }catch(e){}
     vdbg("join complete");
@@ -7916,6 +7926,10 @@ async function _videoJoinOnce(){
       const shouldPublish = AMHOST || amISeated();
       await videoSetPublish(shouldPublish);
       if(AMHOST){ await DAILY.setLocalAudio(true); }
+      // a man seated WHILE the join was in flight started with his mic off
+      // (startAudioOff above): the mic follows the same decision as the
+      // camera, here as in syncLocalPublish
+      else { try{ await DAILY.setLocalAudio(!!shouldPublish); }catch(e){} }
       if(shouldPublish){
         const okTrack=await videoPublishVerify();
         vdbg(okTrack ? "publish verified ✓ (preflight)" : "publish verify FAILED — watchdog is the net", !okTrack);
@@ -7950,6 +7964,7 @@ async function videoLeave(){
     FILTER_KILLED=false;
     camkitReset();   // lens failure latches too: a fresh call is a fresh chance (a booted SDK is kept)
     SUB_SIG=null;
+    AUDIO_HINTED=false;
     WATCHDOG_FIRES=0;
     if(WATCHDOG_T){ clearTimeout(WATCHDOG_T); WATCHDOG_T=null; }
     if(typeof lcCamStatus==="function") lcCamStatus(null);
@@ -7993,6 +8008,32 @@ function onTrack(ev){
 }
 /* remote audio: hidden <audio> elements keyed by session */
 let AUDIO_ELS={};
+/* SOUND WITHOUT A MICROPHONE (fix/spectators-join-devices-off).  Safari
+   autoplays call audio only while the page is capturing, or once the page
+   is already playing audio; otherwise starting it takes a user gesture
+   (webkit.org/blog/7763).  Until this branch every crowd member's mic was
+   open from join, which is what let the show's audio start by itself on an
+   iPhone.  With the crowd's devices off, a blocked play() is no longer a
+   console line nobody reads: it arms ONE listener for the next tap or key,
+   replays every waiting element inside that gesture, and tells him once. */
+let AUDIO_UNLOCK_ARMED=false, AUDIO_HINTED=false;
+function audioUnlockArm(why){
+  if(AUDIO_UNLOCK_ARMED) return;
+  AUDIO_UNLOCK_ARMED=true;
+  vdbg("audio is waiting for a tap ("+why+")", true);
+  const evs=["click","touchend","keydown"];
+  const go=()=>{
+    AUDIO_UNLOCK_ARMED=false;
+    evs.forEach(n=>document.removeEventListener(n,go,true));
+    Object.values(AUDIO_ELS).forEach(a=>{
+      if(!a.paused) return;
+      try{ const p=a.play(); if(p&&p.catch) p.catch(err=>{ audioUnlockArm("still blocked after a tap: "+(err&&err.name)); }); }catch(e){}
+    });
+    vdbg("audio: replayed inside a gesture");
+  };
+  evs.forEach(n=>document.addEventListener(n,go,true));
+  if(!AUDIO_HINTED){ AUDIO_HINTED=true; toast("Tap anywhere to hear the show \ud83d\udd0a"); }
+}
 function playAudio(sid, track){
   stopAudio(sid);
   const a=document.createElement("audio");
@@ -8001,7 +8042,11 @@ function playAudio(sid, track){
   a.style.display="none";
   document.body.appendChild(a);
   AUDIO_ELS[sid]=a;
-  const p=a.play(); if(p&&p.catch) p.catch(err=>console.log("audio.play() blocked:",err&&err.name));
+  const p=a.play();
+  if(p&&p.catch) p.catch(err=>{
+    console.log("audio.play() blocked:",err&&err.name);
+    if(err && err.name==="NotAllowedError") audioUnlockArm("play() NotAllowedError");
+  });
 }
 function stopAudio(sid){
   if(AUDIO_ELS[sid]){ try{AUDIO_ELS[sid].remove();}catch(e){} delete AUDIO_ELS[sid]; }
@@ -8498,7 +8543,7 @@ window.__lc = {
   get CURRENT_ROOM(){ return CURRENT_ROOM; },
   get ROOM_STATE(){ return ROOM_STATE; },
   get VIDEO_TILES(){ return VIDEO_TILES; },
-  get AUDIO_ELS(){ return AUDIO_ELS; },
+  get AUDIO_ELS(){ return AUDIO_ELS; }, playAudio,
   get DAILY(){ return DAILY; },
   get DAILY_JOINED(){ return DAILY_JOINED; },
   get HEARTS(){ return HEARTS; },

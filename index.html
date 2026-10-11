@@ -369,6 +369,37 @@
 @keyframes lc-wipe-beam{ 0%{ transform:translateX(-99%) skewX(-14deg) } 100%{ transform:translateX(216%) skewX(-14deg) } }
 @keyframes lc-wipe-clip{ 0%{ clip-path:polygon(-10% 0,140% 0,140% 100%,-35% 100%) } 100%{ clip-path:polygon(135% 0,140% 0,140% 100%,110% 100%) } }
 @keyframes lc-ghost{ 0%{ opacity:1 } 55%{ opacity:1 } 100%{ opacity:0 } }
+/* THE PRESSURE (ruling 10/11, item 2): jeers leave cracks on his FRAME that
+   stay for the round; at cracks_to_shatter the frame shatters.  Drawn on the
+   frame's edge band only — never over the face well, never in his track —
+   from his row's server count (room_members.cracks), seeded from him so
+   every phone draws the same cracks.  The ASK wipe does not touch them; HER
+   CALL resets them (the server: the phase leaving 'deciding'). */
+.chair__cracks{ position:absolute; inset:0; width:100%; height:100%; z-index:3; display:none; overflow:visible; pointer-events:none; }
+.chair.has-cracks:not(.is-empty):not(.is-strip):not(.is-paired) .chair__cracks{ display:block; }
+.chair__cracks path{ fill:none; stroke-linecap:round; stroke-linejoin:round; }
+.chair__cracks .ck-dark{ stroke:rgba(6,8,24,.78); stroke-width:5; }
+.chair__cracks .ck-lite{ stroke:rgba(240,247,255,.98); stroke-width:2.2; filter:drop-shadow(0 0 3px rgba(174,247,238,.85)); }
+.chair__cracks .ck-shard{ fill:rgba(236,244,255,.16); stroke:rgba(236,244,255,.7); stroke-width:.8; }
+.chair.is-shattered:not(.is-empty):not(.is-strip):not(.is-paired){
+  border-color:rgba(236,244,255,.9); border-style:dashed;
+  box-shadow:0 0 0 1px rgba(6,8,24,.6), 0 0 18px rgba(236,244,255,.45), inset 0 0 14px rgba(236,244,255,.25);
+}
+.chair.is-shattered.shatter-now{ animation:lc-shatter .42s ease-out 1; }
+@keyframes lc-shatter{ 0%{ transform:translate(0,0) } 18%{ transform:translate(-3px,2px) } 36%{ transform:translate(3px,-2px) } 54%{ transform:translate(-2px,-1px) } 72%{ transform:translate(2px,1px) } 100%{ transform:translate(0,0) } }
+/* THE CROWN (ruling 10/11, item 5): a frame ornament for the hearts leader
+   at her call, worn until her next — not a look, so the ASK does not take
+   it; it hides during the Moment like everything else.  While he wears it jeers are refused (the
+   server's rule; the tray says so). */
+.chair__crown{ position:absolute; left:50%; top:-15px; width:40px; height:27px; margin-left:-20px; z-index:5; display:none; pointer-events:none; filter:drop-shadow(0 2px 3px rgba(0,0,0,.65)) drop-shadow(0 0 7px rgba(255,194,77,.7)); }
+.chair.has-crown:not(.is-empty):not(.is-strip):not(.is-paired) .chair__crown{ display:block; }
+.chair.has-crown.crown-now .chair__crown{ animation:lc-crown .6s cubic-bezier(.2,1.6,.4,1) 1; }
+@keyframes lc-crown{ 0%{ transform:translateY(-22px) scale(.4) rotate(-14deg); opacity:0 } 100%{ transform:none; opacity:1 } }
+.lc-throwtray.is-crowned .lc-shelf__tile.is-jeer{ opacity:.35; cursor:default; }
+@media (prefers-reduced-motion: reduce){
+  .chair.is-shattered.shatter-now{ animation:none; }
+  .chair.has-crown.crown-now .chair__crown{ animation:none; }
+}
 /* THE WIRE (ruling 10/11, item 5): a fuse around the asked man's frame, as
    long as his answer clock has left to run.  Visual only — it reads the
    clock, it is not one; nothing happens at zero. */
@@ -1381,7 +1412,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1011.1441</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1011.1552</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1903,7 +1934,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1011.1441"); }catch(e){}
+try{ console.log("[lastcall] build b1011.1552"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -7657,6 +7688,7 @@ $("rt_filterdrop").onclick=()=>{ filterDrop(); };
    the referee; throw_counts() carries it and overwrites the numbers here. */
 const THROWABLES={
   live_secs:10, cooldown_secs:20, cheers:5, jeers:2,
+  cracks_to_shatter:3, rose_mends:1,   // THE PRESSURE's two numbers (the server's throw_limits() overwrites them)
   kinds:[
     { id:"petals",   cls:"cheer", emoji:"🌹", name:"Rose petals" },
     { id:"hearts",   cls:"cheer", emoji:"💗", name:"Heart burst" },
@@ -7723,7 +7755,7 @@ async function throwCountsSync(){
       const {data,error}=await sb.rpc("throw_counts",{room_id:CURRENT_ROOM.id});
       if(error || !data) return null;
       THROW_COUNTS={ cheers_left:data.cheers_left, jeers_left:data.jeers_left };
-      if(data.limits){ for(const k of ["live_secs","cooldown_secs","cheers","jeers"]) if(data.limits[k]!=null) THROWABLES[k]=data.limits[k]; }
+      if(data.limits){ for(const k of ["live_secs","cooldown_secs","cheers","jeers","cracks_to_shatter","rose_mends"]) if(data.limits[k]!=null) THROWABLES[k]=data.limits[k]; }
       throwPaintTray();
       return THROW_COUNTS;
     } finally { THROW_COUNTS_SYNC=null; }
@@ -7763,9 +7795,11 @@ function throwFoldMemberRow(row){
   if(!("throw_until" in row) && !("throwables_on" in row)) return;
   const m=filterRowOf(row.user_id);
   if(!m) return;
-  const next={ throw_until:row.throw_until??null, throw_at:row.throw_at??null, throw_kind:row.throw_kind??null, throwables_on:row.throwables_on!==false };
+  const next={ throw_until:row.throw_until??null, throw_at:row.throw_at??null, throw_kind:row.throw_kind??null, throwables_on:row.throwables_on!==false,
+               cracks:(row.cracks|0) };   // THE PRESSURE: his cracks ride the same row (0 until the column exists)
   const changed=(m.throw_until??null)!==next.throw_until || (m.throw_at??null)!==next.throw_at
-             || (m.throw_kind??null)!==next.throw_kind || (m.throwables_on!==false)!==next.throwables_on;
+             || (m.throw_kind??null)!==next.throw_kind || (m.throwables_on!==false)!==next.throwables_on
+             || ((m.cracks|0)!==next.cracks);
   Object.assign(m,next);
   if(!changed) return;
   throwPaintTiles();
@@ -8226,15 +8260,16 @@ function throwPaintTiles(){
     el.classList.toggle("throw-off", !!(st && !st.on));
     if(el.dataset.throw!==(live?k.id:"")) el.dataset.throw=live?k.id:"";
   }
+  try{ pressurePaintTiles(); }catch(e){ console.log("pressurePaintTiles:",String((e&&e.message)||e)); }   // his cracks and the crown ride the same paints
 }
 
 /* a new room (or none): nothing drawn for the last one may linger */
 function overlayForget(){
-  THROW_FREEZE=null;
+  THROW_FREEZE=null; CROWN_SEEN=null; for(const k of Object.keys(PRESSURE_SEEN)) delete PRESSURE_SEEN[k];
   for(let i=0;i<3;i++){
     throwFxClear(i);
     const el=$("rt_seat"+i); if(!el) continue;
-    el.classList.remove("is-wiping","is-held","has-wire","wire-urgent"); el.dataset.wipes="";
+    el.classList.remove("is-wiping","is-held","has-wire","wire-urgent","has-cracks","is-shattered","shatter-now","has-crown","crown-now","is-paired"); el.dataset.wipes=""; el.dataset.cracks="0";
     const ov=el.querySelector(".chair__throw"); if(ov) ov.dataset.key="";
   }
 }
@@ -8301,6 +8336,119 @@ function askWipePlay(uid){
     }, ASK_WIPE_MS+40);
   };
   setTimeout(go, 200);   // the card is raised by the spotlight event, a hair after the row
+}
+
+/* ---- THE PRESSURE AND THE CROWN (ruling 10/11, items 2 and 5) ----
+   Both are OBSERVED, like the throw: his cracks are room_members.cracks on
+   his row and the crown is rooms.crown_user, each written only by the
+   server (a landed jeer +1, a landed rose -1, her call resets; her call
+   names the crown).  Nothing here counts, awards or resets —
+   and nothing here has a consequence: a shattered frame informs her, she
+   decides. */
+const PRESSURE_SEEN={};      // uid -> the crack count this client last saw on him
+let CROWN_SEEN=null;         // { room, uid } — the last crown this client saw
+function pressureOf(m){
+  const cap=Math.max(1, THROWABLES.cracks_to_shatter|0);
+  const n=Math.max(0, Math.min(cap, (m && m.cracks)|0));
+  return { cracks:n, shattered:n>=cap, cap };
+}
+function pressureRoom(){
+  const out={ crown:(CURRENT_ROOM && CURRENT_ROOM.crown_user) || null, seats:{} };
+  for(const m of ((ROOM_STATE&&ROOM_STATE.members)||[])){
+    if(!m || !(m.role==="chair"||m.role==="kept")) continue;
+    out.seats[m.user_id]=pressureOf(m);
+  }
+  return out;
+}
+/* one crack: a jagged line in from the frame's edge with a branch or two.
+   Seeded from (him, which crack) — so crack 1 is the same line on every
+   phone and does not move when crack 2 arrives.  It stays inside the edge
+   band (a fifth of the frame's short side): the frame, not his face. */
+function pressureCrack(uid, k, W, H){
+  const r=throwRng(throwSeed(uid+"#"+k, 0)), R=(a,b)=>a+(b-a)*r(), band=Math.min(W,H)*.22;
+  const side=(k<=3) ? [2,3,0][k-1] : Math.floor(r()*4);       // crack 1 the foot (clear of his name), crack 2 the left flank, crack 3 the top corner; the rest all round
+  const t=(k===1)?R(.6,.86):(k===2)?R(.28,.6):(k===3)?R(.66,.9):R(.1,.9);
+  let x, y, ang;
+  if(side===0){ x=W*t; y=1; ang=Math.PI/2; } else if(side===1){ x=W-1; y=H*t; ang=Math.PI; }
+  else if(side===2){ x=W*t; y=H-1; ang=-Math.PI/2; } else { x=1; y=H*t; ang=0; }
+  const inband=(px,py)=>Math.min(px,py,W-px,H-py)<=band;
+  const walk=(x0,y0,a0,n,len)=>{ let d="M"+x0.toFixed(1)+","+y0.toFixed(1), px=x0, py=y0, a=a0; const pts=[];
+    for(let i=0;i<n;i++){ a+=R(-.75,.75); const l=len*R(.6,1.2); let nx=px+Math.cos(a)*l, ny=py+Math.sin(a)*l;
+      if(!inband(nx,ny)){ a+=Math.PI/2*(r()<.5?-1:1); nx=px+Math.cos(a)*l*.7; ny=py+Math.sin(a)*l*.7; if(!inband(nx,ny)) break; }
+      nx=Math.max(1,Math.min(W-1,nx)); ny=Math.max(1,Math.min(H-1,ny));
+      d+="L"+nx.toFixed(1)+","+ny.toFixed(1); px=nx; py=ny; pts.push([px,py,a]); }
+    return { d, pts }; };
+  const seg=Math.min(W,H)*(k<=3?.1:.065), main=walk(x,y,ang,(k<=3?6:3),seg);
+  let d=main.d;
+  for(let b=0;b<(k<=3?2:1);b++){ const p=main.pts[Math.floor(r()*Math.max(1,main.pts.length-1))]; if(!p) break;
+    d+=walk(p[0],p[1],p[2]+(r()<.5?-1:1)*R(.6,1.1),2,seg*.7).d; }
+  return d;
+}
+function pressureShards(uid, W, H){
+  const r=throwRng(throwSeed(uid+"#shards", 0)), R=(a,b)=>a+(b-a)*r(), out=[];
+  for(let i=0;i<7;i++){ const side=i%4, t=R(.08,.92), s=Math.min(W,H)*R(.035,.07);
+    let x, y; if(side===0){ x=W*t; y=R(2,7); } else if(side===1){ x=W-R(2,7); y=H*t; } else if(side===2){ x=W*t; y=H-R(2,7); } else { x=R(2,7); y=H*t; }
+    const a=R(0,6.28); out.push("M"+[0,1,2].map(j=>(x+Math.cos(a+j*2.1+R(-.3,.3))*s).toFixed(1)+","+(y+Math.sin(a+j*2.1+R(-.3,.3))*s).toFixed(1)).join("L")+"Z"); }
+  return out;
+}
+function pressurePaintTiles(){
+  const room=CURRENT_ROOM, crown=(room && room.crown_user) || null;
+  for(let i=0;i<3;i++){
+    const el=$("rt_seat"+i); if(!el) continue;
+    const uid=el.dataset.heartuid||null;
+    const m=uid?filterRowOf(uid):null;
+    const seated=!!(m && (m.role==="chair"||m.role==="kept"));
+    const pr=seated?pressureOf(m):{ cracks:0, shattered:false, cap:THROWABLES.cracks_to_shatter };
+    const paired=!!(seated && room && (room.moment_a===uid || room.moment_b===uid));
+    el.classList.toggle("is-paired", paired);
+    // ---- the cracks ----
+    el.classList.toggle("has-cracks", pr.cracks>0);
+    el.classList.toggle("is-shattered", pr.shattered);
+    if(el.dataset.cracks!==String(pr.cracks)) el.dataset.cracks=String(pr.cracks);
+    const W=el.offsetWidth, H=el.offsetHeight;
+    let svg=el.querySelector(".chair__cracks");
+    const sig=pr.cracks ? (uid+":"+pr.cracks+":"+W+"x"+H) : "";
+    if(pr.cracks>0 && W>20 && H>20){
+      if(!svg){ svg=document.createElementNS("http://www.w3.org/2000/svg","svg"); svg.setAttribute("class","chair__cracks"); svg.setAttribute("aria-hidden","true"); el.appendChild(svg); }
+      if(svg.dataset.sig!==sig){
+        svg.dataset.sig=sig; svg.setAttribute("viewBox","0 0 "+W+" "+H);
+        const n=pr.shattered ? pr.cracks+6 : pr.cracks;   // shattered: the three, and the frame gives way all round
+        let html="";
+        if(pr.shattered) html+=pressureShards(uid,W,H).map(d=>`<path class="ck-shard" d="${d}"/>`).join("");
+        for(let k=1;k<=n;k++){ const d=pressureCrack(uid,k,W,H); html+=`<path class="ck-dark" d="${d}"/><path class="ck-lite" d="${d}"/>`; }
+        svg.innerHTML=html;
+      }
+    } else if(svg && svg.dataset.sig){ svg.dataset.sig=""; svg.innerHTML=""; }
+    if(seated && uid){
+      const key=uid, was=PRESSURE_SEEN[key];
+      if(pr.shattered && was!==undefined && was<pr.cap){   // it shattered while this client watched: the line, once, and the jolt
+        addFeedLine(`The room is turning on ${escapeHtml(((ROOM_STATE.profs||{})[uid]||{}).display_name||"him")}`, "cool");
+        if(overlayMotionOK()){ el.classList.remove("shatter-now"); void el.offsetWidth; el.classList.add("shatter-now"); }
+      }
+      PRESSURE_SEEN[key]=pr.cracks;
+    }
+    // ---- the crown ----
+    const crowned=!!(seated && crown && crown===uid);
+    if(crowned && !el.querySelector(".chair__crown")){
+      const c=document.createElementNS("http://www.w3.org/2000/svg","svg"); c.setAttribute("class","chair__crown"); c.setAttribute("viewBox","0 0 40 27"); c.setAttribute("aria-hidden","true");
+      c.innerHTML='<defs><linearGradient id="lcCrownG'+i+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset=".55" stop-color="#ffc24d"/><stop offset="1" stop-color="#d98a1f"/></linearGradient></defs>'
+        +'<path d="M4,23 L2,7 L11,14 L20,2 L29,14 L38,7 L36,23 Z" fill="url(#lcCrownG'+i+')" stroke="#8a4b0c" stroke-width="1.4" stroke-linejoin="round"/>'
+        +'<rect x="4" y="21" width="32" height="4.5" rx="1.6" fill="#ffd77a" stroke="#8a4b0c" stroke-width="1.2"/>'
+        +'<circle cx="20" cy="2.6" r="2.3" fill="#ff2d8f" stroke="#8a0847" stroke-width=".8"/><circle cx="2.4" cy="7" r="1.9" fill="#2ee6d6" stroke="#0a6b62" stroke-width=".7"/><circle cx="37.6" cy="7" r="1.9" fill="#2ee6d6" stroke="#0a6b62" stroke-width=".7"/>'
+        +'<circle cx="20" cy="17" r="2.2" fill="#ff2d8f" stroke="#8a0847" stroke-width=".7"/><circle cx="11.5" cy="18.2" r="1.4" fill="#fff8e0"/><circle cx="28.5" cy="18.2" r="1.4" fill="#fff8e0"/>';
+      el.appendChild(c);
+    }
+    el.classList.toggle("has-crown", crowned);
+  }
+  // the crown's news: once per change, and never on the first sight of a room
+  if(room){
+    const prev=CROWN_SEEN; CROWN_SEEN={ room:room.id, uid:crown };
+    if(prev && prev.room===room.id && crown && crown!==prev.uid){
+      addFeedLine(`👑 ${escapeHtml(((ROOM_STATE.profs||{})[crown]||{}).display_name||"Someone")} wears the crown this round`, "gold");
+      for(let i=0;i<3;i++){ const el=$("rt_seat"+i); if(el && el.dataset.heartuid===crown && overlayMotionOK()){ el.classList.remove("crown-now"); void el.offsetWidth; el.classList.add("crown-now"); } }
+    }
+  }
+  const tr=$("rt_throwtray"); if(tr) tr.classList.toggle("is-crowned", !!(crown && THROW_TARGET && crown===THROW_TARGET));
 }
 
 /* ---- THE WIRE (ruling 10/11, item 5) ----
@@ -8394,6 +8542,7 @@ function throwPaintTray(){
   // targets
   if(!seated.some(m=>m.user_id===THROW_TARGET)) THROW_TARGET=null;
   if(!THROW_TARGET){ const first=seated.find(m=>!throwBlockedWhy(throwStateOf(m)))||seated[0]; THROW_TARGET=first?first.user_id:null; }
+  tr.classList.toggle("is-crowned", !!(CURRENT_ROOM && CURRENT_ROOM.crown_user && THROW_TARGET && CURRENT_ROOM.crown_user===THROW_TARGET));   // the crown: his jeers are dimmed (the server refuses them)
   const tg=$("rt_throwtargets");
   if(tg){
     tg.innerHTML = seated.length ? seated.map(m=>{
@@ -8417,6 +8566,7 @@ function throwPaintTray(){
         if(!tgt){ toast("Pick someone in a chair."); return; }
         if(why){ toast("Not right now: "+why.toLowerCase()+"."); return; }
         if(THROW_COUNTS && (k.cls==="cheer"?THROW_COUNTS.cheers_left:THROW_COUNTS.jeers_left)<=0){ toast("No "+k.cls+"s left this show."); return; }
+        if(k.cls==="jeer" && CURRENT_ROOM && CURRENT_ROOM.crown_user && CURRENT_ROOM.crown_user===THROW_TARGET){ toast("He wears the crown this round \u2014 cheers only."); return; }   // the server refuses it too
         throwAt(THROW_TARGET, k.id);
       });
     }
@@ -9191,6 +9341,9 @@ window.__lc = {
      exact frame across clients; ASK_WIPES is every sweep this client
      played; wireState() is the fuse as the clock says it. */
   throwSeed, throwFreeze, throwSnapshot, wireState, overlayMotionOK,
+  /* the Pressure and the Crown (feat/pressure-crown): what the ROOM says —
+     each seated man's cracks off his row, the crown off the rooms row */
+  get PRESSURE_ROOM(){ return pressureRoom(); },
   get THROW_FX(){ const o={}; for(const i of Object.keys(THROW_FX)) o[i]={ ...THROW_FX[i] }; return o; },
   get ASK_WIPES(){ return ASK_WIPES.map(w=>({ ...w })); },
   get THROW_ROOM(){ return throwRoom(); },

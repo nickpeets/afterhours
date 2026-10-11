@@ -86,8 +86,11 @@ const TILES = () => {
                cheer: el.classList.contains("has-throw--cheer"), jeer: el.classList.contains("has-throw--jeer"),
                cooling: el.classList.contains("throw-cooling"),
                shown: getComputedStyle(ov).display, fxShown: getComputedStyle(fx).display, badgeShown: getComputedStyle(badge).display,
-               badge: badge.textContent, fxN: fx.querySelectorAll("i").length,
-               delay: (fx.querySelector("i") || {}).style ? fx.querySelector("i").style.animationDelay : null,
+               /* feat/overlay-art: the placeholder emoji + CSS keyframes became one
+                  canvas per tile and a drawn still — the badge says its kind, the
+                  canvas is the animation, THROW_FX is the frame it is on */
+               badge: badge.dataset.kind || "", badgeArt: !!badge.querySelector("canvas"), fxN: fx.querySelectorAll("canvas").length,
+               frameMs: ((window.__lc.THROW_FX || {})[i] || {}).t ?? null,
                filterBadged: el.classList.contains("has-filter") };
   }
   return out;
@@ -260,8 +263,8 @@ module.exports = {
       t.ok(Object.values(tiles2).every((tl) => tl[0].hit && tl[0].kind === "tomato" && tl[0].jeer && tl[0].shown === "block"),
         "the tomato is on seat 0 on EVERY client — host, the target's own self-view, both other seats, the crowd");
       t.ok(Object.values(tiles2).every((tl) => !tl[1].hit && !tl[2].hit), "…and on nobody else's tile");
-      t.ok(Object.values(tiles2).every((tl) => tl[0].badgeShown === "flex" && tl[0].fxShown === "none" && tl[0].badge === "🍅"),
-        "reduced motion (the harness default): the still 🍅 badge shows and the animation does not");
+      t.ok(Object.values(tiles2).every((tl) => tl[0].badgeShown === "flex" && tl[0].fxShown === "none" && tl[0].badge === "tomato" && tl[0].badgeArt),
+        "reduced motion (the harness default): the still tomato badge shows — drawn art, not an emoji — and the animation does not");
       const feeds = await everyone(FEED);
       t.ok(Object.values(feeds).every((f) => f.some((l) => /🍅 a jeer landed/.test(l))), "the feed on every client: '🍅 a jeer landed'");
       t.ok(Object.values(feeds).every((f) => !f.some((l) => /u_w1|Crowd|w1/.test(l))), "…with no name on it");
@@ -441,10 +444,10 @@ module.exports = {
       D.addMember(room, "u_late", "spectator");
       const L = await boot("late", "u_late");
       await waitFor(() => L.page.evaluate(() => (window.__lc.THROW_ROOM.u_c || {}).live === true), 8000, "the late joiner to see the pie");
-      const late = await L.page.evaluate(() => ({ st: window.__lc.THROW_ROOM.u_c, tile: (() => { const el = document.getElementById("rt_seat2"); const i = el.querySelector(".chair__throw-fx i"); return { hit: el.classList.contains("has-throw"), delay: i ? i.style.animationDelay : null }; })() }));
+      const late = await L.page.evaluate(() => ({ st: window.__lc.THROW_ROOM.u_c, tile: (() => { const el = document.getElementById("rt_seat2"); const fx = (window.__lc.THROW_FX || {})[2]; return { hit: el.classList.contains("has-throw"), frameMs: fx ? fx.t : null }; })() }));
       t.ok(late.tile.hit && late.st.remainingMs > 2000 && late.st.remainingMs < 5000 && late.st.elapsedMs > 5000,
         `late joiner: hit, ${Math.round(late.st.remainingMs)}ms left of 10s (elapsed ${Math.round(late.st.elapsedMs)}ms) — from the server's stamps, not a fresh ten seconds`);
-      t.ok(/^-\d{4,}ms$/.test(late.tile.delay || ""), `…and the animation is rewound by the elapsed time (animation-delay ${late.tile.delay})`);
+      t.ok(late.tile.frameMs > 5000 && late.tile.frameMs < 10_000, `…and the picture starts on the frame the room is on, not frame one (frame at ${Math.round(late.tile.frameMs)}ms of the throw)`);
       await L.close();
 
       /* ---------- 15. CLOCK SKEW: a phone 30 seconds wrong ---------- */
@@ -468,10 +471,10 @@ module.exports = {
       t.ok((await (async () => { const r = await throwFrom(W3, "u_a", "confetti"); if (!r.ok) t.note("refused: " + r.error); return r.ok === true; })()), "w3: confetti on u_a");
       await waitFor(() => M.page.evaluate(() => document.getElementById("rt_seat0").classList.contains("has-throw")), 8000, "the motion client to see it");
       const mt = await M.page.evaluate(TILES);
-      t.ok(mt[0].fxShown === "block" && mt[0].badgeShown === "none" && mt[0].fxN === 8 && mt[0].cheer,
-        `without reduced motion: the animation shows (${mt[0].fxN} falling pieces), the still badge does not`);
+      t.ok(mt[0].fxShown === "block" && mt[0].badgeShown === "none" && mt[0].fxN === 1 && mt[0].cheer && mt[0].frameMs >= 0,
+        `without reduced motion: the animation shows (${mt[0].fxN} canvas, on frame ${Math.round(mt[0].frameMs)}ms), the still badge does not`);
       const rm = (await everyone(TILES, [W1]))["w1"][0];
-      t.ok(rm.fxShown === "none" && rm.badgeShown === "flex" && rm.badge === "🎉", "…while the reduced-motion client shows the 🎉 badge for the same throw");
+      t.ok(rm.fxShown === "none" && rm.badgeShown === "flex" && rm.badge === "confetti" && rm.badgeArt, "…while the reduced-motion client shows the confetti badge for the same throw");
       await M.close();
 
       /* ---------- 17. ANONYMITY ---------- */

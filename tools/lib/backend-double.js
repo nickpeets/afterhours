@@ -99,14 +99,22 @@ const FILTER_LOOKS = ["grade", "noir", "ck-objects", "ck-express"];
    gate that watches the two disagree is a gate doing its job.
    The set is the ruling's eight (DESIGN-throwables-and-mask.md "The set");
    cls is DERIVED from kind (throw_class), never stored on the member row. */
-const THROW_LIMITS = { cheers: 5, jeers: 2, live_secs: 10, cooldown_secs: 20 };
+const THROW_LIMITS = { cheers: 5, jeers: 2, live_secs: 10, cooldown_secs: 20,
+  /* THE PRESSURE (feat/pressure-crown, tools/DESIGN-overlay-server.md): the two
+     numbers the member trigger reads — throw_limits() carries them too */
+  cracks_to_shatter: 3, rose_mends: 1 };
 const THROW_KINDS = { petals: "cheer", hearts: "cheer", confetti: "cheer", sparkle: "cheer",
                       tomato: "jeer", pie: "jeer", boo: "jeer", cricket: "jeer" };
-const THROW_COLS = ["throwables_on", "throw_kind", "throw_at", "throw_until"];
+const THROW_COLS = ["throwables_on", "throw_kind", "throw_at", "throw_until", "cracks"];
 /* the guard trigger's one message (room_members_throw_guard) and the rooms
    one (rooms_throwables_guard) — what a DIRECT client write gets back */
 const THROW_GUARD_MSG = "throw state changes only through throw_at, set_throwables and host_clear_throw";
 const ROOMS_THROW_GUARD_MSG = "throwables_on changes only through host_set_throwables";
+/* THE PRESSURE AND THE CROWN (feat/pressure-crown) — the two new refusals, in
+   the server's words: the member trigger's when a jeer lands on the crown
+   holder, and the rooms guard's when a client writes crown_user itself */
+const CROWN_BLOCK_MSG = "he wears the crown this round";
+const ROOMS_CROWN_GUARD_MSG = "the crown is awarded at her call, never written";
 
 let _seq = 1;
 const nid = (p) => p + "_" + (_seq++).toString(36).padStart(6, "0");
@@ -118,6 +126,7 @@ class BackendDouble {
     this.rooms = new Map();      // room_id -> room row
     this.members = [];           // room_members rows
     this.events = [];            // room_events rows
+    this.herCallAt = new Map();  // room id -> when decide_pass / decide_clear was called (see overlayHerCall)
     this.questions = [];
     this.decks = [];
     this.sessions = new Map();   // clientId -> uid
@@ -167,6 +176,13 @@ class BackendDouble {
     this.rooms.set(id, {
       id, host_id, contestant_name: name || "Fixture Room", tagline: "",
       status, phase, round, spotlight_target: null, phase_deadline: null,
+      /* rooms.cycle — production's own count of passes to her call (start_show
+         sets 1; engine_award_seat, the last seat filled after her call, sets
+         round = 0, cycle + 1; both read from Studio 2026-10-11).  The overlay
+         does not read it (ruling 10/11: the round turns at her call).  crown_user is
+         who wears the crown until her next call (feat/pressure-crown; PENDING
+         DDL). */
+      cycle: 1, crown_user: null,
       winner_id: null, created_at: this.iso(), host_seen_at: this.iso(),
       moment_a: null, moment_b: null,   // the Moment seam — see start_moment
       throwables_on: true,              // THROWABLES: the host's show switch (rooms.throwables_on, default true)
@@ -247,6 +263,12 @@ class BackendDouble {
                           throw_until + 20s.  No timers anywhere.
          The thrower is NOT here — he is in throwLedger, server-only. */
       throwables_on: true, throw_kind: null, throw_at: null, throw_until: null,
+      /* THE PRESSURE (feat/pressure-crown; PENDING DDL): landed jeers this
+         round minus roses, 0..cracks_to_shatter, on HIS row.  seated_at is
+         production's column (set when he takes a chair); the round trigger
+         reads it to tell who sat through her call. */
+      cracks: 0,
+      seated_at: (role === "chair" || role === "kept") ? this.iso(this.now() - ageMs - 1000) : null,
     };
     this.members.push(row);
     return row;
@@ -287,7 +309,57 @@ class BackendDouble {
     const nowSeated = role === "chair" || role === "kept";
     row.role = role;
     if (seat_index !== undefined) row.seat_index = seat_index;
-    if (wasSeated && !nowSeated) this.wipeThrow(row);
+    if (wasSeated && !nowSeated) { this.wipeThrow(row); row.cracks = 0; }   // the frame he leaves is clean (trigger, feat/pressure-crown)
+    if (!wasSeated && nowSeated) row.seated_at = this.iso();
+  }
+  /* ---------- THE PRESSURE AND THE CROWN (feat/pressure-crown) ----------
+     Mirrors of the two triggers in tools/DESIGN-overlay-server.md, PENDING
+     PRODUCTION DDL.  Nothing here is reachable by a client: cracks move only
+     where a throw LANDS (throw_at's own update), the crown only at her
+     call (the phase leaving 'deciding'). */
+  /* room_members_throw_guard, the landing half: called by throw_at at the
+     statement that lands the throw, AFTER every refusal of its own — so a
+     jeer the crown refuses raises here and is never charged. */
+  landOnRow(room, tgt, kind) {
+    const cls = THROW_KINDS[kind];
+    if (cls === "jeer") {
+      if (room.crown_user && room.crown_user === tgt.user_id) throw new Error(CROWN_BLOCK_MSG);
+      tgt.cracks = Math.min(THROW_LIMITS.cracks_to_shatter, (tgt.cracks || 0) + 1);
+    } else if (kind === "petals") {
+      tgt.cracks = Math.max(0, (tgt.cracks || 0) - THROW_LIMITS.rose_mends);
+    }
+  }
+  /* rooms_overlay_round, the fresh-show half: preshow / showstart carry nothing over */
+  overlayFresh(r) {
+    r.crown_user = null;
+    for (const m of this.members) if (m.room_id === r.id && m.cracks) { m.cracks = 0; this.emit("room_members", "UPDATE", { ...m }); }
+  }
+  /* rooms_overlay_round, the her-call half: the phase LEAVES 'deciding' for
+     anything but 'ended' (ruling 10/11: cracks reset at her call, the crown
+     is awarded at her call).  The crown goes to the clear hearts leader (at
+     least one heart) among the men still in a chair who were seated before
+     her call; on a tie the holder keeps it if he is still in a chair, else
+     nobody; then every crack resets.  The caller emits the rooms row after.
+     WHAT THIS FAKES: production's decide_pass / decide_clear move the phase
+     themselves (to the draft, or through engine_award_seat to the floor), so
+     the trigger fires INSIDE her call.  The double has no draft: its phase
+     leaves 'deciding' a beat later, when the show walks on — so decide_pass /
+     decide_clear stamp the moment (herCallAt) and the contenders are frozen
+     there, exactly the set production's "seated_at < now()" sees. */
+  overlayHerCall(r) {
+    const cut = this.herCallAt.has(r.id) ? this.herCallAt.get(r.id) : this.now() + 1;
+    this.herCallAt.delete(r.id);
+    const hearts = (uid) => this.events.filter((e) => e.room_id === r.id && e.type === "heart" && e.payload && e.payload.target === uid).length;
+    const seated = this.members.filter((m) => m.room_id === r.id && (m.role === "chair" || m.role === "kept") && (!m.seated_at || Date.parse(m.seated_at) < cut))
+      .map((m) => ({ uid: m.user_id, h: hearts(m.user_id) }));
+    const max = seated.length ? Math.max(...seated.map((x) => x.h)) : null;
+    const top = seated.filter((x) => x.h === max);
+    if (max != null && max > 0 && top.length === 1) r.crown_user = top[0].uid;
+    else {
+      const held = this.members.some((m) => m.room_id === r.id && m.user_id === r.crown_user && (m.role === "chair" || m.role === "kept"));
+      r.crown_user = held ? r.crown_user : null;
+    }
+    for (const m of this.members) if (m.room_id === r.id && m.cracks) { m.cracks = 0; this.emit("room_members", "UPDATE", { ...m }); }
   }
   /* the ONE server-side clear, used by every path that strips a filter:
      drop_filter, host_clear_filter, ask_question, start_moment.  Emits the
@@ -597,7 +669,7 @@ class BackendDouble {
         if (row) { this.setRole(row, "spectator", null); this.pushEvent(a.room_id, uid, "timeout", { target_user: a.user_id }); this.emit("room_members", "UPDATE", { ...row }); }
         return null;
       }
-      case "start_show": return this.setPhase(a.room_id, "showstart", 20);
+      case "start_show": { const r0 = this.rooms.get(a.room_id); if (r0) { r0.round = r0.round || 0; r0.cycle = 1; } return this.setPhase(a.room_id, "showstart", 20); }
       /* end_deliberation REMOVED 2026-08-22 (ruling reversed).  It lived
      * here from the 2026-08-20 ruling on the theory that skip_phase's
      * single-step walker would retire SPEC wave 5's jump-to-deciding
@@ -614,7 +686,22 @@ class BackendDouble {
         const order = ["preshow", "showstart", "spotlight", "openfloor", "deliberation", "deciding"];
         const i = order.indexOf(r.phase);
         let next, secs;
-        if (r.phase === "deciding") { r.round = (r.round || 0) + 1; next = "spotlight"; secs = 60; }
+        /* PRODUCTION REFUSES AN EARLY NUDGE (advance_phase read verbatim from
+           Studio, 2026-10-11): "if now() < v_r.phase_deadline then return
+           noop".  The double advanced unconditionally, which is how a crowd
+           phone with a fast clock ended an answer for the whole room in gate
+           87's first run and nowhere else.  Modelled here for everyone but
+           the host: the gates walk the show with the host's advance_phase,
+           and skip_phase (hers, and it sets the deadline to now first) shares
+           this case.  The null-deadline no-op is NOT modelled (her call would
+           never leave 'deciding' in a double that has no draft — G10). */
+        if (name === "advance_phase" && uid !== r.host_id && r.phase_deadline && this.now() < Date.parse(r.phase_deadline))
+          return { noop: true, phase: r.phase, deadline: r.phase_deadline };
+        /* deciding -> spotlight is the double's stand-in for production's
+           engine_award_seat (the double has no draft): rooms.cycle goes up
+           here, and setPhase below — the phase leaving 'deciding' — is where
+           her call turns the round over (the crown named, the cracks reset). */
+        if (r.phase === "deciding") { r.round = (r.round || 0) + 1; next = "spotlight"; secs = 60; r.cycle = (r.cycle || 1) + 1; }
         else if (r.phase === "draft") { next = "spotlight"; secs = 60; }   // a skipped draft returns to the floor
         else if (r.phase === "openfloor") {
           // production forks HERE (verbatim, advance_phase read from Studio,
@@ -641,7 +728,7 @@ class BackendDouble {
         // "reason" key — skip_phase and an ordinary clock expiry look
         // identical in the ledger.
         const rr = this.rooms.get(a.room_id);
-        this.pushEvent(a.room_id, uid, "phase", { phase: rr.phase, deadline: rr.phase_deadline, round: rr.round });
+        this.pushEvent(a.room_id, uid, "phase", { phase: rr.phase, deadline: rr.phase_deadline, round: rr.round, cycle: rr.cycle });   // engine_set_phase's payload carries the cycle (read 2026-10-11)
         return null;
       }
       /* ---- fix/no-client-room-writes (2026-08-20) ----
@@ -663,6 +750,7 @@ class BackendDouble {
         r.phase = "preshow"; r.round = 0;
         r.spotlight_target = null; r.spotlight_question_id = null;
         r.phase_deadline = null;
+        this.overlayFresh(r);                    // rooms_overlay_round: back to preshow carries nothing over
         this.emit("rooms", "UPDATE", { ...r });
         this.pushEvent(a.room_id, uid, "phase", { reason: "stage_emptied", phase: "preshow" });
         return null;
@@ -906,6 +994,7 @@ class BackendDouble {
         const counts = this.throwCounts(a.room_id, uid);
         if ((cls === "cheer" ? counts.cheers_left : counts.jeers_left) <= 0)
           throw new Error("no " + cls + "s left this show");
+        this.landOnRow(r, tgt, a.kind);   // the member trigger: the crown's block, then the crack / the mend
         const at = this.now();
         tgt.throw_kind = a.kind; tgt.throw_at = this.iso(at);
         tgt.throw_until = this.iso(at + THROW_LIMITS.live_secs * 1000);
@@ -916,7 +1005,7 @@ class BackendDouble {
       }
       case "throw_counts": {
         if (!uid) throw new Error("not authenticated");
-        return { ...this.throwCounts(a.room_id, uid), limits: { ...THROW_LIMITS } };
+        return { ...this.throwCounts(a.room_id, uid), limits: { ...THROW_LIMITS } };   // throw_limits(): the two Pressure numbers ride along
       }
       case "set_throwables": {
         if (!uid) throw new Error("not authenticated");
@@ -961,12 +1050,14 @@ class BackendDouble {
       case "decide_pass": {
         const row = this.memberRow(a.room_id, a.target);
         if (!row) throw new Error("no such member");
+        this.herCallAt.set(a.room_id, this.now());   // HER CALL (see overlayHerCall)
         this.setRole(row, "spectator", null);
         this.pushEvent(a.room_id, uid, "pass", { target_user: a.target });
         this.emit("room_members", "UPDATE", { ...row });
         return null;
       }
       case "decide_clear": {
+        this.herCallAt.set(a.room_id, this.now());   // HER CALL (see overlayHerCall)
         for (const m of this.members) {
           if (m.room_id === a.room_id && m.role === "chair") { this.setRole(m, "spectator", null); this.emit("room_members", "UPDATE", { ...m }); }
         }
@@ -1010,8 +1101,11 @@ class BackendDouble {
   setPhase(room_id, phase, secs) {
     const r = this.rooms.get(room_id);
     if (!r) throw new Error("no room");
+    const was = r.phase;
     r.phase = phase;
     r.phase_deadline = secs ? this.iso(this.now() + secs * 1000) : null;
+    if (phase !== was && (phase === "preshow" || phase === "showstart")) this.overlayFresh(r);   // rooms_overlay_round: a fresh show
+    else if (was === "deciding" && phase !== "deciding" && phase !== "ended") this.overlayHerCall(r);   // rooms_overlay_round: her call is made
     this.emit("rooms", "UPDATE", { ...r });
     return null;
   }
@@ -1153,6 +1247,7 @@ class BackendDouble {
            own rooms row directly today (status, host_seen_at), so the switch
            is guarded by column, not by RLS */
         if (values && "throwables_on" in values) throw new Error(ROOMS_THROW_GUARD_MSG);
+        if (values && "crown_user" in values) throw new Error(ROOMS_CROWN_GUARD_MSG);   // rooms_throwables_guard, feat/pressure-crown
         let n = 0;
         for (const r of this.rooms.values()) {
           if (match(r)) { Object.assign(r, values); n++; this.emit("rooms", "UPDATE", { ...r }); }
@@ -1174,4 +1269,4 @@ class BackendDouble {
   }
 }
 
-module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, HOST_STALE_MS, FILTER_LOOKS, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG };
+module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, HOST_STALE_MS, FILTER_LOOKS, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG, CROWN_BLOCK_MSG, ROOMS_CROWN_GUARD_MSG };

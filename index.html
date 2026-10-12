@@ -1412,7 +1412,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1011.1552</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1011.2127</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1934,7 +1934,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1011.1552"); }catch(e){}
+try{ console.log("[lastcall] build b1011.2127"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -7955,12 +7955,14 @@ function throwPlan(kind, seed){
   const r=throwRng(seed), R=(a,b)=>a+(b-a)*r(), I=(a,b)=>Math.floor(R(a,b+1)), P={kind,seed};
   const lobes=(n,lo,hi,spike)=>Array.from({length:n},()=>{ let v=R(lo,hi); if(r()<spike) v+=R(.18,.42); return v; });
   if(kind==="tomato"){
-    P.from=r()<.5?-1:1; P.lobes=lobes(I(15,19),.74,1.08,.26); P.inner=lobes(11,.42,.6,0);
-    P.drops=Array.from({length:I(9,13)},()=>({a:R(0,Math.PI*2),d:R(1.25,2.3),s:R(.9,2.8),slide:R(.2,1)}));
-    P.seeds=Array.from({length:I(10,14)},()=>({a:R(0,Math.PI*2),d:R(.12,.78),rot:R(0,Math.PI*2),s:R(2.1,3.1),slide:R(.3,1)}));
-    P.drips=Array.from({length:I(4,6)},()=>({x:R(-.72,.72),len:R(.14,.4),w:R(2.2,4.2),delay:R(250,2400),dur:R(2600,5200)}));
-    P.chunks=Array.from({length:3},()=>({a:R(0,Math.PI*2),d:R(.25,.7),s:R(3,5.5),rot:R(0,6.28),sides:lobes(6,.6,1,0)}));
-    P.calyx={x:R(-.3,.3),y:R(-.3,.1),rot:R(-1,1),spin:R(-2,2)};
+    /* THE TEASER'S SPLAT ("Step Right Up", matched 10/11): its recipe and its
+       draw order — 22 blobs, 9 drips, 10 seeds — seeded from THIS throw, not a
+       constant.  Numbers are the teaser's 440-wide tile in hundredths of the
+       tile's width (px / 4.4), so the splat is the same share of any tile. */
+    P.from=r()<.5?-1:1;
+    P.blobs=Array.from({length:22},()=>({a:r()*Math.PI*2,d:r()*27.3,rad:4.1+r()*10.45}));
+    P.drips=Array.from({length:9},()=>({x:-22.7+r()*45.4,rate:27.3+r()*59.1,w:2.73+r()*1.36}));
+    P.seeds=Array.from({length:10},()=>({x:-13.6+r()*27.3,y:-6.8+r()*15.9,rot:r()*3}));
   } else if(kind==="pie"){
     P.lobes=lobes(I(11,14),.84,1.16,.18); P.tinSpin=R(-1.6,1.6); P.tinDrift=R(-10,10);
     P.dollops=Array.from({length:I(7,10)},()=>({a:R(0,Math.PI*2),d:R(1.15,1.9),s:R(1.6,4),slide:R(.2,1)}));
@@ -8004,41 +8006,24 @@ function throwDrawFrame(ctx, W, H, kind, seed, t, dur){
   const fade=1-e.inQuad((t-dur*.88)/(dur*.12));   // every picture leaves in its last eighth
   ctx.globalAlpha=fade; ctx.lineCap="round"; ctx.lineJoin="round";
   if(kind==="tomato"){
-    const hit=280;
-    if(t<hit){ const k=t/hit, x=cx+P.from*(1-k)*46*u, y=cy+(1-k)*(1-k)*34*u-Math.sin(k*Math.PI)*6*u;
+    const hit=280, tx=cx+1.8*u, ty=H*.34;
+    if(t<hit){ const k=t/hit, x=tx+P.from*(1-k)*46*u, y=ty+(1-k)*(1-k)*34*u-Math.sin(k*Math.PI)*6*u;
       e.tomato(ctx,x,y,(10+k*22)*u,P.from*(1-k)*3.2); ctx.globalAlpha=1; return; }
-    const s=t-hit, pop=e.outBack(s/230), R0=21*u*(.35+.65*pop);
-    const slide=e.inQuad((t-dur*.5)/(dur*.5))*H*.1, y0=cy+slide;
-    // the flung drops
-    for(const d of P.drops){ const k=e.outCubic(s/300), x=cx+Math.cos(d.a)*d.d*21*u*k, y=y0+Math.sin(d.a)*d.d*21*u*k+e.inQuad(s/dur)*d.slide*H*.16;
-      ctx.fillStyle="#c8161c"; ctx.beginPath(); ctx.ellipse(x,y,d.s*u*.8,d.s*u*(1+e.inQuad(s/dur)*d.slide),0,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle="rgba(255,150,130,.6)"; ctx.beginPath(); ctx.arc(x-d.s*u*.25,y-d.s*u*.3,d.s*u*.22,0,Math.PI*2); ctx.fill(); }
-    // the drips, under the splat's body
-    for(const d of P.drips){ const k=e.outCubic((s-d.delay)/d.dur); if(k<=0) continue;
-      const x=cx+d.x*21*u, top=y0+8*u, len=d.len*H*k, w=d.w*u*(1-.25*k);
-      const g=ctx.createLinearGradient(0,top,0,top+len); g.addColorStop(0,"#d81e1f"); g.addColorStop(1,"#a40f18");
-      ctx.fillStyle=g; ctx.beginPath(); ctx.moveTo(x-w/2,top); ctx.lineTo(x-w*.36,top+len); ctx.arc(x,top+len,w*.56,Math.PI,0,true); ctx.lineTo(x+w/2,top); ctx.closePath(); ctx.fill();
-      ctx.fillStyle="rgba(255,170,150,.5)"; ctx.beginPath(); ctx.ellipse(x-w*.14,top+len-w*.1,w*.13,w*.26,0,0,Math.PI*2); ctx.fill(); }
-    // the splat
-    e.blob(ctx,cx,y0,R0,P.lobes,1,1+.12*e.inQuad(s/dur));
-    const g=ctx.createRadialGradient(cx-5*u,y0-6*u,2*u,cx,y0,R0*1.25); g.addColorStop(0,"#ff6a4f"); g.addColorStop(.5,"#e3221f"); g.addColorStop(1,"#9c0d17");
-    ctx.fillStyle=g; ctx.fill();
-    e.blob(ctx,cx+1.5*u,y0+1*u,R0,P.inner); ctx.fillStyle="rgba(255,96,70,.55)"; ctx.fill();
-    // skin chunks, seeds, the calyx
-    for(const c of P.chunks){ const x=cx+Math.cos(c.a)*c.d*R0, y=y0+Math.sin(c.a)*c.d*R0;
-      ctx.save(); ctx.translate(x,y); ctx.rotate(c.rot); e.blob(ctx,0,0,c.s*u*pop,c.sides); ctx.fillStyle="#b3121a"; ctx.fill(); ctx.restore(); }
-    for(const q of P.seeds){ const x=cx+Math.cos(q.a)*q.d*R0, y=y0+Math.sin(q.a)*q.d*R0+e.inQuad(s/dur)*q.slide*H*.07;
-      ctx.save(); ctx.translate(x,y); ctx.rotate(q.rot); ctx.scale(q.s*u*pop,q.s*u*pop);
-      ctx.fillStyle="#ffe9a8"; ctx.strokeStyle="rgba(190,120,40,.75)"; ctx.lineWidth=.14;
-      ctx.beginPath(); ctx.moveTo(0,-.5); ctx.bezierCurveTo(.42,-.1,.3,.5,0,.5); ctx.bezierCurveTo(-.3,.5,-.42,-.1,0,-.5); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
-    { const k=e.inQuad((s-1500)/3200), x=cx+P.calyx.x*R0, y=y0+P.calyx.y*R0+k*H*.7;
-      ctx.fillStyle="#3f9a3a"; ctx.save(); ctx.translate(x,y); ctx.rotate(P.calyx.rot+k*P.calyx.spin); ctx.beginPath();
-      for(let i=0;i<10;i++){ const a=i/10*Math.PI*2, rr=((i%2===0)?5.4:1.7)*u*pop; ctx[i?"lineTo":"moveTo"](Math.cos(a)*rr,Math.sin(a)*rr); }
-      ctx.closePath(); ctx.fill(); ctx.restore(); }
-    // the wet shine and the impact ring
-    ctx.fillStyle="rgba(255,255,255,.5)"; ctx.beginPath(); ctx.ellipse(cx-7*u,y0-8*u,4.2*u*pop,1.9*u*pop,-.6,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(cx+6*u,y0-11*u,1.4*u*pop,.8*u*pop,-.3,0,Math.PI*2); ctx.fill();
-    if(s<260){ ctx.strokeStyle="rgba(255,220,210,"+(.7*(1-s/260))+")"; ctx.lineWidth=1.4*u; ctx.beginPath(); ctx.arc(cx,cy,(14+s/260*26)*u,0,Math.PI*2); ctx.stroke(); }
+    /* the teaser's splat, flat: a 0.12s burst of red blobs, the lighter core,
+       long drips, yellow seeds.  The drips leave at the teaser's speed (its
+       px-per-second rate, d.rate) and slow into a creep that lasts the whole
+       window: about nine tenths of a second's run by the end, so the longest
+       reach the foot of the tile.  The canvas is the tile, so the tile clips. */
+    const s=t-hit, pop=e.outCubic(s/120);
+    ctx.fillStyle="#d8202f"; ctx.beginPath();
+    for(const b of P.blobs){ const x=tx+Math.cos(b.a)*b.d*u*pop, y=ty+Math.sin(b.a)*b.d*u*pop*.8, rr=b.rad*u*pop; ctx.moveTo(x+rr,y); ctx.arc(x,y,rr,0,Math.PI*2); }
+    ctx.fill();
+    ctx.fillStyle="#ff4a3a"; ctx.beginPath(); ctx.arc(tx,ty,15.9*u*pop,0,Math.PI*2); ctx.fill();
+    const ds=(s-150)/1000;
+    if(ds>0) for(const d of P.drips){ const len=d.rate*u*(.615*(1-Math.exp(-ds/.634))+.03*ds), x=tx+d.x*u-1.36*u, w=d.w*u, top=ty+4.5*u;
+      ctx.fillRect(x,top,w,len); ctx.beginPath(); ctx.arc(x+w/2,top+len,2.05*u,0,Math.PI*2); ctx.fill(); }
+    ctx.fillStyle="#ffd23f";
+    for(const q of P.seeds){ ctx.beginPath(); ctx.ellipse(tx+q.x*u,ty+q.y*u,1.14*u*pop,2.05*u*pop,q.rot,0,Math.PI*2); ctx.fill(); }
   } else if(kind==="pie"){
     const hit=280;
     if(t<hit){ const k=t/hit; e.pie(ctx,cx,cy+(1-k)*(1-k)*20*u,(14+k*40)*u,(1-k)*.5,.55+.45*k); ctx.globalAlpha=1; return; }

@@ -1,11 +1,14 @@
 # DESIGN — the Pressure and the Crown: the server side
 
-STATUS: **NOT RUN IN PRODUCTION.**  Written with `feat/pressure-crown` (PR B of
+STATUS: **RAN IN PRODUCTION 2026-10-11** (see "Run log" at the foot: preflight,
+the change, the read-back).  Written with `feat/pressure-crown` (PR B of
 `DESIGN-overlay-gameplay.md`, ruling 10/11 items 2 and 5-Crown).  Same pattern
 as the 2026-10-08 throwables run in `DESIGN-throwables-server.md`: preflight
 reads first, one transaction, md5-guarded, refuses on drift.  The SQL under
-"The DDL" is what is proposed; it runs only on Nick's go.  The dry run further
-down was against a throwaway local PostgreSQL 16.15 with a stand-in schema.
+"The DDL" is the file as it was proposed and approved — its header comment
+still reads "NOT RUN", because the text is kept byte for byte; the block
+between `begin;` and `commit;` is what ran.  The dry run further down was
+against a throwaway local PostgreSQL 16.15 with a stand-in schema.
 
 ## Nick's rulings (2026-10-11, asked and answered)
 
@@ -569,4 +572,57 @@ sees.  Gate 88 is the proof through the real page.
 
 ## Run log
 
-Not run.
+**Ran 2026-10-11** (evening, PDT), on Nick's go, through the Supabase SQL
+editor (project `afterhours`, `main` / production).  PR #102 was already
+merged; the client is inert without the columns, so the order did not matter.
+
+1. **Preflight 0a** — all eleven functions at the md5s and lengths the SQL
+   expects (`ask_question` e7eab394… 2621, `decide_clear` 0db37cca… 1139,
+   `decide_keep` c59780e1… 1010, `decide_pass` 7c5c0cf1… 1210,
+   `engine_award_seat` 6689d96d… 3134, `reset_to_preshow` b6aa27c5… 818,
+   `room_members_throw_guard` 35ab1411… 1130, `rooms_throwables_guard`
+   dfdef710… 345, `start_show` be6672f9… 1102, `throw_at` 2d89b8e0… 3120,
+   `throw_limits` 77a819eb… 203).  **0b** — zero rows, twice.  **0c** — the
+   five columns at the types assumed.  **0d** — exactly the two guards, both
+   enabled.  Also read the same day: every engine function in the path
+   (`decide_pass`, `decide_clear`, `engine_open_draft`, `engine_award_seat`,
+   `engine_set_phase`, `pass_member`) is SECURITY DEFINER owned by `postgres`,
+   so the new rooms trigger sees a non-API `current_user`; and
+   `engine_award_seat` sets `seated_at = now()`, which is what keeps the man
+   seated in her call out of the crown's count.
+2. **The change** — the block from `begin;` to `commit;`, sha256
+   `ebb417c9a81331644b1f281a8cc8877e680437d1159ec230fa444b837e477505`
+   checked in the editor before it ran.  Result: "Success. No rows returned".
+3. **Read-back** — identical to the dry run:
+
+```
+proname                  | md5                              | chars | owner    | secdef
+ask_question             | e7eab394ff015d05b862af2488edf4c8 | 2621  | postgres | true    (unchanged)
+decide_clear             | 0db37ccaae1c450c2006c47ff2bf0dc7 | 1139  | postgres | true    (unchanged)
+decide_pass              | 7c5c0cf140f5fc08cbfcca92bfd8b834 | 1210  | postgres | true    (unchanged)
+engine_award_seat        | 6689d96db3caec67f13da7ae2d2b95bd | 3134  | postgres | true    (unchanged)
+room_members_throw_guard | f1ac023562851e459c0ec07027cc2929 | 2060  | postgres | false   (replaced)
+rooms_overlay_round      | ea08f4f65a326fa485c0864c1e81baa1 | 1675  | postgres | false   (new)
+rooms_throwables_guard   | 5edf06ffc53bd1934d8efef19541855a | 534   | postgres | false   (replaced)
+start_show               | be6672f982a3738d74347ca499b56757 | 1102  | postgres | true    (unchanged)
+throw_at                 | 2d89b8e0fff960634f280523015ed916 | 3120  | postgres | true    (unchanged)
+throw_limits             | d01ea3ffd5b39afc59953e613b1ca2ff | 275   | postgres | false   (replaced)
+
+throw_limits()  {jeers: 2, cheers: 5, live_secs: 10, rose_mends: 1, cooldown_secs: 20, cracks_to_shatter: 3}
+
+triggers        room_members | room_members_throw_guard | O
+                rooms        | rooms_overlay_round      | O
+                rooms        | rooms_throwables_guard   | O
+
+columns         room_members.cracks | integer | NOT NULL | default 0
+                rooms.crown_user    | uuid    | nullable | no default
+constraint      room_members_cracks_floor | CHECK ((cracks >= 0))
+
+data            room_members rows with cracks not 0: 0
+                rooms with a crown: 0
+```
+
+NOT proven by the run: behaviour.  Nothing was thrown and no call was made
+in production; the phone test in PR #102 is the proof that production's own
+`decide_pass` / `decide_clear` fire the new trigger as the dry run's
+stand-ins did.  The undo block has not been run.

@@ -89,6 +89,19 @@ const INSTALL = () => {
       window.__lc.throwFreeze(null);
       return out;
     },
+    /* decode one snapshot and measure it: how far down the ink reaches, how
+       wide it is, and how many pixels are each of the teaser's three flat
+       colours (exact matches only — anti-aliased edges do not count) */
+    async measure(kind, uid, at, t, w, h) {
+      const img = new Image(); img.src = window.__lc.throwSnapshot(kind, uid, at, t, w, h); await img.decode();
+      const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const c = cv.getContext("2d"); c.drawImage(img, 0, 0);
+      const d = c.getImageData(0, 0, w, h).data; let top = h, bottom = -1, left = w, right = -1, blob = 0, core = 0, seed = 0, opaque = 0, soft = 0;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (d[i + 3] < 9) continue;
+        if (y < top) top = y; if (y > bottom) bottom = y; if (x < left) left = x; if (x > right) right = x;
+        if (d[i + 3] === 255) { opaque++; const r = d[i], g = d[i + 1], bl = d[i + 2];
+          if (r === 0xd8 && g === 0x20 && bl === 0x2f) blob++; else if (r === 0xff && g === 0x4a && bl === 0x3a) core++; else if (r === 0xff && g === 0xd2 && bl === 0x3f) seed++; else soft++; } }
+      return { top, bottom, left, right, blob, core, seed, opaque, soft };
+    },
     snaps(kinds, uid, at, times, w, h) {
       const out = {};
       for (const k of kinds) for (const t of times) {
@@ -143,6 +156,11 @@ module.exports = {
     const overlay = (html.match(/THE THROW ART \(feat\/overlay-art[\s\S]*?\n\/\* a sheet is open/) || [""])[0];
     t.ok(overlay.length > art.length && !/Math\.random/.test(overlay), "no Math.random anywhere in the overlay layer — art, painters, wipe or wire");
     t.ok(/function throwSeed\(uid, atMs\)/.test(art) && /seed:throwSeed\(uid, st\.at\)/.test(overlay), "the seed is throwSeed(target, throw_at) — the throw's own two facts");
+    /* the tomato is the teaser's ("Step Right Up", matched 10/11): its counts and its three flat colours */
+    const tomPlan = (art.match(/if\(kind==="tomato"\)\{[\s\S]*?\} else if\(kind==="pie"\)/) || [""])[0];
+    t.ok(/P\.blobs=Array\.from\(\{length:22\}/.test(tomPlan) && /P\.drips=Array\.from\(\{length:9\}/.test(tomPlan) && /P\.seeds=Array\.from\(\{length:10\}/.test(tomPlan),
+      "tomato: the teaser's recipe — 22 blobs, 9 drips, 10 seeds, drawn from the throw's seed");
+    t.ok(!/throwRng\(42\)|seeded\(42\)|SEED\b/.test(art), "…and no constant seed came over with it: the splat is this throw's, not the teaser's");
     for (const k of KINDS) {
       const n = (art.match(new RegExp('kind==="' + k + '"', "g")) || []).length;
       t.ok(n >= 3, `${k}: a plan, a frame and a still (${n} branches)`);
@@ -248,6 +266,18 @@ module.exports = {
         t.ok(keys.some((q) => sn1[q] !== snLater[q]) && keys.some((q) => sn1[q] !== snOther[q]), `${k}: his next throw, or the same throw at another man, is a different picture — the chance comes from the throw`);
         t.ok(new Set(keys.map((q) => sn1[q])).size === ST.length, `${k}: it moves (three moments, three pictures)`);
       }
+
+      /* ---------- 2b. the tomato is the teaser's splat ---------- */
+      const TM = [600, 1500, 4000, 8500];
+      const tom = {}; for (const tm of TM) tom[tm] = await W1.page.evaluate(({ at, tm, w, h }) => window.__g87.measure("tomato", "u_a", at, tm, w, h), { at: AT, tm, w: SW, h: SH });
+      const m15 = tom[1500];
+      t.ok(m15.blob > 2000 && m15.core > 2000 && m15.seed > 150, `tomato: flat teaser colours — red blobs, the lighter core, yellow seeds (${m15.blob} / ${m15.core} / ${m15.seed} px)`);
+      t.ok(m15.soft < m15.opaque * 0.06, `tomato: and nothing else — no gradient, no shine (${m15.soft} of ${m15.opaque} opaque px are another colour: edges)`);
+      t.ok((m15.right - m15.left) > SW * 0.42 && m15.blob > 9000 && (m15.blob + m15.core) > SW * SH * 0.12,
+        `tomato: a big burst — ${Math.round((m15.right - m15.left) / SW * 100)}% of the tile's width, the splat's body ${Math.round((m15.blob + m15.core) / (SW * SH) * 100)}% of the tile`);
+      t.ok(tom[600].bottom < tom[1500].bottom && tom[1500].bottom < tom[4000].bottom && tom[4000].bottom < tom[8500].bottom,
+        `tomato: the drips keep sliding for the whole window (lowest ink at ${TM.map((x) => Math.round(tom[x].bottom / SH * 100) + "%").join(" → ")} of the tile)`);
+      t.ok(tom[8500].bottom - tom[600].top > SH * 0.5, `tomato: long drips — top to toe it runs ${Math.round((tom[8500].bottom - tom[600].top) / SH * 100)}% of the tile by 8.5s`);
 
       /* ---------- 5. the key gate, around the art ---------- */
       const pipeB1 = await B.page.evaluate(PIPE);

@@ -400,6 +400,39 @@
   .chair.is-shattered.shatter-now{ animation:none; }
   .chair.has-crown.crown-now .chair__crown{ animation:none; }
 }
+/* CROWD COMBOS AND THE REACTION WINDOW (ruling 10/11, items 3 and 4).
+   All of it is drawn from his row and the rooms row: the count (throw_n),
+   the combo (throw_combo_at) and the window (react_user / react_until) are
+   the server's; nothing here counts, awards or opens anything.  The room
+   sees a COUNT, never names.  Everything hides during the Moment. */
+.chair__combo{ position:absolute; right:7px; top:7px; z-index:5; display:none; pointer-events:none; font-family:'Azeret Mono',monospace; font-weight:700; font-size:11px; letter-spacing:.04em; line-height:1; padding:4px 7px; border-radius:999px; background:rgba(6,8,24,.8); color:#fff3c4; border:1px solid rgba(255,194,77,.75); }
+.chair.has-combo-n:not(.is-empty):not(.is-strip):not(.is-paired) .chair__combo{ display:block; }
+.chair.has-combo-n.has-throw--jeer .chair__combo{ color:#e3dcff; border-color:rgba(143,130,201,.9); }
+.chair__booed{ position:absolute; left:0; right:0; top:38%; z-index:5; display:none; justify-content:center; pointer-events:none; }
+.chair__booed span{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:clamp(17px, 5.4vw, 26px); line-height:1; letter-spacing:.04em; color:#f2f0ff; background:#2c2552; border:2px solid #8f82c9; border-radius:8px; padding:6px 10px 4px; transform:rotate(-7deg); box-shadow:0 4px 0 rgba(6,8,24,.7), 0 0 16px rgba(143,130,201,.55); white-space:nowrap; }
+.chair.is-booed:not(.is-empty):not(.is-strip):not(.is-paired) .chair__booed{ display:flex; }
+.chair.is-booed .chair__booed span{ animation:lc-booed .34s cubic-bezier(.2,1.5,.4,1) 1; }
+@keyframes lc-booed{ 0%{ transform:rotate(-7deg) scale(1.9); opacity:0 } 100%{ transform:rotate(-7deg) scale(1); opacity:1 } }
+.chair.is-ovation:not(.is-empty):not(.is-strip):not(.is-paired){ border-color:#ffc24d; box-shadow:0 0 0 2px rgba(255,194,77,.85), 0 0 26px rgba(255,194,77,.6); }
+.chair__react{ position:absolute; right:7px; bottom:8px; z-index:5; display:none; pointer-events:none; font-family:'Azeret Mono',monospace; font-weight:700; font-size:10px; letter-spacing:.08em; line-height:1; padding:4px 7px; border-radius:999px; background:rgba(6,8,24,.8); color:#aef7ee; border:1px solid rgba(46,230,214,.75); }
+.chair.is-react:not(.is-empty):not(.is-strip):not(.is-paired) .chair__react{ display:block; animation:lc-react 1s ease-in-out infinite; }
+@keyframes lc-react{ 0%,100%{ box-shadow:0 0 0 0 rgba(46,230,214,.0) } 50%{ box-shadow:0 0 0 4px rgba(46,230,214,.28) } }
+/* STANDING OVATION: the one room-wide effect.  A card for everybody; the
+   confetti behind it only where motion is welcome. */
+.lc-ovation{ position:absolute; inset:0; z-index:8; display:none; align-items:center; justify-content:center; pointer-events:none; }
+.lc-ovation.is-on{ display:flex; }
+.lc-ovation canvas{ position:absolute; inset:0; width:100%; height:100%; }
+.lc-ovation__card{ position:relative; text-align:center; padding:12px 18px 10px; border-radius:16px; background:rgba(8,11,32,.82); border:2px solid #ffc24d; box-shadow:0 0 30px rgba(255,194,77,.5); animation:lc-ovation .42s cubic-bezier(.2,1.5,.4,1) 1; }
+.lc-ovation__kick{ font-family:'Azeret Mono',monospace; font-weight:700; font-size:10px; letter-spacing:.16em; color:#2de3d0; }
+.lc-ovation__big{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:clamp(26px, 8.6vw, 40px); line-height:.95; color:#fff3c4; margin-top:3px; }
+.lc-ovation__who{ font-family:'Azeret Mono',monospace; font-weight:700; font-size:12px; letter-spacing:.06em; color:#f2f0ff; margin-top:5px; }
+@keyframes lc-ovation{ 0%{ transform:scale(.6); opacity:0 } 100%{ transform:none; opacity:1 } }
+@media (prefers-reduced-motion: reduce){
+  .chair.is-booed .chair__booed span{ animation:none; }
+  .chair.is-react .chair__react{ animation:none; }
+  .lc-ovation__card{ animation:none; }
+  .lc-ovation canvas{ display:none; }
+}
 /* THE WIRE (ruling 10/11, item 5): a fuse around the asked man's frame, as
    long as his answer clock has left to run.  Visual only — it reads the
    clock, it is not one; nothing happens at zero. */
@@ -1412,7 +1445,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1011.2127</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1012.1010</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1934,7 +1967,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1011.2127"); }catch(e){}
+try{ console.log("[lastcall] build b1012.1010"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -4131,7 +4164,18 @@ function startClockTick(){
         if(advances && left!=null && left<=0 && window.__ADVKEY!==key){
           window.__ADVKEY=key;
           if(typeof beatTimesUp==="function" && (ph==="spotlight"||ph==="openfloor")) beatTimesUp();
-          sb.rpc("skip_phase",{room_id:CURRENT_ROOM.id})
+          /* With a server deadline, time running out is advance_phase's
+             business: it moves the room only once the deadline has passed,
+             so a nudge that lands after the room has ALREADY moved (the
+             crowd's resolver, or this page's own, a beat earlier) is a
+             no-op.  skip_phase is hers to force a move and is never refused:
+             fired here on a stale view it skipped the next section — the
+             answer ended and the open floor was skipped straight back to the
+             next ask (gate 89 caught it, 10/12).  skip_phase stays only for
+             a section with no server deadline, where advance_phase would
+             wait on her forever. */
+          const fn=CURRENT_ROOM.phase_deadline ? "advance_phase" : "skip_phase";
+          sb.rpc(fn,{room_id:CURRENT_ROOM.id})
             .then(()=>{ egRefreshRoom(); loadRoomState(); })
             .catch(()=>{});
         }
@@ -4797,7 +4841,7 @@ function egRoleBits(){
   $("rt_chairs").querySelectorAll(".chair").forEach(el=>{
     el.classList.toggle("is-target", !!t && el.dataset.heartuid===t);
   });
-  try{ askWipeObserve(); if(wirePaint()) overlayKick(); }catch(e){}   // the ASK wipe and the Wire (feat/overlay-art)
+  try{ askWipeObserve(); if(wirePaint()) overlayKick(); comboPaintTiles(); }catch(e){}   // the ASK wipe and the Wire (feat/overlay-art); the reaction window rides the rooms row too
   $("room").classList.toggle("is-target", !!t && t===ME.id);
 }
 
@@ -7689,6 +7733,8 @@ $("rt_filterdrop").onclick=()=>{ filterDrop(); };
 const THROWABLES={
   live_secs:10, cooldown_secs:20, cheers:5, jeers:2,
   cracks_to_shatter:3, rose_mends:1,   // THE PRESSURE's two numbers (the server's throw_limits() overwrites them)
+  combo_secs:5, combo_n:3, combo_fx_secs:4, ovation_hearts:1,   // CROWD COMBOS: the window, the count that fires one, how long its effect runs, what an ovation is worth
+  react_secs:6, react_mult:2,          // THE REACTION WINDOW: how long after his answer, and what a throw in it counts for
   kinds:[
     { id:"petals",   cls:"cheer", emoji:"🌹", name:"Rose petals" },
     { id:"hearts",   cls:"cheer", emoji:"💗", name:"Heart burst" },
@@ -7705,6 +7751,7 @@ let THROW_COUNTS=null;      // {cheers_left, jeers_left} — MINE, from the serv
 let THROW_COUNTS_SYNC=null; // one read in flight at a time
 let THROW_TARGET=null;      // the crowd's picked target (uid)
 const THROW_SEEN={};        // uid -> throw_at already announced in the feed (one line per throw)
+const THROW_MINE={};        // uid -> the landing stamp of the live throw I am already in (my own accepted throws; the server is the referee)
 /* what the ROOM says about one man's tile — read straight off his row and
    the server clock, nothing local mixed in */
 function throwStateOf(m){
@@ -7714,8 +7761,24 @@ function throwStateOf(m){
   const live=until!=null && now<until;
   const cooling=until!=null && !live && now<until+THROWABLES.cooldown_secs*1000;
   const paired=!!(CURRENT_ROOM && (CURRENT_ROOM.moment_a===m.user_id || CURRENT_ROOM.moment_b===m.user_id));
-  return { kind:m.throw_kind||null, at, until, live, cooling, paired, on:m.throwables_on!==false,
+  /* THE JOIN (ruling 10/11): while a throw is live, a same-polarity throw
+     from a different crowd member inside the combo window is accepted.
+     `joinable` is this client's reading of that for ME; the polarity is
+     checked where a kind is picked, and the server decides either way.
+     `react`: he is inside his reaction window (his cooldown does not apply). */
+  const kd=m.throw_kind?throwKindOf(m.throw_kind):null;
+  const joinable=live && at!=null && now<at+THROWABLES.combo_secs*1000 && THROW_MINE[m.user_id]!==at;
+  const rs=reactState(), react=!!(rs && rs.uid===m.user_id);
+  return { kind:m.throw_kind||null, cls:(live&&kd)?kd.cls:null, at, until, live, cooling, paired, on:m.throwables_on!==false,
+           joinable, react, n:live?Math.max(0,(m.throw_n|0)):0,
            remainingMs: live?(until-now):0, elapsedMs:(live && at!=null)?Math.max(0,now-at):0 };
+}
+/* THE REACTION WINDOW, read off the rooms row and the server clock — or null */
+function reactState(){
+  const r=CURRENT_ROOM; if(!r || !r.react_user || !r.react_until) return null;
+  const until=parseServerTs(r.react_until); if(!until) return null;
+  const left=until-serverNow(); if(!(left>0)) return null;
+  return { uid:r.react_user, leftMs:left, mult:THROWABLES.react_mult };
 }
 function throwRoom(){
   const out={};
@@ -7732,8 +7795,8 @@ function throwBlockedWhy(st){
   if(!st) return "NOBODY";
   if(!st.on) return "OPTED OUT";
   if(st.paired) return "THE MOMENT";
-  if(st.live) return "HIT";
-  if(st.cooling) return "COOLING";
+  if(st.live) return st.joinable ? null : "HIT";   // inside the combo window a different thrower may JOIN
+  if(st.cooling && !st.react) return "COOLING";    // his reaction window lifts his cooldown
   return null;
 }
 
@@ -7743,6 +7806,8 @@ async function throwAt(uid, kind){
   const {data,error}=await sb.rpc("throw_at",{room_id:CURRENT_ROOM.id,target:uid,kind});
   if(error){ toast("Didn't land: "+error.message); throwPaintTray(); return { ok:false, error:error.message }; }
   if(data && data.cheers_left!=null) THROW_COUNTS={ cheers_left:data.cheers_left, jeers_left:data.jeers_left };
+  if(data && data.at){ const at0=Date.parse(data.at); if(at0) THROW_MINE[uid]=at0; }   // I am in this one now: a second throw of mine would be refused
+  if(data && data.joined) toast(data.combo ? "You joined in — that made it a combo." : "You joined in: ×"+(data.n|0)+".");
   throwPaintTray();
   loadRoomState();
   return { ok:true, ...(data||{}) };
@@ -7755,7 +7820,7 @@ async function throwCountsSync(){
       const {data,error}=await sb.rpc("throw_counts",{room_id:CURRENT_ROOM.id});
       if(error || !data) return null;
       THROW_COUNTS={ cheers_left:data.cheers_left, jeers_left:data.jeers_left };
-      if(data.limits){ for(const k of ["live_secs","cooldown_secs","cheers","jeers","cracks_to_shatter","rose_mends"]) if(data.limits[k]!=null) THROWABLES[k]=data.limits[k]; }
+      if(data.limits){ for(const k of ["live_secs","cooldown_secs","cheers","jeers","cracks_to_shatter","rose_mends","combo_secs","combo_n","combo_fx_secs","ovation_hearts","react_secs","react_mult"]) if(data.limits[k]!=null) THROWABLES[k]=data.limits[k]; }
       throwPaintTray();
       return THROW_COUNTS;
     } finally { THROW_COUNTS_SYNC=null; }
@@ -7796,10 +7861,12 @@ function throwFoldMemberRow(row){
   const m=filterRowOf(row.user_id);
   if(!m) return;
   const next={ throw_until:row.throw_until??null, throw_at:row.throw_at??null, throw_kind:row.throw_kind??null, throwables_on:row.throwables_on!==false,
-               cracks:(row.cracks|0) };   // THE PRESSURE: his cracks ride the same row (0 until the column exists)
+               cracks:(row.cracks|0),     // THE PRESSURE: his cracks ride the same row (0 until the column exists)
+               throw_n:(row.throw_n|0), throw_combo_at:row.throw_combo_at??null };   // COMBOS: the count and the combo, the same way
   const changed=(m.throw_until??null)!==next.throw_until || (m.throw_at??null)!==next.throw_at
              || (m.throw_kind??null)!==next.throw_kind || (m.throwables_on!==false)!==next.throwables_on
-             || ((m.cracks|0)!==next.cracks);
+             || ((m.cracks|0)!==next.cracks)
+             || ((m.throw_n|0)!==next.throw_n) || ((m.throw_combo_at??null)!==next.throw_combo_at);
   Object.assign(m,next);
   if(!changed) return;
   throwPaintTiles();
@@ -8188,6 +8255,7 @@ function overlayFrame(){
   let any=false;
   for(let i=0;i<3;i++){ const fx=THROW_FX[i]; if(fx && !fx.ghost){ any=true; throwFxDraw(i); } }
   if(wirePaint()) any=true;
+  if(ovationDraw()) any=true;
   if(any && overlayMotionOK()) THROW_RAF=requestAnimationFrame(overlayFrame);
 }
 function overlayKick(){ if(!THROW_RAF && overlayMotionOK()) THROW_RAF=requestAnimationFrame(overlayFrame); }
@@ -8246,15 +8314,18 @@ function throwPaintTiles(){
     if(el.dataset.throw!==(live?k.id:"")) el.dataset.throw=live?k.id:"";
   }
   try{ pressurePaintTiles(); }catch(e){ console.log("pressurePaintTiles:",String((e&&e.message)||e)); }   // his cracks and the crown ride the same paints
+  try{ comboPaintTiles(); }catch(e){ console.log("comboPaintTiles:",String((e&&e.message)||e)); }         // and the combo and the reaction window
 }
 
 /* a new room (or none): nothing drawn for the last one may linger */
 function overlayForget(){
   THROW_FREEZE=null; CROWN_SEEN=null; for(const k of Object.keys(PRESSURE_SEEN)) delete PRESSURE_SEEN[k];
+  for(const k of Object.keys(COMBO_SEEN)) delete COMBO_SEEN[k]; for(const k of Object.keys(THROW_MINE)) delete THROW_MINE[k];
+  COMBO_NUDGES.length=0; ovationPaint(null);
   for(let i=0;i<3;i++){
     throwFxClear(i);
     const el=$("rt_seat"+i); if(!el) continue;
-    el.classList.remove("is-wiping","is-held","has-wire","wire-urgent","has-cracks","is-shattered","shatter-now","has-crown","crown-now","is-paired"); el.dataset.wipes=""; el.dataset.cracks="0";
+    el.classList.remove("is-wiping","is-held","has-wire","wire-urgent","has-cracks","is-shattered","shatter-now","has-crown","crown-now","is-paired","has-combo-n","is-booed","is-ovation","is-react"); el.dataset.wipes=""; el.dataset.cracks="0"; el.dataset.combo="0";
     const ov=el.querySelector(".chair__throw"); if(ov) ov.dataset.key="";
   }
 }
@@ -8263,6 +8334,7 @@ function overlayForget(){
 function throwFreeze(ms){
   THROW_FREEZE=(ms==null)?null:Number(ms);
   for(let i=0;i<3;i++){ if(THROW_FX[i] && !THROW_FX[i].ghost) throwFxDraw(i); }
+  ovationDraw();
   if(THROW_FREEZE==null) overlayKick();
 }
 function throwSnapshot(kind, uid, atMs, t, w, h){
@@ -8391,6 +8463,10 @@ function pressurePaintTiles(){
     el.classList.toggle("is-shattered", pr.shattered);
     if(el.dataset.cracks!==String(pr.cracks)) el.dataset.cracks=String(pr.cracks);
     const W=el.offsetWidth, H=el.offsetHeight;
+    if(!el.__ckRO && typeof ResizeObserver==="function"){   // a tile that changes size redraws its cracks at once (they are drawn to the frame's own size)
+      el.__ckRO=new ResizeObserver(()=>{ if(el.classList.contains("has-cracks")) { try{ pressurePaintTiles(); }catch(e){} } });
+      el.__ckRO.observe(el);
+    }
     let svg=el.querySelector(".chair__cracks");
     const sig=pr.cracks ? (uid+":"+pr.cracks+":"+W+"x"+H) : "";
     if(pr.cracks>0 && W>20 && H>20){
@@ -8434,6 +8510,111 @@ function pressurePaintTiles(){
     }
   }
   const tr=$("rt_throwtray"); if(tr) tr.classList.toggle("is-crowned", !!(crown && THROW_TARGET && crown===THROW_TARGET));
+}
+
+/* ---- CROWD COMBOS AND THE REACTION WINDOW (ruling 10/11, items 3 and 4) ----
+   OBSERVED, like everything on the tile.  The server counts the throwers
+   (throw_n on his row — a count, never a name), fires the combo once
+   (throw_combo_at), awards the ovation's heart, and opens the window when
+   his answer ends (react_user / react_until on the rooms row).  This draws
+   them: the count, BOOED OFF over his tile, the STANDING OVATION across the
+   room, "react now" on his tile — and tells the HOST, and only her, when the
+   room boos.  Nothing here has a consequence. */
+const COMBO_SEEN={};       // uid -> throw_combo_at already announced by this client
+const COMBO_NUDGES=[];     // every "the room is booing" nudge this client showed (the host's only)
+let OVATION=null;          // the ovation on screen: { uid, at, seed, t }
+function comboStateOf(m){
+  const st=m?throwStateOf(m):null; if(!st) return null;
+  const fired=(st.live && m.throw_combo_at) ? Date.parse(m.throw_combo_at) : null;
+  const now=serverNow();
+  return { n:st.n, cls:st.cls, open:!!(st.live && st.at!=null && now<st.at+THROWABLES.combo_secs*1000),
+           fired:fired!=null, firedAt:fired, fx:fired!=null && now<fired+THROWABLES.combo_fx_secs*1000 };
+}
+function comboRoom(){
+  const rs=reactState(), out={ react:rs?{ uid:rs.uid, leftMs:Math.round(rs.leftMs), mult:rs.mult }:null, seats:{}, ovation:OVATION?{ uid:OVATION.uid, at:OVATION.at, t:OVATION.t }:null };
+  for(const m of ((ROOM_STATE&&ROOM_STATE.members)||[])){
+    if(!m || !(m.role==="chair"||m.role==="kept")) continue;
+    out.seats[m.user_id]=comboStateOf(m);
+  }
+  return out;
+}
+function comboPaintTiles(){
+  const rs=reactState(); let ov=null;
+  for(let i=0;i<3;i++){
+    const el=$("rt_seat"+i); if(!el) continue;
+    const uid=el.dataset.heartuid||null, m=uid?seatedRowOf(uid):null, cs=m?comboStateOf(m):null;
+    const name=(uid && ((ROOM_STATE.profs||{})[uid]||{}).display_name) || "him";
+    // the count: shown once somebody has joined (or one throw counted double)
+    const showN=!!(cs && cs.n>=2);
+    let badge=el.querySelector(".chair__combo");
+    if(showN && !badge){ badge=document.createElement("div"); badge.className="chair__combo"; badge.setAttribute("aria-hidden","true"); el.appendChild(badge); }
+    if(badge && showN && badge.textContent!=="\u00d7"+cs.n) badge.textContent="\u00d7"+cs.n;
+    el.classList.toggle("has-combo-n", showN);
+    const nStr=String(cs?cs.n:0); if(el.dataset.combo!==nStr) el.dataset.combo=nStr;
+    // the combo's effect, for as long as the server's stamp says it runs
+    const booed=!!(cs && cs.fx && cs.cls==="jeer"), ovation=!!(cs && cs.fx && cs.cls==="cheer");
+    if(booed && !el.querySelector(".chair__booed")){ const b=document.createElement("div"); b.className="chair__booed"; b.setAttribute("aria-hidden","true"); const sp=document.createElement("span"); sp.textContent="BOOED OFF"; b.appendChild(sp); el.appendChild(b); }
+    el.classList.toggle("is-booed", booed);
+    el.classList.toggle("is-ovation", ovation);
+    // the news: once per combo, and not for one that was over before this client looked
+    if(cs && cs.fired && COMBO_SEEN[uid]!==cs.firedAt){
+      COMBO_SEEN[uid]=cs.firedAt;
+      if(cs.fx){
+        if(cs.cls==="cheer") addFeedLine(`\ud83d\udc4f STANDING OVATION for ${escapeHtml(name)} \u00b7 +${THROWABLES.ovation_hearts|0} \u2665`, "gold");
+        else if(AMHOST){   // the nudge is HERS alone: it informs her, she decides
+          COMBO_NUDGES.push({ uid, at:cs.firedAt }); if(COMBO_NUDGES.length>20) COMBO_NUDGES.shift();
+          addFeedLine(`The room is booing ${escapeHtml(name)}`, "cool nudge");
+          toast("The room is booing "+name);
+        }
+      }
+    }
+    if(ovation) ov={ uid, at:cs.firedAt, name };
+    // the reaction window: a quiet "react now" on HIS tile
+    const react=!!(rs && m && rs.uid===uid);
+    let cue=el.querySelector(".chair__react");
+    if(react && !cue){ cue=document.createElement("div"); cue.className="chair__react"; cue.setAttribute("aria-hidden","true"); el.appendChild(cue); }
+    if(cue && react){ const txt="REACT \u00d7"+(rs.mult|0); if(cue.textContent!==txt) cue.textContent=txt; }
+    el.classList.toggle("is-react", react);
+  }
+  ovationPaint(ov);
+}
+/* the room-wide ovation: a card for everyone, and (motion only) a burst of
+   confetti behind it — the same seeded art as a throw, seeded from HIS combo
+   and timed from the server's stamp, so every phone is on the same frame */
+function ovationPaint(ov){
+  let el=$("rt_ovation");
+  if(!ov){
+    if(el && el.classList.contains("is-on")){ el.classList.remove("is-on"); const cv=el.querySelector("canvas"); if(cv){ try{ cv.getContext("2d").clearRect(0,0,cv.width,cv.height); }catch(e){} } }
+    OVATION=null; return;
+  }
+  const rm=$("room"); if(!rm) return;
+  if(!el){
+    el=document.createElement("div"); el.id="rt_ovation"; el.className="lc-ovation"; el.setAttribute("aria-hidden","true");
+    el.appendChild(document.createElement("canvas"));
+    const card=document.createElement("div"); card.className="lc-ovation__card";
+    for(const [c,t] of [["lc-ovation__kick","THE ROOM IS ON ITS FEET"],["lc-ovation__big","STANDING OVATION"],["lc-ovation__who",""]]){ const d=document.createElement("div"); d.className=c; d.textContent=t; card.appendChild(d); }
+    el.appendChild(card); rm.appendChild(el);
+  }
+  if(!OVATION || OVATION.uid!==ov.uid || OVATION.at!==ov.at){
+    OVATION={ uid:ov.uid, at:ov.at, seed:throwSeed(ov.uid+"#ovation", ov.at), t:0 };
+    el.querySelector(".lc-ovation__who").textContent=ov.name+" \u00b7 +"+(THROWABLES.ovation_hearts|0)+" \u2665";
+  }
+  el.classList.add("is-on");
+  ovationDraw(); overlayKick();
+}
+/* one frame of the burst; true while it is running */
+function ovationDraw(){
+  if(!OVATION) return false;
+  const el=$("rt_ovation"); if(!el || !el.classList.contains("is-on")) return false;
+  const dur=THROWABLES.combo_fx_secs*1000, t=(THROW_FREEZE!=null) ? THROW_FREEZE : (serverNow()-OVATION.at);
+  OVATION.t=t;
+  if(!(t<dur)) return false;
+  if(THROW_FREEZE==null && !overlayMotionOK()) return false;   // reduced motion: the card is the picture
+  const cv=el.querySelector("canvas"), w=el.clientWidth, h=el.clientHeight; if(!cv || !w || !h) return false;
+  const dpr=Math.min(2, window.devicePixelRatio||1), W=Math.round(w*dpr), H=Math.round(h*dpr);
+  if(cv.width!==W || cv.height!==H){ cv.width=W; cv.height=H; }
+  throwDrawFrame(cv.getContext("2d"), W, H, "confetti", OVATION.seed, t, dur);
+  return true;
 }
 
 /* ---- THE WIRE (ruling 10/11, item 5) ----
@@ -8533,7 +8714,9 @@ function throwPaintTray(){
     tg.innerHTML = seated.length ? seated.map(m=>{
       const why=throwBlockedWhy(throwStateOf(m));
       const nm=(profs[m.user_id]||{}).display_name||"someone";
-      return `<button type="button" class="lc-throwtray__target${m.user_id===THROW_TARGET?" is-picked":""}${why?" is-blocked":""}" data-uid="${escapeHtml(m.user_id)}">${escapeHtml(nm)}<small>${why||("SEAT "+((m.seat_index||0)+1))}</small></button>`;
+      const ts=throwStateOf(m);
+      const hint=why || (ts && ts.live && ts.joinable ? ("JOIN THE "+(ts.cls==="jeer"?"JEER":"CHEER")) : (ts && ts.react ? ("REACT \u00d7"+(THROWABLES.react_mult|0)) : ("SEAT "+((m.seat_index||0)+1))));
+      return `<button type="button" class="lc-throwtray__target${m.user_id===THROW_TARGET?" is-picked":""}${why?" is-blocked":""}" data-uid="${escapeHtml(m.user_id)}">${escapeHtml(nm)}<small>${hint}</small></button>`;
     }).join("") : '<div class="emptyrole">nobody in a chair yet</div>';
     tg.querySelectorAll(".lc-throwtray__target").forEach(b=>b.onclick=()=>{ THROW_TARGET=b.dataset.uid; throwPaintTray(); });
   }
@@ -8547,9 +8730,10 @@ function throwPaintTray(){
         const k=throwKindOf(t.dataset.kind); if(!k) return;
         if(!throwRoomOn()){ toast("The host turned throwables off."); return; }
         const tgt=THROW_TARGET ? seatedRowOf(THROW_TARGET) : null;
-        const why=throwBlockedWhy(throwStateOf(tgt));
+        const tst=throwStateOf(tgt), why=throwBlockedWhy(tst);
         if(!tgt){ toast("Pick someone in a chair."); return; }
         if(why){ toast("Not right now: "+why.toLowerCase()+"."); return; }
+        if(tst && tst.live && tst.cls && tst.cls!==k.cls){ toast("Not right now: a "+tst.cls+" is on him. Join it, or wait."); return; }   // the join is same-polarity only (the server refuses the other)
         if(THROW_COUNTS && (k.cls==="cheer"?THROW_COUNTS.cheers_left:THROW_COUNTS.jeers_left)<=0){ toast("No "+k.cls+"s left this show."); return; }
         if(k.cls==="jeer" && CURRENT_ROOM && CURRENT_ROOM.crown_user && CURRENT_ROOM.crown_user===THROW_TARGET){ toast("He wears the crown this round \u2014 cheers only."); return; }   // the server refuses it too
         throwAt(THROW_TARGET, k.id);
@@ -8565,7 +8749,7 @@ function throwPaintTray(){
     });
   }
   const foot=$("rt_throwfoot");
-  if(foot) foot.textContent=`Anonymous. Lands on his tile for about ${THROWABLES.live_secs} seconds. ${THROWABLES.cheers} cheers and ${THROWABLES.jeers} jeers per show.`;
+  if(foot) foot.textContent=`Anonymous. Lands on his tile for about ${THROWABLES.live_secs} seconds. ${THROWABLES.cheers} cheers and ${THROWABLES.jeers} jeers per show. ${THROWABLES.combo_n} of you within ${THROWABLES.combo_secs} seconds makes a combo.`;
 }
 function seatedRowOf(uid){ const m=filterRowOf(uid); return (m && (m.role==="chair"||m.role==="kept"))?m:null; }
 /* the composer: 🍅 THROW for the crowd (a spectator row — not the host, not
@@ -9329,6 +9513,8 @@ window.__lc = {
   /* the Pressure and the Crown (feat/pressure-crown): what the ROOM says —
      each seated man's cracks off his row, the crown off the rooms row */
   get PRESSURE_ROOM(){ return pressureRoom(); },
+  get COMBO_ROOM(){ return comboRoom(); },
+  get COMBO_NUDGES(){ return COMBO_NUDGES.map(n=>({ ...n })); },
   get THROW_FX(){ const o={}; for(const i of Object.keys(THROW_FX)) o[i]={ ...THROW_FX[i] }; return o; },
   get ASK_WIPES(){ return ASK_WIPES.map(w=>({ ...w })); },
   get THROW_ROOM(){ return throwRoom(); },

@@ -287,7 +287,11 @@ module.exports = {
       t.ok(r4.ok === false && /already live/.test(r4.error), `a second throw while one is live is refused: "${r4.error}"`);
       t.ok(D.throwLedger.length === 1 && D.throwCounts(room, "u_w2").cheers_left === 5, "…and it did not charge w2");
       const tray4 = await W2.page.evaluate(() => { document.getElementById("rt_throwbtn").click(); return [...document.querySelectorAll(".lc-throwtray__target")].map((b) => b.textContent); });
-      t.ok(/HIT/.test(tray4[0]), `w2's tray says why: ${JSON.stringify(tray4)}`);
+      /* feat/combos-reaction: a live throw is no longer a flat "HIT" for everyone.  w2 threw the OTHER polarity (refused,
+         above); a jeer of his own would be a join, and his tray says so.  w1, whose tomato it is, cannot throw again: HIT. */
+      t.ok(/JOIN THE JEER/.test(tray4[0]), `w2's tray says what he can do while it is live: ${JSON.stringify(tray4)}`);
+      const tray4b = await W1.page.evaluate(() => { const tr = document.getElementById("rt_throwtray"); if (!tr.classList.contains("is-open")) document.getElementById("rt_throwbtn").click(); window.__lc.throwPaintTray && window.__lc.throwPaintTray(); return [...document.querySelectorAll(".lc-throwtray__target")].map((b) => b.textContent); });
+      t.ok(/HIT/.test(tray4b[0]), `w1's tray, whose throw it is, says why he cannot throw again: ${JSON.stringify(tray4b)}`);
 
       /* ---------- 5. host clear mid-flight; cooldown starts AT THE WIPE ---------- */
       const sheet = await host.page.evaluate(() => { document.getElementById("rt_safebtn").click();

@@ -853,4 +853,33 @@ through the real page.
 
 ## Run log
 
-Not run.
+**Ran in production 2026-10-13**, pasted by Nick into the Supabase SQL editor.
+
+- Preflight: 16 of 16 ok.  All 14 functions were at their 2026-10-11 md5s,
+  none of the four columns existed, and the three triggers were as expected.
+- The change block: success.
+- Read-back: the four columns exist, `throw_limits()` carries
+  `combo_secs=5 combo_n=3 combo_fx_secs=4 ovation_hearts=1 react_secs=6
+  react_mult=2`, `throw_at` is owned by postgres with security definer,
+  `authenticated` can still execute it, the three triggers are on, and the
+  nine untouched functions read back byte-identical.
+- The five replaced functions read back with md5s that differ from the dry
+  run's, because the copy that was pasted had its comments removed (and some
+  whitespace changed in transit).  A second read-back that ignores comments
+  and whitespace (`regexp_replace` on `prosrc`, plus arguments, result,
+  security definer, volatility and `proconfig`) matched the reviewed SQL
+  above on all five: 5 of 5 ok.  So production runs exactly this code.
+
+Production's md5s for the replaced functions are now (first 8 characters, as
+read; **re-read the full values before anything guards on them**):
+
+| function | md5 (prefix) |
+|---|---|
+| room_members_throw_guard | 94f2be86 |
+| rooms_overlay_round | 1f6b11bd |
+| rooms_throwables_guard | 425cf769 |
+| throw_at | 01e0c8f6 |
+| throw_limits | 8beec689 |
+
+The undo block above guards on the dry run's md5s and would refuse as written;
+re-read the full values and put them in its guard first if it is ever needed.

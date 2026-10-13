@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# the rehearsal crew — see tools/crew/README.md
+exec node "$(dirname "$0")/crew.js" "$@"

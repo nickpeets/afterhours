@@ -6,6 +6,7 @@
  *   node tools/crew/crew.js --host Nick        join the room hosted by "Nick"
  *   node tools/crew/crew.js --room <link|id>   join that room (any text holding its id)
  *   node tools/crew/crew.js --scenario crown   a scripted pass (see README.md)
+ *   node tools/crew/crew.js --scenario combos  the PR C selftest, with Nick hosting (selftest.js)
  *   node tools/crew/crew.js --check            sign each bot in and set its profile, then stop
  *   node tools/crew/crew.js --login "Crowd C"  a visible browser on the rehearsal desktop, so
  *                                              Nick signs that bot in by hand, once
@@ -99,6 +100,21 @@ const PAGE = `window.__crew = {
   },
   async throwAt(uid,kind){ const r=await throwAt(uid,kind); return r||{ok:false,error:"no answer"}; },
   async heart(uid){ await sendHeart(uid); return null; },
+  probe(uid){
+    const lc=window.__lc, cr=lc.COMBO_ROOM||{seats:{}}, pr=lc.PRESSURE_ROOM||{seats:{}}, tr=lc.THROW_ROOM||{};
+    const tile=[0,1,2].map(i=>document.getElementById("rt_seat"+i)).find(el=>el&&el.dataset.heartuid===uid)||null;
+    const ov=document.getElementById("rt_ovation");
+    return { combo:(cr.seats||{})[uid]||null, throwSt:tr[uid]||null, react:cr.react||null,
+      cracks:((pr.seats||{})[uid]||{}).cracks, crown:pr.crown||null,
+      booedTile:!!(tile&&tile.classList.contains("is-booed")), ovationOn:!!(ov&&ov.classList.contains("is-on")),
+      nudges:(lc.COMBO_NUDGES||[]).length, counts:lc.THROW_COUNTS||null };
+  },
+  async countsNow(){ try{ await window.__lc.throwCountsSync(); }catch(e){} return window.__lc.THROW_COUNTS||null; },
+  async ovationHearts(uid, since){
+    const {data}=await sb.from("room_events").select("*").eq("room_id",CURRENT_ROOM.id).eq("type","heart").gt("created_at",since).order("created_at",{ascending:true}).limit(100);
+    return (data||[]).filter(e=>e.payload&&e.payload.target===uid&&!e.user_id).length;
+  },
+  serverIso(){ try{ return new Date(serverNow()).toISOString(); }catch(e){ return new Date().toISOString(); } },
   benchTap(){ const b=document.getElementById("rt_joinline"); if(!b) return "no bench button"; b.click(); return null; },
   async leave(){ try{ if(CURRENT_ROOM) await window.__lc.leaveRoom(); }catch(e){} return null; },
   async endRoom(id){ try{ await window.__lc.hostEndRoom(id); return null; }catch(e){ return String((e&&e.message)||e); } },
@@ -145,6 +161,8 @@ class Crew {
     this.bots = this.bots.filter((b) => !b.out);
     for (const b of out) { try { await b.close(); } catch (e) {} }
     if (!this.bots.length) throw new Error("no bot could join the room");
+    // the combos selftest needs three throwers: short of crowd bots, Leo stays in the crowd
+    if (this.scenario === "combos" && this.crowd.length < 3) { const leo = this.bot("Leo"); if (leo) leo.parked = true; }
     this.cursor = await this.ev(this.ear, "cursor");
     if (this.scenario) this.log(`  scenario: ${this.scenario}`);
     this._loop();
@@ -186,6 +204,11 @@ class Crew {
       if (this.stopped) return;
     }
     if (this.scenario === "crown") await this.crownStep();
+    if (this.scenario === "combos" && !this.selftest) {
+      this.selftest = require("./selftest").runCombos(this)
+        .then((r) => { this.selftestResult = r; })
+        .catch((e) => { this.log("  selftest crashed: " + String((e && e.message) || e)); this.selftestResult = { crashed: String(e) }; });
+    }
   }
 
   people() { return (this.ear.st && this.ear.st.people) || []; }
@@ -436,7 +459,7 @@ function parseArgs(argv) {
 async function main() {
   const o = parseArgs(process.argv.slice(2));
   if (o.help) { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(1, 12).join("\n")); return; }
-  if (o.scenario && o.scenario !== "crown") throw new Error("unknown scenario " + o.scenario + " (known: crown)");
+  if (o.scenario && !["crown", "combos"].includes(o.scenario)) throw new Error("unknown scenario " + o.scenario + " (known: crown, combos)");
   const { chromium } = require("playwright-core");
   const { resolveChromium } = require("../lib/harness");
   const exe = resolveChromium();

@@ -13,9 +13,9 @@
  * never writes either.
  *
  * WHAT THE HARNESS MUST MODEL, OR THIS GATE PROVES NOTHING.  The double
- * carries both columns, lands every throw through the trigger's mirror
- * (landOnRow — after throw_at's own refusals, so a jeer the crown refuses is
- * not charged), resets cracks when a man leaves his chair, refuses a direct
+ * carries both columns, counts a crack or a mend where throw_at lands a
+ * throw (in throw_at itself since feat/combos-reaction; a jeer the crown
+ * refuses is not charged), resets cracks when a man leaves his chair, refuses a direct
  * client write of either column with the guards' words, and turns the round
  * over when its phase leaves 'deciding'.  WHAT IT FAKES: the double has no
  * draft, so its phase leaves 'deciding' a beat AFTER her call (when the show
@@ -159,7 +159,7 @@ module.exports = {
       t.ok(s1.w1.w === s1.w2.w && s1.w1.paths[0] === s1.w2.paths[0] && s1.w1.paths[0].length > 30, "two crowd phones draw the SAME crack (seeded from him and which crack it is), not two dice rolls");
       t.ok(Object.values(await each(SEAT, watchers, 1)).every((s) => !s.has && s.cracks === 0), "…and nobody else's frame is touched");
       const before = ledger();
-      const j1b = await throwFrom(W2, "u_a", "boo");
+      const j1b = await throwFrom(W1, "u_a", "boo");   // the same thrower again (another thrower's jeer would be a JOIN now — gate 89)
       t.ok(j1b.ok === false && /already live/.test(j1b.error) && row("u_a").cracks === 1 && ledger() === before, `a REFUSED jeer ("${j1b.error}") adds no crack and is not charged`);
 
       /* ---------- 2. crack 1 holds still when crack 2 arrives ---------- */

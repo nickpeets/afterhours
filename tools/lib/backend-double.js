@@ -102,10 +102,13 @@ const FILTER_LOOKS = ["grade", "noir", "ck-objects", "ck-express"];
 const THROW_LIMITS = { cheers: 5, jeers: 2, live_secs: 10, cooldown_secs: 20,
   /* THE PRESSURE (feat/pressure-crown, tools/DESIGN-overlay-server.md): the two
      numbers the member trigger reads — throw_limits() carries them too */
-  cracks_to_shatter: 3, rose_mends: 1 };
+  cracks_to_shatter: 3, rose_mends: 1,
+  /* COMBOS AND REACTION WINDOWS (feat/combos-reaction, tools/DESIGN-combos-server.md):
+     the six numbers throw_at and the rooms trigger read */
+  combo_secs: 5, combo_n: 3, combo_fx_secs: 4, ovation_hearts: 1, react_secs: 6, react_mult: 2 };
 const THROW_KINDS = { petals: "cheer", hearts: "cheer", confetti: "cheer", sparkle: "cheer",
                       tomato: "jeer", pie: "jeer", boo: "jeer", cricket: "jeer" };
-const THROW_COLS = ["throwables_on", "throw_kind", "throw_at", "throw_until", "cracks"];
+const THROW_COLS = ["throwables_on", "throw_kind", "throw_at", "throw_until", "cracks", "throw_n", "throw_combo_at"];
 /* the guard trigger's one message (room_members_throw_guard) and the rooms
    one (rooms_throwables_guard) — what a DIRECT client write gets back */
 const THROW_GUARD_MSG = "throw state changes only through throw_at, set_throwables and host_clear_throw";
@@ -115,6 +118,9 @@ const ROOMS_THROW_GUARD_MSG = "throwables_on changes only through host_set_throw
    holder, and the rooms guard's when a client writes crown_user itself */
 const CROWN_BLOCK_MSG = "he wears the crown this round";
 const ROOMS_CROWN_GUARD_MSG = "the crown is awarded at her call, never written";
+/* COMBOS AND REACTION WINDOWS (feat/combos-reaction): the rooms guard's words
+   when a client writes react_user / react_until itself */
+const ROOMS_REACT_GUARD_MSG = "the reaction window opens when an answer ends, never written";
 
 let _seq = 1;
 const nid = (p) => p + "_" + (_seq++).toString(36).padStart(6, "0");
@@ -183,6 +189,10 @@ class BackendDouble {
          who wears the crown until her next call (feat/pressure-crown; PENDING
          DDL). */
       cycle: 1, crown_user: null,
+      /* THE REACTION WINDOW (feat/combos-reaction; PENDING DDL): whose answer
+         just ended, and until when a throw at him counts double.  Written
+         only by setPhase (the rooms trigger). */
+      react_user: null, react_until: null,
       winner_id: null, created_at: this.iso(), host_seen_at: this.iso(),
       moment_a: null, moment_b: null,   // the Moment seam — see start_moment
       throwables_on: true,              // THROWABLES: the host's show switch (rooms.throwables_on, default true)
@@ -268,6 +278,10 @@ class BackendDouble {
          production's column (set when he takes a chair); the round trigger
          reads it to tell who sat through her call. */
       cracks: 0,
+      /* COMBOS (feat/combos-reaction; PENDING DDL): the live throw's count
+         toward a combo, and when its combo fired.  The room sees the count,
+         never who: the throwers are in throwLedger only. */
+      throw_n: 0, throw_combo_at: null,
       seated_at: (role === "chair" || role === "kept") ? this.iso(this.now() - ageMs - 1000) : null,
     };
     this.members.push(row);
@@ -313,25 +327,15 @@ class BackendDouble {
     if (!wasSeated && nowSeated) row.seated_at = this.iso();
   }
   /* ---------- THE PRESSURE AND THE CROWN (feat/pressure-crown) ----------
-     Mirrors of the two triggers in tools/DESIGN-overlay-server.md, PENDING
-     PRODUCTION DDL.  Nothing here is reachable by a client: cracks move only
+     Mirrors of the two triggers in tools/DESIGN-overlay-server.md (ran
+     2026-10-11) as tools/DESIGN-combos-server.md leaves them: the crack
+     arithmetic and the crown's block are throw_at's now.  Nothing here is
+     reachable by a client: cracks move only
      where a throw LANDS (throw_at's own update), the crown only at her
      call (the phase leaving 'deciding'). */
-  /* room_members_throw_guard, the landing half: called by throw_at at the
-     statement that lands the throw, AFTER every refusal of its own — so a
-     jeer the crown refuses raises here and is never charged. */
-  landOnRow(room, tgt, kind) {
-    const cls = THROW_KINDS[kind];
-    if (cls === "jeer") {
-      if (room.crown_user && room.crown_user === tgt.user_id) throw new Error(CROWN_BLOCK_MSG);
-      tgt.cracks = Math.min(THROW_LIMITS.cracks_to_shatter, (tgt.cracks || 0) + 1);
-    } else if (kind === "petals") {
-      tgt.cracks = Math.max(0, (tgt.cracks || 0) - THROW_LIMITS.rose_mends);
-    }
-  }
   /* rooms_overlay_round, the fresh-show half: preshow / showstart carry nothing over */
   overlayFresh(r) {
-    r.crown_user = null;
+    r.crown_user = null; r.react_user = null; r.react_until = null;
     for (const m of this.members) if (m.room_id === r.id && m.cracks) { m.cracks = 0; this.emit("room_members", "UPDATE", { ...m }); }
   }
   /* rooms_overlay_round, the her-call half: the phase LEAVES 'deciding' for
@@ -497,7 +501,13 @@ class BackendDouble {
     }
     if (op === "auth.resetPasswordForEmail" || op === "auth.updateUser") return {};
 
-    if (op === "rpc") { this.rpcLog.push({ clientId, name: p.name, args: p.args }); return this.rpc(clientId, p.name, p.args || {}); }
+    if (op === "rpc") {
+      this.rpcLog.push({ clientId, name: p.name, args: p.args });
+      /* a call that came from a PAGE, not from a gate's own D.rpc (see the
+         early-nudge rule in advance_phase) */
+      this._fromPage = true;
+      try { return this.rpc(clientId, p.name, p.args || {}); } finally { this._fromPage = false; }
+    }
     if (op === "table") return this.table(clientId, p);
     throw new Error("double: unknown op " + op);
   }
@@ -690,12 +700,19 @@ class BackendDouble {
            Studio, 2026-10-11): "if now() < v_r.phase_deadline then return
            noop".  The double advanced unconditionally, which is how a crowd
            phone with a fast clock ended an answer for the whole room in gate
-           87's first run and nowhere else.  Modelled here for everyone but
-           the host: the gates walk the show with the host's advance_phase,
-           and skip_phase (hers, and it sets the deadline to now first) shares
-           this case.  The null-deadline no-op is NOT modelled (her call would
+           87's first run and nowhere else.  Modelled here for EVERY PAGE,
+           the host's included, as production does.
+           WHAT THIS FAKES: a gate's own D.rpc("host", "advance_phase") still
+           walks the show early — the gates use it as a fast-forward.  Until
+           feat/combos-reaction the host's PAGE was exempt too, and gate 89
+           caught the cost: the host page's resolver, holding a deadline that
+           had already passed, nudged advance_phase a beat after the show had
+           moved to the open floor, and the double bounced the room back to
+           the spotlight — a move production refuses.  skip_phase (hers, and
+           it sets the deadline to now first) shares this case and is never
+           refused.  The null-deadline no-op is NOT modelled (her call would
            never leave 'deciding' in a double that has no draft — G10). */
-        if (name === "advance_phase" && uid !== r.host_id && r.phase_deadline && this.now() < Date.parse(r.phase_deadline))
+        if (name === "advance_phase" && (this._fromPage || uid !== r.host_id) && r.phase_deadline && this.now() < Date.parse(r.phase_deadline))
           return { noop: true, phase: r.phase, deadline: r.phase_deadline };
         /* deciding -> spotlight is the double's stand-in for production's
            engine_award_seat (the double has no draft): rooms.cycle goes up
@@ -989,19 +1006,54 @@ class BackendDouble {
            of them is refused until The Moment ends").  Not in the DDL —
            rooms.moment_* does not exist in production. */
         if (r.moment_a === a.target || r.moment_b === a.target) throw new Error("no throws during a moment");
-        if (this.throwLive(tgt)) throw new Error("a throw is already live");
-        if (this.throwCooling(tgt)) throw new Error("cooling down");
+        /* THE ORDER IS THE SQL'S (tools/DESIGN-combos-server.md, 1e): the
+           crown is part of who he is, so it refuses before the beat he is in
+           and before the thrower's ration. */
+        if (cls === "jeer" && r.crown_user && r.crown_user === a.target) throw new Error(CROWN_BLOCK_MSG);
+        const at = this.now();
+        const react = !!(r.react_user && r.react_user === a.target && r.react_until && at < Date.parse(r.react_until));
+        const w = react ? THROW_LIMITS.react_mult : 1;         // a throw in his reaction window counts double
+        let join = false;
+        if (this.throwLive(tgt)) {
+          /* THE JOIN (ruling 10/11, "One rule changes"): same polarity, inside
+             the combo window, from a thrower who is not already in this one.
+             Anything else while a throw is live is what it always was. */
+          const landedAt = Date.parse(tgt.throw_at);
+          if (THROW_KINDS[tgt.throw_kind] !== cls || !(at < landedAt + THROW_LIMITS.combo_secs * 1000) ||
+              this.throwLedger.some((l) => l.room_id === a.room_id && l.target_id === a.target && l.thrower_id === uid && Date.parse(l.at) >= landedAt))
+            throw new Error("a throw is already live");
+          join = true;
+        } else if (!react && this.throwCooling(tgt)) throw new Error("cooling down");   // (inside his window his cooldown does not apply)
         const counts = this.throwCounts(a.room_id, uid);
         if ((cls === "cheer" ? counts.cheers_left : counts.jeers_left) <= 0)
           throw new Error("no " + cls + "s left this show");
-        this.landOnRow(r, tgt, a.kind);   // the member trigger: the crown's block, then the crack / the mend
-        const at = this.now();
-        tgt.throw_kind = a.kind; tgt.throw_at = this.iso(at);
-        tgt.throw_until = this.iso(at + THROW_LIMITS.live_secs * 1000);
-        this.throwLedger.push({ room_id: a.room_id, thrower_id: uid, cls, kind: a.kind, target_id: a.target, at: tgt.throw_at });
-        this.emit("room_members", "UPDATE", { ...tgt });   // the row: no thrower on it
+        // THE PRESSURE: by what this throw counts for
+        if (cls === "jeer") tgt.cracks = Math.min(THROW_LIMITS.cracks_to_shatter, (tgt.cracks || 0) + w);
+        else if (a.kind === "petals") tgt.cracks = Math.max(0, (tgt.cracks || 0) - THROW_LIMITS.rose_mends * w);
+        let fire = false;
+        if (join) {
+          tgt.throw_n = (tgt.throw_n || 0) + w;
+          fire = !tgt.throw_combo_at && tgt.throw_n >= THROW_LIMITS.combo_n;
+          if (fire) {
+            tgt.throw_combo_at = this.iso(at);
+            tgt.throw_until = this.iso(Math.max(Date.parse(tgt.throw_until), at + THROW_LIMITS.combo_fx_secs * 1000));
+          }
+          // throw_kind and throw_at do NOT move: the overlay does not restart
+        } else {
+          tgt.throw_kind = a.kind; tgt.throw_at = this.iso(at);
+          tgt.throw_until = this.iso(at + THROW_LIMITS.live_secs * 1000);
+          tgt.throw_n = w;
+          fire = tgt.throw_n >= THROW_LIMITS.combo_n;
+          tgt.throw_combo_at = fire ? this.iso(at) : null;
+        }
+        this.throwLedger.push({ room_id: a.room_id, thrower_id: uid, cls, kind: a.kind, target_id: a.target, at: this.iso(at) });   // once, whatever it counted for
+        this.emit("room_members", "UPDATE", { ...tgt });   // the row: a count, no thrower on it
+        /* STANDING OVATION: his heart, once per combo, with NO sender (the
+           SQL inserts user_id NULL — engine_emit would have named the third
+           thrower) */
+        if (fire && cls === "cheer") for (let k = 0; k < THROW_LIMITS.ovation_hearts; k++) this.pushEvent(a.room_id, null, "heart", { target: a.target, ovation: true });
         const left = this.throwCounts(a.room_id, uid);
-        return { ok: true, kind: a.kind, cls, at: tgt.throw_at, until: tgt.throw_until, ...left };
+        return { ok: true, kind: a.kind, cls, at: tgt.throw_at, until: tgt.throw_until, joined: join, n: tgt.throw_n, counted: w, combo: !!tgt.throw_combo_at, ...left };
       }
       case "throw_counts": {
         if (!uid) throw new Error("not authenticated");
@@ -1101,11 +1153,21 @@ class BackendDouble {
   setPhase(room_id, phase, secs) {
     const r = this.rooms.get(room_id);
     if (!r) throw new Error("no room");
-    const was = r.phase;
+    const was = r.phase, wasDeadline = r.phase_deadline;
     r.phase = phase;
     r.phase_deadline = secs ? this.iso(this.now() + secs * 1000) : null;
     if (phase !== was && (phase === "preshow" || phase === "showstart")) this.overlayFresh(r);   // rooms_overlay_round: a fresh show
-    else if (was === "deciding" && phase !== "deciding" && phase !== "ended") this.overlayHerCall(r);   // rooms_overlay_round: her call is made
+    else if (phase !== was) {
+      /* rooms_overlay_round, the reaction window (feat/combos-reaction): the
+         phase LEAVES 'spotlight' while a man was on the clock — his deadline
+         passed (advance_phase) or she moved on (skip_phase); both end at
+         this one statement in production (engine_set_phase). */
+      if (was === "spotlight" && r.spotlight_target && wasDeadline) {
+        r.react_user = r.spotlight_target;
+        r.react_until = this.iso(this.now() + THROW_LIMITS.react_secs * 1000);
+      }
+      if (was === "deciding" && phase !== "ended") this.overlayHerCall(r);   // rooms_overlay_round: her call is made
+    }
     this.emit("rooms", "UPDATE", { ...r });
     return null;
   }
@@ -1248,6 +1310,7 @@ class BackendDouble {
            is guarded by column, not by RLS */
         if (values && "throwables_on" in values) throw new Error(ROOMS_THROW_GUARD_MSG);
         if (values && "crown_user" in values) throw new Error(ROOMS_CROWN_GUARD_MSG);   // rooms_throwables_guard, feat/pressure-crown
+        if (values && ("react_user" in values || "react_until" in values)) throw new Error(ROOMS_REACT_GUARD_MSG);   // rooms_throwables_guard, feat/combos-reaction
         let n = 0;
         for (const r of this.rooms.values()) {
           if (match(r)) { Object.assign(r, values); n++; this.emit("rooms", "UPDATE", { ...r }); }
@@ -1269,4 +1332,4 @@ class BackendDouble {
   }
 }
 
-module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, HOST_STALE_MS, FILTER_LOOKS, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG, CROWN_BLOCK_MSG, ROOMS_CROWN_GUARD_MSG };
+module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, HOST_STALE_MS, FILTER_LOOKS, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG, CROWN_BLOCK_MSG, ROOMS_CROWN_GUARD_MSG, ROOMS_REACT_GUARD_MSG };

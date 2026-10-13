@@ -90,6 +90,32 @@ crew account is live. Your own show stays up until you end it.
 Orders work the whole time. After the scenario, the crew keeps taking orders
 until `crew: done`.
 
+## Selftest: PR C's phone test, run by the crew
+
+`tools/crew/crew --host <name> --scenario combos`
+
+You host on your phone, and the bots throw and check. Five accounts are
+enough: if Crowd C has no profile, Leo stays in the crowd as the third
+thrower. Every step reports one chat line (✅ or ❌ and why), and a summary
+comes at the end.
+
+1. Seat Dex and Marco. The test starts once Dex is in a chair.
+2. It runs **the join**, **the ovation** and **the refusals** by itself.
+3. It waits out Dex's cooldown (about 30s), then runs **booed off**. Your
+   phone should say "The room is booing Dex". The crew checks that no crowd
+   phone got that nudge.
+4. When it asks, **ask Dex a question, then skip** (or let his clock run
+   out). It throws a rose inside his reaction window and checks that it
+   counted double.
+5. When it asks, **get to your call and pass Marco**. Dex leads on hearts,
+   takes the crown, and the crew checks that a jeer at him is refused and
+   costs nothing.
+
+The checks read the server's answers and what a crowd phone shows. How it
+looks on your own phone is yours to judge. The crew keeps taking orders
+afterwards, until `crew: done`. Gate 91 (`crew-selftest`) runs the same
+test against the harness, with the gate playing your part.
+
 ## Notes
 
 - Seven people on video (you plus six bots) count toward Daily usage for as

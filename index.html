@@ -1451,7 +1451,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1012.1010</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1015.1034</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1487,7 +1487,7 @@
 
     <!-- LOBBY -->
     <div id="lobby" style="display:none">
-      <div id="whoami" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding:8px 12px;border-radius:10px;background:rgba(17,22,52,.7);border:1px solid rgba(185,168,255,.18);font-family:'Azeret Mono',monospace;font-size:10px;letter-spacing:.08em">
+      <div id="whoami" hidden style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding:8px 12px;border-radius:10px;background:rgba(17,22,52,.7);border:1px solid rgba(185,168,255,.18);font-family:'Azeret Mono',monospace;font-size:10px;letter-spacing:.08em">
         <span id="whoami_who" style="color:#b9a8ff">—</span>
         <span id="whoami_slot" style="color:rgba(242,240,255,.45)"></span>
       </div>
@@ -1974,7 +1974,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1012.1010"); }catch(e){}
+try{ console.log("[lastcall] build b1015.1034"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2683,8 +2683,13 @@ async function enterApp(){
   const spw=$("setpwPanel"); if(spw) spw.style.display="none";
   $("lobby").style.display="block";
   $("signout").style.display="inline-block"; $("settingsbtn").style.display="inline-block";
+  /* #whoami (name · email · "window: …") is a MULTI-WINDOW TESTING aid, shown
+     only under ?debug (RULING 10/15).  For everyone else it stays hidden and
+     EMPTY — an email address is not lobby furniture. */
   try{
-    const w=$("whoami_who"), sl=$("whoami_slot");
+    const dbg=new URLSearchParams(location.search).has("debug");
+    const wb=$("whoami"); if(wb){ wb.hidden=!dbg; wb.style.display=dbg?"flex":"none"; }
+    const w=dbg?$("whoami_who"):null, sl=dbg?$("whoami_slot"):null;
     if(w) w.textContent=((MYPROFILE&&MYPROFILE.display_name)||"(no name)")+"  ·  "+((ME&&ME.email)||"");
     if(sl){
       sl.textContent="window: "+(AH_SESSION_SLOT||"default (shared)");
@@ -5491,7 +5496,7 @@ $("st_saveprefs").onclick=async()=>{
     toast(error?("Couldn't save: "+error.message):"Saved (matching prefs need the DB migration)");
   } else toast(error?("Couldn't save: "+error.message):"Preferences saved ✦");
   MYPROFILE={...MYPROFILE,seeking,seek_min,seek_max,radius_miles:radius};
-  if(newName){ MYPROFILE.display_name=newName; const w=$("whoami_who"); if(w) w.textContent=newName+"  ·  "+((ME&&ME.email)||""); }
+  if(newName){ MYPROFILE.display_name=newName; const w=$("whoami_who"); if(w && !$("whoami").hidden) w.textContent=newName+"  ·  "+((ME&&ME.email)||""); }
   if(newZip) MYPROFILE.zip_code=newZip;
 };
 $("st_close").onclick=stClose;

@@ -116,6 +116,25 @@ looks on your own phone is yours to judge. The crew keeps taking orders
 afterwards, until `crew: done`. Gate 91 (`crew-selftest`) runs the same
 test against the harness, with the gate playing your part.
 
+## Scenario: the host goes (the 10/9 anomalies)
+
+`tools/crew/crew --host <name> --scenario hostgone`
+
+You host on your phone; the crew watches what the crowd sees.
+
+1. Once the crew is in, kill the app on your phone (or turn on airplane mode).
+   About 15s later every crowd phone should say "The host lost connection,
+   hang tight". The crew logs `the room says: …` when it appears.
+2. Come back within two minutes: the notice clears (`the host-gone notice
+   cleared` in the log).
+3. Drop again and stay gone. At two minutes the server ends the room. The crew
+   logs what each bot's screen shows ("The host left. Show's over."), stays on
+   that card for 15s, and reports how many 406s each bot got for the ended
+   room. It should be zero.
+
+Gate 92 (`rehearsal-1009`) runs the same test against the harness, with the
+gate playing your part.
+
 ## Notes
 
 - Seven people on video (you plus six bots) count toward Daily usage for as

@@ -78,6 +78,10 @@ module.exports = {
         D.rpc("host", "advance_phase", { room_id: room });
       }
       const done = await until(() => said(/^selftest · done:/), 60000);
+      /* the summary line lands in chat a beat BEFORE runCombos returns and
+         the crew stores its result — wait for the result, not just the line
+         (a race that went red in the full battery, fix/rehearsal-1009) */
+      await until(() => crew.selftestResult, 10000);
       const res = crew.selftestResult || {};
       const lines = (res.results || []).map((r) => `${r.n}:${r.pass ? "ok" : "FAIL"}`).join(" ");
 

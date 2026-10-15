@@ -22,8 +22,19 @@ module.exports = {
       t.ok(true, "the live fixture room renders a lobby card");
       const meta = await c.page.$eval(".roomcard .meta", (el) => el.textContent);
       t.ok(/\d+ in the room/.test(meta), "room card shows a member count: " + JSON.stringify(meta.trim().slice(0, 40)));
-      const who = await c.page.$eval("#whoami_who", (el) => el.textContent);
-      t.ok(/Crowd One/.test(who), "whoami strip shows the signed-in profile");
+      /* RULING 10/15: the whoami strip (name · email · window) is for
+         multi-window testing under ?debug only.  The signed-in profile is
+         asserted from the app's own state instead. */
+      const prof = await c.page.evaluate(() => window.__lc.MYPROFILE && window.__lc.MYPROFILE.display_name);
+      t.ok(/Crowd One/.test(prof || ""), "the signed-in profile is loaded: " + JSON.stringify(prof));
+      const strip = await c.page.$eval("#whoami", (el) => ({ shown: el.offsetParent !== null, text: el.textContent.trim() }));
+      t.ok(!strip.shown && !/@|window:/.test(strip.text), "no whoami strip (name · email · window) for a normal user: " + JSON.stringify(strip));
+      const dc = await h.newClient("boot-debug");
+      dc.login(fx.crowd[0]);
+      await dc.goto("?debug");
+      await dc.page.waitForSelector("#lobby", { state: "visible", timeout: 15000 });
+      const dbg = await dc.page.$eval("#whoami", (el) => ({ shown: el.offsetParent !== null, who: document.getElementById("whoami_who").textContent }));
+      t.ok(dbg.shown && /Crowd One/.test(dbg.who), "under ?debug the whoami strip shows the signed-in profile: " + JSON.stringify(dbg.who));
       const authHidden = await c.page.$eval("#auth", (el) => el.classList.contains("hide"));
       t.ok(authHidden, "auth screen is dismissed after boot");
       t.ok(c.errors.length === 0, "zero console errors — got " + c.errors.length + ": " + c.errors.slice(0, 3).join(" | "));

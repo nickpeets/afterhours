@@ -280,8 +280,13 @@ module.exports = {
 
         /* --- H. an ended room's preview leaves with its card --- */
         const beforeEnd = await inst(c);
-        D.endRoom(room, null, hostU, "host");            // emits the rooms UPDATE the lobby listens to
-        await waitFor(async () => !(await card(c, room)), 8000, "the ended room's card to leave the lobby");
+        /* WHAT THIS LEANED ON (fix/rehearsal-1009): the rooms UPDATE that ends a
+           room is NOT delivered to a viewer who isn't its host — realtime obeys
+           select_live, and an ended row fails it.  The harness used to deliver
+           it anyway.  In production the card leaves on the lobby's 15s poll
+           (list_live_rooms), so that is what this waits for. */
+        D.endRoom(room, null, hostU, "host");
+        await waitFor(async () => !(await card(c, room)), 20000, "the ended room's card to leave the lobby (15s lobby poll)");
         await waitFor(async () => (await inst(c)).multiLive === beforeEnd.multiLive - 1, 5000, "the ended room's preview to be destroyed");
         t.ok(!(await pv(c)).some((p) => p.id === room) && !(await pvCall(c, room)),
           "room ended → its card is gone and its preview has left (no call into that room remains)");
@@ -379,8 +384,8 @@ module.exports = {
         t.ok(heldT.length === cap && iT.multiLive === cap && iT.multiCreated === cap,
           `…and exactly ${cap} previews are held (held ${heldT.length}, calls alive ${iT.multiLive}, ever created ${iT.multiCreated})`);
         t.ok(JSON.stringify(heldT) === JSON.stringify(["r_1", "r_2", "r_3", "r_4"]), "they are the FIRST four in list order — " + heldT);
-        D.endRoom("r_2", null, "u_h2", "host");
-        await waitFor(async () => JSON.stringify(await held(tall)) === JSON.stringify(["r_1", "r_3", "r_4", "r_5"]), 8000, "the freed slot to pass to the next card");
+        D.endRoom("r_2", null, "u_h2", "host");   // a viewer learns it on the 15s lobby poll (realtime RLS — see H)
+        await waitFor(async () => JSON.stringify(await held(tall)) === JSON.stringify(["r_1", "r_3", "r_4", "r_5"]), 22000, "the freed slot to pass to the next card");
         await waitFor(async () => (await inst(tall)).multiLive === cap, 5000, "the ended room's call to finish destroying");
         t.ok(true, "a room ends → its slot passes to the next on-screen card, still exactly " + cap);
         const errs = tall.errors.concat(c.errors).filter((e) => !/favicon/.test(e));

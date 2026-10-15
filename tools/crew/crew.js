@@ -7,6 +7,7 @@
  *   node tools/crew/crew.js --room <link|id>   join that room (any text holding its id)
  *   node tools/crew/crew.js --scenario crown   a scripted pass (see README.md)
  *   node tools/crew/crew.js --scenario combos  the PR C selftest, with Nick hosting (selftest.js)
+ *   node tools/crew/crew.js --scenario hostgone  the 10/9 host-drop test: Nick hosts, then drops (README.md)
  *   node tools/crew/crew.js --check            sign each bot in and set its profile, then stop
  *   node tools/crew/crew.js --login "Crowd C"  a visible browser on the rehearsal desktop, so
  *                                              Nick signs that bot in by hand, once
@@ -76,9 +77,11 @@ const PAGE = `window.__crew = {
     return { me:ME?ME.id:null, room:r?r.id:null, status:r?r.status:null, host:r?r.host_id:null,
       phase:r?r.phase:null, crown:r?(r.crown_user||null):null, role:me?me.role:null,
       verb:b?(b.dataset.verb||null):null, passed:(typeof I_WAS_PASSED!=="undefined")&&!!I_WAS_PASSED,
-      people, hearts:Object.assign({},HEARTS),
+      people, hearts:Object.assign({},HEARTS), notice:this.notice(),
       counts:(typeof THROW_COUNTS!=="undefined"&&THROW_COUNTS)?Object.assign({},THROW_COUNTS):null };
   },
+  notice(){ const n=document.getElementById("rt_hostgone"); return (n && !n.hidden && n.offsetParent!==null) ? n.textContent.trim() : null; },
+  endScreen(){ const f=document.getElementById("finale"); return (f && f.classList.contains("show")) ? (f.innerText||"").trim().replace(/\\s+/g," ").slice(0,160) : null; },
   async cursor(){
     const {data}=await sb.from("room_events").select("*").eq("room_id",CURRENT_ROOM.id).order("created_at",{ascending:false}).limit(1);
     return (data&&data[0]&&data[0].created_at)||new Date().toISOString();
@@ -134,7 +137,9 @@ const EMOJI = { tomato: "🍅", pie: "🥧", boo: "👻", cricket: "🦗", petal
 /* ---------- the crew ---------- */
 class Crew {
   /* bots: [{ spec (a CAST row), page, close() }] — already signed in and booted */
-  constructor({ bots, roomId, scenario = null, log = console.log, tickMs = 1000 }) {
+  constructor({ bots, roomId, scenario = null, log = console.log, tickMs = 1000, lingerMs = null }) {
+    // hostgone lingers on the end card so the 406 count means something (a gate passes 0)
+    this.lingerMs = lingerMs != null ? lingerMs : (scenario === "hostgone" ? 15000 : 0);
     this.bots = bots.map((b) => ({ ...b, uid: null, role: null, parked: false, benchAt: 0, st: null }));
     this.roomId = roomId; this.scenario = scenario; this.log = log; this.tickMs = tickMs;
     this.cursor = null; this.seen = new Set(); this.rr = 0; this.step = 0;
@@ -149,7 +154,21 @@ class Crew {
   ev(b, fn, ...args) { return b.page.evaluate(({ fn, args }) => window.__crew[fn](...args), { fn, args }); }
   async say(b, text) { const e = await this.ev(b, "say", text).catch((x) => String(x)); if (e) this.log(`  ${b.spec.name}: couldn't chat (${e})`); }
 
+  /* --scenario hostgone (fix/rehearsal-1009): Nick hosts, then drops.  The
+     crew logs when the "host lost connection" notice comes and goes, what
+     every phone shows when the server ends the room, and how many 406s each
+     phone gets for the ended room (there should be none). */
+  watch406(b) {
+    b.n406 = 0;
+    b.page.on("response", (r) => { try { if (r.status() === 406 && /\/rest\/v1\/rooms/.test(r.url())) b.n406++; } catch (e) {} });
+  }
+  hostgoneReport() {
+    const n = this.bots.map((b) => `${b.spec.name} ${b.n406 | 0}`).join(", ");
+    this.log(`  hostgone: 406s on the rooms read so far — ${n}`);
+  }
+
   async start() {
+    if (this.scenario === "hostgone") for (const b of this.bots) this.watch406(b);
     for (const b of this.bots) {
       b.page.on("dialog", (d) => d.accept().catch(() => {}));   // "Leave the chair?" — a bot means it
       b.uid = (await this.ev(b, "state")).me;
@@ -179,8 +198,20 @@ class Crew {
   async tick() {
     await Promise.all(this.bots.map(async (b) => { b.st = await this.ev(b, "state").catch(() => null); }));
     const ear = this.ear.st;
+    // the host-gone notice (fix/rehearsal-1009): say when the room tells the crowd she's gone, and when it stops
+    if (ear && (ear.notice || null) !== (this.notice || null)) {
+      this.log(ear.notice ? `  the room says: ${ear.notice}` : `  the host-gone notice cleared`);
+      this.notice = ear.notice || null;
+    }
     if (!ear || !ear.room) return this.finish("the room ended");
-    if (ear.status === "ended") return this.finish("the room ended");
+    if (ear.status === "ended") {
+      // hostgone: linger 15s on the end card so the 406 count means something, then go
+      if (this.scenario === "hostgone") {
+        if (!this.endedAt) { this.endedAt = Date.now(); if (this.lingerMs) this.log(`  the room ended — watching ${this.lingerMs / 1000}s for polling`); }
+        if (Date.now() - this.endedAt < this.lingerMs) return;
+      }
+      return this.finish("the room ended");
+    }
     // the men behave like players: on the bench unless told to stay off it
     for (const b of this.men) {
       const st = b.st; if (!st || !st.room) continue;
@@ -318,6 +349,16 @@ class Crew {
     if (this.stopped) return this.done;
     this.stopped = true; this.reason = reason;
     this.log(`  stopping: ${reason}`);
+    // what each phone was showing when the room ended — read BEFORE anyone leaves
+    this.endScreens = {};
+    if (reason === "the room ended") {
+      for (const b of this.bots) {
+        const sc = await this.ev(b, "endScreen").catch(() => null);
+        this.endScreens[b.spec.name] = sc;
+        this.log(`  ${b.spec.name} saw: ${sc || "(no end card)"}`);
+      }
+      if (this.scenario === "hostgone") this.hostgoneReport();
+    }
     for (const b of this.bots) {
       try { await this.ev(b, "leave"); this.log(`  ${b.spec.name} left`); } catch (e) { this.log(`  ${b.spec.name}: leave failed (${String(e).slice(0, 80)})`); }
     }
@@ -459,7 +500,7 @@ function parseArgs(argv) {
 async function main() {
   const o = parseArgs(process.argv.slice(2));
   if (o.help) { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(1, 12).join("\n")); return; }
-  if (o.scenario && !["crown", "combos"].includes(o.scenario)) throw new Error("unknown scenario " + o.scenario + " (known: crown, combos)");
+  if (o.scenario && !["crown", "combos", "hostgone"].includes(o.scenario)) throw new Error("unknown scenario " + o.scenario + " (known: crown, combos, hostgone)");
   const { chromium } = require("playwright-core");
   const { resolveChromium } = require("../lib/harness");
   const exe = resolveChromium();

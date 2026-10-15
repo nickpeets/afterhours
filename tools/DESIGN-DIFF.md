@@ -53,6 +53,9 @@ All draft-storm coverage work is HELD.
    CLIENT'S OWN `setTimeout` calling `skip_phase` (3011–3016).
 4. **Deliberation** — DESIGN: ONE 90s phase.  AS-BUILT: **DIVERGES.**  Two
    phases: `deliberation:60` + `deciding:60` (3705).
+   **RULED 10/15: deliberation is 60s, per the spec.**  Production's
+   `advance_phase` was stamping 90s (the 10/9 rehearsal logs); the number
+   becomes `lc_deliberation_secs()` — pending `tools/DDL-deliberation-60.sql`.
 5. **PASS ONE** — DESIGN: one blind refill then a FRESH 3-ROUND CYCLE.
    AS-BUILT: **DIVERGES.**  A 20s host pick window (`LC_PASS_PICK_SECS=20`,
    3710; `passPickOpen` 4154–4164 writes the shared deadline) AND a server

@@ -72,6 +72,14 @@ const SWEEP_MS = 180_000;   // sweep_stale_members: now() - interval '3 minutes'
    list_live_rooms.  SOURCE: run in production 2026-10-08 and read back (md5s
    in tools/DESIGN-stale-rooms.md). */
 const HOST_STALE_MS = 120_000;
+/* DELIBERATION (RULING 10/15: "it's 60 seconds, per the spec").  The ONE
+   number for the section, server-owned like HOST_STALE_MS: lc_deliberation_secs()
+   feeds advance_phase's openfloor -> deliberation deadline and lc_config hands
+   it to the client.  PENDING PRODUCTION DDL — tools/DDL-deliberation-60.sql.
+   Production today sets a 90s deadline there (the 10/9 conductor logs: 83.9s,
+   90.9s and 90.4s from openfloor->deliberation to ->deciding); the double
+   always ran 60, which is why no gate ever saw the 90. */
+const DELIBERATION_SECS = 60;
 
 /* FILTER SHOW RULES — the curated rack the SERVER accepts (set_filter's
    allow-list, PENDING PRODUCTION DDL in tools/DESIGN-filter-rules.md).  This
@@ -434,7 +442,8 @@ class BackendDouble {
        false). */
     const entry = { n: this.opLog.length, clientId, op, ok: null };
     if (op === "rpc" && payload) { entry.name = payload.name; entry.args = payload.args || {}; }
-    if (op === "table" && payload) { entry.table = payload.table; entry.action = payload.action; entry.values = payload.values || null; }
+    if (op === "table" && payload) { entry.table = payload.table; entry.action = payload.action; entry.values = payload.values || null; entry.filters = payload.filters || []; }
+    entry.at = Date.now();
     this.opLog.push(entry);
     if (typeof op === "string" && op.startsWith("auth.")) {
       /* SIGN-OUT FIDELITY (fix/signout-ghost-room).  The double's signOut
@@ -474,8 +483,22 @@ class BackendDouble {
       return { data, error: null };
     } catch (e) {
       entry.ok = false;
-      return { data: null, error: { message: String(e.message || e) } };
+      if (op === "table" && payload && e && e.status) entry.status = e.status;
+      return { data: null, error: e && e.code ? { message: String(e.message || e), code: e.code, details: e.details || null }
+                                              : { message: String(e.message || e) } };
     }
+  }
+  /* REALTIME RLS (fix/rehearsal-1009).  Supabase realtime delivers a
+     postgres_changes row only to a subscriber whose SELECT policy admits it.
+     A rooms row that has turned 'ended' is no longer visible to a guest
+     (select_live), so its UPDATE never reaches a guest's socket — only the
+     host's.  The harness fanned every change out to every page. */
+  realtimeVisible(clientId, evt) {
+    if (evt && evt.table === "rooms" && evt.new) {
+      const me = this.sessions.get(clientId);
+      return evt.new.status === "live" || (!!me && evt.new.host_id === me);
+    }
+    return true;
   }
 
   async _dispatch(clientId, op, p) {
@@ -727,7 +750,7 @@ class BackendDouble {
           // alongside the skip_phase/end_deliberation reversal — gates
           // 07/30 needed the real fork to test the button honestly, not a
           // flat walk that always landed on deliberation.
-          if ((r.round || 0) >= 3) { next = "deliberation"; secs = 60; }
+          if ((r.round || 0) >= 3) { next = "deliberation"; secs = DELIBERATION_SECS; }
           else { r.spotlight_target = null; next = "spotlight"; secs = 60; }
         }
         else { next = i < 0 ? "showstart" : order[Math.min(i + 1, order.length - 1)]; secs = next === "deciding" ? null : 60; }
@@ -826,7 +849,7 @@ class BackendDouble {
       case "end_room":
         throw new Error("permission denied for function end_room");
       case "lc_config":
-        return { host_stale_ms: HOST_STALE_MS };
+        return { host_stale_ms: HOST_STALE_MS, deliberation_secs: DELIBERATION_SECS };
       case "list_live_rooms": {
         if (!uid) throw new Error("permission denied for function list_live_rooms");
         this.sweepStaleRooms();
@@ -1254,6 +1277,18 @@ class BackendDouble {
 
     if (action === "select") {
       let rows = rowsOf().filter(match);
+      /* ROOMS RLS (fix/rehearsal-1009).  SOURCE: the rooms policies read back
+         from production 2026-10-08 (tools/DDL-stale-rooms-end.sql header):
+         select_live — status = 'live' OR auth.uid() = host_id.  The double
+         returned every row to everyone, so a guest's read of an ENDED room
+         came back with status 'ended' and the app folded the ending.  In
+         production that read returns NOTHING, and .single() answers PostgREST's
+         406 (PGRST116) — every 4 seconds, forever, which is the 10/9 rehearsal's
+         anomaly 3 and the reason anomalies 1 and 2 were never seen here. */
+      if (table === "rooms") {
+        const me = this.sessions.get(clientId);
+        rows = rows.filter((r) => r.status === "live" || (me && r.host_id === me));
+      }
       if (order) rows.sort((a, b) => {
         const x = a[order.col], y = b[order.col];
         return (x < y ? -1 : x > y ? 1 : 0) * (order.ascending ? 1 : -1);
@@ -1261,7 +1296,13 @@ class BackendDouble {
       if (limit) rows = rows.slice(0, limit);
       if (single || maybeSingle) {
         if (rows.length > 1) throw new Error("more than one row");
-        if (!rows.length) { if (maybeSingle) return null; throw new Error("no rows"); }
+        if (!rows.length) {
+          if (maybeSingle) return null;
+          /* PostgREST's answer to .single() on zero rows: HTTP 406, code PGRST116 */
+          const e = new Error("JSON object requested, multiple (or no) rows returned");
+          e.code = "PGRST116"; e.status = 406; e.details = "The result contains 0 rows";
+          throw e;
+        }
         return rows[0];
       }
       return rows;
@@ -1332,4 +1373,4 @@ class BackendDouble {
   }
 }
 
-module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, HOST_STALE_MS, FILTER_LOOKS, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG, CROWN_BLOCK_MSG, ROOMS_CROWN_GUARD_MSG, ROOMS_REACT_GUARD_MSG };
+module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, HOST_STALE_MS, DELIBERATION_SECS, FILTER_LOOKS, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG, CROWN_BLOCK_MSG, ROOMS_CROWN_GUARD_MSG, ROOMS_REACT_GUARD_MSG };

@@ -1402,6 +1402,12 @@
 .roomcard__deck{font-family:Archivo,sans-serif;font-size:12px;line-height:1.35;color:rgba(255,255,255,.82);margin-top:3px;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 4px rgba(0,0,0,.95)}
 .roomcard__host:empty,.roomcard__deck:empty{display:none}
+/* HOST GONE (fix/rehearsal-1009): the room says so when her beat stops */
+#rt_hostgone{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);z-index:110;max-width:calc(100% - 32px);
+  padding:12px 18px;border-radius:16px;background:rgba(8,11,32,.9);border:1px solid rgba(255,45,143,.6);
+  box-shadow:0 0 18px rgba(255,45,143,.45);font-family:Archivo,sans-serif;font-size:15px;font-weight:700;line-height:1.35;
+  color:#fff;text-align:center;pointer-events:none}
+#rt_hostgone[hidden]{display:none}
 </style>
 </head>
 <body data-skin="neon">
@@ -1710,6 +1716,7 @@
       </div>
 
       <div class="gifttray-pop" id="rt_gifts"></div>
+      <div id="rt_hostgone" role="status" aria-live="polite" hidden>The host lost connection, hang tight</div>
       <div id="finale"><div id="finale_inner"></div></div>
       <!-- WINNER SNAPSHOT -->
       <div id="snap">
@@ -2711,6 +2718,9 @@ async function lcConfigLoad(){
   try{
     const {data,error}=await sb.rpc("lc_config");
     if(!error && data && Number.isFinite(data.host_stale_ms)){ LC_CONFIG=data; HOST_STALE_MS=data.host_stale_ms; }
+    // RULING 10/15: deliberation is the server's ONE number too (lc_deliberation_secs);
+    // LC_SECTION_SECS.deliberation (60) is the fallback until lc_config carries it
+    try{ if(!error && data && Number.isFinite(data.deliberation_secs)) LC_SECTION_SECS.deliberation=data.deliberation_secs; }catch(e){}
   }catch(e){ /* keep the fallback */ }
   return LC_CONFIG;
 }
@@ -3189,7 +3199,12 @@ async function openRoom(r){
     loadRooms();
     return;
   }
-  CURRENT_ROOM=r;
+  /* a room's end-of-show surfaces are ITS OWN (anomaly 2): whatever the
+     last room left on screen — a card, a held beat, a photo wait still
+     ticking — is wiped before this one paints */
+  endScreensClear();
+  CURRENT_ROOM=r; ROOM_OVER=null;
+  hostBeatReset();
   I_WAS_PASSED=false;
   AMHOST=r.host_id===ME.id;
   // LOBBY LIVE FEEDS: leaving the lobby tears every preview down FIRST.  The
@@ -3262,7 +3277,7 @@ let ROSTER_FETCH_SEQ=0;
    converging even while reads are down. */
 let ROSTER_FAILS=0;
 async function loadRoomState(){
-  if(!CURRENT_ROOM) return;
+  if(!CURRENT_ROOM || ROOM_OVER===CURRENT_ROOM.id) return;   // an ended room's roster is never read again
   const mySeq=++ROSTER_FETCH_SEQ;
   let {data:members,error}=await sb.rpc("active_members",{room_id:CURRENT_ROOM.id});   // let: the seated read below merges into it
   if(!CURRENT_ROOM) return;   // left the room while the RPC was in flight
@@ -3372,7 +3387,7 @@ async function loadRoomState(){
   // wave 8 (d7) belt: a room with NO call and none in motion re-joins on
   // the truth cadence — a rejoin that lost its call heals ≤ one sync
   try{
-    if(CURRENT_ROOM && !DAILY && !DAILY_JOIN_P && !DAILY_LEAVE_P &&
+    if(CURRENT_ROOM && ROOM_OVER!==CURRENT_ROOM.id && !DAILY && !DAILY_JOIN_P && !DAILY_LEAVE_P &&
        $("room").classList.contains("show") && !$("backstage").classList.contains("show")) videoJoin();
   }catch(e){}
 }
@@ -4376,17 +4391,95 @@ document.addEventListener("visibilitychange",()=>{
 /* host doesn't receive room_members realtime pushes (no membership row / RLS),
    so poll the roster as a fallback. also: everyone polls room status so a
    suitor knows when the host ended the show. */
-let HOST_POLL=null, HOST_LAST_SEEN=0, HOST_BEAT=null;
+let HOST_POLL=null, HOST_BEAT=null;
+/* ============ HOST GONE (fix/rehearsal-1009, anomaly 1) ============
+   The 10/9 rehearsal: her phone died and the chairs watched a frozen face
+   and a 0:00 clock for two minutes, told nothing, until the server ended the
+   room.  Now:
+     - she beats host_seen_at every HOST_BEAT_MS (was 25s — too slow to say
+       anything inside 15s);
+     - a guest that has READ her row and seen the beat unchanged for
+       HOST_QUIET_MS shows "The host lost connection, hang tight";
+     - the next changed beat clears it (she came back);
+     - the server still owns the ending (HOST_STALE_MS, RULING 10/8) and the
+       ending is a "The host left. Show's over." card (renderHostLeft).
+   Timed on THIS phone's clock between reads, never by comparing her
+   timestamp with ours — two phones' clocks disagree, the beat's CHANGE
+   doesn't.  And only a successful read counts: a guest who can't reach the
+   server can't say the host is gone. */
+const HOST_BEAT_MS=5000;
+const HOST_QUIET_MS=15000;
+let HOST_BEAT_VAL=null, HOST_BEAT_LOCAL=0, HOST_READ_OK=0;
+function hostBeatReset(){ HOST_BEAT_VAL=null; HOST_BEAT_LOCAL=Date.now(); HOST_READ_OK=0; hostQuietShow(false); }
+function hostBeatObserve(rm){
+  if(!rm || AMHOST || !CURRENT_ROOM || rm.id!==CURRENT_ROOM.id) return;
+  HOST_READ_OK=Date.now();
+  const v=rm.host_seen_at||null;
+  if(v!==HOST_BEAT_VAL){ HOST_BEAT_VAL=v; HOST_BEAT_LOCAL=HOST_READ_OK; hostQuietShow(false); }
+  hostQuietCheck();
+}
+function hostQuietCheck(){
+  if(AMHOST || !CURRENT_ROOM || ROOM_OVER===CURRENT_ROOM.id){ hostQuietShow(false); return; }
+  hostQuietShow(!!HOST_READ_OK && HOST_READ_OK-HOST_BEAT_LOCAL>=HOST_QUIET_MS);
+}
+function hostQuietShow(on){
+  const el=document.getElementById("rt_hostgone"); if(!el) return;
+  if(el.hidden===!on) return;
+  el.hidden=!on;
+  if(on) console.log("[room] host beat quiet "+Math.round((HOST_READ_OK-HOST_BEAT_LOCAL)/1000)+"s — notice up");
+}
+
+/* ============ ROOM OVER (fix/rehearsal-1009, anomalies 2 + 3) ============
+   Once this window has folded a room's ending, NOTHING reads that room
+   again.  A guest cannot read an ended room at all (RLS select_live: live
+   rows, or your own) — the 10/9 guests polled it every 4s and got a 406
+   every time, forever.  roomOverQuiet stops every poll the moment the
+   ending is known; roomOverClose also drops the realtime channel and the
+   call once the card that ends the night is up.  The host and the winner
+   keep the channel and call while their winner card can still lead
+   backstage (BS_ROOM rides both); leaveRoom tears those down. */
+let ROOM_OVER=null;   // id of the room whose ending this window has folded
+function egStopTicks(){ clearInterval(EG_TICK); EG_TICK=null; try{ egStopTallyPoll(); }catch(e){} }
+function roomOverQuiet(){
+  if(!CURRENT_ROOM || ROOM_OVER===CURRENT_ROOM.id) return;
+  ROOM_OVER=CURRENT_ROOM.id;
+  CURRENT_ROOM.status="ended";   // what we know — the row itself may be unreadable now
+  hostQuietShow(false);
+  for(const stop of [stopHeartbeat,stopHostPoll,stopClockTick,egStopTicks]){
+    try{ stop(); }catch(e){ console.log("roomOverQuiet: teardown threw:",String((e&&e.message)||e)); }
+  }
+}
+function roomOverClose(){
+  roomOverQuiet();
+  if(ROOM_CHANNEL){ try{ sb.removeChannel(ROOM_CHANNEL); }catch(e){} ROOM_CHANNEL=null; }
+  try{ videoLeave().catch(()=>{}); }catch(e){}
+}
+/* the end-of-show surfaces belong to ONE room (anomaly 2: the 10/9 rerun's
+   WALKED ALONE / IT'S … card from the last show sat over the next one).
+   Wiped on every leave and every join, with the photo wait's timer — a
+   timer that outlives its room renders its card into the next one. */
+function endScreensClear(){
+  AWAITING_PHOTO=false; clearTimeout(PHOTO_TIMER); PHOTO_TIMER=null;
+  WINNER_PHOTO=null; PHOTO_WAIT_WINNER=null; PHOTO_WAIT_UNTIL=0; FINALE_BOARD=false;
+  try{ const f=$("finale"); f.classList.remove("show"); delete f.dataset.room; $("finale_inner").innerHTML=""; }catch(e){}
+  try{ $("snap").classList.remove("show"); }catch(e){}
+  try{ lcBeatClearAll(); }catch(e){}
+  hostQuietShow(false);
+}
 function startHostBeat(){
   stopHostBeat();
-  const beat=()=>{ if(CURRENT_ROOM && AMHOST) sb.from("rooms").update({host_seen_at:new Date().toISOString()}).eq("id",CURRENT_ROOM.id).eq("host_id",ME.id).then(()=>{}); };
-  beat(); HOST_BEAT=setInterval(beat,25000);
+  /* stamped in SERVER time (serverNow), not this phone's clock: the server
+     ends the room when this stamp is HOST_STALE_MS older than ITS now(), so a
+     phone running two minutes slow would have had its own live show ended
+     under it.  Surfaced when the beat went from 25s to 5s (fix/rehearsal-1009)
+     and the battery's server-clock jumps started ending live rooms. */
+  const beat=()=>{ if(CURRENT_ROOM && AMHOST) sb.from("rooms").update({host_seen_at:new Date(serverNow()).toISOString()}).eq("id",CURRENT_ROOM.id).eq("host_id",ME.id).then(()=>{}); };
+  beat(); HOST_BEAT=setInterval(beat,HOST_BEAT_MS);
 }
 function stopHostBeat(){ clearInterval(HOST_BEAT); HOST_BEAT=null; }
 function startHostPoll(){
   stopHostPoll();
   if(AMHOST) startHostBeat();
-  HOST_LAST_SEEN=Date.now();  // grace period from entry
   HOST_POLL=setInterval(async()=>{
     if(!CURRENT_ROOM) return;
     if(AMHOST && EG_ON && CURRENT_ROOM){
@@ -4468,26 +4561,13 @@ function startHostPoll(){
     }
     // presence rides the poll itself: a running client is a live client
     if(!AMHOST) sb.rpc("heartbeat",{room_id:CURRENT_ROOM.id}).then(()=>{},()=>{});
-    // non-hosts: if the host has vanished from the video call for ~80s while the
-    // room still claims to be live, call it — the show can't outlive its host.
-    if(!AMHOST && DAILY && DAILY_JOINED){
-      const parts=Object.values(DAILY.participants?.()||{});
-      const hostHere=parts.some(pp=>pp.user_name===CURRENT_ROOM.host_id);
-      if(hostHere){ HOST_LAST_SEEN=Date.now(); }
-      else if(HOST_LAST_SEEN && Date.now()-HOST_LAST_SEEN>80000){
-        HOST_LAST_SEEN=0;
-        // wave 8 (d2): an ENDED show is a finale, not a vanished host — the
-        // live spectator got ejected to a bare lobby with no winner card
-        // because this branch never asked the rooms row first.
-        try{
-          const {data:rm}=await sb.from("rooms").select("*").eq("id",CURRENT_ROOM.id).single();
-          if(rm && rm.status==="ended"){ roomEndedUnderUs(rm); return; }
-        }catch(e){}
-        toast("The host left — that's the show. 🌙");
-        leaveRoom();
-        return;
-      }
-    }
+    /* The 80s "host left the video call" watchdog that stood here is gone
+       (fix/rehearsal-1009).  It ejected a guest to the lobby with a toast
+       at 80s — before the server's 120s ending, and with no way for her to
+       come back to him.  Her absence is told by the beat (hostQuietCheck)
+       and ended by the server (HOST_STALE_MS), one number, as RULING 10/8
+       has it. */
+    if(!AMHOST) hostQuietCheck();
     // everyone: reconcile the FULL room truth (phase, spotlight, deadline,
     // status) and replay any events the socket dropped — the live run
     // proved status-only polling strands lurking clients mid-show
@@ -4504,6 +4584,7 @@ function startHostPoll(){
 let FINALE_BOARD=false;   // #finale is currently the host's LAST CALL board, not the closing screen
 function showEnded(rm, explicit){
   if(!CURRENT_ROOM) return;
+  roomOverQuiet();   // anomaly 3: the moment the ending is known, nothing polls the room again
   if(window.__ENDED_HANDLED===CURRENT_ROOM.id) return;
   if(AWAITING_PHOTO){
     // the poll is the photo wait's second truth channel: if the timeout is
@@ -4519,13 +4600,48 @@ function showEnded(rm, explicit){
   const w=(rm && rm.winner_id!=null) ? rm.winner_id : null;
   if(w===ME.id){ startWinnerSnap(w); return; }   // the winner gets the ceremony on EVERY channel
   if(w){ enterPhotoWait(w); return; }
-  // no winner: an explicit walk gets the WALKED ALONE board; a vanished
-  // host gets the plain goodbye
-  if(explicit){ renderFinale(null); return; }
-  if(typeof beatAlone==="function") beatAlone(); else toast("The host ended the show 🌙");
-  leaveRoom();
+  // no winner: an explicit walk gets the WALKED ALONE board; a host the
+  // server ended for being gone — or an ending nobody explained — gets
+  // "The host left. Show's over." (fix/rehearsal-1009: the 10/9 guests got
+  // WALKED ALONE for a dead phone, and before that a toast and a bare lobby)
+  if(explicit && !(rm && rm.by==="stale_host")){ renderFinale(null); roomOverClose(); return; }
+  renderHostLeft(); roomOverClose();
 }
-function roomEndedUnderUs(rm){ showEnded(rm, false); }
+/* the ROOM ROW says it ended (host: realtime or her poll), or it can no
+   longer be read at all (guest: RLS hides ended rooms — the 406).  Either
+   way, ask the ledger WHY before choosing the card: end_room writes one
+   finale row with winner_id and by. */
+async function roomEndedUnderUs(rm){
+  if(!CURRENT_ROOM) return;
+  const room=CURRENT_ROOM;
+  roomOverQuiet();
+  let fin=null;
+  try{
+    const {data}=await sb.from("room_events").select("*").eq("room_id",room.id).eq("type","finale")
+      .order("created_at",{ascending:false}).limit(1);
+    fin=(data||[])[0]||null;
+  }catch(e){}
+  if(CURRENT_ROOM!==room) return;   // left (or moved on) while we asked
+  if(fin) evMark(fin);              // the realtime copy, if it comes, is the same ending
+  const fp=(fin&&fin.payload)||{};
+  const w=(rm&&rm.winner_id!=null) ? rm.winner_id : (fp.winner_id!=null ? fp.winner_id : null);
+  showEnded({winner_id:w, by:fp.by||null}, !!fin && fp.by!=="stale_host");
+}
+/* "The host left. Show's over." — the ending for a host who did not end it
+   herself (fix/rehearsal-1009).  The host's own phone, if it comes back to
+   a room the server ended, is told the same thing in her words. */
+function renderHostLeft(){
+  if(!CURRENT_ROOM) return;
+  try{ if($("backstage").classList.contains("show")) return; }catch(e){}
+  lcBeatClearAll();
+  FINALE_BOARD=false;
+  const mine=CURRENT_ROOM.host_id===ME.id;
+  $("finale_inner").innerHTML=`<h1>${mine?"YOU WERE GONE TOO LONG":"THE HOST LEFT"}</h1>
+      <div class="fsub">${mine?"Your connection dropped and the show ended without you.":"The host left. Show\u2019s over."}</div>
+      <button class="fbtn gold" id="fin_done" style="margin-top:16px">Back to lobby</button>`;
+  const f=$("finale"); f.dataset.room=CURRENT_ROOM.id; f.classList.add("show");
+  $("fin_done").onclick=()=>{ $("finale").classList.remove("show"); leaveRoom(); };
+}
 function stopHostPoll(){
   stopHostBeat(); if(HOST_POLL){clearInterval(HOST_POLL);HOST_POLL=null;} }
 
@@ -4685,7 +4801,13 @@ function lcMountDraft(){
 let EG_DRAFT=null, EG_TALLYPOLL=null, EG_MYHEARTS=0;
 
 // section lengths from the pacing spec (Nick, 8/5) — used when the server
-// sends no phase_deadline, so the pill always carries a countdown
+// sends no phase_deadline, so the pill always carries a countdown.
+// DELIBERATION IS 60 (RULING 10/15).  The 10/9 rehearsal ran it at 90: the
+// server's advance_phase stamps the deadline when the open floor ends, and
+// with a server deadline this 60 is never consulted.  The server's number
+// becomes lc_deliberation_secs() (PENDING DDL tools/DDL-deliberation-60.sql)
+// and lc_config hands it here — this literal is the fallback, not a second
+// source.
 const LC_SECTION_SECS={showstart:6,spotlight:30,openfloor:45,mingle:45,deliberation:60,deciding:60};
 /* post-pass host-pick window: its OWN clock, never the dregs of the deciding
    section.  20s sits on the pacing spec's scale (beats are 0.8–2s, the short
@@ -4728,7 +4850,7 @@ function egSkipShow(on){
 }
 
 async function egRefreshRoom(){
-  if(!CURRENT_ROOM) return;
+  if(!CURRENT_ROOM || ROOM_OVER===CURRENT_ROOM.id) return;   // fix/rehearsal-1009: never read an ended room
   const {data}=await sb.from("rooms").select("*").eq("id",CURRENT_ROOM.id).single();
   if(data){ CURRENT_ROOM={...CURRENT_ROOM,...data}; egApply(); }
 }
@@ -5645,15 +5767,24 @@ function evMark(ev){
     if(EV_SEEN.size>800){ const it=EV_SEEN.values(); for(let i=0;i<200;i++) EV_SEEN.delete(it.next().value); } }
   if(ev.created_at && (!EV_CURSOR || ev.created_at>EV_CURSOR)) EV_CURSOR=ev.created_at;
 }
+/* PostgREST's answer when .single() finds no row: 406, PGRST116.  For a
+   room we were just in, that is RLS saying it is no longer live — the row
+   still exists, it has ENDED, and only its host may read it now. */
+function roomRowGone(err){
+  return !!err && (err.code==="PGRST116" || /multiple \(or no\) rows|contains 0 rows/i.test(String(err.message||"")+" "+String(err.details||"")));
+}
 async function syncRoomTruth(){
-  if(!CURRENT_ROOM) return;
+  if(!CURRENT_ROOM || ROOM_OVER===CURRENT_ROOM.id) return;   // an ended room is never read again
+  const id=CURRENT_ROOM.id;
   try{
-    const {data:rm}=await sb.from("rooms").select("*").eq("id",CURRENT_ROOM.id).single();
+    const {data:rm,error:rmErr}=await sb.from("rooms").select("*").eq("id",id).single();
+    if(!CURRENT_ROOM || CURRENT_ROOM.id!==id || ROOM_OVER===id) return;
     if(rm){
       if(rm.status==="ended"){ roomEndedUnderUs(rm); return; }
       CURRENT_ROOM={...CURRENT_ROOM,...rm};
+      hostBeatObserve(rm);
       egApply(); renderRoom();
-    }
+    } else if(roomRowGone(rmErr)){ roomEndedUnderUs(null); return; }
     if(EV_CURSOR){
       const {data:evs}=await sb.from("room_events").select("*")
         .eq("room_id",CURRENT_ROOM.id).gt("created_at",EV_CURSOR)
@@ -5755,7 +5886,9 @@ function handleEvent(ev){
       break;
     case "finale": {
       const w=(p.winner_id!==undefined && p.winner_id!==null) ? p.winner_id : null;
-      showEnded({winner_id:w}, /*explicit walk/keep*/true);
+      // by: 'host' (her LAST CALL / walk / leaving) or 'stale_host' (the server
+      // ended it because she was gone HOST_STALE_MS) — end_room's ledger
+      showEnded({winner_id:w, by:p.by||null}, /*explicit walk/keep*/p.by!=="stale_host");
       break; }
     case "winner_photo":
       WINNER_PHOTO=p.photo||null;
@@ -5925,8 +6058,14 @@ function renderFinale(winnerUid){
       </div>
       <button class="fbtn gold" id="fin_done" style="margin-top:16px">Back to lobby</button>`;
   }
+  $("finale").dataset.room=CURRENT_ROOM?CURRENT_ROOM.id:"";
   $("finale").classList.add("show");
   $("fin_done").onclick=()=>{ $("finale").classList.remove("show"); leaveRoom(); };
+  // the night is over for anyone this card doesn't lead backstage: the
+  // room's channel and call go now (anomaly 3); host and winner keep both
+  // for the Winner's Room until they leave
+  if(ROOM_OVER && CURRENT_ROOM && ROOM_OVER===CURRENT_ROOM.id &&
+     !(winnerUid && (winnerUid===ME.id || CURRENT_ROOM.host_id===ME.id))) roomOverClose();
 }
 
 /* ============ WINNER SNAPSHOT — the freeze-frame ending ============ */
@@ -6436,6 +6575,7 @@ function subscribeRoom(roomId){
       if(rm.status==="ended"){ roomEndedUnderUs(rm); return; }
       // phase / spotlight / promotion changes land instantly instead of on the 4s poll
       CURRENT_ROOM=Object.assign({},CURRENT_ROOM,rm);
+      hostBeatObserve(rm);
       if(typeof egRefreshRoom==="function") egRefreshRoom();
       renderRoom();
     })
@@ -6650,6 +6790,8 @@ async function leaveRoom(){
   window.__SEAT_FOLDED={}; window.__SEATED_UIDS={}; ROSTER_FAILS=0; ROSTER_PATCHES={};
   window.__ENDED_HANDLED=null; FINALE_BOARD=false; EV_CURSOR=null;
   window.__AUTOQ=false; window.__SPLASH_ADV=false;
+  endScreensClear();     // anomaly 2: this room's end card and photo-wait timer die with it
+  try{ egStopTicks(); }catch(e){}
   LC_BEATQ=[]; LC_BEATING=false;
   try{ document.querySelectorAll("#room .lc-beat").forEach(el=>el.remove());
        $("room").classList.remove("beat-hold","ask-urgent"); }catch(e){}
@@ -6679,7 +6821,7 @@ async function leaveRoom(){
       if(error) console.log("leave_room:",error.message);
     }
   }
-  CURRENT_ROOM=null;
+  CURRENT_ROOM=null; ROOM_OVER=null;
   $("room").classList.remove("show");
   $("lobby").style.display="block";
   loadRooms();
@@ -9561,20 +9703,15 @@ window.__lc = {
   get ME(){ return ME; },
   get MYPROFILE(){ return MYPROFILE; },
   get AMHOST(){ return AMHOST; },
-  /* THE WATCHDOG'S CLOCK, READABLE AND SETTABLE.
-     The host-left watchdog fires on Date.now()-HOST_LAST_SEEN>80000.  While
-     this was a module-local `let`, no gate could reach it: the only ways to
-     test the branch were to burn eighty-plus real seconds of battery time or
-     to grep index.html for the identifiers inside it — and gate 39's d2 did
-     the latter, which proves two strings exist in a file and nothing about
-     what the app does.  That is the structural rule one level over: the
-     battery already forbids a gate from reimplementing a FUNCTION it cannot
-     reach, and the same has to hold for STATE, or gates quietly downgrade to
-     source greps while the check count keeps climbing.
-     The setter is the whole point — a gate ages the clock, and the real
-     watchdog runs against real rows. */
-  get HOST_LAST_SEEN(){ return HOST_LAST_SEEN; },
-  set HOST_LAST_SEEN(v){ HOST_LAST_SEEN=v; },
+  /* THE HOST-GONE CLOCK, READABLE AND SETTABLE (fix/rehearsal-1009).  The
+     80s video watchdog this replaced was exported the same way and for the
+     same reason: state a gate cannot reach turns gates into source greps.
+     HOST_BEAT_LOCAL is when this phone last saw her beat CHANGE. */
+  get HOST_BEAT_LOCAL(){ return HOST_BEAT_LOCAL; },
+  set HOST_BEAT_LOCAL(v){ HOST_BEAT_LOCAL=v; },
+  get HOST_QUIET_MS(){ return HOST_QUIET_MS; }, get HOST_BEAT_MS(){ return HOST_BEAT_MS; }, get HOST_READ_OK(){ return HOST_READ_OK; },
+  get ROOM_OVER(){ return ROOM_OVER; },
+  hostQuietCheck, roomOverQuiet, roomOverClose, endScreensClear, renderHostLeft,
   get CURRENT_ROOM(){ return CURRENT_ROOM; },
   get ROOM_STATE(){ return ROOM_STATE; },
   get VIDEO_TILES(){ return VIDEO_TILES; },

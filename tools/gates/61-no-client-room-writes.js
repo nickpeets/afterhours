@@ -82,8 +82,10 @@ module.exports = {
        stubborn fallback behind end_show) stays, logged not fixed. */
     t.ok((html.match(/sb\.from\("rooms"\)\.update\(\{status:"ended"\}\)/g) || []).length === 1,
       "exactly ONE status:'ended' raw write remains (hostEndRoom's fallback); the openRoom janitor is gone");
-    t.ok(/sb\.from\("rooms"\)\.update\(\{host_seen_at:new Date\(\)\.toISOString\(\)\}\)/.test(html),
-      "...and the host_seen_at heartbeat raw write is UNTOUCHED for the same reason");
+    /* fix/rehearsal-1009: the beat is still the same raw host write, now
+       stamped in server time (serverNow) and every 5s — still logged, not moved */
+    t.ok(/sb\.from\("rooms"\)\.update\(\{host_seen_at:new Date\(serverNow\(\)\)\.toISOString\(\)\}\)/.test(html),
+      "...and the host_seen_at heartbeat raw write is still a raw host write, for the same reason");
 
     // scope: prove the four-function trail doesn't quietly widen — exactly
     // two sb.from("rooms").update( call sites should remain in source (was three before RULING 10/8)

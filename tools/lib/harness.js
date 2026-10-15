@@ -245,6 +245,7 @@ class Harness {
     this.double.onChange((evt) => {
       for (const c of this.clients) {
         if (this.mutedRealtime.has(c.name)) continue;   // prod fidelity: this client folds via the truth poll only
+        if (!this.double.realtimeVisible(c.name, evt)) continue;   // prod fidelity: realtime obeys the row's SELECT policy
         c.page.evaluate((e) => { if (window.__realtimePush) window.__realtimePush(e); }, evt).catch(() => {});
       }
     });

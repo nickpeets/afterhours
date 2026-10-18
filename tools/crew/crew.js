@@ -7,6 +7,11 @@
  *   node tools/crew/crew.js --room <link|id>   join that room (any text holding its id)
  *   node tools/crew/crew.js --scenario crown   a scripted pass (see README.md)
  *   node tools/crew/crew.js --scenario combos  the PR C selftest, with Nick hosting (selftest.js)
+ *   node tools/crew/crew.js --scenario looks   a looks rehearsal: try on, wear, tomatoes, rose, the ask (looks.js)
+ *   node tools/crew/crew.js --faces            each bot's camera is a looping clip of a real person (cast.js;
+ *                                              INTERNAL REHEARSAL ONLY — never in anything public)
+ *   node tools/crew/crew.js --camkit           load the site with ?camkit, so the lens looks are on the rack
+ *   node tools/crew/crew.js --snap-terms agree let a lens wearer accept Snap's terms dialog for the crew
  *   node tools/crew/crew.js --check            sign each bot in and set its profile, then stop
  *   node tools/crew/crew.js --login "Crowd C"  a visible browser on the rehearsal desktop, so
  *                                              Nick signs that bot in by hand, once
@@ -34,7 +39,7 @@
  */
 "use strict";
 
-const { CAST, slug, cameraScript } = require("./cast");
+const { CAST, slug, cameraScript, faceFile, facePath } = require("./cast");
 const { parseOrder, HELP } = require("./orders");
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -116,6 +121,33 @@ const PAGE = `window.__crew = {
   },
   serverIso(){ try{ return new Date(serverNow()).toISOString(); }catch(e){ return new Date().toISOString(); } },
   benchTap(){ const b=document.getElementById("rt_joinline"); if(!b) return "no bench button"; b.click(); return null; },
+  /* the tray (feat/crew-faces, --scenario looks): the rack this page can
+     name, TAP TO TRY / Cancel / WEAR IT through the app's own doors
+     (lookTry never publishes; lookWear is the one door to set_filter), and
+     a readout of what his row, his trial and his pipeline say */
+  looks(){ return filterLooks().map(l=>({ id:l.id, name:l.name, kind:l.kind||"2d", tab:l.tab })); },
+  async tryLook(id){ return await window.__lc.lookTry(id); },
+  cancelTry(){ return window.__lc.lookTryCancel(); },
+  async wearLook(id){ const t=await window.__lc.lookTry(id); if(!t.ok) return t; return await window.__lc.lookWear(); },
+  lookState(){
+    const row=ME?filterRowOf(ME.id):null, K=window.__lc.CAMKIT_STATE||{};
+    return { row:row?{ filter:row.filter||null, filter_pick:row.filter_pick||null, role:row.role }:null,
+      tryon:window.__lc.TRYON_STATE, bar:(document.getElementById("rt_shelftryt")||{}).textContent||"",
+      F:window.__lc.FILTER_STATE, asked:filterAmAsked(), terms:K.on?K.terms:null,
+      face:(window.__crewCard&&window.__crewCard.faceState)||null };
+  },
+  tileOf(uid){
+    const el=[0,1,2].map(i=>document.getElementById("rt_seat"+i)).find(e=>e&&e.dataset.heartuid===uid); if(!el) return null;
+    return { cracks:Number(el.dataset.cracks||0), shattered:el.classList.contains("is-shattered"), hasFilter:el.classList.contains("has-filter") };
+  },
+  /* Snap's terms (a lens look, first time on this profile): the SDK's own
+     dialog.  Only clicked when the crew was started with --snap-terms agree. */
+  snapTerms(agree){
+    const el=document.querySelector('[data-testid="tos-dialog"]'); if(!el) return null;
+    const root=el.shadowRoot||el; const btns=[...root.querySelectorAll("button")];
+    const b=btns.find(x=>/agree/i.test(x.textContent||"")); if(!agree) return "open";
+    if(b){ b.click(); return "agreed"; } return "open";
+  },
   async leave(){ try{ if(CURRENT_ROOM) await window.__lc.leaveRoom(); }catch(e){} return null; },
   async endRoom(id){ try{ await window.__lc.hostEndRoom(id); return null; }catch(e){ return String((e&&e.message)||e); } },
 };`;
@@ -134,9 +166,10 @@ const EMOJI = { tomato: "🍅", pie: "🥧", boo: "👻", cricket: "🦗", petal
 /* ---------- the crew ---------- */
 class Crew {
   /* bots: [{ spec (a CAST row), page, close() }] — already signed in and booted */
-  constructor({ bots, roomId, scenario = null, log = console.log, tickMs = 1000 }) {
+  constructor({ bots, roomId, scenario = null, log = console.log, tickMs = 1000, snapTerms = null, beatMs = undefined }) {
     this.bots = bots.map((b) => ({ ...b, uid: null, role: null, parked: false, benchAt: 0, st: null }));
     this.roomId = roomId; this.scenario = scenario; this.log = log; this.tickMs = tickMs;
+    this.snapTerms = snapTerms; this.beatMs = beatMs;   // --snap-terms agree; the looks scenario's pause between beats
     this.cursor = null; this.seen = new Set(); this.rr = 0; this.step = 0;
     this.stopped = false; this.reason = null;
     this.done = new Promise((r) => { this._resolve = r; });
@@ -208,6 +241,16 @@ class Crew {
       this.selftest = require("./selftest").runCombos(this)
         .then((r) => { this.selftestResult = r; })
         .catch((e) => { this.log("  selftest crashed: " + String((e && e.message) || e)); this.selftestResult = { crashed: String(e) }; });
+    }
+    if (this.scenario === "looks" && !this.looks) {
+      this.looks = require("./looks").runLooks(this, { beatMs: this.beatMs })
+        .then((r) => { this.looksResult = r; })
+        .catch((e) => { this.log("  looks crashed: " + String((e && e.message) || e)); this.looksResult = { crashed: String(e) }; });
+    }
+    // Snap's terms dialog on a lens wearer: reported once; clicked only with --snap-terms agree
+    for (const b of this.bots) {
+      const r = await this.ev(b, "snapTerms", this.snapTerms === "agree").catch(() => null);
+      if (r && r !== b.termsSeen) { b.termsSeen = r; this.log(`  ${b.spec.name}: Snap's terms dialog ${r === "agreed" ? "— agreed (--snap-terms agree)" : "is up (pass --snap-terms agree to accept it for the crew)"}`); }
     }
   }
 
@@ -362,8 +405,25 @@ function profileFor(spec) {
 
 /* one bot: its rehearsal profile if it has one, else a fresh context and
    the secrets.  Returns null (and says why) when it can't sign in. */
-async function launchBot(chromium, exe, site, spec, log) {
+/* --faces: answer the bot's same-origin clip URL from the file on disk, so
+   the clip never leaves the machine and the site never sees it (cast.js).
+   Shared with the gate, which routes it onto a harness client. */
+function serveFace(context, spec, file) {
+  const path = facePath(spec);
+  return context.route((url) => new URL(url).pathname === path, (route) => route.fulfill({ status: 200, contentType: "video/webm", headers: { "cache-control": "no-store" }, path: file }));
+}
+/* which clip a bot wears: its file when --faces and it exists, else null
+   (the card) — and the crew says which, once per bot */
+function faceFor(spec, faces, log) {
+  if (!faces) return null;
+  const file = faceFile(spec);
+  if (!fs.existsSync(file)) { log(`  ${spec.name}: no face clip at ${file} — wearing the card (tools/crew/faces/fetch.sh)`); return null; }
+  return file;
+}
+
+async function launchBot(chromium, exe, site, spec, log, { faces = false } = {}) {
   const dir = profileDir(spec), haveDir = fs.existsSync(dir);
+  const face = faceFor(spec, faces, log);
   const { email, pass } = credsFor(spec);
   let context, browser = null;
   if (haveDir) context = await chromium.launchPersistentContext(dir, { executablePath: exe, headless: true, args: ARGS, ...VIEW });
@@ -371,7 +431,8 @@ async function launchBot(chromium, exe, site, spec, log) {
   else { log(`  ${spec.name}: no profile-${spec.profile} and no secrets — sits out (tools/crew/crew --login "${spec.name}")`); return null; }
   const close = async () => { try { await context.close(); } catch (e) {} if (browser) await browser.close().catch(() => {}); };
   try {
-    await context.addInitScript(cameraScript(spec));
+    if (face) await serveFace(context, spec, face);
+    await context.addInitScript(cameraScript(spec, face ? facePath(spec) : null));   // INTERNAL REHEARSAL ONLY: a face is never public (cast.js)
     await context.addInitScript(PAGE);
     const page = context.pages()[0] || await context.newPage();
     page.on("pageerror", (e) => log(`  ${spec.name} page error: ${String(e && e.message || e).slice(0, 160)}`));
@@ -386,6 +447,11 @@ async function launchBot(chromium, exe, site, spec, log) {
     if (perr) log(`  ${spec.name}: profile not saved (${perr})`);
     await page.reload({ waitUntil: "load" });
     await page.waitForFunction(() => window.__crew && window.__crew.booted(), null, { timeout: 30000 });
+    if (face) {
+      const st = await page.waitForFunction(() => window.__crewCard && window.__crewCard.faceState !== "loading", null, { timeout: 15000 })
+        .then(() => page.evaluate(() => window.__crewCard.faceState)).catch(() => "loading");
+      log(`  ${spec.name}: face ${st === "playing" ? "clip playing (" + require("path").basename(face) + ")" : st + " — wearing the card"}`);
+    }
     return { spec, page, close };
   } catch (e) {
     log(`  ${spec.name}: couldn't start (${String((e && e.message) || e).split("\n")[0].slice(0, 160)}) — sits out`);
@@ -447,6 +513,10 @@ function parseArgs(argv) {
     else if (a === "--host") o.host = v();
     else if (a === "--scenario") o.scenario = v();
     else if (a === "--site") o.site = v();
+    else if (a === "--faces") o.faces = true;
+    else if (a === "--camkit") o.camkit = true;
+    else if (a === "--snap-terms") o.snapTerms = v();
+    else if (a === "--beat") o.beatMs = Math.max(0, parseInt(v(), 10) || 0);
     else if (a === "--check") o.check = true;
     else if (a === "--login") o.login = v();
     else if (a === "--only") o.only = v().split(",").map((s) => s.trim().toLowerCase());
@@ -458,8 +528,10 @@ function parseArgs(argv) {
 
 async function main() {
   const o = parseArgs(process.argv.slice(2));
-  if (o.help) { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(1, 12).join("\n")); return; }
-  if (o.scenario && !["crown", "combos"].includes(o.scenario)) throw new Error("unknown scenario " + o.scenario + " (known: crown, combos)");
+  if (o.help) { console.log(fs.readFileSync(__filename, "utf8").split("\n").slice(1, 18).join("\n")); return; }
+  if (o.scenario && !["crown", "combos", "looks"].includes(o.scenario)) throw new Error("unknown scenario " + o.scenario + " (known: crown, combos, looks)");
+  if (o.snapTerms && o.snapTerms !== "agree") throw new Error("--snap-terms takes 'agree'");
+  if (o.camkit) { const u = new URL(o.site); u.searchParams.set("camkit", ""); o.site = u.toString().replace("camkit=", "camkit"); }
   const { chromium } = require("playwright-core");
   const { resolveChromium } = require("../lib/harness");
   const exe = resolveChromium();
@@ -470,12 +542,13 @@ async function main() {
   const bots = [];
   try {
     log(`crew → ${o.site}`);
-    for (const spec of cast) { const b = await launchBot(chromium, exe.path, o.site, spec, log); if (b) { bots.push(b); log(`  ${spec.name} signed in`); } }
+    if (o.faces) log(`  faces: ${process.env.CREW_FACES || "/workspaces/rehearsal/faces"} — internal rehearsal only, never public`);
+    for (const spec of cast) { const b = await launchBot(chromium, exe.path, o.site, spec, log, { faces: !!o.faces }); if (b) { bots.push(b); log(`  ${spec.name} signed in`); } }
     if (!bots.length) throw new Error("no bot could sign in");
     if (o.check) { log(`check: ${bots.length} of ${cast.length} bots signed in and named`); return; }
     const room = await pickRoom(bots[0].page, o);
     log(`room: ${room.host || "?"} — ${room.title || ""} (${room.id})`);
-    const crew = new Crew({ bots, roomId: room.id, scenario: o.scenario || null, log });
+    const crew = new Crew({ bots, roomId: room.id, scenario: o.scenario || null, log, snapTerms: o.snapTerms || null, beatMs: o.beatMs });
     const stop = () => crew.finish("stopped from the terminal");
     process.once("SIGINT", stop); process.once("SIGTERM", stop);
     await crew.start();
@@ -487,7 +560,7 @@ async function main() {
   }
 }
 
-module.exports = { Crew, PAGE, findPerson, pickRoom, credsFor };
+module.exports = { Crew, PAGE, findPerson, pickRoom, credsFor, serveFace };
 
 if (require.main === module) {
   main().then(() => process.exit(0), (e) => { console.error("crew: " + String((e && e.message) || e)); process.exit(1); });

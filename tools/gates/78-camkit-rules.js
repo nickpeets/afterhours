@@ -143,6 +143,8 @@ module.exports = {
         const b = document.querySelector('#rt_shelfrack .lc-shelf__tile[data-look="' + look + '"]');
         if (!b) return { found: false };
         const amber = b.classList.contains("is-amber"); b.click();
+        // (feat/looks-v2 PR A) a tap is TAP TO TRY; WEAR IT is the pick — gate 92 proves the trial, this gate picks the way a person does
+        document.getElementById("rt_shelfwear").click();
         return { found: true, amber };
       }, look);
 

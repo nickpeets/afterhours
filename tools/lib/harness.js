@@ -221,6 +221,7 @@ class Harness {
     this.executablePath = executablePath;
     this.double = new BackendDouble();
     this.clients = [];
+    this.htmlOverrides = new Map();   // client name -> mutated index.html (gate 92)
     this.unexpectedRequests = [];
     /* every request for the Camera Kit SDK module, by client — "inert" is the
        claim that this stays EMPTY, and "lazy" that it stays empty until a
@@ -271,7 +272,15 @@ class Harness {
     return new Harness(browser, executablePath);
   }
 
-  async newClient(name, opts = {}) {
+  /* MUTATION TESTING (feat/looks-v2 PR A, gate 92).  A gate that claims to
+     prove a rule must be shown to FAIL when the rule is broken, or it proves
+     nothing — so a client may be served a MUTATED index.html (the gate
+     edits one line of the real page) in place of the file on disk.  Only
+     that client sees it; every other window loads the real file.  Nothing
+     else about the harness changes — the mutant is driven through the same
+     shims, the same double, the same __lc. */
+  async newClient(name, { html, ...opts } = {}) {
+    if (html) this.htmlOverrides.set(name, html);
     const context = await this.browser.newContext({
       viewport: { width: 390, height: 844 },   // iPhone-ish: the product's home form factor
       permissions: ["camera", "microphone"],
@@ -305,6 +314,8 @@ class Harness {
     };
     if (url.startsWith(ORIGIN)) {
       const rel = new URL(url).pathname.replace(/^\//, "") || "index.html";
+      if (rel === "index.html" && this.htmlOverrides.has(_clientName))
+        return route.fulfill({ status: 200, contentType: "text/html", body: this.htmlOverrides.get(_clientName) });
       return serveFile(rel);
     }
     if (url.startsWith("https://cdn.jsdelivr.net/npm/@supabase/supabase-js"))

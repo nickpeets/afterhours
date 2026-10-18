@@ -204,8 +204,15 @@ module.exports = {
       t.ok((await A.page.evaluate(DIALOG)).open === false && (await A.page.evaluate(PIPE)).swaps === 0, "the dialog is gone and the hidden session destroyed — it was never published");
 
       /* ---------- 2. pick, through the real ✦ tile ---------- */
+      /* (feat/looks-v2 PR A) a tap is TAP TO TRY — it arms a trial and picks
+         nothing; WEAR IT is the pick.  Gate 92 proves the trial itself; here
+         the pick is made the way a person makes it: tap, then WEAR IT. */
       const tap = await tapTile(A, S1);
       t.ok(tap.found && tap.amber, `u_a taps the ✦ tile for '${S1}'`);
+      await A.page.waitForTimeout(400);
+      t.ok((await A.page.evaluate(() => window.__lc.TRYON_STATE.look)) === S1 && D.memberRow(room, "u_a").filter == null,
+        `…which arms a trial of '${S1}' and picks nothing (the server row is still bare)`);
+      await A.page.evaluate(() => document.getElementById("rt_shelfwear").click());
       await waitFor(() => D.memberRow(room, "u_a").filter === S1, 5000, "the pick to land on the server");
       t.ok(D.memberRow(room, "u_a").filter_pick === S1, `the server accepts the shipped slug with no widening: filter='${S1}', filter_pick='${S1}'`);
       await waitFor(() => A.page.evaluate(LENS_UP), 10_000, "u_a's lens to go live from the field");
@@ -217,7 +224,7 @@ module.exports = {
         `still exactly ONE SDK request, the one made at the shelf — and NO dialog at the lens start: the terms were already answered (dialogs shown=${d2.shim.shown})`);
       t.ok(a2.shim.bootstraps === 1 && a2.shim.lensLoads.length === 1 && a2.shim.lensLoads[0].groupId === CAMKIT_TEST.lensGroupId && a2.shim.sessions.length === 2 && a2.shim.sessions[0].destroyed === true
           && a2.shim.sessions[1].destroyed === false && a2.shim.sessions[1].played.join(",") === "capture" && (await A.page.evaluate(() => window.__camkitControl.overlaps())) === 0,
-        "…one bootstrap, one lens fetch (the terms were asked with this same lens), and a SECOND session — the hidden one gone before it came — playing the CAPTURE target");
+        "…one bootstrap, one lens fetch (the terms were asked with this same lens), and a SECOND session — the hidden one gone before it came — playing the CAPTURE target (a lens trial opens none: PR A's lens tap has no live preview)");
       await A.page.waitForTimeout(1100);
       const dbg = await A.page.evaluate(() => { const el = document.getElementById("vfilter"); return { text: el ? el.textContent : null, frames: window.__lc.FILTER_STATE.framesDrawn }; });
       await A.page.waitForTimeout(700);
@@ -268,6 +275,8 @@ module.exports = {
       /* ---------- 6. the second look, and host force-off ---------- */
       const tapB = await tapTile(B, S2);
       t.ok(tapB.found && tapB.amber, `u_b taps the ✦ tile for '${S2}'`);
+      await waitFor(() => B.page.evaluate(() => window.__lc.TRYON_STATE.look) , 3000, "u_b's trial to arm");
+      await B.page.evaluate(() => document.getElementById("rt_shelfwear").click());
       await waitFor(() => D.memberRow(room, "u_b").filter === S2, 5000, "u_b's pick to land");
       await waitFor(() => B.page.evaluate(LENS_UP), 10_000, "u_b's lens to go live");
       const b6 = await B.page.evaluate(PIPE);

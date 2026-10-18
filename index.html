@@ -378,9 +378,25 @@
 .chair__cracks{ position:absolute; inset:0; width:100%; height:100%; z-index:3; display:none; overflow:visible; pointer-events:none; }
 .chair.has-cracks:not(.is-empty):not(.is-strip):not(.is-paired) .chair__cracks{ display:block; }
 .chair__cracks path{ fill:none; stroke-linecap:round; stroke-linejoin:round; }
-.chair__cracks .ck-dark{ stroke:rgba(6,8,24,.78); stroke-width:5; }
-.chair__cracks .ck-lite{ stroke:rgba(240,247,255,.98); stroke-width:2.2; filter:drop-shadow(0 0 3px rgba(174,247,238,.85)); }
-.chair__cracks .ck-shard{ fill:rgba(236,244,255,.16); stroke:rgba(236,244,255,.7); stroke-width:.8; }
+/* CRACKS v2 (feat/looks-v2 PR A): real glass — a radial fracture from an
+   impact point, rays + two concentric rings, a dark shadow stroke under a
+   bright one and a hairline refraction highlight offset a pixel (.ck-hi).
+   Every path is seeded from (him, which crack) and sized to the frame, so
+   two phones with the same frame draw the same pixels. */
+.chair__cracks .ck-dark{ stroke:rgba(6,8,24,.7); stroke-width:3.2; }
+.chair__cracks .ck-lite{ stroke:rgba(240,247,255,.96); stroke-width:1.3; filter:drop-shadow(0 0 2px rgba(174,247,238,.8)); }
+.chair__cracks .ck-hi{ stroke:rgba(255,255,255,.55); stroke-width:.5; }
+.chair__cracks .ck-shard{ fill:rgba(236,244,255,.18); stroke:rgba(236,244,255,.75); stroke-width:.7; transform-box:fill-box; transform-origin:center; }
+/* SHATTER: the shards fall and fade over about a second (per-shard drift and
+   spin ride custom properties the painter seeds), then the cracked frame
+   stays — the rim web and every crack, no shards.  The jolt below is kept. */
+.chair.is-shattered.shatter-now .ck-shard{ animation:lc-shard-fall 1.05s cubic-bezier(.3,.1,.7,1) 1 forwards; }
+.chair.is-shattered:not(.shatter-now) .ck-shard{ opacity:0; }
+@keyframes lc-shard-fall{ 0%{ transform:translate(0,0) rotate(0); opacity:1 } 100%{ transform:translate(var(--sx,0px),var(--sy,60px)) rotate(var(--sr,40deg)); opacity:0 } }
+/* A ROSE MEND: the crack a rose took is drawn once more as a shimmer that
+   seals it — a short bright sweep, then gone (the painter removes it). */
+.chair__cracks .ck-mend{ stroke:rgba(255,214,233,.95); stroke-width:2.4; stroke-dasharray:6 10; filter:drop-shadow(0 0 4px rgba(255,138,194,.9)); animation:lc-mend .7s ease-out 1 forwards; }
+@keyframes lc-mend{ 0%{ stroke-dashoffset:0; opacity:1 } 100%{ stroke-dashoffset:-48; opacity:0 } }
 .chair.is-shattered:not(.is-empty):not(.is-strip):not(.is-paired){
   border-color:rgba(236,244,255,.9); border-style:dashed;
   box-shadow:0 0 0 1px rgba(6,8,24,.6), 0 0 18px rgba(236,244,255,.45), inset 0 0 14px rgba(236,244,255,.25);
@@ -399,6 +415,9 @@
 @media (prefers-reduced-motion: reduce){
   .chair.is-shattered.shatter-now{ animation:none; }
   .chair.has-crown.crown-now .chair__crown{ animation:none; }
+  /* reduced motion: static crack art — no shard fall, no mend sweep */
+  .chair.is-shattered.shatter-now .ck-shard{ animation:none; opacity:.35; }
+  .chair__cracks .ck-mend{ animation:none; display:none; }
 }
 /* CROWD COMBOS AND THE REACTION WINDOW (ruling 10/11, items 3 and 4).
    All of it is drawn from his row and the rooms row: the count (throw_n),
@@ -964,10 +983,90 @@
 /* the wearer's drop — "he can also drop it early, any time, for free"; his
    only other control and it lives in the shelf, the filter's one home */
 #room .lc-shelf__drop{
-  min-height:40px; padding:0 14px; border-radius:20px; cursor:pointer;
+  min-height:44px; padding:0 14px; border-radius:22px; cursor:pointer;
   display:flex; align-items:center; justify-content:center; gap:6px;
   background:rgba(6,8,24,.6); border:1px solid rgba(185,168,255,.55);
   font-family:'Baloo 2',sans-serif; font-weight:800; font-size:13px; color:#d6cdff;
+}
+/* --- THE TRAY (feat/looks-v2 PR A, ruling 10/17) — replaces the scrolling
+   strip.  A bottom sheet of BIG tiles (88px, 3 or 4 to a row, no sideways
+   scrolling), a row of tabs (Tonight · Classics · Earned · Shop), a trial
+   bar (WEAR IT / Cancel) and, once the pick is spent, a plain line saying so.
+   Thumb-reachable: it rises from the composer at the bottom of the phone;
+   every control is at least 44px tall.  Scrolls DOWN, never sideways. --- */
+/* flex:none — a flex item that scrolls would otherwise be squeezed to the chat band's height and hide its tiles; at its own height it rises over the bench like the old strip did */
+#rt_shelf{ flex:0 0 auto; max-height:min(62vh, 520px); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none; background:linear-gradient(180deg,rgba(10,13,32,.97),rgba(8,10,26,.985) 30%); }
+#rt_shelf::-webkit-scrollbar{ display:none; }
+#rt_shelf .lc-shelf__rack{ display:grid; grid-template-columns:repeat(auto-fill, minmax(84px, 1fr)); gap:8px; overflow:visible; }
+#rt_shelf .lc-shelf__rack:empty{ display:none; }
+#rt_shelf .lc-shelf__tile{
+  width:auto; min-height:88px; padding:10px 6px 8px; gap:4px; position:relative;
+  justify-content:center; border-radius:16px; -webkit-tap-highlight-color:transparent;
+}
+#rt_shelf .lc-shelf__tile[hidden]{ display:none; }
+#rt_shelf .lc-shelf__icon{ font-size:30px; }
+#rt_shelf .lc-shelf__name{ font-size:11px; }
+#rt_shelf .lc-shelf__tile.is-trying{ box-shadow:0 0 0 2.5px rgba(255,255,255,.75), 0 0 18px rgba(255,255,255,.35); }
+.lc-shelf__kind{
+  position:absolute; top:5px; right:6px; padding:1px 5px; border-radius:999px;
+  font-family:'Azeret Mono',monospace; font-size:7px; font-weight:700; letter-spacing:.08em;
+  background:rgba(6,8,24,.55); color:rgba(238,240,255,.75); border:1px solid rgba(238,240,255,.18);
+}
+.lc-shelf__tile.is-amber .lc-shelf__kind{ color:#ffd98a; border-color:rgba(255,194,77,.4); }
+.lc-tray__tabs{ display:flex; gap:6px; }
+.lc-tray__tab{
+  flex:1; min-height:44px; border-radius:12px; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  background:rgba(238,240,255,.06); border:1px solid rgba(238,240,255,.14); color:rgba(238,240,255,.65);
+  font-family:'Baloo 2',sans-serif; font-weight:800; font-size:12px; letter-spacing:.03em;
+}
+.lc-tray__tab[aria-selected="true"]{ background:rgba(185,168,255,.22); border-color:rgba(185,168,255,.7); color:#fff; }
+.lc-tray__tab.is-dim{ color:rgba(238,240,255,.4); }
+.lc-tray__tab.is-dim[aria-selected="true"]{ color:#fff; }
+/* the greyed tiles: Earned (a lock and "earn it by…") and Shop ("coming
+   soon").  Same tile grid, never pickable, never a .lc-shelf__tile — the
+   gates that count wearable tiles must not count these. */
+.lc-tray__ghosts{ display:grid; grid-template-columns:repeat(auto-fill, minmax(84px, 1fr)); gap:8px; }
+.lc-tray__ghosts:empty{ display:none; }
+.lc-tray__ghost{
+  min-height:88px; padding:10px 6px 8px; border-radius:16px; position:relative;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; text-align:center;
+  background:rgba(238,240,255,.05); border:1.5px dashed rgba(238,240,255,.22); color:rgba(238,240,255,.5);
+}
+.lc-tray__ghost .lc-shelf__icon{ font-size:28px; filter:grayscale(1); opacity:.55; }
+.lc-tray__ghost .lc-shelf__name{ color:rgba(238,240,255,.6); }
+.lc-tray__ghost-lock{ position:absolute; top:5px; right:7px; font-size:11px; }
+.lc-tray__ghost-how{ font-family:Archivo,sans-serif; font-size:8.5px; line-height:1.25; color:rgba(238,240,255,.42); }
+.lc-tray__empty{ font-size:12px; line-height:1.5; color:rgba(238,240,255,.6); padding:14px 6px; text-align:center; border:1px dashed rgba(238,240,255,.16); border-radius:14px; }
+/* the trial bar: what is being tried, WEAR IT (publishes + locks the pick),
+   Cancel (reverts).  The trial itself is on the wearer's own tile only —
+   and the sheet must not cover it: a bottom-row chair sits right under the
+   sheet (Nick, 10/17, the 390 screenshot).  So DURING A TRIAL THE SHEET
+   COLLAPSES TO THE BAR: head, tabs, rack, the greyed tabs and the foot line
+   are hidden until Cancel (back to the looks) or WEAR IT. */
+#rt_shelf.is-trying .lc-shelf__head, #rt_shelf.is-trying .lc-tray__tabs, #rt_shelf.is-trying .lc-shelf__rack,
+#rt_shelf.is-trying .lc-tray__ghosts, #rt_shelf.is-trying .lc-tray__empty, #rt_shelf.is-trying .lc-shelf__foot{ display:none; }
+#rt_shelf.is-trying{ padding-top:10px; padding-bottom:12px; }
+.lc-tray__try{ display:flex; flex-direction:column; gap:8px; padding:10px 12px 12px; border-radius:16px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.22); }
+.lc-tray__try-t{ font-size:12.5px; line-height:1.4; color:#eef0ff; }
+.lc-tray__try-row{ display:flex; gap:8px; }
+.lc-tray__wear{
+  flex:2; min-height:46px; border:none; border-radius:23px; cursor:pointer;
+  background:var(--keep); color:#fff; font-family:'Baloo 2',sans-serif; font-weight:800; font-size:15px; letter-spacing:.04em;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.6), 0 4px 0 var(--keep-bevel);
+}
+.lc-tray__wear:disabled{ opacity:.5; cursor:default; }
+.lc-tray__cancel{ flex:1; min-height:46px; border-radius:23px; cursor:pointer; background:transparent; border:1.5px solid rgba(238,240,255,.35); color:rgba(238,240,255,.8); font-weight:700; font-size:13px; }
+/* once the pick is spent: the plain line, and what he is wearing */
+.lc-tray__worn{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:14px; background:rgba(45,227,208,.1); border:1px solid rgba(45,227,208,.45); }
+.lc-tray__worn-i{ font-size:26px; line-height:1; }
+.lc-tray__worn-t{ font-size:12.5px; line-height:1.4; color:#eef0ff; }
+.lc-tray__worn-t b{ color:#aef7ee; }
+/* the trial on his own tile: a canvas over his video, under every badge and
+   under the cracks (z 1 < .chair__cracks z 3) — a look never touches the
+   cracks, the crown or a throw, and the trial is the same */
+.chair__tryon{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; pointer-events:none; }
+@media (prefers-reduced-motion: reduce){
+  #rt_shelf{ scroll-behavior:auto; }
 }
 
 /* ---- keyboard: video and chairs do not move.  The rail must NOT hide. ---- */
@@ -1445,7 +1544,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1012.1010</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1017.2245</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1673,14 +1772,34 @@
              ONE PER SHOW", risen out of the 🎭 FILTER button into the chat band.
              Tiles are painted from FILTER_LOOKS; the state (worn / locked) is
              painted from the member row's server-owned fields. -->
-        <div class="lc-shelf" id="rt_shelf" role="dialog" aria-label="Choose a look">
+        <div class="lc-shelf lc-tray" id="rt_shelf" role="dialog" aria-label="Choose a look">
           <div class="lc-shelf__head">
             <span class="lc-shelf__kicker">CHOOSE A LOOK</span>
             <span style="flex:1"></span>
             <span class="lc-shelf__meta" id="rt_shelfmeta">ONE PER SHOW</span>
           </div>
+          <!-- (feat/looks-v2 PR A) the tabs: Tonight is the current pack (none
+               until PR B wires lc_config; the lens looks stand in on a ?camkit
+               page), Classics the free 2D looks, Earned the gameplay looks you
+               cannot buy, Shop a greyed "coming soon" (no shop is built). -->
+          <div class="lc-tray__tabs" id="rt_shelftabs" role="tablist" aria-label="Look sets">
+            <button class="lc-tray__tab" role="tab" type="button" data-tab="tonight" aria-selected="false">Tonight</button>
+            <button class="lc-tray__tab" role="tab" type="button" data-tab="classics" aria-selected="true">Classics</button>
+            <button class="lc-tray__tab is-dim" role="tab" type="button" data-tab="earned" aria-selected="false">Earned</button>
+            <button class="lc-tray__tab is-dim" role="tab" type="button" data-tab="shop" aria-selected="false">Shop</button>
+          </div>
+          <div class="lc-tray__worn" id="rt_shelfworn" style="display:none"><span class="lc-tray__worn-i" id="rt_shelfworni"></span><span class="lc-tray__worn-t" id="rt_shelfwornt"></span></div>
           <div class="lc-shelf__rack" id="rt_shelfrack"></div>
-          <button class="lc-shelf__drop" id="rt_filterdrop" style="display:none">🎭 DROP IT · free, any time</button>
+          <div class="lc-tray__ghosts" id="rt_shelfghosts"></div>
+          <div class="lc-tray__empty" id="rt_shelfempty" style="display:none"></div>
+          <div class="lc-tray__try" id="rt_shelftry" style="display:none">
+            <span class="lc-tray__try-t" id="rt_shelftryt"></span>
+            <div class="lc-tray__try-row">
+              <button class="lc-tray__wear" id="rt_shelfwear" type="button">WEAR IT</button>
+              <button class="lc-tray__cancel" id="rt_shelfcancel" type="button">Cancel · back to the looks</button>
+            </div>
+          </div>
+          <button class="lc-shelf__drop" id="rt_filterdrop" style="display:none">🎭 TAKE IT OFF · free, any time</button>
           <div class="lc-shelf__foot" id="rt_shelffoot">Teal = free, no tracking.</div>
         </div>
         <!-- THE TRAY (feat/throwables) — the crowd's cheers and jeers, risen out
@@ -1967,7 +2086,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1012.1010"); }catch(e){}
+try{ console.log("[lastcall] build b1017.2245"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -7522,13 +7641,32 @@ function camkitSessionClose(L){
    (feat/camera-kit-staging: it now ships configured for staging, and the
    amber looks join the rack only on a page loaded with ?camkit.) */
 const FILTER_LOOKS=[
-  { id:"grade", icon:"🎞️", name:"Warm Grade", cost:"FREE" },
-  { id:"noir",  icon:"🎞️", name:"Noir",       cost:"FREE" }
+  { id:"grade", icon:"🎞️", name:"Warm Grade", cost:"FREE", tab:"classics", badge:"Classic" },
+  { id:"noir",  icon:"🎞️", name:"Noir",       cost:"FREE", tab:"classics", badge:"Classic" }
+];
+/* THE TRAY'S OTHER TWO TABS (feat/looks-v2 PR A, ruling 10/17).  Gameplay
+   looks are EARNED or free, never sold: the tab lists them greyed, with a
+   lock and how each is earned.  They are not picks — nothing here is ever
+   sent to set_filter, and the server's allow-list would refuse the slugs
+   anyway.  The Shop tab is a greyed "coming soon": cosmetic disguises may be
+   sold later, gated by chip tier, and the tray leaves the room for it; no
+   shop is built.  (The Mystery Mask is designed, tools/DESIGN-throwables-and-
+   mask.md, and not built — it is listed as what it will be.) */
+const EARNED_LOOKS=[
+  { id:"crown", icon:"👑", name:"The Crown",     how:"leading the hearts when she calls the round" },
+  { id:"mask",  icon:"🎭", name:"Mystery Mask",  how:"being the chair the host masks — coming" },
+  { id:"fuse",  icon:"🧨", name:"The Fuse",      how:"answering with the clock lit" }
+];
+const SHOP_LOOKS=[
+  { id:"shop-1", icon:"🕶️", name:"Disguises", how:"coming soon" },
+  { id:"shop-2", icon:"🎩", name:"Hats",       how:"coming soon" }
 ];
 /* the whole rack: the free teal looks, then the amber lens looks — and there
    are no lens looks unless the page carries ?camkit AND CAMKIT is fully
-   configured (camkitOn) */
-function filterLooks(){ return FILTER_LOOKS.concat(camkitLooks()); }
+   configured (camkitOn).  A lens look is TONIGHT's until PR B's packs: the
+   current pack is whatever lens set the page is configured with. */
+function filterLooks(){ return FILTER_LOOKS.concat(camkitLooks().map(l=>({ ...l, tab:"tonight", badge:"Tonight" }))); }
+function filterTonight(){ return filterLooks().filter(l=>l.tab==="tonight"); }
 function filterLookOf(id){ return filterLooks().find(l=>l.id===id)||null; }
 function filterRowOf(uid){ return ((ROOM_STATE&&ROOM_STATE.members)||[]).find(m=>m&&m.user_id===uid)||null; }
 /* what the ROOM says about who is wearing what — read straight off the
@@ -7653,34 +7791,170 @@ function filterShelfOpen(on){
   if(b) b.classList.toggle("is-open", !!on);
   if(typeof sheetOpenSync==="function") sheetOpenSync();
 }
+/* ============================================================================
+   THE TRAY (feat/looks-v2 PR A, ruling 10/17): big tiles, tabs, TAP TO TRY.
+   The shelf's one-pick rule is untouched — the server still allow-lists
+   every slug, set_filter still spends the pick, drop / ask / Moment / host
+   force-off still take the look down.  What changed is HOW he picks:
+
+   TAP TO TRY.  A tap on a tile starts a TRIAL: the look is drawn on his OWN
+   tile only (a canvas over his video, fed by the same <video> the tile
+   shows), for six seconds, and nothing else happens — no RPC, no published
+   track, no pick spent, no other phone sees a thing.  WEAR IT is the one
+   door to set_filter.  Cancel reverts.  A trial with no self-view (he is on
+   the bench, or his camera is off) arms the bar without a picture and says
+   so.  The trial draws with the look's own FILTERS function for a 2D look;
+   for a lens it opens a Camera Kit session on a clone of his camera and
+   mirrors the session's output canvas — never handed to Daily.
+   ========================================================================= */
+let TRYON={ look:null, until:0, canvas:null, raf:0, timer:0, video:null, preview:false, frames:0 };
+let LOOK_TAB=null;   // the tab he chose; null = the tray's default (Tonight if it has looks, else Classics)
+function lookMyTile(){
+  if(!ME) return null;
+  for(let i=0;i<3;i++){ const el=$("rt_seat"+i); if(el && el.dataset.heartuid===ME.id && !el.classList.contains("is-empty")) return el; }
+  return null;
+}
+function lookTryState(){
+  return { look:TRYON.look, preview:TRYON.preview, msLeft:TRYON.look ? Math.max(0, TRYON.until-Date.now()) : 0, frames:TRYON.frames|0 };
+}
+/* ends the trial: the canvas goes, the loop stops; nothing else was ever touched */
+function lookTryStop(keepBar){
+  const t=TRYON;
+  if(t.raf) cancelAnimationFrame(t.raf);
+  if(t.timer) clearTimeout(t.timer);
+  if(t.canvas){ try{ t.canvas.remove(); }catch(e){} }
+  TRYON={ look: keepBar ? t.look : null, until:0, canvas:null, raf:0, timer:0, video:null, preview:false, frames:t.frames|0 };
+  if(!keepBar) LOOK_TRY_BAR=null;
+}
+let LOOK_TRY_BAR=null;   // the bar's text while a trial is armed (set by lookTry, cleared by stop)
+/* TRY-ON NEVER PUBLISHES: this function calls no RPC and never touches DAILY
+   or the Camera Kit SDK — gate 92 mutation-tests the tap that reaches it. */
+async function lookTry(id){
+  const look=filterLookOf(id); if(!look) return { ok:false, error:"no such look" };
+  const me=filterRowOf(ME&&ME.id);
+  if(me && me.filter_pick) return { ok:false, error:"locked" };
+  lookTryStop(false);
+  TRYON.look=id; TRYON.until=Date.now()+6000; TRYON.frames=0;
+  const tile=lookMyTile(), video=tile ? tile.querySelector(".chair__feed video") : null;
+  const fx=FILTERS[id];
+  /* A LENS LOOK HAS NO LIVE PREVIEW (PR A): a Camera Kit trial would need a
+     session of its own on a clone of the camera, and the SDK runs one
+     LensCore, one session at a time — the hidden terms session, the trial
+     and the real start would race for it.  So a lens tap arms the bar
+     without a picture and says so; the 2D looks preview.  (A lens preview
+     is PR B's call, with the Halloween pack, if Nick wants it.) */
+  if(video && fx){
+    const canvas=document.createElement("canvas"); canvas.className="chair__tryon"; canvas.setAttribute("aria-hidden","true");
+    const w=video.videoWidth||480, h=video.videoHeight||640; canvas.width=w; canvas.height=h;
+    video.insertAdjacentElement("afterend", canvas);
+    const g=canvas.getContext("2d");
+    TRYON.canvas=canvas; TRYON.video=video; TRYON.preview=true;
+    const tick=()=>{
+      if(TRYON.look!==id || !TRYON.canvas) return;
+      try{
+        if(video.readyState>=2){ g.drawImage(video,0,0,w,h); fx(g,w,h); TRYON.frames=(TRYON.frames|0)+1; }
+      }catch(e){}
+      TRYON.raf=requestAnimationFrame(tick);
+    };
+    tick();
+    TRYON.timer=setTimeout(()=>{ if(TRYON.look===id){ lookTryStop(true); LOOK_TRY_BAR="Preview over. Wear "+look.name+"?"; filterPaintComposer(); } }, 6000);
+    LOOK_TRY_BAR="Trying "+look.name+" — on your own screen only, for six seconds.";
+  }else{
+    TRYON.preview=false;
+    LOOK_TRY_BAR=!video ? "No preview from the bench — it shows when you're in a chair. Wear "+look.name+"?"
+                 : (look.kind==="lens" ? "No preview for a face-tracked look — it shows the moment you wear it. Wear "+look.name+"?" : "No preview for this one here. Wear "+look.name+"?");
+  }
+  filterPaintComposer();
+  return { ok:true, preview:TRYON.preview };
+}
+function lookTryCancel(){ lookTryStop(false); filterPaintComposer(); return { ok:true }; }
+/* WEAR IT — the one door to set_filter from the tray */
+async function lookWear(){
+  const id=TRYON.look; if(!id) return { ok:false, error:"nothing tried" };
+  lookTryStop(false);
+  const r=await filterPick(id);
+  filterPaintComposer();
+  return r;
+}
+function lookTrayTab(name){
+  if(!["tonight","classics","earned","shop"].includes(name)) return LOOK_TAB;
+  LOOK_TAB=name; filterPaintComposer(); return LOOK_TAB;
+}
+function lookTrayTabNow(){ return LOOK_TAB || (filterTonight().length ? "tonight" : "classics"); }
 function filterPaintComposer(){
   const b=$("rt_filterbtn"), sh=$("rt_shelf"); if(!b || !sh) return;
   const me=(!AMHOST && ME && CURRENT_ROOM) ? filterRowOf(ME.id) : null;
   const eligible=!!(me && (me.role==="chair"||me.role==="kept"||me.role==="line") && !I_WAS_PASSED);
   b.style.display=eligible?"flex":"none";
-  if(!eligible){ filterShelfOpen(false); return; }
+  if(!eligible){ filterShelfOpen(false); if(TRYON.look) lookTryStop(false); return; }
   const inert=filterAmAsked() || filterAmPaired();
   b.classList.toggle("is-inert", inert);
-  if(inert) filterShelfOpen(false);
+  if(inert){ filterShelfOpen(false); if(TRYON.look) lookTryStop(false); }
   const locked=!!me.filter_pick, worn=me.filter||null;
+  if(locked && TRYON.look) lookTryStop(false);   // the pick landed (or the server said so): no trial survives a lock
   sh.classList.toggle("is-locked", locked);
   const meta=$("rt_shelfmeta");
-  if(meta) meta.textContent = !locked ? "ONE PER SHOW" : (worn ? "LOCKED · YOUR LOOK TONIGHT" : "LOCKED · DROPPED");
+  if(meta) meta.textContent = !locked ? "ONE PER SHOW" : (worn ? "LOCKED · YOUR LOOK TONIGHT" : "LOCKED · TAKEN OFF");
+  // the tabs
+  const tab=lookTrayTabNow();
+  sh.querySelectorAll(".lc-tray__tab").forEach(t=>t.setAttribute("aria-selected", t.dataset.tab===tab ? "true" : "false"));
   const rack=$("rt_shelfrack");
   if(rack){
     const looks=filterLooks(), sig=looks.map(l=>l.id).join("|");
     if(rack.dataset.sig!==sig){
       rack.dataset.sig=sig;
-      rack.innerHTML=looks.map(l=>`<button class="lc-shelf__tile${l.kind==="lens"?" is-amber":""}" data-look="${escapeHtml(l.id)}" type="button"><span class="lc-shelf__icon">${escapeHtml(l.icon)}</span><span class="lc-shelf__name">${escapeHtml(l.name)}</span><span class="lc-shelf__cost">${escapeHtml(l.cost)}</span></button>`).join("");
+      rack.innerHTML=looks.map(l=>`<button class="lc-shelf__tile${l.kind==="lens"?" is-amber":""}" data-look="${escapeHtml(l.id)}" data-tab="${escapeHtml(l.tab||"classics")}" type="button"><span class="lc-shelf__kind">${escapeHtml(l.badge||"Classic")}</span><span class="lc-shelf__icon">${escapeHtml(l.icon)}</span><span class="lc-shelf__name">${escapeHtml(l.name)}</span><span class="lc-shelf__cost">${escapeHtml(l.cost)}</span></button>`).join("");
       const foot=$("rt_shelffoot");
       if(foot) foot.textContent = looks.some(l=>l.kind==="lens") ? "Teal = free, no tracking. Amber = face-tracked." : "Teal = free, no tracking.";
       rack.querySelectorAll(".lc-shelf__tile").forEach(t=>t.onclick=()=>{
         const mine=filterRowOf(ME.id);
         if(mine && mine.filter_pick){ toast("One per show — tonight's look is locked in."); return; }
-        filterPick(t.dataset.look);
+        lookTry(t.dataset.look);   // TAP TO TRY — never a pick
       });
     }
-    rack.querySelectorAll(".lc-shelf__tile").forEach(t=>t.classList.toggle("is-worn", t.dataset.look===worn));
+    let shown=0;
+    rack.querySelectorAll(".lc-shelf__tile").forEach(t=>{
+      t.classList.toggle("is-worn", t.dataset.look===worn);
+      t.classList.toggle("is-trying", !!TRYON.look && t.dataset.look===TRYON.look);
+      const on=(t.dataset.tab===tab) && !locked;
+      t.hidden=!on; if(on) shown++;
+    });
+    rack.style.display = shown ? "" : "none";
+  }
+  // the greyed tabs
+  const ghosts=$("rt_shelfghosts");
+  if(ghosts){
+    const list = (tab==="earned") ? EARNED_LOOKS : (tab==="shop") ? SHOP_LOOKS : [];
+    const gsig=tab+":"+list.map(l=>l.id).join("|");
+    if(ghosts.dataset.sig!==gsig){
+      ghosts.dataset.sig=gsig;
+      ghosts.innerHTML=list.map(l=>`<div class="lc-tray__ghost" data-ghost="${escapeHtml(l.id)}" aria-disabled="true"><span class="lc-tray__ghost-lock" aria-hidden="true">🔒</span><span class="lc-shelf__icon">${escapeHtml(l.icon)}</span><span class="lc-shelf__name">${escapeHtml(l.name)}</span><span class="lc-tray__ghost-how">${escapeHtml(tab==="earned" ? "earn it by "+l.how : l.how)}</span></div>`).join("");
+    }
+    ghosts.style.display = (list.length && !locked) ? "" : "none";
+  }
+  // the empty line (Tonight with no pack)
+  const empty=$("rt_shelfempty");
+  if(empty){
+    const show = !locked && tab==="tonight" && !filterTonight().length;
+    empty.style.display = show ? "" : "none";
+    if(show) empty.textContent="No themed pack tonight — the Classics are free, any night.";
+  }
+  // the trial bar — and while it is up the sheet is ONLY the bar, so the
+  // wearer's own tile (a bottom chair sits under the sheet) stays in view
+  const trying=!!(TRYON.look && !locked);
+  const tryBar=$("rt_shelftry"), tryT=$("rt_shelftryt");
+  if(tryBar){ tryBar.style.display = trying ? "" : "none"; if(tryT && TRYON.look) tryT.textContent=LOOK_TRY_BAR||""; }
+  sh.classList.toggle("is-trying", trying);
+  // after the pick is spent: say so plainly, show what he is wearing
+  const wornBox=$("rt_shelfworn"), wornI=$("rt_shelfworni"), wornT=$("rt_shelfwornt");
+  if(wornBox){
+    wornBox.style.display = locked ? "" : "none";
+    if(locked){
+      const look=worn ? filterLookOf(worn) : null;
+      if(wornI) wornI.textContent = look ? look.icon : "🎭";
+      if(wornT) wornT.innerHTML = worn ? `Your pick is spent for this show. You're wearing <b>${escapeHtml(look?look.name:worn)}</b>.`
+                                       : `Your pick is spent for this show, and you took it off. It stays off — one look per show.`;
+    }
   }
   const drop=$("rt_filterdrop");
   if(drop) drop.style.display = worn ? "flex" : "none";
@@ -7689,6 +7963,7 @@ $("rt_filterbtn").onclick=()=>{
   if($("rt_filterbtn").classList.contains("is-inert")){ toast("Not while you're on the spot."); return; }
   const sh=$("rt_shelf");
   const opening=!(sh && sh.classList.contains("is-open"));
+  if(!opening && TRYON.look) lookTryStop(false);   // closing the tray ends a trial
   filterShelfOpen(opening);
   filterPaintComposer();
   // first sight of the shelf on a ?camkit page: Snap's terms are asked NOW,
@@ -7696,6 +7971,9 @@ $("rt_filterbtn").onclick=()=>{
   if(opening) camkitTermsEarly();
 };
 $("rt_filterdrop").onclick=()=>{ filterDrop(); };
+$("rt_shelfwear").onclick=()=>{ lookWear(); };
+$("rt_shelfcancel").onclick=()=>{ lookTryCancel(); };
+$("rt_shelftabs").querySelectorAll(".lc-tray__tab").forEach(t=>t.onclick=()=>lookTrayTab(t.dataset.tab));
 
 /* ============================================================================
    THROWABLES (feat/throwables) — cheers and jeers the crowd throws at a seated
@@ -8417,35 +8695,82 @@ function pressureRoom(){
   }
   return out;
 }
-/* one crack: a jagged line in from the frame's edge with a branch or two.
-   Seeded from (him, which crack) — so crack 1 is the same line on every
-   phone and does not move when crack 2 arrives.  It stays inside the edge
-   band (a fifth of the frame's short side): the frame, not his face. */
-function pressureCrack(uid, k, W, H){
-  const r=throwRng(throwSeed(uid+"#"+k, 0)), R=(a,b)=>a+(b-a)*r(), band=Math.min(W,H)*.22;
-  const side=(k<=3) ? [2,3,0][k-1] : Math.floor(r()*4);       // crack 1 the foot (clear of his name), crack 2 the left flank, crack 3 the top corner; the rest all round
-  const t=(k===1)?R(.6,.86):(k===2)?R(.28,.6):(k===3)?R(.66,.9):R(.1,.9);
-  let x, y, ang;
-  if(side===0){ x=W*t; y=1; ang=Math.PI/2; } else if(side===1){ x=W-1; y=H*t; ang=Math.PI; }
-  else if(side===2){ x=W*t; y=H-1; ang=-Math.PI/2; } else { x=1; y=H*t; ang=0; }
-  const inband=(px,py)=>Math.min(px,py,W-px,H-py)<=band;
-  const walk=(x0,y0,a0,n,len)=>{ let d="M"+x0.toFixed(1)+","+y0.toFixed(1), px=x0, py=y0, a=a0; const pts=[];
-    for(let i=0;i<n;i++){ a+=R(-.75,.75); const l=len*R(.6,1.2); let nx=px+Math.cos(a)*l, ny=py+Math.sin(a)*l;
-      if(!inband(nx,ny)){ a+=Math.PI/2*(r()<.5?-1:1); nx=px+Math.cos(a)*l*.7; ny=py+Math.sin(a)*l*.7; if(!inband(nx,ny)) break; }
-      nx=Math.max(1,Math.min(W-1,nx)); ny=Math.max(1,Math.min(H-1,ny));
-      d+="L"+nx.toFixed(1)+","+ny.toFixed(1); px=nx; py=ny; pts.push([px,py,a]); }
-    return { d, pts }; };
-  const seg=Math.min(W,H)*(k<=3?.1:.065), main=walk(x,y,ang,(k<=3?6:3),seg);
-  let d=main.d;
-  for(let b=0;b<(k<=3?2:1);b++){ const p=main.pts[Math.floor(r()*Math.max(1,main.pts.length-1))]; if(!p) break;
-    d+=walk(p[0],p[1],p[2]+(r()<.5?-1:1)*R(.6,1.1),2,seg*.7).d; }
-  return d;
+/* CRACKS v2 (feat/looks-v2 PR A).  One crack is a GLASS FRACTURE: an impact
+   point in the frame's edge band (seeded from him and which crack — crack 1
+   at the foot, clear of his name; crack 2 the left flank; crack 3 the top
+   corner; any beyond all round), radial rays walking out from it with the
+   jaggedness of real glass, and two concentric rings threaded through the
+   rays.  Everything is seeded from (uid, k) and scaled to the frame's own
+   W×H, so two phones showing the same frame draw the same path strings —
+   and crack k is the same path whether or not crack k+1 has landed (the
+   impact points are per crack, and a later crack never redraws an earlier
+   one).  Level n is cracks 1..n from their own impact points.
+   The returned object carries the three strokes the painter draws: the dark
+   shadow, the bright line, and the hairline refraction highlight offset a
+   pixel down-right.  pressureCrack(uid,k,W,H) keeps the old contract (the
+   bright line's path) for the gate that reads it. */
+function pressureImpact(uid, k, W, H){
+  const r=throwRng(throwSeed(uid+"#"+k, 0)), R=(a,b)=>a+(b-a)*r(), band=Math.min(W,H)*.2;
+  const side=(k<=3) ? [2,3,0][k-1] : Math.floor(r()*4);
+  const t=(k===1)?R(.58,.84):(k===2)?R(.3,.62):(k===3)?R(.64,.9):R(.12,.88);
+  const inset=band*R(.25,.6);
+  let x, y;
+  if(side===0){ x=W*t; y=inset; } else if(side===1){ x=W-inset; y=H*t; }
+  else if(side===2){ x=W*t; y=H-inset; } else { x=inset; y=H*t; }
+  return { x, y, r, R, band, side };
 }
+function pressureFracture(uid, k, W, H){
+  const { x, y, r, R, band }=pressureImpact(uid, k, W, H);
+  const short=Math.min(W,H);
+  const reach=short*(k<=3 ? R(.16,.24) : R(.1,.15));          // how far the longest ray goes
+  const rays=(k<=3) ? 6+Math.floor(r()*3) : 4+Math.floor(r()*2);
+  const clampX=(v)=>Math.max(1,Math.min(W-1,v)), clampY=(v)=>Math.max(1,Math.min(H-1,v));
+  const inband=(px,py)=>Math.min(px,py,W-px,H-py)<=band*1.15;
+  const spokes=[];   // [{a, pts:[[x,y]...]}]
+  const a0=R(0,6.283);
+  for(let i=0;i<rays;i++){
+    const a=a0+i*(6.283/rays)+R(-.22,.22), len=reach*R(.45,1);
+    const n=3+Math.floor(r()*3), pts=[[x,y]];
+    let px=x, py=y, aa=a;
+    for(let j=0;j<n;j++){
+      aa+=R(-.4,.4);
+      const l=len/n*R(.7,1.3);
+      let nx=px+Math.cos(aa)*l, ny=py+Math.sin(aa)*l;
+      if(!inband(nx,ny)){ aa+=(r()<.5?-1:1)*R(1.2,1.8); nx=px+Math.cos(aa)*l*.6; ny=py+Math.sin(aa)*l*.6; if(!inband(nx,ny)) break; }
+      px=clampX(nx); py=clampY(ny); pts.push([px,py]);
+    }
+    spokes.push({ a, pts });
+  }
+  const f=(v)=>v.toFixed(1);
+  let d="";
+  for(const sp of spokes){ if(sp.pts.length<2) continue; d+="M"+f(sp.pts[0][0])+","+f(sp.pts[0][1]); for(let j=1;j<sp.pts.length;j++) d+="L"+f(sp.pts[j][0])+","+f(sp.pts[j][1]); }
+  // two rings: a point part-way along each ray, joined in order with a wobble
+  for(const frac of [R(.28,.4), R(.62,.8)]){
+    const ring=[];
+    for(const sp of spokes){
+      if(sp.pts.length<2) continue;
+      const i=Math.max(1, Math.min(sp.pts.length-1, Math.round(frac*(sp.pts.length-1))));
+      const [ax,ay]=sp.pts[i-1], [bx,by]=sp.pts[i], tt=R(.3,.9);
+      ring.push([ax+(bx-ax)*tt, ay+(by-ay)*tt]);
+    }
+    if(ring.length>=3){ d+="M"+f(ring[0][0])+","+f(ring[0][1]); for(let j=1;j<ring.length;j++) d+="L"+f(ring[j][0])+","+f(ring[j][1]); d+="Z"; }
+  }
+  // the refraction highlight: the same geometry a pixel down-right
+  const hi=d.replace(/(-?\d+\.\d)(,)(-?\d+\.\d)/g, (m,a,c,b)=>(+a+.9).toFixed(1)+c+(+b+.9).toFixed(1));
+  return { d, hi, x, y };
+}
+function pressureCrack(uid, k, W, H){ return pressureFracture(uid, k, W, H).d; }
+/* the shards (shatter): seeded triangles ringing the frame, each with its own
+   fall (drift, drop, spin) that the CSS reads off custom properties — so the
+   fall is the same on every phone too, and reduced motion leaves them put */
 function pressureShards(uid, W, H){
   const r=throwRng(throwSeed(uid+"#shards", 0)), R=(a,b)=>a+(b-a)*r(), out=[];
-  for(let i=0;i<7;i++){ const side=i%4, t=R(.08,.92), s=Math.min(W,H)*R(.035,.07);
-    let x, y; if(side===0){ x=W*t; y=R(2,7); } else if(side===1){ x=W-R(2,7); y=H*t; } else if(side===2){ x=W*t; y=H-R(2,7); } else { x=R(2,7); y=H*t; }
-    const a=R(0,6.28); out.push("M"+[0,1,2].map(j=>(x+Math.cos(a+j*2.1+R(-.3,.3))*s).toFixed(1)+","+(y+Math.sin(a+j*2.1+R(-.3,.3))*s).toFixed(1)).join("L")+"Z"); }
+  const f=(v)=>v.toFixed(1);
+  for(let i=0;i<10;i++){ const side=i%4, t=R(.06,.94), sz=Math.min(W,H)*R(.04,.085);
+    let x, y; if(side===0){ x=W*t; y=R(2,9); } else if(side===1){ x=W-R(2,9); y=H*t; } else if(side===2){ x=W*t; y=H-R(2,9); } else { x=R(2,9); y=H*t; }
+    const a=R(0,6.28), n=3+Math.floor(r()*2);
+    const pts=[]; for(let j=0;j<n;j++){ const ang=a+j*(6.28/n)+R(-.35,.35), rr=sz*R(.6,1.1); pts.push(f(x+Math.cos(ang)*rr)+","+f(y+Math.sin(ang)*rr)); }
+    out.push({ d:"M"+pts.join("L")+"Z", sx:R(-28,28), sy:R(44,110), sr:R(-120,120) }); }
   return out;
 }
 function pressurePaintTiles(){
@@ -8473,18 +8798,36 @@ function pressurePaintTiles(){
       if(!svg){ svg=document.createElementNS("http://www.w3.org/2000/svg","svg"); svg.setAttribute("class","chair__cracks"); svg.setAttribute("aria-hidden","true"); el.appendChild(svg); }
       if(svg.dataset.sig!==sig){
         svg.dataset.sig=sig; svg.setAttribute("viewBox","0 0 "+W+" "+H);
-        const n=pr.shattered ? pr.cracks+6 : pr.cracks;   // shattered: the three, and the frame gives way all round
+        const n=pr.shattered ? pr.cracks+4 : pr.cracks;   // shattered: the three, and the frame gives way all round
         let html="";
-        if(pr.shattered) html+=pressureShards(uid,W,H).map(d=>`<path class="ck-shard" d="${d}"/>`).join("");
-        for(let k=1;k<=n;k++){ const d=pressureCrack(uid,k,W,H); html+=`<path class="ck-dark" d="${d}"/><path class="ck-lite" d="${d}"/>`; }
+        if(pr.shattered) html+=pressureShards(uid,W,H).map(sh=>`<path class="ck-shard" d="${sh.d}" style="--sx:${sh.sx.toFixed(0)}px;--sy:${sh.sy.toFixed(0)}px;--sr:${sh.sr.toFixed(0)}deg"/>`).join("");
+        for(let k=1;k<=n;k++){ const c=pressureFracture(uid,k,W,H); html+=`<path class="ck-dark" d="${c.d}"/><path class="ck-lite" d="${c.d}"/><path class="ck-hi" d="${c.hi}"/>`; }
+        // a mend in flight survives a repaint of the same frame (it is removed by its own timer)
+        const mend=svg.querySelector(".ck-mend");
         svg.innerHTML=html;
+        if(mend) svg.appendChild(mend);
       }
     } else if(svg && svg.dataset.sig){ svg.dataset.sig=""; svg.innerHTML=""; }
     if(seated && uid){
       const key=uid, was=PRESSURE_SEEN[key];
-      if(pr.shattered && was!==undefined && was<pr.cap){   // it shattered while this client watched: the line, once, and the jolt
+      if(pr.shattered && was!==undefined && was<pr.cap){   // it shattered while this client watched: the line, once, and the jolt + the shard fall
         addFeedLine(`The room is turning on ${escapeHtml(((ROOM_STATE.profs||{})[uid]||{}).display_name||"him")}`, "cool");
         if(overlayMotionOK()){ el.classList.remove("shatter-now"); void el.offsetWidth; el.classList.add("shatter-now"); }
+      }
+      /* A ROSE MEND (observed, like the crack): the count went DOWN by less
+         than a reset — the crack it took is drawn once more as a shimmer
+         that seals it, on the frame the crack was on, then removed.  Her
+         call's reset (to 0 at the round's turn) is not a mend and gets no
+         shimmer.  A rose that takes the LAST crack leaves a bare frame, and a
+         bare frame shows no crack art at all — so that one gets no shimmer. */
+      if(was!==undefined && pr.cracks<was && pr.cracks>0 && W>20 && H>20 && overlayMotionOK()){
+        let sv=el.querySelector(".chair__cracks");
+        if(sv){
+          const c=pressureFracture(uid, was, W, H);
+          const m=document.createElementNS("http://www.w3.org/2000/svg","path"); m.setAttribute("class","ck-mend"); m.setAttribute("d", c.d);
+          sv.querySelectorAll(".ck-mend").forEach(x=>x.remove()); sv.appendChild(m);
+          setTimeout(()=>{ try{ m.remove(); }catch(e){} }, 800);
+        }
       }
       PRESSURE_SEEN[key]=pr.cracks;
     }
@@ -9497,6 +9840,12 @@ window.__lc = {
      rows), FILTER_STATE is what the PIPELINE says (this client); the
      reconciler is the one thing that makes the second follow the first. */
   filterPick, filterDrop, hostClearFilter, filterReconcile,
+  /* the tray (feat/looks-v2 PR A): TAP TO TRY (own tile only, never a pick),
+     WEAR IT (the one door to set_filter from the tray), Cancel, the tabs;
+     TRYON_STATE is what the trial is doing on this client */
+  lookTry, lookTryCancel, lookWear, lookTrayTab, lookTrayTabNow, lookMyTile,
+  get TRYON_STATE(){ return lookTryState(); },
+  get EARNED_LOOKS(){ return EARNED_LOOKS.map(l=>({ ...l })); },
   /* throwables (feat/throwables) — the five verbs are the client's only
      doors and each is one RPC; THROW_ROOM is what the ROOM says per seated
      man (kind / live / cooling / on, from his row and the server clock);

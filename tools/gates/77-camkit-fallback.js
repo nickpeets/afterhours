@@ -271,7 +271,8 @@ module.exports = {
         if (!sh.classList.contains("is-open")) document.getElementById("rt_filterbtn").click(); return sh.classList.contains("is-open"); });
       const closeShelf = (S) => S.c.page.evaluate(() => { const sh = document.getElementById("rt_shelf");
         if (sh.classList.contains("is-open")) document.getElementById("rt_filterbtn").click(); return !sh.classList.contains("is-open"); });
-      const tapTile = (S, look) => S.c.page.evaluate((look) => { const b = document.querySelector('#rt_shelfrack .lc-shelf__tile[data-look="' + look + '"]'); if (!b) return false; b.click(); return true; }, look);
+      // (feat/looks-v2 PR A) a tap is TAP TO TRY; WEAR IT is the pick — gate 92 proves the trial, this gate picks the way a person does
+      const tapTile = (S, look) => S.c.page.evaluate((look) => { const b = document.querySelector('#rt_shelfrack .lc-shelf__tile[data-look="' + look + '"]'); if (!b) return false; b.click(); document.getElementById("rt_shelfwear").click(); return true; }, look);
 
       /* ---------- L1. terms at the lens start, accepted ---------- */
       {

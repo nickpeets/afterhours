@@ -2,7 +2,9 @@
 
 Six bots that join a live show so one person can rehearse a whole show from a
 phone. Each bot is a real client: it runs index.html from the site, uses its own
-account, and wears a fake camera that shows a colored card with its name.
+account, and wears a fake camera that shows a colored card with its name (or,
+with `--faces`, a looping clip of a real person — internal rehearsal only, see
+below).
 
 | Bot | Plays | Card |
 |---|---|---|
@@ -115,6 +117,55 @@ The checks read the server's answers and what a crowd phone shows. How it
 looks on your own phone is yours to judge. The crew keeps taking orders
 afterwards, until `crew: done`. Gate 91 (`crew-selftest`) runs the same
 test against the harness, with the gate playing your part.
+
+## Faces: `--faces` (internal rehearsal only)
+
+`tools/crew/crew --faces --host <name>` swaps every bot's name card for a
+short looping clip of a real person — a different one per bot, front-facing
+and talking — so a look can be rehearsed on a moving face. The clips are
+Pexels-licensed stock (`tools/crew/faces/LICENSES.md` has the ids, pages and
+licence). They are **not in the repo**: `tools/crew/faces/fetch.sh`
+downloads each one into `/workspaces/rehearsal/faces` (`CREW_FACES` moves
+it), trims it to a ~10s loop, encodes it at 480×640 VP9/WebM under 2 MB and
+writes `SHA256SUMS` beside them (`fetch.sh --check` verifies). A bot whose
+clip is missing wears its card, and the crew says so.
+
+**INTERNAL REHEARSAL ONLY.** These are real people's faces. Never use them
+in the Snap demo videos, the Camera Kit review submission, screenshots, or
+anything public — public material uses the crew's name cards, or Nick.
+
+## Scenario: looks
+
+`tools/crew/crew --host <name> --scenario looks [--faces] [--camkit] [--snap-terms agree]`
+
+A looks rehearsal with you hosting from your phone. Every beat is announced
+in chat before it runs and reported after (✅/❌ and why), with about five
+seconds between beats (`--beat <ms>` changes it) — longer only where the
+server's own timing rules (a throw is live 10s and the chair cools down 20s,
+so the tomatoes come ~30s apart; the chat says so).
+
+1. The men go to the bench. **Seat Dex and Marco** — the tomatoes need Dex
+   in a chair, and you'll ask Marco later.
+2. **Try on**: each man taps a look (his own screen only, nothing published),
+   then cancels.
+3. **Wear**: each man wears a *different* look than he tried — Dex Warm
+   Grade, Marco Noir, Leo a Camera Kit lens when the page has one
+   (`--camkit` loads the site with `?camkit`, so the staging lenses are on
+   the rack), else Noir. The server row confirms each.
+4. **Tomatoes**: the crowd jeers Dex one tomato at a time, each from a
+   different crowd bot, until his frame cracks 1 → 2 → 3 and shatters.
+5. **A rose** mends one crack.
+6. **The ask**: when the crew says so, **ask Marco** from your phone. The
+   crew times how long his look takes to drop off his row.
+
+How a look sits on a moving face is yours to judge — the scenario checks the
+rows and a crowd phone's tile, not the pixels. Gate 93 (`crew-looks`) runs
+the same scenario against the harness, with the gate playing your part and a
+clip the gate records itself (the real clips never enter the repo).
+
+A lens wearer's first lens on a profile raises Snap's terms dialog, and the
+real SDK waits for it. The crew reports it; it clicks "I Agree" for the crew
+only when started with `--snap-terms agree`.
 
 ## Notes
 

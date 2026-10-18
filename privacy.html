@@ -31,23 +31,24 @@
 
   <div class="mark">LAST CALL</div>
   <h1>Privacy Policy</h1>
-  <div class="sub">Last updated 8 October 2026 &middot; Scholls Development LLC (Oregon)</div>
+  <div class="sub">Last updated 17 October 2026 &middot; Scholls Development LLC (Oregon)</div>
 
   <div class="lede">
-    <p><strong>The short version.</strong> We keep the smallest amount of data that makes the show work: an email, a display name, a zip code and search radius, and the things that happen inside a room - chat, hearts, gifts, and who sat where. Your live video and audio pass through and are <strong>not recorded by us</strong>. There is one deliberate exception, the end-of-show winner photo, and it is described below. We do not run ads, we do not sell anything about you, and there are no analytics or tracking SDKs in this app.</p>
+    <p><strong>The short version.</strong> We keep the smallest amount of data that makes the show work: an email, a display name, a birthdate (to check you are 18), who you are and who you are looking for, a zip code and search radius, and the things that happen inside a room - chat, hearts, throws, gifts, and who sat where. Your live video and audio pass through and are <strong>not recorded by us</strong>. There are two deliberate exceptions, the bench headshot and the end-of-show winner photo, and both are described below. Looks that use Snap Camera Kit process your camera on your own device; we store nothing from them. We do not run ads, we do not sell anything about you, and there are no analytics or tracking SDKs in this app.</p>
     <p style="margin:0">This policy describes what the app actually does today. It will change - and when the code changes, this page changes with it.</p>
   </div>
 
   <h2><b>1</b>What we store about you</h2>
   <p><strong>Your account.</strong> Your email address and password are handled by Supabase Auth (our database and authentication provider). We never see your password. If you ask for an invite and are not on the list yet, we keep your email address so we can let you in later.</p>
-  <p><strong>Your profile.</strong> A display name (we start it from the part of your email before the @, and you can change it), your zip code, the search radius you picked, whether you want rooms outside that radius, some cosmetic avatar settings, and a note that you accepted these terms. The zip code is used to decide which rooms to show you - we do not ask for or collect precise GPS location.</p>
-  <p><strong>What happens in a room.</strong> While a show is running we store the room itself (its name, tagline, who is hosting, whether it is live), who is in it and in what role (in line, in a chair, kept, watching), presence timestamps so we can tell who is still there, and the events of the show: chat messages, hearts, gifts, and seat, keep, pass and timeout decisions.</p>
+  <p><strong>Your profile.</strong> A display name (we start it from the part of your email before the @, and you can change it), your birthdate (used once to confirm you are 18 or over), the gender you picked and who you said you are looking for, your zip code, the search radius you picked, whether you want rooms outside that radius, some cosmetic avatar settings, and a note that you accepted these terms. The zip code is used to decide which rooms to show you - we do not ask for or collect precise GPS location.</p>
+  <p><strong>What happens in a room.</strong> While a show is running we store the room itself (its name, tagline, who is hosting, whether it is live), who is in it and in what role (in line, in a chair, kept, watching), the look each person is wearing, presence timestamps so we can tell who is still there, and the events of the show: chat messages, hearts, throws (tomatoes, pies, roses), gifts, reactions, and seat, keep, pass and timeout decisions.</p>
   <p><strong>Contact swaps.</strong> If you win a show and go backstage, anything you type into the swap box - a handle, phone number, or email - is stored with that swap. It is only ever shown to the other person <strong>if you both offer</strong>. If only one of you offers, nothing is revealed.</p>
   <p><strong>Reports and blocks.</strong> When you report someone we store who reported whom, the room, the reason you picked, and an email snapshot of both accounts. Blocks are stored so the person you blocked stays blocked.</p>
 
-  <h2><b>2</b>Live video and audio</h2>
-  <p>The live part of Last Call runs on <strong>Daily.co</strong>. Your camera and microphone streams go from your device to Daily and out to the other people in the room in real time. <strong>We do not record them.</strong> There is no recording feature in the app, no archive of shows, and nothing for us to replay later. Daily handles the media in transit; their own privacy practices apply to that leg of the trip.</p>
-  <p><strong>The one exception, said plainly:</strong> when someone wins a show, the app counts down from three and grabs a <em>single still frame</em> from that winner's own camera. The capture happens on their device, and the resulting image is saved with the room's events and shown to the room as the closing shot. It is one photo of the winner only, taken with a visible countdown, and it is deleted when that account is deleted. Nothing else about a show is captured.</p>
+  <h2><b>2</b>Your camera and microphone</h2>
+  <p><strong>What they are used for.</strong> One thing: putting you on the show. The app turns on your camera and microphone when you host a show or take a chair. Stepping up to the bench uses the camera once, for the headshot below. While you are watching from the crowd they stay off. Your camera and microphone streams go from your device to <strong>Daily.co</strong> and out to the other people in the room in real time. <strong>We do not record them.</strong> There is no recording feature in the app, no archive of shows, and nothing for us to replay later. Daily handles the media in transit; their own privacy practices apply to that leg of the trip.</p>
+  <p><strong>Two still photos, said plainly.</strong> First, when you step up to the bench the app counts down from three and takes a <em>single still frame</em> from your own camera. It is saved on your profile and shown to the crowd as your bench headshot (the host and the chairs see a silhouette instead). It is replaced the next time you step up, and cleared if the capture fails. Second, when someone wins a show, the app counts down from three and takes a single still frame from the winner's own camera; it is saved with the room's events and shown to the room as the closing shot. Both captures happen on your device, with a visible countdown, and both are deleted when the account is deleted. Nothing else about a show is captured.</p>
+  <p><strong>Looks and face processing.</strong> You can put a look on your own video during a show. The simple looks (a colour grade, a frame, a crack) are drawn by the app on your device. Some looks are <strong>Snap Camera Kit lenses</strong>: when you choose one, Snap's Camera Kit SDK runs on your device, reads your camera frames there to find your face and draw the lens, and hands the result back to the app to put on the show. <strong>The face detection happens on your device.</strong> Your camera frames are not uploaded to Snap by the SDK and are not sent to us; the SDK downloads the lens from Snap, and Snap may receive technical and usage information from its own SDK under <a href="https://www.snap.com/privacy/privacy-policy">Snap's privacy policy</a> and the Camera Kit terms you accept the first time you use a lens. We store nothing from a lens - no face data, no frames, no measurements - only the name of the look you are wearing, which the whole room can see anyway. Take the look off and the SDK stops.</p>
 
   <h2><b>3</b>What we do not do</h2>
   <ul>
@@ -55,30 +56,32 @@
     <li><strong>No selling or sharing your data</strong> with data brokers, marketers, or anyone else for their own purposes. We have never done it and Last Call has no business model that depends on it.</li>
     <li><strong>No analytics or tracking SDKs.</strong> There is no Google Analytics, no Facebook pixel, no session recorder, no attribution or fingerprinting library anywhere in the code.</li>
     <li><strong>No email marketing.</strong> The only emails we send are the ones the app needs: invites, confirmations, and password resets.</li>
-    <li><strong>No precise location, no contacts, no photo library access.</strong> The app asks for your camera and microphone and nothing else.</li>
+    <li><strong>No precise location, no contacts, no photo library access.</strong> The app asks for your camera and microphone and nothing else, and only when you are going on camera.</li>
   </ul>
 
   <h2><b>4</b>Who else touches your data</h2>
-  <p>We are a two-person team, so the app leans on a few service providers. These are the only third parties involved, and each one only sees what it needs to do its job:</p>
+  <p>We are a young app, run by a small team, so the app leans on a few service providers. These are the only third parties involved, and each one only sees what it needs to do its job:</p>
   <ul>
     <li><strong>Supabase</strong> - database, authentication, realtime messaging, and the small server function that creates video rooms. This is where everything in section 1 lives.</li>
     <li><strong>Daily.co</strong> - the live video and audio connection, in transit only.</li>
+    <li><strong>Snap Camera Kit</strong> - the face-tracked looks. Snap's SDK runs on your device and processes your camera frames there (see section 2). It downloads lens files from Snap and may send Snap technical and usage information about the SDK itself. We store nothing from it.</li>
+    <li><strong>Resend</strong> - sends the emails the app needs (invites, confirmations, password resets) from hello@lastcall.love. Resend sees your email address and the message, nothing else.</li>
     <li><strong>Google Fonts</strong> - serves the typefaces the app uses. Loading a font means Google's servers see your IP address and browser type. Nothing about your account is sent.</li>
-    <li><strong>jsDelivr and unpkg</strong> - public code CDNs that serve the Supabase and Daily JavaScript libraries. Same story: they see an IP address and a browser type when the page loads, nothing more.</li>
+    <li><strong>jsDelivr, unpkg and esm.sh</strong> - public code CDNs that serve the Supabase, Daily and Camera Kit JavaScript libraries. Same story: they see an IP address and a browser type when the page loads, nothing more.</li>
   </ul>
-  <p>The font and CDN requests are the only third-party network calls the app makes that are not strictly ours, and they exist to deliver files, not to profile you. We would also hand over data if a valid legal demand required it, or if we genuinely believed someone was in danger.</p>
+  <p>Apart from the Camera Kit SDK described above, the font and CDN requests are the only third-party network calls the app makes that are not strictly ours, and they exist to deliver files, not to profile you. We would also hand over data if a valid legal demand required it, or if we genuinely believed someone was in danger.</p>
 
   <h2><b>5</b>What is stored on your device</h2>
   <p>Your sign-in session is kept in your browser's local storage so you are not logged out every time you close the app, and a service worker caches the app files so it loads fast and survives a flaky connection. That is it - no advertising cookies, no tracking pixels, no third-party cookies set by us.</p>
 
   <h2><b>6</b>Who can see what</h2>
-  <p>Display names, avatars, and room activity are visible to the other people in a room - that is the point of a live show. Profile information is readable only by signed-in accounts, never by the anonymous public internet. Your email address is never shown to other players. Contact details are private until a mutual swap reveals them.</p>
+  <p>Display names, avatars, bench headshots, looks, and room activity are visible to the other people in a room - that is the point of a live show. While a show is live, signed-in people in the lobby can see the host's live video on that show's card before they join. Profile information is readable only by signed-in accounts, never by the anonymous public internet. Your email address is never shown to other players. Contact details are private until a mutual swap reveals them.</p>
 
   <h2><b>7</b>How long we keep it</h2>
   <p>Room events stay with the room. Profiles stay until you delete your account. Moderation records are the deliberate exception and are kept as long as we need them (see below).</p>
 
   <h2><b>8</b>Deleting your account</h2>
-  <p>Open the settings menu in the lobby and choose <strong>Delete my account</strong>. You will be asked to confirm twice. Deleting removes your profile, any rooms you hosted, your memberships, and your messages and other room events, including the winner photo if you have one. It is immediate and it cannot be undone.</p>
+  <p>Open the settings menu in the lobby and choose <strong>Delete my account</strong>. You will be asked to confirm twice. Deleting removes your profile, any rooms you hosted, your memberships, and your messages and other room events, including the bench headshot and the winner photo if you have one. It is immediate and it cannot be undone.</p>
   <p>What survives, on purpose: if you were reported, the moderation record stays, and it keeps an email snapshot of the accounts involved. Without that, a banned account could be erased and re-created in a minute, and the report would mean nothing. If you would rather we handle the deletion for you, email us.</p>
 
   <h2><b>9</b>Adults only</h2>
@@ -101,7 +104,7 @@
   <hr>
   <div class="foot">
     See also the <a href="terms.html">Terms of Service</a>.<br>
-    Written against the code as it stands on 2 August 2026. If you find something here that does not match what the app does, tell us - that is a bug.
+    If you find something here that does not match what the app does, tell us - that is a bug.
   </div>
 
 </div>

@@ -1,8 +1,8 @@
 # DESIGN — Looks v2: the tray, the cracks, themed packs
 
 STATUS: PR A (the tray and the cracks) is client-only, no DDL — merged (#110).
-PR B (packs and the Halloween pack, feat/looks-v2-packs) carries DDL and stops
-at the SQL for Nick: tools/DDL-looks-packs.sql, NOT RUN.
+PR B (packs and the Halloween pack, feat/looks-v2-packs) — merged (#112); its
+DDL, tools/DDL-looks-packs.sql, RAN IN PRODUCTION 2026-10-19 (run log below).
 
 ## Nick's ruling (10/17)
 - The looks are "not well thought out yet", and the picker (the scrolling
@@ -142,7 +142,8 @@ DDL pattern.  The Halloween pack (Oct 24 – Nov 1): Camera Kit disguises
 as original lenses, and a 2D fallback that works today (Candlelight, Night
 Vision, Haunted VHS, Fog, cobweb corners, jack-o'-lantern border).
 
-**The server (tools/DDL-looks-packs.sql — NOT RUN; one transaction, md5-guarded
+**The server (tools/DDL-looks-packs.sql — RUN IN PRODUCTION 2026-10-19, run log
+below; one transaction, md5-guarded
 on `set_filter` a9d3bf79… and `lc_config` fc613988…, refuses on drift).**
 - `public.look_packs` — `slug` (pk), `name`, `icon`, `looks text[]`,
   `starts_at` / `ends_at` (timestamptz; the Halloween window is written as
@@ -220,3 +221,43 @@ spent; ?camkit + pack = the six then the two staging lenses; a switch is
 seen at the next openRoom; a lens-only pack says the looks aren't available
 here.  **Gate 79** claim S now reads: every shipped lens slug is on the
 server, and every extra ck- slug on the server is one of the pack's seven.
+
+## Run log 2026-10-19 — production (PR B's DDL)
+
+Run in Supabase Studio's SQL editor (project `afterhours`, PRODUCTION) by
+Nick at ~13:23 PT on 2026-10-19, after #112 merged.  Read-back as Nick
+reported it (the values below are his; this session had no production
+read of its own):
+
+| what | read back | the dry run predicted |
+|---|---|---|
+| `set_filter(uuid,text)` | md5 `a8ca64f4a6e17501e1761c4961aa0c1d`, 1373 chars | the same — asserted by the file's own post-check |
+| `lc_config()` | md5 `18c19ce96c662a68bc82e327a14f5df4` | the same — printed by the dry run's NOTICE |
+| `lc_tonight_pack()` | md5 `00ed780667ebed70cab458368bc616c1` | **`a4c73909d32133eeea3a03dc5747a677` — differs** |
+| `lc_config()` | `{"tonight_pack":null,"host_stale_ms":120000}` | the same (Oct 19 is before the window) |
+| `look_packs` | `relrowsecurity = true` | the same |
+
+**The one mismatch, `lc_tonight_pack`.**  Its md5 in production is not the
+stand-in's.  `set_filter` (spliced on the server, never pasted) and
+`lc_config` (a one-line body) match to the byte, so the difference is in
+the one multi-line SQL body that went through the editor — the same thing
+PR C's run log recorded on 2026-10-13 (comments stripped, whitespace changed
+in transit; `pg_get_functiondef` hashes the body verbatim).  Not verified
+from here: nobody has yet read production's `prosrc` for it.  Until someone
+does, treat `00ed7806…` as the guard value (it is what production hashes
+to) and, before any DDL that depends on that function's TEXT rather than
+its md5, read it back whitespace-insensitively the way PR C's second
+read-back did.  Its behaviour is checked by `lc_config()` returning
+`tonight_pack: null` today; the behavioural proof inside the window is the
+Oct 24 phone test (the Tonight tab shows the six).
+
+**Guards for the next DDL** (re-read before guarding on them, as always):
+`set_filter` `a8ca64f4a6e17501e1761c4961aa0c1d` / 1373 ·
+`lc_config` `18c19ce96c662a68bc82e327a14f5df4` ·
+`lc_tonight_pack` `00ed780667ebed70cab458368bc616c1`.
+
+NOT done: a read of the Halloween row from production (`select * from
+look_packs`), the ACLs of the three functions after the run, and the
+behavioural check through the app inside the window — those are the Oct 24
+phone test's.  The double's `FILTER_LOOKS` and `HALLOWEEN_PACK` are SOURCE
+as of this run.

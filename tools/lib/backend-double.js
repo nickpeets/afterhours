@@ -91,7 +91,8 @@ const HOST_STALE_MS = 120_000;
 const FILTER_LOOKS = ["grade", "noir", "ck-objects", "ck-express",
   /* feat/looks-v2 PR B (ruling 10/18): the Halloween pack's six 2D looks
      and its seven ck- disguise slugs, MIRRORING THE DDL in
-     tools/DDL-looks-packs.sql (its STATUS line says whether production has run it).  The
+     tools/DDL-looks-packs.sql (RUN IN PRODUCTION 2026-10-19; read-back md5s
+     in its STATUS line and tools/DESIGN-looks-v2.md's run log).  The
      seven ck- slugs are allow-listed AHEAD of their lenses: no lens exists
      for any of them yet, and a page with none configured shows no tile for
      them (packLook() returns null) — nobody can pick what nobody can draw. */

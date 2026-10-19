@@ -88,7 +88,32 @@ const HOST_STALE_MS = 120_000;
    production has run it.  Still no token pricing: on the server a lens slug
    is one more curated name, and every rule below treats it exactly like a
    teal one. */
-const FILTER_LOOKS = ["grade", "noir", "ck-objects", "ck-express"];
+const FILTER_LOOKS = ["grade", "noir", "ck-objects", "ck-express",
+  /* feat/looks-v2 PR B (ruling 10/18): the Halloween pack's six 2D looks
+     and its seven ck- disguise slugs, MIRRORING THE DDL in
+     tools/DDL-looks-packs.sql (its STATUS line says whether production has run it).  The
+     seven ck- slugs are allow-listed AHEAD of their lenses: no lens exists
+     for any of them yet, and a page with none configured shows no tile for
+     them (packLook() returns null) — nobody can pick what nobody can draw. */
+  "candlelight", "nightvision", "vhs", "fog", "cobweb", "lantern",
+  "ck-vampire", "ck-skeleton", "ck-zombie", "ck-witch", "ck-devil", "ck-pumpkin", "ck-ghost"];
+
+/* THEMED PACKS (feat/looks-v2 PR B) — public.look_packs as the DDL creates
+   it, and the Halloween row the DDL inserts.  The window is Pacific: Oct 24
+   00:00 PDT through Nov 1 23:59:59 PST (DST ends Nov 1 2026 at 02:00), stored
+   as the instants below.  lc_config() reports the ENABLED row whose window
+   holds now() — the latest-starting one when two overlap — as tonight_pack,
+   else null.  The double starts with NO packs (a gate seeds what it tests,
+   and the battery must not change colour with the calendar); HALLOWEEN_PACK
+   is the row for a gate that checks the DDL's data against the page. */
+const HALLOWEEN_PACK = Object.freeze({
+  slug: "halloween", name: "Halloween", icon: "\u{1F383}",
+  looks: Object.freeze(["candlelight", "nightvision", "vhs", "fog", "cobweb", "lantern",
+                        "ck-vampire", "ck-skeleton", "ck-zombie", "ck-witch", "ck-devil", "ck-pumpkin", "ck-ghost"]),
+  starts_at: "2026-10-24T07:00:00+00:00",   // 2026-10-24 00:00 America/Los_Angeles (PDT, UTC-7)
+  ends_at:   "2026-11-02T08:00:00+00:00",   // 2026-11-02 00:00 America/Los_Angeles (PST, UTC-8): Nov 1 is the last night
+  enabled: true,
+});
 
 /* THROWABLES (feat/throwables, step 2) — the SERVER's numbers and set,
    MIRRORING THE DDL in tools/DESIGN-throwables-server.md (its STATUS line
@@ -154,6 +179,9 @@ class BackendDouble {
        server that does not exist, and says so; without the call an unlisted
        slug is rejected here exactly the way production rejects it. */
     this.filterLooks = FILTER_LOOKS.slice();
+    /* look_packs (PR B): the rows; addLookPack() seeds one, tonightPack()
+       is lc_config's query on the double's clock */
+    this.lookPacks = [];
     /* THROWABLES: the ledger (throw_ledger) — rations and the thrower's
        identity.  Server-only: table() refuses to read it for ANY client, it
        is never emitted over realtime, and only throw_at writes it.  A gate
@@ -162,6 +190,26 @@ class BackendDouble {
     this.throwLedger = [];
   }
   allowFilterLook(name) { if (!this.filterLooks.includes(name)) this.filterLooks.push(name); return this.filterLooks.slice(); }
+  /* a look_packs row, as the DDL's constraints accept it; slug is the key
+     (an insert on an existing slug replaces, like an upsert in Studio) */
+  addLookPack({ slug, name, icon = "", looks, starts_at, ends_at, enabled = true }) {
+    if (!slug || !Array.isArray(looks) || !starts_at || !ends_at) throw new Error("look_packs: slug, looks, starts_at, ends_at are required");
+    if (Date.parse(ends_at) <= Date.parse(starts_at)) throw new Error("look_packs: ends_at must be after starts_at");
+    const row = { slug, name: name || slug, icon, looks: looks.slice(), starts_at: new Date(starts_at).toISOString(), ends_at: new Date(ends_at).toISOString(), enabled: !!enabled };
+    this.lookPacks = this.lookPacks.filter((p) => p.slug !== slug).concat([row]);
+    return { ...row, looks: row.looks.slice() };
+  }
+  removeLookPack(slug) { this.lookPacks = this.lookPacks.filter((p) => p.slug !== slug); }
+  /* lc_tonight_pack(): the enabled row whose [starts_at, ends_at) holds
+     now(), the latest-starting one if several — or null */
+  tonightPack() {
+    const now = this.now();
+    const live = this.lookPacks.filter((p) => p.enabled && Date.parse(p.starts_at) <= now && now < Date.parse(p.ends_at))
+      .sort((a, b) => Date.parse(b.starts_at) - Date.parse(a.starts_at));
+    if (!live.length) return null;
+    const p = live[0];
+    return { slug: p.slug, name: p.name, icon: p.icon, looks: p.looks.slice(), starts_at: p.starts_at, ends_at: p.ends_at };
+  }
 
   now() { return Date.now() + this.clockSkew; }
   iso(t) { return new Date(t ?? this.now()).toISOString(); }
@@ -826,7 +874,7 @@ class BackendDouble {
       case "end_room":
         throw new Error("permission denied for function end_room");
       case "lc_config":
-        return { host_stale_ms: HOST_STALE_MS };
+        return { host_stale_ms: HOST_STALE_MS, tonight_pack: this.tonightPack() };
       case "list_live_rooms": {
         if (!uid) throw new Error("permission denied for function list_live_rooms");
         this.sweepStaleRooms();
@@ -1332,4 +1380,4 @@ class BackendDouble {
   }
 }
 
-module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, HOST_STALE_MS, FILTER_LOOKS, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG, CROWN_BLOCK_MSG, ROOMS_CROWN_GUARD_MSG, ROOMS_REACT_GUARD_MSG };
+module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, HOST_STALE_MS, FILTER_LOOKS, HALLOWEEN_PACK, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG, CROWN_BLOCK_MSG, ROOMS_CROWN_GUARD_MSG, ROOMS_REACT_GUARD_MSG };

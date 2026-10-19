@@ -1036,6 +1036,7 @@
 .lc-tray__ghost .lc-shelf__name{ color:rgba(238,240,255,.6); }
 .lc-tray__ghost-lock{ position:absolute; top:5px; right:7px; font-size:11px; }
 .lc-tray__ghost-how{ font-family:Archivo,sans-serif; font-size:8.5px; line-height:1.25; color:rgba(238,240,255,.42); }
+.lc-tray__pack{ font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:rgba(255,190,110,.9); padding:2px 4px 8px; }
 .lc-tray__empty{ font-size:12px; line-height:1.5; color:rgba(238,240,255,.6); padding:14px 6px; text-align:center; border:1px dashed rgba(238,240,255,.16); border-radius:14px; }
 /* the trial bar: what is being tried, WEAR IT (publishes + locks the pick),
    Cancel (reverts).  The trial itself is on the wearer's own tile only —
@@ -1044,7 +1045,7 @@
    COLLAPSES TO THE BAR: head, tabs, rack, the greyed tabs and the foot line
    are hidden until Cancel (back to the looks) or WEAR IT. */
 #rt_shelf.is-trying .lc-shelf__head, #rt_shelf.is-trying .lc-tray__tabs, #rt_shelf.is-trying .lc-shelf__rack,
-#rt_shelf.is-trying .lc-tray__ghosts, #rt_shelf.is-trying .lc-tray__empty, #rt_shelf.is-trying .lc-shelf__foot{ display:none; }
+#rt_shelf.is-trying .lc-tray__ghosts, #rt_shelf.is-trying .lc-tray__empty, #rt_shelf.is-trying .lc-tray__pack, #rt_shelf.is-trying .lc-shelf__foot{ display:none; }
 #rt_shelf.is-trying{ padding-top:10px; padding-bottom:12px; }
 .lc-tray__try{ display:flex; flex-direction:column; gap:8px; padding:10px 12px 12px; border-radius:16px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.22); }
 .lc-tray__try-t{ font-size:12.5px; line-height:1.4; color:#eef0ff; }
@@ -1544,7 +1545,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1017.2245</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1019.1003</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1778,10 +1779,11 @@
             <span style="flex:1"></span>
             <span class="lc-shelf__meta" id="rt_shelfmeta">ONE PER SHOW</span>
           </div>
-          <!-- (feat/looks-v2 PR A) the tabs: Tonight is the current pack (none
-               until PR B wires lc_config; the lens looks stand in on a ?camkit
-               page), Classics the free 2D looks, Earned the gameplay looks you
-               cannot buy, Shop a greyed "coming soon" (no shop is built). -->
+          <!-- (feat/looks-v2 PR A) the tabs: Tonight is the current pack (PR B:
+               lc_config's tonight_pack, a look_packs row; the lens looks stand
+               in on a ?camkit page), Classics the free 2D looks, Earned the
+               gameplay looks you cannot buy, Shop a greyed "coming soon" (no
+               shop is built). -->
           <div class="lc-tray__tabs" id="rt_shelftabs" role="tablist" aria-label="Look sets">
             <button class="lc-tray__tab" role="tab" type="button" data-tab="tonight" aria-selected="false">Tonight</button>
             <button class="lc-tray__tab" role="tab" type="button" data-tab="classics" aria-selected="true">Classics</button>
@@ -1789,6 +1791,8 @@
             <button class="lc-tray__tab is-dim" role="tab" type="button" data-tab="shop" aria-selected="false">Shop</button>
           </div>
           <div class="lc-tray__worn" id="rt_shelfworn" style="display:none"><span class="lc-tray__worn-i" id="rt_shelfworni"></span><span class="lc-tray__worn-t" id="rt_shelfwornt"></span></div>
+          <!-- (PR B) the pack line: tonight's pack by name, shown on the Tonight tab while one is on -->
+          <div class="lc-tray__pack" id="rt_shelfpack" style="display:none"></div>
           <div class="lc-shelf__rack" id="rt_shelfrack"></div>
           <div class="lc-tray__ghosts" id="rt_shelfghosts"></div>
           <div class="lc-tray__empty" id="rt_shelfempty" style="display:none"></div>
@@ -2086,7 +2090,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1017.2245"); }catch(e){}
+try{ console.log("[lastcall] build b1019.1003"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2826,13 +2830,37 @@ async function enterApp(){
    are gone. */
 let HOST_STALE_MS=120000;
 let LC_CONFIG=null;
+/* THEMED PACKS (feat/looks-v2 PR B, ruling 10/18).  lc_config also carries
+   `tonight_pack`: the row of public.look_packs whose window holds now()
+   (server clock, Pacific windows stored as timestamptz), or null.  Nick
+   switches packs by editing that table — no deploy.  TONIGHT_PACK is the
+   client's copy: { slug, name, icon, looks:[slug…], starts_at, ends_at }.
+   It is re-read at every openRoom so a switch is seen at the next show. */
+let TONIGHT_PACK=null;
+function lcPackFrom(data){
+  const p=data && data.tonight_pack;
+  if(!p || typeof p!=="object" || !p.slug || !Array.isArray(p.looks)) return null;
+  return { slug:String(p.slug), name:String(p.name||p.slug), icon:p.icon?String(p.icon):"", looks:p.looks.filter(s=>typeof s==="string"), starts_at:p.starts_at||null, ends_at:p.ends_at||null };
+}
 async function lcConfigLoad(){
   try{
     const {data,error}=await sb.rpc("lc_config");
-    if(!error && data && Number.isFinite(data.host_stale_ms)){ LC_CONFIG=data; HOST_STALE_MS=data.host_stale_ms; }
+    if(!error && data && Number.isFinite(data.host_stale_ms)){ LC_CONFIG=data; HOST_STALE_MS=data.host_stale_ms; TONIGHT_PACK=lcPackFrom(data); }
   }catch(e){ /* keep the fallback */ }
   return LC_CONFIG;
 }
+/* the pack is TONIGHT's only inside its window — the server already filters
+   by now(), this is the same test on the phone's clock for a page that was
+   booted before the window opened or stays open past its end */
+function lcPackLive(p, t){
+  if(!p) return false;
+  const now=Number.isFinite(t)?t:Date.now();
+  const a=p.starts_at?Date.parse(p.starts_at):NaN, b=p.ends_at?Date.parse(p.ends_at):NaN;
+  if(Number.isFinite(a) && now<a) return false;
+  if(Number.isFinite(b) && now>=b) return false;
+  return true;
+}
+function lcTonightPack(){ return lcPackLive(TONIGHT_PACK) ? TONIGHT_PACK : null; }
 
 /* ============ LOBBY ============ */
 /* L1 (design/Last Call Lobby.dc.html): a lobby card is a full-bleed live
@@ -3310,6 +3338,8 @@ async function openRoom(r){
   }
   CURRENT_ROOM=r;
   I_WAS_PASSED=false;
+  // tonight's pack may have been switched since boot (PR B): re-read, repaint the tray when it lands
+  lcConfigLoad().then(()=>{ if(typeof filterPaintComposer==="function") filterPaintComposer(); }).catch(()=>{});
   AMHOST=r.host_id===ME.id;
   // LOBBY LIVE FEEDS: leaving the lobby tears every preview down FIRST.  The
   // teardown starts here, on the tap; the room's create site awaits it.
@@ -7038,8 +7068,183 @@ const FILTERS={
     v.addColorStop(0,"rgba(255,255,255,1)"); v.addColorStop(1,"rgba(40,40,55,1)");
     g.fillStyle=v; g.fillRect(0,0,w,h);
     g.globalCompositeOperation="source-over";
+  },
+  /* ---- THE HALLOWEEN PACK's 2D looks (feat/looks-v2 PR B, ruling 10/18) ----
+     Six more draw functions in the same free category: every op is a 2D-
+     canvas composite, a gradient, a stroke or a copy of the frame onto
+     itself — nothing per-pixel, nothing tracked.  The frame is already
+     drawn when fx(g,w,h) runs; a look that wants a shifted copy of it draws
+     g.canvas onto itself.  Motion keys off the clock (packFlicker), so the
+     looks live a little without any state. */
+  /* "candlelight": a warm amber wash, a soft flicker, and a deep vignette
+     with the light low in the frame — lit from a candle on the table */
+  candlelight(g, w, h){
+    const f=packFlicker(7, .07);
+    g.globalCompositeOperation="multiply";
+    g.fillStyle="rgba(255,190,110,"+(0.82+f)+")"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="overlay";
+    g.fillStyle="rgba(255,140,40,"+(0.22+f)+")"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="multiply";
+    const r=Math.max(w,h)*(0.68+f);
+    const v=g.createRadialGradient(w/2,h*0.66,r*0.18,w/2,h*0.66,r);
+    v.addColorStop(0,"rgba(255,255,255,1)"); v.addColorStop(0.55,"rgba(190,150,110,1)"); v.addColorStop(1,"rgba(28,14,6,1)");
+    g.fillStyle=v; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="source-over";
+  },
+  /* "nightvision": the frame drained to grey, lifted green, scanlines, a
+     round eyepiece and a faint sweep of static — a goggle's view */
+  nightvision(g, w, h){
+    g.globalCompositeOperation="saturation";
+    g.fillStyle="#000"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="multiply";
+    g.fillStyle="rgb(90,255,120)"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="screen";
+    g.fillStyle="rgba(20,90,30,1)"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="multiply";
+    g.fillStyle="rgba(0,0,0,0.28)";
+    const step=Math.max(2, Math.round(h/160));
+    for(let y=(Math.floor(Date.now()/90)%step); y<h; y+=step*2) g.fillRect(0,y,w,step);
+    const r=Math.min(w,h)*0.5;
+    const v=g.createRadialGradient(w/2,h/2,r*0.82,w/2,h/2,r*1.02);
+    v.addColorStop(0,"rgba(255,255,255,1)"); v.addColorStop(1,"rgba(0,0,0,1)");
+    g.fillStyle=v; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="screen";
+    g.fillStyle="rgba(120,255,140,"+packFlicker(13, .06)+")"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="source-over";
+  },
+  /* "vhs": a worn tape — the frame copied onto itself a few pixels left in
+     red and right in blue (colour fringing), a tracking band that rolls up
+     the picture, scanlines and a washed-out grade */
+  vhs(g, w, h){
+    const src=g.canvas, t=Date.now();
+    g.globalCompositeOperation="saturation";
+    g.fillStyle="rgba(0,0,0,0.35)"; g.fillRect(0,0,w,h);
+    // the fringes: a faint copy of the frame pushed left under a red cast,
+    // another pushed right under a blue one (the frame drawn onto itself)
+    const dx=Math.max(2, Math.round(w/180));
+    try{
+      g.globalCompositeOperation="lighter"; g.globalAlpha=0.22; g.drawImage(src, -dx, 0, w, h);
+      g.globalCompositeOperation="multiply"; g.globalAlpha=1; g.fillStyle="rgb(255,150,150)"; g.fillRect(0,0,w,h);
+      g.globalCompositeOperation="lighter"; g.globalAlpha=0.18; g.drawImage(src, dx, 0, w, h);
+    }catch(e){}
+    g.globalAlpha=1;
+    // the tracking band: a bright, slightly offset slice that rolls upward
+    const band=Math.max(6, Math.round(h/22)), y=h-((t/9)%(h+band*2))+band;
+    g.globalCompositeOperation="screen";
+    g.fillStyle="rgba(255,255,255,0.16)"; g.fillRect(0,y,w,band);
+    try{ g.globalAlpha=0.7; g.drawImage(src, 0,y,w,band, Math.round(w/60),y,w,band); }catch(e){} g.globalAlpha=1;
+    // scanlines and the grade
+    g.globalCompositeOperation="multiply";
+    g.fillStyle="rgba(0,0,0,0.18)";
+    for(let yy=0; yy<h; yy+=4) g.fillRect(0,yy,w,2);
+    g.globalCompositeOperation="overlay";
+    g.fillStyle="rgba(120,80,160,0.18)"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="screen";
+    g.fillStyle="rgba(255,255,255,0.08)"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="source-over";
+    // the deck's readout
+    const fs=Math.max(11, Math.round(w/26));
+    g.font="bold "+fs+"px monospace"; g.textBaseline="top";
+    g.fillStyle="rgba(255,255,255,0.85)";
+    g.fillText("▶ PLAY", Math.round(w*0.05), Math.round(h*0.05));
+    g.fillText("OCT 31 1987", Math.round(w*0.05), Math.round(h*0.05)+fs+2);
+  },
+  /* "fog": a bank of mist rising from the floor of the frame, three soft
+     clouds drifting across it, the colours drained a little */
+  fog(g, w, h){
+    const t=Date.now()/1000;
+    g.globalCompositeOperation="saturation";
+    g.fillStyle="rgba(0,0,0,0.45)"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="source-over";
+    const floor=g.createLinearGradient(0,h*0.35,0,h);
+    floor.addColorStop(0,"rgba(220,226,235,0)"); floor.addColorStop(0.6,"rgba(220,226,235,0.42)"); floor.addColorStop(1,"rgba(230,234,240,0.78)");
+    g.fillStyle=floor; g.fillRect(0,0,w,h);
+    const R=Math.max(w,h)*0.42;
+    for(let i=0;i<3;i++){
+      const cx=w*(0.5+0.55*Math.sin(t*0.11+i*2.1)), cy=h*(0.55+0.18*Math.cos(t*0.09+i*1.7)+i*0.12);
+      const c=g.createRadialGradient(cx,cy,0,cx,cy,R*(0.8+0.2*i));
+      c.addColorStop(0,"rgba(232,236,242,0.34)"); c.addColorStop(1,"rgba(232,236,242,0)");
+      g.fillStyle=c; g.fillRect(0,0,w,h);
+    }
+    g.globalCompositeOperation="multiply";
+    g.fillStyle="rgba(190,200,215,0.55)"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="source-over";
+  },
+  /* "cobweb": a web in each top corner — spokes from the corner, threads
+     sagging between them — and a small spider on one; a cool dim grade */
+  cobweb(g, w, h){
+    g.globalCompositeOperation="multiply";
+    g.fillStyle="rgba(170,180,200,0.75)"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="source-over";
+    const R=Math.min(w,h)*0.42;
+    const web=(ox, oy, sx)=>{
+      g.save(); g.translate(ox,oy); g.scale(sx,1);
+      g.strokeStyle="rgba(240,243,255,0.78)"; g.lineWidth=Math.max(1, w/420); g.lineCap="round";
+      const N=6, spokes=[];
+      for(let i=0;i<=N;i++){ const a=(Math.PI/2)*(i/N); spokes.push(a); g.beginPath(); g.moveTo(0,0); g.lineTo(Math.cos(a)*R, Math.sin(a)*R); g.stroke(); }
+      for(let k=1;k<=5;k++){
+        const r=R*(k/5.6);
+        g.beginPath();
+        for(let i=0;i<N;i++){
+          const a0=spokes[i], a1=spokes[i+1], x0=Math.cos(a0)*r, y0=Math.sin(a0)*r, x1=Math.cos(a1)*r, y1=Math.sin(a1)*r;
+          const am=(a0+a1)/2, sag=r*0.86;
+          if(i===0) g.moveTo(x0,y0);
+          g.quadraticCurveTo(Math.cos(am)*sag, Math.sin(am)*sag, x1, y1);
+        }
+        g.stroke();
+      }
+      g.restore();
+    };
+    web(0,0,1); web(w,0,-1);
+    // the spider, hanging off the right web
+    const sx=w*0.86, sy=R*0.72+Math.sin(Date.now()/700)*R*0.03, s=Math.max(3, w/90);
+    g.strokeStyle="rgba(240,243,255,0.6)"; g.lineWidth=1; g.beginPath(); g.moveTo(sx,0); g.lineTo(sx,sy-s); g.stroke();
+    g.fillStyle="#0a0a12"; g.beginPath(); g.ellipse(sx,sy,s*1.1,s*1.4,0,0,Math.PI*2); g.fill();
+    g.beginPath(); g.arc(sx,sy-s*1.5,s*0.7,0,Math.PI*2); g.fill();
+    g.lineWidth=Math.max(1,s/3); g.strokeStyle="#0a0a12";
+    for(let i=0;i<4;i++){ const a=0.35+i*0.5; g.beginPath(); g.moveTo(sx,sy); g.lineTo(sx+Math.cos(a)*s*2.6, sy-Math.sin(a)*s*1.2+i*s*0.5); g.moveTo(sx,sy); g.lineTo(sx-Math.cos(a)*s*2.6, sy-Math.sin(a)*s*1.2+i*s*0.5); g.stroke(); }
+  },
+  /* "lantern": a jack-o'-lantern border — an orange glowing frame with a
+     carved pumpkin at each corner and the middle of each edge, the glow
+     breathing on the clock */
+  lantern(g, w, h){
+    const f=packFlicker(5, .08), pad=Math.round(Math.min(w,h)*0.045), lw=Math.max(3, Math.round(Math.min(w,h)*0.028));
+    g.globalCompositeOperation="multiply";
+    g.fillStyle="rgba(255,205,150,"+(0.85+f)+")"; g.fillRect(0,0,w,h);
+    g.globalCompositeOperation="source-over";
+    g.save();
+    g.shadowColor="rgba(255,140,0,"+(0.85+f)+")"; g.shadowBlur=lw*3;
+    g.strokeStyle="rgba(255,122,0,0.95)"; g.lineWidth=lw; g.lineJoin="round";
+    g.strokeRect(pad,pad,w-pad*2,h-pad*2);
+    g.restore();
+    const s=Math.max(10, Math.round(Math.min(w,h)*0.07));
+    const pumpkin=(x,y)=>{
+      g.save(); g.translate(x,y);
+      g.shadowColor="rgba(255,150,30,"+(0.8+f)+")"; g.shadowBlur=s*0.8;
+      g.fillStyle="#ff7a00";
+      g.beginPath(); g.ellipse(-s*0.42,0,s*0.6,s*0.78,0,0,Math.PI*2); g.fill();
+      g.beginPath(); g.ellipse( s*0.42,0,s*0.6,s*0.78,0,0,Math.PI*2); g.fill();
+      g.beginPath(); g.ellipse(0,0,s*0.62,s*0.82,0,0,Math.PI*2); g.fill();
+      g.shadowBlur=0;
+      g.fillStyle="#2f7a1e"; g.fillRect(-s*0.12,-s*0.98,s*0.24,s*0.3);
+      g.fillStyle="rgba(255,236,120,"+(0.92+f)+")";
+      // eyes
+      g.beginPath(); g.moveTo(-s*0.46,-s*0.08); g.lineTo(-s*0.14,-s*0.08); g.lineTo(-s*0.3,-s*0.4); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo( s*0.46,-s*0.08); g.lineTo( s*0.14,-s*0.08); g.lineTo( s*0.3,-s*0.4); g.closePath(); g.fill();
+      // the grin
+      g.beginPath(); g.moveTo(-s*0.5,s*0.18);
+      for(let i=0;i<=6;i++){ const x=-s*0.5+i*(s/6); g.lineTo(x, s*0.18+((i%2)?s*0.14:0)); }
+      g.lineTo(s*0.5,s*0.18); g.lineTo(s*0.36,s*0.5); g.lineTo(-s*0.36,s*0.5); g.closePath(); g.fill();
+      g.restore();
+    };
+    pumpkin(pad,pad); pumpkin(w-pad,pad); pumpkin(pad,h-pad); pumpkin(w-pad,h-pad);
+    pumpkin(w/2,pad); pumpkin(w/2,h-pad); pumpkin(pad,h/2); pumpkin(w-pad,h/2);
   }
 };
+/* a slow, bounded wobble off the clock for the pack looks: period in
+   hundreds of ms, amplitude ± amp.  Not random (two phones drawing the same
+   second draw the same wobble), never outside ±amp. */
+function packFlicker(period, amp){ const t=Date.now()/(period*100); return Math.sin(t)*Math.sin(t*1.7+1)*amp; }
 function filterRawTrack(){
   const vt=DAILY?.participants?.()?.local?.tracks?.video;
   return vt?.persistentTrack || vt?.track || null;
@@ -7661,11 +7866,42 @@ const SHOP_LOOKS=[
   { id:"shop-1", icon:"🕶️", name:"Disguises", how:"coming soon" },
   { id:"shop-2", icon:"🎩", name:"Hats",       how:"coming soon" }
 ];
-/* the whole rack: the free teal looks, then the amber lens looks — and there
-   are no lens looks unless the page carries ?camkit AND CAMKIT is fully
-   configured (camkitOn).  A lens look is TONIGHT's until PR B's packs: the
-   current pack is whatever lens set the page is configured with. */
-function filterLooks(){ return FILTER_LOOKS.concat(camkitLooks().map(l=>({ ...l, tab:"tonight", badge:"Tonight" }))); }
+/* THEMED PACKS (feat/looks-v2 PR B, ruling 10/18).  A pack is a named list
+   of slugs with a date window, a row of public.look_packs; the server names
+   tonight's through lc_config (TONIGHT_PACK, above).  PACK_LOOKS is the
+   client's catalogue of the 2D pack looks it can draw — the art for a slug
+   the server may name.  A pack slug this page cannot draw (no FILTERS
+   function, no configured lens) is simply not a tile: it cannot be picked,
+   so there is no pick to lose.  The Halloween pack's seven ck- disguise
+   slugs are in the server's allow-list ahead of their lenses for exactly
+   that reason — they join the tray the day CAMKIT.looks carries them. */
+const PACK_LOOKS={
+  candlelight:{ icon:"🕯️", name:"Candlelight" },
+  nightvision:{ icon:"🥽", name:"Night Vision" },
+  vhs:        { icon:"📼", name:"Haunted VHS" },
+  fog:        { icon:"🌫️", name:"Fog" },
+  cobweb:     { icon:"🕸️", name:"Cobwebs" },
+  lantern:    { icon:"🎃", name:"Jack-o'-Lantern" }
+};
+function packLook(slug){
+  if(!slug || typeof slug!=="string") return null;
+  if(Object.prototype.hasOwnProperty.call(PACK_LOOKS, slug) && FILTERS[slug]){ const p=PACK_LOOKS[slug]; return { id:slug, icon:p.icon, name:p.name, cost:"FREE", tab:"tonight", badge:"Tonight" }; }
+  const lens=camkitLook(slug);
+  return lens ? { ...lens, tab:"tonight", badge:"Tonight" } : null;
+}
+/* the whole rack: the free teal classics, then TONIGHT — the pack's looks in
+   the pack's order (the ones this page can draw), then any lens look the
+   page is configured with that the pack did not name (the ?camkit staging
+   set stands in as tonight's when there is no pack, and still shows beside
+   one).  No lens looks unless the page carries ?camkit AND CAMKIT is fully
+   configured (camkitOn). */
+function filterLooks(){
+  const pack=lcTonightPack();
+  const tonight=[], seen=new Set(FILTER_LOOKS.map(l=>l.id));
+  for(const slug of (pack ? pack.looks : [])){ if(seen.has(slug)) continue; const l=packLook(slug); if(l){ tonight.push(l); seen.add(slug); } }
+  for(const l of camkitLooks()){ if(seen.has(l.id)) continue; tonight.push({ ...l, tab:"tonight", badge:"Tonight" }); seen.add(l.id); }
+  return FILTER_LOOKS.concat(tonight);
+}
 function filterTonight(){ return filterLooks().filter(l=>l.tab==="tonight"); }
 function filterLookOf(id){ return filterLooks().find(l=>l.id===id)||null; }
 function filterRowOf(uid){ return ((ROOM_STATE&&ROOM_STATE.members)||[]).find(m=>m&&m.user_id===uid)||null; }
@@ -7932,12 +8168,24 @@ function filterPaintComposer(){
     }
     ghosts.style.display = (list.length && !locked) ? "" : "none";
   }
+  // the pack line (Tonight with a pack): its name and how long it runs
+  const packLine=$("rt_shelfpack"), pack=lcTonightPack();
+  if(packLine){
+    const show = !locked && tab==="tonight" && !!pack;
+    packLine.style.display = show ? "" : "none";
+    if(show){
+      const end=pack.ends_at ? new Date(Date.parse(pack.ends_at)-1) : null;   // the last night of the window
+      const thru=(end && !isNaN(end)) ? " · through "+end.toLocaleDateString(undefined,{ month:"short", day:"numeric" }) : "";
+      packLine.textContent=(pack.icon ? pack.icon+" " : "")+pack.name+" pack"+thru;
+    }
+  }
   // the empty line (Tonight with no pack)
   const empty=$("rt_shelfempty");
   if(empty){
     const show = !locked && tab==="tonight" && !filterTonight().length;
     empty.style.display = show ? "" : "none";
-    if(show) empty.textContent="No themed pack tonight — the Classics are free, any night.";
+    if(show) empty.textContent = pack ? "Tonight's "+pack.name+" looks aren't available on this phone — the Classics are free, any night."
+                                       : "No themed pack tonight — the Classics are free, any night.";
   }
   // the trial bar — and while it is up the sheet is ONLY the bar, so the
   // wearer's own tile (a bottom chair sits under the sheet) stays in view
@@ -9791,6 +10039,10 @@ window.__lc = {
   endMyLiveRooms, hostEndRoom, signOutForSure, lcConfigLoad,
   get HOST_STALE_MS(){ return HOST_STALE_MS; },
   get LC_CONFIG(){ return LC_CONFIG; },
+  // PR B: tonight's pack as the client holds it (raw), and as the tray uses it (inside its window only)
+  get TONIGHT_PACK(){ return TONIGHT_PACK ? { ...TONIGHT_PACK, looks:TONIGHT_PACK.looks.slice() } : null; },
+  lcTonightPack, lcPackLive, packLook, get PACK_LOOKS(){ return Object.fromEntries(Object.entries(PACK_LOOKS).map(([k,v])=>[k,{ ...v }])); },
+  get FILTER_FNS(){ return Object.keys(FILTERS); },
   startHeartbeat, stopHeartbeat, startHostPoll, stopHostPoll,
   startClockTick, stopClockTick, serverNow, syncServerClock,
   /* finale */

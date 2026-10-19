@@ -6,8 +6,9 @@
  * Nov 1) carries six 2D looks the client draws today and seven ck- disguise
  * slugs reserved in the allow-list ahead of their lenses.
  *
- * THE DDL HAS NOT RUN (tools/DDL-looks-packs.sql, STATUS: NOT RUN — it stops
- * at the SQL for Nick).  The double MODELS it: look_packs rows, lc_config's
+ * THE DDL (tools/DDL-looks-packs.sql) RAN IN PRODUCTION 2026-10-19; its
+ * STATUS line and the run log in tools/DESIGN-looks-v2.md say so, with the
+ * read-back md5s.  The double MODELS it: look_packs rows, lc_config's
  * tonight_pack, the widened allow-list.  So every claim below is "the client
  * against the server as that DDL leaves it", and claim S pins the double's
  * data to the SQL text so the two cannot drift apart silently.
@@ -105,7 +106,8 @@ module.exports = {
       "lc_config's tonight_pack is read at boot and again at every openRoom");
     const ddlPath = path.join(__dirname, "..", "DDL-looks-packs.sql");
     const ddl = fs.existsSync(ddlPath) ? fs.readFileSync(ddlPath, "utf8") : "";
-    t.ok(ddl.length > 2000 && /STATUS: NOT RUN/.test(ddl), "tools/DDL-looks-packs.sql exists and its STATUS line says it has not run — this gate models DDL that has not run, and says so");
+    t.ok(ddl.length > 2000 && /STATUS: RUN IN PRODUCTION 2026-10-19/.test(ddl) && /a8ca64f4a6e17501e1761c4961aa0c1d \/ 1373/.test(ddl) && /18c19ce96c662a68bc82e327a14f5df4/.test(ddl) && /00ed780667ebed70cab458368bc616c1/.test(ddl),
+      "tools/DDL-looks-packs.sql exists and its STATUS line says it ran in production 2026-10-19, with the three read-back md5s — the server the double models is the server as it is");
     t.ok(/create table public\.look_packs/.test(ddl) && /create or replace function public\.lc_tonight_pack\(\)/.test(ddl) && /'tonight_pack', public\.lc_tonight_pack\(\)/.test(ddl),
       "the DDL creates look_packs and lc_tonight_pack, and lc_config gains tonight_pack");
     t.ok(/enable row level security/.test(ddl) && /revoke all on table public\.look_packs from public, anon, authenticated/.test(ddl) && /revoke all on function public\.lc_tonight_pack\(\) from public, anon, authenticated/.test(ddl),

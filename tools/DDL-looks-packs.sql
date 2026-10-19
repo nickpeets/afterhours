@@ -1,5 +1,10 @@
 -- DDL — themed look packs + the Halloween pack (feat/looks-v2 PR B, ruling Nick 2026-10-18)
--- STATUS: NOT RUN.  Shown to Nick for review; nothing here has touched production.
+-- STATUS: RUN IN PRODUCTION 2026-10-19 ~13:23 PT by Nick in Studio (PR #112 merged first).
+-- Read-back (Nick, 2026-10-19): set_filter a8ca64f4a6e17501e1761c4961aa0c1d / 1373 (as
+-- this file asserts), lc_config 18c19ce96c662a68bc82e327a14f5df4 (as the dry run printed),
+-- lc_tonight_pack 00ed780667ebed70cab458368bc616c1 (NOT the dry run's a4c73909… — see the
+-- run log in tools/DESIGN-looks-v2.md), lc_config() -> {"tonight_pack":null,"host_stale_ms":120000},
+-- look_packs relrowsecurity = true.  Those md5s are the guards for the next DDL.
 --
 -- What it does, in dependency order, ONE transaction, refuses on drift:
 --   0. guards      — set_filter and lc_config are byte-for-byte the last read-backs

@@ -883,3 +883,24 @@ read; **re-read the full values before anything guards on them**):
 
 The undo block above guards on the dry run's md5s and would refuse as written;
 re-read the full values and put them in its guard first if it is ever needed.
+
+**Ran in production 2026-10-20** (ruling Nick 10/20, after the first crew
+rehearsal: a tomato stayed on the tile too long) — `live_secs` 10 → **4**.
+Guarded on production's full `throw_limits` md5
+`8beec68940c408580481a4ced42529fc` (446 chars — the reflowed 10/13 paste; the
+dry run's `febae273…/443` was never what production held, and the first
+attempt guarded on it refused correctly).  After: `throw_limits` md5
+**`677f9cddef6e5eeb178437347ccf8223`**, `throw_limits()->>'live_secs' = 4`.
+Nothing else in the function changed.  The client reads the number from
+`throw_counts()` on join (THROWABLES.live_secs), so the next show lands
+tomatoes for 4s.  The client default and the double still say 10: the
+throwables / overlay-art / combos-reaction gates time their checks against
+10s (and combos-reaction asserts the combo window closes before the throw —
+with live_secs 4 the 5s combo window now outlasts the tomato; the combo
+still lands, it just can finish after the first splat has faded).  Known
+parity gap, deliberate: a follow-up should have those gates read
+THROW_LIMITS.live_secs instead of 10, then the double can follow production.
+
+| function | md5 | chars |
+|---|---|---|
+| throw_limits | 677f9cddef6e5eeb178437347ccf8223 | (2026-10-20, live_secs 4) |

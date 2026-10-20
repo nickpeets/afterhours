@@ -1593,7 +1593,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1019.2118</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1019.2124</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -2138,7 +2138,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1019.2118"); }catch(e){}
+try{ console.log("[lastcall] build b1019.2124"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2871,12 +2871,17 @@ async function enterApp(){
   const spw=$("setpwPanel"); if(spw) spw.style.display="none";
   $("lobby").style.display="block";
   $("signout").style.display="inline-block"; $("settingsbtn").style.display="inline-block";
+  /* ruling 10/15: the name · email · window strip is a multi-window testing
+     aid — it shows only under ?debug.  Normal users never see their email
+     above GO LIVE. */
   try{
-    const w=$("whoami_who"), sl=$("whoami_slot");
-    if(w) w.textContent=((MYPROFILE&&MYPROFILE.display_name)||"(no name)")+"  ·  "+((ME&&ME.email)||"");
+    const strip=$("whoami"), w=$("whoami_who"), sl=$("whoami_slot");
+    const dbg=new URLSearchParams(location.search).has("debug");
+    if(strip) strip.style.display=dbg?"flex":"none";
+    if(w) w.textContent=dbg?(((MYPROFILE&&MYPROFILE.display_name)||"(no name)")+"  ·  "+((ME&&ME.email)||"")):"";
     if(sl){
-      sl.textContent="window: "+(AH_SESSION_SLOT||"default (shared)");
-      if(!AH_SESSION_SLOT) sl.style.color="#ffc24d";   // amber: this window shares its login
+      sl.textContent=dbg?("window: "+(AH_SESSION_SLOT||"default (shared)")):"";
+      if(dbg&&!AH_SESSION_SLOT) sl.style.color="#ffc24d";   // amber: this window shares its login
     }
   }catch(e){}
   loadRooms();
@@ -5656,7 +5661,7 @@ $("st_saveprefs").onclick=async()=>{
     toast(error?("Couldn't save: "+error.message):"Saved (matching prefs need the DB migration)");
   } else toast(error?("Couldn't save: "+error.message):"Preferences saved ✦");
   MYPROFILE={...MYPROFILE,seeking,seek_min,seek_max,radius_miles:radius};
-  if(newName){ MYPROFILE.display_name=newName; const w=$("whoami_who"); if(w) w.textContent=newName+"  ·  "+((ME&&ME.email)||""); }
+  if(newName){ MYPROFILE.display_name=newName; const w=$("whoami_who"); if(w&&new URLSearchParams(location.search).has("debug")) w.textContent=newName+"  ·  "+((ME&&ME.email)||""); }
   if(newZip) MYPROFILE.zip_code=newZip;
 };
 $("st_close").onclick=stClose;

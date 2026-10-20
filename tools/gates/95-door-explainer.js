@@ -85,6 +85,7 @@ module.exports = {
     const iExp = auth.indexOf('id="auth_explainer"'), iTabs = auth.indexOf('class="tabrow"'), iStatus = auth.indexOf('id="auth_status"'), iMark = auth.indexOf('id="auth_mark"');
     t.ok(iMark >= 0 && iMark < iExp && iExp < iStatus && iStatus < iTabs, "order: wordmark, explainer, status line, then the tab row (" + [iMark, iExp, iStatus, iTabs].join(" < ") + ")");
     t.ok(auth.indexOf('id="auth_skip"') < 0, "no top-right Sign in link (ruling 10/19 pm)");
+    t.ok(/#app:has\(#auth:not\(\.hide\)\) header\{display:none\}/.test(ctx.html), "the app header (small logo + chip) is hidden while the door is up");
     t.ok(auth.includes('<div class="lsub">' + LSUB + '</div>'), "the subheading is exactly: " + LSUB);
     const sched = text.match(SCHEDULE);
     t.ok(!sched, "no schedule claim in #auth markup" + (sched ? " — found '" + sched[0] + "'" : ""));
@@ -112,6 +113,9 @@ module.exports = {
       const knocked0 = guestOps(D, "g0").filter((o) => o.op === "rpc" && SIGNED_IN_DOORS.includes(o.name)).map((o) => o.name);
       t.ok(knocked0.length === 0, "signed-out, nothing on: no signed-in door was asked for — " + knocked0.join(","));
       t.ok(h.dailyRoomRequests.filter((r) => r.client === "g0").length === 0, "signed-out: no daily-room token request");
+      const chrome0 = await g0.page.evaluate(() => ({ header: getComputedStyle(document.querySelector("#app > header")).display, slot: (document.getElementById("sessionslot") || {}).textContent || "" }));
+      t.ok(chrome0.header === "none", "signed-out: the app header is not shown (display=" + chrome0.header + ")");
+      t.ok(chrome0.slot === "", "signed-out: the window/session slot is empty without ?debug ('" + chrome0.slot + "')");
 
       /* ── 2. a live room ─────────────────────────────────────────── */
       const host = D.addUser({ id: "u_door_host", name: "Marla" });

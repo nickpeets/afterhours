@@ -22,8 +22,17 @@ module.exports = {
       t.ok(true, "the live fixture room renders a lobby card");
       const meta = await c.page.$eval(".roomcard .meta", (el) => el.textContent);
       t.ok(/\d+ in the room/.test(meta), "room card shows a member count: " + JSON.stringify(meta.trim().slice(0, 40)));
-      const who = await c.page.$eval("#whoami_who", (el) => el.textContent);
-      t.ok(/Crowd One/.test(who), "whoami strip shows the signed-in profile");
+      /* ruling 10/15: the whoami strip (name · email · window) is debug-only */
+      const strip = await c.page.$eval("#whoami", (el) => ({ shown: getComputedStyle(el).display !== "none", text: el.textContent.trim() }));
+      t.ok(!strip.shown && strip.text === "", "whoami strip is hidden and empty without ?debug (no email above GO LIVE) — " + JSON.stringify(strip));
+      const d = await h.newClient("boot-debug");
+      d.login(fx.crowd[0]);
+      await d.goto("?debug");
+      await d.page.waitForSelector("#lobby", { state: "visible", timeout: 15000 });
+      const who = await d.page.$eval("#whoami_who", (el) => el.textContent);
+      const stripD = await d.page.$eval("#whoami", (el) => getComputedStyle(el).display !== "none");
+      t.ok(stripD && /Crowd One/.test(who), "under ?debug the whoami strip shows the signed-in profile");
+      await d.close();
       const authHidden = await c.page.$eval("#auth", (el) => el.classList.contains("hide"));
       t.ok(authHidden, "auth screen is dismissed after boot");
       t.ok(c.errors.length === 0, "zero console errors — got " + c.errors.length + ": " + c.errors.slice(0, 3).join(" | "));

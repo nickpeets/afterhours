@@ -1587,7 +1587,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1020.0928</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1020.1105</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -2132,7 +2132,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1020.0928"); }catch(e){}
+try{ console.log("[lastcall] build b1020.1105"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -8394,7 +8394,7 @@ $("rt_shelftabs").querySelectorAll(".lc-tray__tab").forEach(t=>t.onclick=()=>loo
    the PR's proposed defaults in ONE object.  The server's throw_limits() is
    the referee; throw_counts() carries it and overwrites the numbers here. */
 const THROWABLES={
-  live_secs:10, cooldown_secs:20, cheers:5, jeers:2,
+  live_secs:10, cooldown_secs:20, cheers:5, jeers:2,   // fallbacks only: the server's throw_limits() wins (live_secs is 4 in production since 2026-10-20)
   cracks_to_shatter:3, rose_mends:1,   // THE PRESSURE's two numbers (the server's throw_limits() overwrites them)
   combo_secs:5, combo_n:3, combo_fx_secs:4, ovation_hearts:1,   // CROWD COMBOS: the window, the count that fires one, how long its effect runs, what an ovation is worth
   react_secs:6, react_mult:2,          // THE REACTION WINDOW: how long after his answer, and what a throw in it counts for

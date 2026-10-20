@@ -45,11 +45,8 @@
 const { Harness } = require("../lib/harness");
 const { HALLOWEEN_PACK } = require("../lib/backend-double");
 
-const BEATS = [
-  ["Take a chair.", "Win the host over."],
-  ["The host keeps one.", "Or nobody."],
-  ["Or join the crowd.", "Cheer, jeer, throw tomatoes."],
-];
+const BEATS = [["Host a room", ""], ["Take a chair", ""], ["Join the crowd", ""]];
+const LSUB = "The live dating game show";
 /* a schedule claim is any promise about WHEN shows happen */
 const SCHEDULE = /most nights|every night|nightly|each night|every (evening|weekend|friday|saturday|sunday)|shows at|live at \d|\b\d{1,2}\s?(am|pm)\b|tonight at|every day|daily show/i;
 const SIGNED_IN_DOORS = ["list_live_rooms", "active_members", "join_room", "heartbeat"];
@@ -83,10 +80,12 @@ module.exports = {
     const text = auth.replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
     BEATS.forEach(([lead, body], i) => {
       t.ok(auth.includes("<b>" + lead + "</b>"), "beat " + (i + 1) + " lead is verbatim: " + lead);
-      t.ok(auth.includes(body), "beat " + (i + 1) + " body is verbatim");
+      t.ok(!body || auth.includes(body), "beat " + (i + 1) + " body is verbatim");
     });
-    const iExp = auth.indexOf('id="auth_explainer"'), iTabs = auth.indexOf('class="tabrow"'), iSkip = auth.indexOf('id="auth_skip"'), iStatus = auth.indexOf('id="auth_status"');
-    t.ok(iSkip >= 0 && iSkip < iExp && iExp < iStatus && iStatus < iTabs, "order: Sign in link, explainer, status line, then the tab row (" + [iSkip, iExp, iStatus, iTabs].join(" < ") + ")");
+    const iExp = auth.indexOf('id="auth_explainer"'), iTabs = auth.indexOf('class="tabrow"'), iStatus = auth.indexOf('id="auth_status"'), iMark = auth.indexOf('id="auth_mark"');
+    t.ok(iMark >= 0 && iMark < iExp && iExp < iStatus && iStatus < iTabs, "order: wordmark, explainer, status line, then the tab row (" + [iMark, iExp, iStatus, iTabs].join(" < ") + ")");
+    t.ok(auth.indexOf('id="auth_skip"') < 0, "no top-right Sign in link (ruling 10/19 pm)");
+    t.ok(auth.includes('<div class="lsub">' + LSUB + '</div>'), "the subheading is exactly: " + LSUB);
     const sched = text.match(SCHEDULE);
     t.ok(!sched, "no schedule claim in #auth markup" + (sched ? " — found '" + sched[0] + "'" : ""));
     t.ok(/<button class="tab" id="tab_signup">New here<\/button>/.test(auth), "the New here tab keeps its name");
@@ -145,20 +144,6 @@ module.exports = {
       });
       t.ok(after.loginOn && after.loginShown && after.focused === "li_email" && after.rowVisible,
         "tapping the card lands on the sign-in form: Sign in tab on, tab row on screen, email focused — " + JSON.stringify(after));
-      /* the top-right link, same landing */
-      await g1.page.click("#tab_signup");
-      await g1.page.evaluate(() => { document.getElementById("auth").scrollTop = 0; document.activeElement && document.activeElement.blur(); });
-      await g1.page.click("#auth_skip");
-      await g1.page.waitForTimeout(400);
-      const viaLink = await g1.page.evaluate(() => {
-        const a = document.getElementById("auth"), row = document.querySelector("#auth .tabrow");
-        const ar = a.getBoundingClientRect(), rr = row.getBoundingClientRect();
-        return { loginOn: document.getElementById("tab_login").classList.contains("on"), focused: document.activeElement && document.activeElement.id,
-          rowVisible: rr.top >= ar.top - 1 && rr.bottom <= ar.bottom + 1, hash: location.hash };
-      });
-      t.ok(viaLink.loginOn && viaLink.focused === "li_email" && viaLink.rowVisible && viaLink.hash === "",
-        "the Sign in link lands on the form the same way, without a hash jump — " + JSON.stringify(viaLink));
-
       /* ── 3. pack only / live outranks pack / outside the window ──── */
       const now = () => D.now(), iso = (ms) => new Date(ms).toISOString();
       D.addLookPack({ ...HALLOWEEN_PACK, starts_at: iso(now() - 3_600_000), ends_at: iso(now() + 3_600_000) });

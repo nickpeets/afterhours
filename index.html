@@ -1518,10 +1518,11 @@
 #auth>.authlinks{margin-bottom:auto}
 .authskip{position:absolute;top:14px;right:16px;z-index:2;font-family:Archivo,sans-serif;font-size:13px;font-weight:700;color:#ff6fb0;
   text-decoration:none;border-bottom:1px solid rgba(255,111,176,.5);padding:2px 0}
-.door{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;margin:2px 0}
-.door__beat{display:flex;flex-direction:column;gap:2px}
-.door__beat b{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:19px;line-height:1.2;color:#fff}
-.door__beat span{font-family:Archivo,sans-serif;font-size:15.5px;line-height:1.45;color:rgba(238,240,255,.84)}
+.door{width:100%;max-width:360px;display:flex;flex-direction:column;gap:8px;margin:4px 0;align-items:center}
+.door__kicker{font-family:'Azeret Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.22em;color:#2de3d0;text-shadow:0 0 14px rgba(45,227,208,.5);margin-bottom:2px}
+.door__beat{display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:0 6px;text-align:center}
+.door__beat b{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:20px;line-height:1.25;color:#fff}
+.door__beat span{font-family:Archivo,sans-serif;font-size:17px;line-height:1.25;color:rgba(238,240,255,.84)}
 .door__status{width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center}
 .door__status:empty{display:none}
 /* LIVE NOW — the lobby card's vocabulary (pink live pill, Baloo title,
@@ -1553,15 +1554,16 @@
       <!-- THE DOOR (feat/splash-explainer): a returning user never scrolls
            past the explainer — this link jumps to the sign-in form. -->
       <a class="authskip" id="auth_skip" href="#li_email">Sign in</a>
-      <h1 style="font-family:Monoton,cursive;font-weight:400;font-size:32px;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.55),0 0 26px rgba(255,45,143,.95),0 0 64px rgba(255,45,143,.5);letter-spacing:.04em">LAST CALL</h1>
+      <h1 id="auth_mark" style="font-family:Monoton,cursive;font-weight:400;font-size:44px;white-space:nowrap;text-align:center;color:#fff;text-shadow:0 0 10px rgba(255,255,255,.55),0 0 26px rgba(255,45,143,.95),0 0 64px rgba(255,45,143,.5);letter-spacing:.04em">LAST CALL</h1>
       <div class="lsub">The live dating game show.  Take the chair.  Beat the clock.  Get kept.</div>
-      <!-- what Last Call is, before anyone is asked for a password.  Three
-           beats, copy as ruled 10/19 (gate 95 holds it verbatim).  No
+      <!-- how to play, before anyone is asked for a password.  Three short
+           lines, copy as ruled 10/19 (gate 95 holds it verbatim).  No
            schedule claim anywhere on this screen. -->
-      <section class="door" id="auth_explainer" aria-label="What Last Call is">
-        <div class="door__beat"><b>It's a live dating game show.</b><span>A host goes live. People take the chairs and try to win the host over. The crowd watches, cheers and jeers.</span></div>
-        <div class="door__beat"><b>Every show ends with one answer.</b><span>The host keeps one person — or nobody. No swiping, no matching, no three weeks of texting. You find out tonight.</span></div>
-        <div class="door__beat"><b>Play it three ways.</b><span>Host your own show. Take a chair. Or sit in the crowd and throw tomatoes.</span></div>
+      <section class="door" id="auth_explainer" aria-label="How to play">
+        <div class="door__kicker">HOW TO PLAY</div>
+        <div class="door__beat"><b>Take a chair.</b><span>Win the host over.</span></div>
+        <div class="door__beat"><b>The host keeps one.</b><span>Or nobody.</span></div>
+        <div class="door__beat"><b>Or join the crowd.</b><span>Cheer, jeer, throw tomatoes.</span></div>
       </section>
       <!-- the status line: filled by authStatusLoad() from what a signed-out
            client can read (a live room, else tonight's pack), else empty -->
@@ -1592,7 +1594,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1019.2035</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1019.2047</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -2137,7 +2139,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1019.2035"); }catch(e){}
+try{ console.log("[lastcall] build b1019.2047"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2292,6 +2294,20 @@ function authFocusSignIn(){
   const em=$("li_email"); if(em) em.focus({preventScroll:true});
 }
 $("auth_skip").onclick=(e)=>{ e.preventDefault(); authFocusSignIn(); };
+/* THE DOOR: the wordmark fills the width of #auth's content box, whatever
+   font is on this phone — measure, scale, cap at 64px.  Re-fit when the
+   web font lands and on resize. */
+function authFitMark(){
+  const h=$("auth_mark"), a=$("auth"); if(!h||!a) return;
+  const cs=getComputedStyle(a); const inner=a.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+  if(!(inner>0)) return;
+  h.style.fontSize="44px";
+  const w=h.getBoundingClientRect().width; if(!(w>0)) return;
+  h.style.fontSize=Math.max(30,Math.min(64,44*inner/w))+"px";
+}
+authFitMark();
+window.addEventListener("resize",authFitMark);
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(authFitMark).catch(()=>{});
 
 /* ============ SIGN UP ============ */
 $("signupPanel").onsubmit=async(e)=>{

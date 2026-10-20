@@ -2,8 +2,8 @@
  * Call is before it asks for a password (feat/splash-explainer, 10/19).
  *
  * THE SCREEN, top to bottom: the wordmark and .lsub as before; a small
- * "Sign in" link top-right for a returning user; three beats of copy (a
- * bold lead and a line or two each); a STATUS LINE that says only what the
+ * "Sign in" link top-right for a returning user; three short how-to-play lines (a
+ * bold lead and a tail each), under the wordmark, which fills the width; a STATUS LINE that says only what the
  * client can already read signed-out; then the tab row and the forms,
  * unchanged.  The status line is the truthful part and the part that can
  * lie, so most of this gate is about it:
@@ -46,9 +46,9 @@ const { Harness } = require("../lib/harness");
 const { HALLOWEEN_PACK } = require("../lib/backend-double");
 
 const BEATS = [
-  ["It's a live dating game show.", "A host goes live. People take the chairs and try to win the host over. The crowd watches, cheers and jeers."],
-  ["Every show ends with one answer.", "The host keeps one person — or nobody. No swiping, no matching, no three weeks of texting. You find out tonight."],
-  ["Play it three ways.", "Host your own show. Take a chair. Or sit in the crowd and throw tomatoes."],
+  ["Take a chair.", "Win the host over."],
+  ["The host keeps one.", "Or nobody."],
+  ["Or join the crowd.", "Cheer, jeer, throw tomatoes."],
 ];
 /* a schedule claim is any promise about WHEN shows happen */
 const SCHEDULE = /most nights|every night|nightly|each night|every (evening|weekend|friday|saturday|sunday)|shows at|live at \d|\b\d{1,2}\s?(am|pm)\b|tonight at|every day|daily show/i;
@@ -201,6 +201,10 @@ module.exports = {
           return { ...before, scrolled: a.scrollTop, visibleAfter: r2.top >= ar.top - 1 && r2.bottom <= ar.bottom + 1 };
         });
         t.ok(!m.overflowX, w + "x" + hgt + ": no sideways overflow");
+        const mark = await c.page.evaluate(() => { const h = document.getElementById("auth_mark"), a = document.getElementById("auth");
+          const cs = getComputedStyle(a); const inner = a.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+          return { w: h.getBoundingClientRect().width, inner }; });
+        t.ok(mark.w >= mark.inner * 0.95 && mark.w <= mark.inner + 1, w + "x" + hgt + ": the wordmark fills the width (" + Math.round(mark.w) + " of " + Math.round(mark.inner) + ")");
         t.ok(m.scrolled <= m.box / 2 && m.visibleAfter,
           w + "x" + hgt + ": the tabs are on screen after at most half a screen of scroll (tabs at " + Math.round(m.top) + "–" + Math.round(m.bottom) + " of " + Math.round(m.box) + ", scrolled " + Math.round(m.scrolled) + ")");
         await c.page.click("#tab_signup");

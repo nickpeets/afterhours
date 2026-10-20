@@ -435,7 +435,16 @@ async function launchBot(chromium, exe, site, spec, log, { faces = false } = {})
     await context.addInitScript(cameraScript(spec, face ? facePath(spec) : null));   // INTERNAL REHEARSAL ONLY: a face is never public (cast.js)
     await context.addInitScript(PAGE);
     const page = context.pages()[0] || await context.newPage();
-    page.on("pageerror", (e) => log(`  ${spec.name} page error: ${String(e && e.message || e).slice(0, 160)}`));
+    page.on("pageerror", (e) => {
+      const msg = String(e && e.message || e).slice(0, 160);
+      // the stack is the evidence: top frames, repeated frames collapsed (a
+      // "Maximum call stack size exceeded" is otherwise anonymous — 10/20)
+      const frames = String(e && e.stack || "").split("\n").slice(1).map((l) => l.trim()).filter(Boolean);
+      const out = []; let last = null, n = 0;
+      for (const f of frames) { if (f === last) { n++; continue; } if (n) out.push(`    (x${n + 1})`); n = 0; last = f; out.push("    " + f); if (out.length >= 14) break; }
+      if (n) out.push(`    (x${n + 1})`);
+      log(`  ${spec.name} page error: ${msg}` + (out.length ? "\n" + out.join("\n") : ""));
+    });
     await page.goto(site, { waitUntil: "load" });
     await page.waitForFunction(() => window.__crew && window.__crew.loaded(), null, { timeout: 30000 });
     if (!(await page.evaluate(() => window.__crew.uid()))) {

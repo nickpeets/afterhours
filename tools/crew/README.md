@@ -47,6 +47,17 @@ filled with `dex`, `marco`, `leo`, `crowd-a`, `crowd-b` or `crowd-c`), or
 
 `tools/crew/crew --check` signs every bot in, names it, and stops.
 
+## One command: `tools/crew/rehearse.sh`
+
+Nick goes live on his phone (the only live room), then in the Codespace
+terminal: `bash tools/crew/rehearse.sh`.  It signs the five bots in on the
+`CREW_EMAIL_*` + `CREW_PASSWORD` secrets (preflight first — it bails if Dex
+or both crowd bots are refused), starts Xvfb :99 and an ffmpeg recording
+under `/workspaces/rehearsal/rec/`, runs `--scenario looks --faces --camkit
+--snap-terms agree`, and prints the log at the end to paste back.
+`SCENARIO=combos` picks another scenario; `--check` is preflight only.  It
+exists because a 25-line terminal paste got mangled on 10/20.
+
 ## Starting a crew show
 
 1. On your phone, GO LIVE.

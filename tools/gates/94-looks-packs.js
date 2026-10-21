@@ -118,13 +118,18 @@ module.exports = {
     const ddlSlugs = [...ddlList.matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]);
     t.ok(ddlSlugs.length === 17 && [...PACK_2D, ...PACK_CK].every((s) => ddlSlugs.includes(s)) && ["grade", "noir", "ck-objects", "ck-express"].every((s) => ddlSlugs.includes(s)),
       `the spliced allow-list carries the four of 2026-10-06 and the pack's thirteen (${ddlSlugs.length} names)`);
-    t.ok(ddlSlugs.slice().sort().join(",") === FILTER_LOOKS.slice().sort().join(","), "the double's allow-list is exactly the DDL's (mirroring, not importing)");
+    /* PR A of the 10/20–10/21 brief (tools/DDL-packs-holidays.sql) widens the
+       list by the Holidays pack's sixteen and MOVES the Halloween window
+       (on now, through Oct 31 PT); the double mirrors the server as that
+       file leaves it, so the seventeen here are a subset of the double's
+       list and the row's slugs still match — the window pins are gate 96's */
+    t.ok(ddlSlugs.every((s) => FILTER_LOOKS.includes(s)) && FILTER_LOOKS.length === 33, `the double's allow-list carries the seventeen of this DDL (and the Holidays sixteen of PR A's — ${FILTER_LOOKS.length} names)`);
     const ddlRow = (ddl.match(/insert into public\.look_packs[\s\S]*?true\);/) || [""])[0];
     const rowSlugs = [...(ddlRow.match(/array\[[\s\S]*?\]/) || [""])[0].matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]);
     t.ok(rowSlugs.join(",") === HALLOWEEN_PACK.looks.join(",") && /'halloween', 'Halloween'/.test(ddlRow) && /2026-10-24 00:00'::timestamp at time zone 'America\/Los_Angeles'/.test(ddlRow) && /2026-11-02 00:00'::timestamp at time zone 'America\/Los_Angeles'/.test(ddlRow),
-      "the DDL's Halloween row is the double's HALLOWEEN_PACK: the thirteen slugs in order, Oct 24 00:00 to Nov 2 00:00 America/Los_Angeles (Nov 1 the last night)");
-    t.ok(HALLOWEEN_PACK.starts_at === "2026-10-24T07:00:00+00:00" && HALLOWEEN_PACK.ends_at === "2026-11-02T08:00:00+00:00",
-      "the window's instants: Oct 24 07:00Z (00:00 PDT) through Nov 2 08:00Z (00:00 PST — DST ended Nov 1)");
+      "the DDL's Halloween row is the double's HALLOWEEN_PACK's thirteen slugs in order; the 2026-10-19 window was Oct 24 00:00 to Nov 2 00:00 America/Los_Angeles (moved by PR A's DDL — gate 96)");
+    t.ok(HALLOWEEN_PACK.starts_at === "2026-10-21T07:00:00+00:00" && HALLOWEEN_PACK.ends_at === "2026-11-01T07:00:00+00:00",
+      "the window's instants as PR A moves them: Oct 21 07:00Z (00:00 PDT) through Nov 1 07:00Z (00:00 PDT — Oct 31 the last night)");
 
     /* ---------- RUNTIME ---------- */
     const h = await Harness.launch();
@@ -158,11 +163,11 @@ module.exports = {
         const c = await h.newClient("probe"); c.login(D.addUser({ id: "u_probe", name: "Probe" }));
         await c.goto();
         await c.page.waitForSelector("#lobby:not([style*='display: none'])", { state: "visible", timeout: 15000 });
-        const r = await c.page.evaluate((p) => [Date.parse("2026-10-24T06:59:59Z"), Date.parse("2026-10-24T07:00:00Z"), Date.parse("2026-11-02T07:59:59Z"), Date.parse("2026-11-02T08:00:00Z")].map((t) => window.__lc.lcPackLive(p, t)), HALLOWEEN_PACK);
+        const r = await c.page.evaluate((p) => [Date.parse("2026-10-21T06:59:59Z"), Date.parse("2026-10-21T07:00:00Z"), Date.parse("2026-11-01T06:59:59Z"), Date.parse("2026-11-01T07:00:00Z")].map((t) => window.__lc.lcPackLive(p, t)), HALLOWEEN_PACK);
         await c.close();
         return r;
       })();
-      t.ok(probe.join(",") === "false,true,true,false", `lcPackLive on the Halloween row: the second before it opens is out, 00:00 PDT Oct 24 is in, 23:59:59 PST Nov 1 is in, 00:00 PST Nov 2 is out (${probe.join(",")})`);
+      t.ok(probe.join(",") === "false,true,true,false", `lcPackLive on the Halloween row (PR A's window): the second before it opens is out, 00:00 PDT Oct 21 is in, 23:59:59 PDT Oct 31 is in, 00:00 PDT Nov 1 is out (${probe.join(",")})`);
 
       /* ---------- 1. NO PACK ---------- */
       const r1 = mkRoom("r_nopack", "u_h1", ["u_n0", "u_n1", "u_n2"]);

@@ -147,11 +147,11 @@ module.exports = {
          disguise slugs AHEAD of their lenses (ruling 10/18) — so the rule is
          now: every shipped lens slug is on the server, and every ck- slug on
          the server the page does not ship is one of the pack's reserved seven */
-      const { HALLOWEEN_PACK } = require("../lib/backend-double");
-      const reserved = HALLOWEEN_PACK.looks.filter((n) => /^ck-/.test(n));
+      const { HALLOWEEN_PACK, HOLIDAYS_PACK } = require("../lib/backend-double");
+      const reserved = [...HALLOWEEN_PACK.looks, ...HOLIDAYS_PACK.looks].filter((n) => /^ck-/.test(n));   // + the Holidays pack's eight (PR A, 10/21)
       const extra = serverLens.filter((n) => !slugs.includes(n));
       t.ok(slugs.every((s) => serverLens.includes(s)) && extra.slice().sort().join(",") === reserved.slice().sort().join(","),
-        `the server's list (the double, mirroring the DDL) carries those lens slugs, plus exactly the Halloween pack's reserved ck- slugs — page: ${slugs.join(", ")} · server: ${serverLens.join(", ")}`);
+        `the server's list (the double, mirroring the DDL) carries those lens slugs, plus exactly the Halloween and Holidays packs' reserved ck- slugs — page: ${slugs.join(", ")} · server: ${serverLens.join(", ")}`);
       const [S1, S2] = slugs;
       const nope = await C.page.evaluate(() => window.__lc.filterPick("ck-nope"));
       t.ok(nope.ok === false && /no such filter/.test(nope.error) && D.memberRow(room, "u_c").filter_pick === null,

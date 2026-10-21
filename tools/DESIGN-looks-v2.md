@@ -3,6 +3,10 @@
 STATUS: PR A (the tray and the cracks) is client-only, no DDL — merged (#110).
 PR B (packs and the Halloween pack, feat/looks-v2-packs) — merged (#112); its
 DDL, tools/DDL-looks-packs.sql, RAN IN PRODUCTION 2026-10-19 (run log below).
+PACKS, ROUND TWO (feat/packs-halloween-now-holidays, PR A of the 10/20–10/21
+brief): Halloween on now through Oct 31 PT, the Holidays pack Nov 1 – Jan 1,
+vaulting — its DDL, tools/DDL-packs-holidays.sql, is NOT RUN (handed to Nick;
+see the section at the end).
 
 ## Nick's ruling (10/17)
 - The looks are "not well thought out yet", and the picker (the scrolling
@@ -261,3 +265,126 @@ look_packs`), the ACLs of the three functions after the run, and the
 behavioural check through the app inside the window — those are the Oct 24
 phone test's.  The double's `FILTER_LOOKS` and `HALLOWEEN_PACK` are SOURCE
 as of this run.
+
+## Packs, round two — Halloween NOW, the Holidays pack, vaulting (feat/packs-halloween-now-holidays)
+
+Nick's rulings (10/20–10/21): the Halloween pack is on **now**, for everyone,
+no tier or chip gate, through Oct 31 PT; on Nov 1 PT it vaults and the
+**Holidays** pack takes over, switching itself on through the rotation PR B
+built.  A pack whose window has passed disappears from the tray entirely
+(not greyed) and stays in the DB as vaulted, for reuse.
+
+**The server (tools/DDL-packs-holidays.sql — NOT RUN; Nick runs it in
+Studio; one transaction, md5-guarded on the three 2026-10-19 read-backs,
+refuses on drift).**
+- the allow-list: `room_members`' two CHECKs and `set_filter`'s one line,
+  spliced the 2026-10-06 way, widened by the eight 2D slugs `fairylights
+  snowfall frosted fireplace candycane snowglobe tinsel countdown` and the
+  eight lens slugs `ck-santa ck-reindeer ck-elf ck-sweater ck-krampus
+  ck-nutcracker ck-snowman ck-champagne`.  Expected after: 1569 chars, md5
+  `88c4017d9db2fc1dd69cf877729e4c41` (the SOURCE section of
+  DESIGN-filter-rules.md reproduces every earlier fingerprint — 1203 /
+  de467837…, 1229 / a9d3bf79…, 1373 / a8ca64f4… — with the one line swapped;
+  the trailing newline `pg_get_functiondef` emits is part of the hash).
+- the Halloween row: `starts_at` moved back to `'2026-10-21 00:00'` PT (so it
+  is live the instant the file runs, whenever Nick runs it) and `ends_at`
+  moved up to `'2026-11-01 00:00'` PT (Oct 31 the last night; DST ends two
+  hours later, so both instants are PDT: 07:00Z).  Nothing else about the
+  row changes; nothing gates it — a plain signed-in user sees it.
+- the Holidays row: `'2026-11-01 00:00'` → `'2027-01-02 00:00'` PT (Jan 1 the
+  last night), sixteen slugs.  Its window opens at the very instant
+  Halloween's closes, so `lc_tonight_pack()` (enabled row whose window holds
+  now(), latest-starting first) hands over by itself — no deploy, nothing
+  to flip, exactly how Halloween was to come on.
+- vaulting: `lc_pack_status(look_packs) → live | scheduled | vaulted | off`,
+  computed from the window on the server clock (never a stored flag that can
+  go stale), and `look_packs_status`, a `security_invoker` view over it,
+  both revoked from anon/authenticated — Studio reads it, the app never
+  does.  A vaulted pack is never `tonight_pack`, so no phone ever draws a
+  tile for it; the row stays.  To vault early: `ends_at = now()`.  To reuse:
+  a new window.  The live DDL deletes nothing (gate 96 reads the file and
+  says so).
+- Dry run 2026-10-21 against a throwaway PostgreSQL 16.15 holding a stand-in
+  (`rooms`, `room_members` with the seventeen-name CHECKs, a stub
+  `auth.uid()`, `set_filter` from the SOURCE section with the 2026-10-19
+  line — fingerprints exactly as production's a8ca64f4…/1373 — `lc_config`
+  as PR B's file creates it — 18c19ce9…, production's own — and
+  `lc_tonight_pack` as PR B's file creates it, which hashes a4c73909…, not
+  production's 00ed7806…, as the 2026-10-19 run log recorded; the dry run's
+  COPY of the file swaps that one guard value, the committed file carries
+  production's): the guards pass; the splice lands at 1569 / 88c4017d…; the
+  window probe says halloween at 00:00 PDT Oct 21 and 23:59:59 PDT Oct 31,
+  holidays at 00:00 PDT Nov 1 and 23:59:59 PST Jan 1, nothing at 00:00 PST
+  Jan 2, with `lc_pack_status` scheduled/scheduled → live/scheduled →
+  vaulted/live → vaulted/vaulted at those instants; `set_filter(room,
+  'snowfall')` and `'ck-champagne'` accepted, a second pick `filter locked
+  for this show`, `ck-nope` `no such filter`; `authenticated` gets
+  `permission denied` on the view and on the table under the status
+  function, and `halloween` from `lc_config()`; a second run of the file is
+  refused by the first guard with nothing changed.  Says nothing about
+  production's state — the preflight at the top of the file is that read.
+
+**The client.**
+- Eight more `FILTERS` draw functions in the free category (composites,
+  gradients, strokes, the frame copied onto itself; motion off the clock):
+  Fairy Lights (a string of neon bulbs round the border, twinkling),
+  Snowfall, Frosted Glass (the frame copied onto itself in soft offsets,
+  frost from the edges, ice crystals), Fireplace Glow (lit from below,
+  embers), Candy Cane (a peppermint frame in the room's pink and white, the
+  stripes creeping), Snow Globe (a round glass, snow swirling inside it
+  only, a base), Tinsel (garlands over the corners in teal / pink / gold /
+  violet, sparkle points), Midnight Countdown (NYE: neon digits counting to
+  midnight on the phone's clock, a ring filling through the last hour,
+  "HAPPY NEW YEAR" once it's past).  The palette is the room's own neon —
+  #ff2d8f, #2de3d0, #b9a8ff, #ffd6e9 / #ffd23f — so a holiday look reads as
+  Last Call, not clip-art.  `PACK_LOOKS` catalogues the eight.
+- **Pack art.**  A pack tile's picture is the look itself: `packArt(slug)`
+  draws the look's own `FILTERS` function once over the room's neon plate
+  (the field, a pink and a teal glow, the mark of a face) on a 96×60 canvas,
+  cached per slug as a data URL, and the tile shows that in place of the
+  emoji icon (`.has-art`; the icon stays in the DOM, hidden, for the badge
+  and the gates that read it).  So the art always matches what WEAR IT
+  publishes and can never be clip-art.  The Halloween six get the same
+  treatment.
+- The Tonight tab wears the live pack's name — "Halloween", "Holidays" —
+  and reads "Tonight" again with no pack (`data-tab` stays `tonight`).
+- `lcPackStatus(p, t)`: the server's four words on the phone's clock.  A
+  vaulted pack is one `lcTonightPack()` already returns null for, so the
+  rack never holds its looks: no tile, not a hidden one, no ghost.  A page
+  left open across a handover empties on its own clock (PR B's rule) and
+  reads the next pack at the next `openRoom` — no polling, as before.
+- The eight ck- disguises: allow-listed ahead of their lenses, exactly as
+  Halloween's seven were.  No lens exists for any of them; `CAMKIT.looks`
+  carries them the day the lenses do.  Lens briefs, for Lens Studio (all
+  original, face-tracked, published to the Last Call lens group): Santa hat
+  + beard · reindeer antlers + red nose · elf ears + hat · ugly sweater
+  (chest/shoulders) · Krampus (horns, tongue) · Nutcracker (hat, painted
+  cheeks, jaw) · snowman (carrot nose, coal, top hat) · champagne-and-party-
+  hat (NYE).
+
+**Gate 96 packs-holidays** (new): static (the eight are 2D-only `FILTERS`
+functions; `PACK_LOOKS`; `lcPackStatus`; `packArt` draws with the look's own
+function; the DDL file guards on the three 2026-10-19 md5s, refuses on an
+existing holidays row / status function / a moved Halloween row, splices to
+the double's 33 names with the 1569 / 88c4017d… post-check, widens both
+CHECKs to the same 33, moves the Halloween window and inserts the Holidays
+row as the double's `HALLOWEEN_PACK` / `HOLIDAYS_PACK`, creates the sealed
+status function and view, deletes nothing, adds no column; the server model
+hands over at one instant and keeps a vaulted row); on the phone
+`lcPackLive` / `lcPackStatus` at the edge instants; Holidays live → the tab
+named "Holidays", exactly the eight in order, Tonight / FREE / teal, eight
+different pack-art pictures with the icon hidden, the ck- eight not tiles,
+the pack line, and the vaulted Halloween thirteen not tiles (not even
+hidden) and not ghosts while the server still holds the row; the eight
+render at 360/375/390/414 from a bottom chair, 3 or 4 to a row, nothing
+picked; WEAR IT on `snowfall` accepted and badged SNOWFALL ❄️ everywhere;
+a stranger slug refused, a reserved `ck-champagne` accepted, a vaulted
+pack's `lantern` still accepted (the list is never narrowed — vaulting is
+the tray's business); a page whose only pack is vaulted reads "Tonight"
+with zero Tonight tiles and the no-pack line; a vaulted row given a new
+window is live at the next openRoom; a handover while the tray is up
+empties Tonight on the phone's clock and the next openRoom reads Holidays;
+with the server clock inside the moved window, lc_config reports Halloween
+for a plain user.  **Gate 94**'s pins move with the window (its DDL file
+is PR B's record, unchanged; the allow-list check is now "a subset of the
+double's 33"); **gate 79** claim S counts both packs' reserved ck- slugs.

@@ -97,7 +97,14 @@ const FILTER_LOOKS = ["grade", "noir", "ck-objects", "ck-express",
      for any of them yet, and a page with none configured shows no tile for
      them (packLook() returns null) — nobody can pick what nobody can draw. */
   "candlelight", "nightvision", "vhs", "fog", "cobweb", "lantern",
-  "ck-vampire", "ck-skeleton", "ck-zombie", "ck-witch", "ck-devil", "ck-pumpkin", "ck-ghost"];
+  "ck-vampire", "ck-skeleton", "ck-zombie", "ck-witch", "ck-devil", "ck-pumpkin", "ck-ghost",
+  /* feat/packs-halloween-now-holidays (PR A of the 10/20–10/21 brief): the
+     Holidays pack's eight 2D looks and eight ck- disguise slugs, MIRRORING
+     THE DDL in tools/DDL-packs-holidays.sql (its STATUS line says whether
+     production has run it).  The eight ck- slugs are allow-listed ahead of
+     their lenses exactly as Halloween's seven were. */
+  "fairylights", "snowfall", "frosted", "fireplace", "candycane", "snowglobe", "tinsel", "countdown",
+  "ck-santa", "ck-reindeer", "ck-elf", "ck-sweater", "ck-krampus", "ck-nutcracker", "ck-snowman", "ck-champagne"];
 
 /* THEMED PACKS (feat/looks-v2 PR B) — public.look_packs as the DDL creates
    it, and the Halloween row the DDL inserts.  The window is Pacific: Oct 24
@@ -111,8 +118,22 @@ const HALLOWEEN_PACK = Object.freeze({
   slug: "halloween", name: "Halloween", icon: "\u{1F383}",
   looks: Object.freeze(["candlelight", "nightvision", "vhs", "fog", "cobweb", "lantern",
                         "ck-vampire", "ck-skeleton", "ck-zombie", "ck-witch", "ck-devil", "ck-pumpkin", "ck-ghost"]),
-  starts_at: "2026-10-24T07:00:00+00:00",   // 2026-10-24 00:00 America/Los_Angeles (PDT, UTC-7)
-  ends_at:   "2026-11-02T08:00:00+00:00",   // 2026-11-02 00:00 America/Los_Angeles (PST, UTC-8): Nov 1 is the last night
+  /* the window as tools/DDL-packs-holidays.sql (PR A, ruling 10/20–10/21: on NOW
+     for everyone, through Oct 31 PT) moves it; PR #112's DDL had Oct 24 – Nov 1 */
+  starts_at: "2026-10-21T07:00:00+00:00",   // 2026-10-21 00:00 America/Los_Angeles (PDT, UTC-7): in the past the moment the DDL runs
+  ends_at:   "2026-11-01T07:00:00+00:00",   // 2026-11-01 00:00 America/Los_Angeles (PDT; DST ends two hours later): Oct 31 is the last night
+  enabled: true,
+});
+/* THE HOLIDAYS PACK (feat/packs-halloween-now-holidays) — the row the PR A
+   DDL inserts.  Its window opens at the instant Halloween's closes, so the
+   rotation hands over by itself: tonightPack() picks the enabled row whose
+   window holds now(), and at 2026-11-01 00:00 PT that is this one. */
+const HOLIDAYS_PACK = Object.freeze({
+  slug: "holidays", name: "Holidays", icon: "\u{1F384}",
+  looks: Object.freeze(["fairylights", "snowfall", "frosted", "fireplace", "candycane", "snowglobe", "tinsel", "countdown",
+                        "ck-santa", "ck-reindeer", "ck-elf", "ck-sweater", "ck-krampus", "ck-nutcracker", "ck-snowman", "ck-champagne"]),
+  starts_at: "2026-11-01T07:00:00+00:00",   // 2026-11-01 00:00 America/Los_Angeles (PDT): the same instant Halloween ends
+  ends_at:   "2027-01-02T08:00:00+00:00",   // 2027-01-02 00:00 America/Los_Angeles (PST): Jan 1 is the last night
   enabled: true,
 });
 
@@ -201,10 +222,21 @@ class BackendDouble {
     return { ...row, looks: row.looks.slice() };
   }
   removeLookPack(slug) { this.lookPacks = this.lookPacks.filter((p) => p.slug !== slug); }
+  /* lc_pack_status(row) (PR A DDL): 'live' | 'scheduled' | 'vaulted' | 'off'
+     from the window on the double's clock; packStatuses() is the Studio-only
+     look_packs_status view.  A VAULTED row stays — nothing here deletes it. */
+  packStatus(p, t) {
+    const now = Number.isFinite(t) ? t : this.now();
+    if (!p.enabled) return "off";
+    if (now >= Date.parse(p.ends_at)) return "vaulted";
+    if (now < Date.parse(p.starts_at)) return "scheduled";
+    return "live";
+  }
+  packStatuses(t) { return this.lookPacks.slice().sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at)).map((p) => ({ slug: p.slug, name: p.name, status: this.packStatus(p, t), starts_at: p.starts_at, ends_at: p.ends_at, enabled: p.enabled, looks: p.looks.slice() })); }
   /* lc_tonight_pack(): the enabled row whose [starts_at, ends_at) holds
      now(), the latest-starting one if several — or null */
-  tonightPack() {
-    const now = this.now();
+  tonightPack(t) {
+    const now = Number.isFinite(t) ? t : this.now();
     const live = this.lookPacks.filter((p) => p.enabled && Date.parse(p.starts_at) <= now && now < Date.parse(p.ends_at))
       .sort((a, b) => Date.parse(b.starts_at) - Date.parse(a.starts_at));
     if (!live.length) return null;
@@ -1381,4 +1413,4 @@ class BackendDouble {
   }
 }
 
-module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, HOST_STALE_MS, FILTER_LOOKS, HALLOWEEN_PACK, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG, CROWN_BLOCK_MSG, ROOMS_CROWN_GUARD_MSG, ROOMS_REACT_GUARD_MSG };
+module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, HOST_STALE_MS, FILTER_LOOKS, HALLOWEEN_PACK, HOLIDAYS_PACK, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG, CROWN_BLOCK_MSG, ROOMS_CROWN_GUARD_MSG, ROOMS_REACT_GUARD_MSG };

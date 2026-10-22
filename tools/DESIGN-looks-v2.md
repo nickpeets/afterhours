@@ -388,3 +388,49 @@ with the server clock inside the moved window, lc_config reports Halloween
 for a plain user.  **Gate 94**'s pins move with the window (its DDL file
 is PR B's record, unchanged; the allow-list check is now "a subset of the
 double's 33"); **gate 79** claim S counts both packs' reserved ck- slugs.
+
+## Run log 2026-10-21 — production (PR A round two's DDL, `tools/DDL-packs-holidays.sql`)
+
+Run in Supabase Studio's SQL editor (project `afterhours`, PRODUCTION) by
+Nick at ~16:56 PT on 2026-10-21, after #123 merged.  Two deviations from
+the committed file, both forced by Studio, neither a drift; the file was
+updated to match in the same docs PR as this log:
+
+1. **The halloween `starts_at` guard was loosened** to check `ends_at` and
+   `enabled` only.  The row's `starts_at` was already
+   `2026-10-20 17:00:07.246948+00` — set to now() during the 10/20 crew
+   rehearsal to turn the pack on early — so the original guard (expecting
+   PR #112's `2026-10-24 07:00+00`) refused on first run with
+   `DRIFT: the halloween row is 2026-10-20 17:00:07.246948+00 ..
+   2026-11-02 08:00:00+00 enabled=t`.  Nothing changed on that attempt
+   (`rollback;` run).  `starts_at` is overwritten by step 3 regardless, so
+   the guard on it protected nothing.
+2. **The `set_filter` splice block was rewritten without nested
+   dollar-quotes.**  Studio's editor rejects `$do$ … $a$ … $a$ … $do$`
+   (`42601: unterminated dollar-quoted string at or near "$do$"`; nothing
+   ran — Postgres parses the whole paste before executing).  `v_old` and
+   `v_new` are now built with `format('if name not in (%s) then raise
+   exception %L; end if;', string_agg(quote_literal(x), ','), 'no such
+   filter')` over an `unnest(array[…]) with ordinality` — the same bytes,
+   proven by the post-check (1569 chars / `88c4017d…`) passing.
+
+Read-back as Nick reported it (his values; this session had no
+production read of its own):
+
+| what | read back | predicted |
+|---|---|---|
+| `set_filter(uuid,text)` | md5 `88c4017d9db2fc1dd69cf877729e4c41`, 1569 chars | the same — asserted by the file's post-check |
+| `lc_config()` | md5 `18c19ce96c662a68bc82e327a14f5df4` | the same (untouched) |
+| `lc_tonight_pack()` | md5 `00ed780667ebed70cab458368bc616c1` | the same (untouched) |
+| `lc_pack_status(look_packs)` | md5 `51d7be429e260c1ad5ff92fd25704165` | **new — the guard value for the next DDL** |
+| `look_packs_status` | `halloween=live; holidays=scheduled` | the same |
+| `lc_config()->tonight_pack->slug` | `halloween` | the same |
+| `look_packs` | `relrowsecurity = true` | the same |
+
+Halloween is live for everyone until 2026-11-01 00:00 PT; the Holidays
+row opens at that instant and `lc_tonight_pack()` hands over by itself.
+
+**Standing note for every DDL from here:** Studio cannot take nested
+dollar-quotes.  Write splice blocks Studio-safe the first time (one level
+of `$$`, strings built with `format`/`quote_literal`), and never guard on
+a column the same file overwrites.

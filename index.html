@@ -10815,7 +10815,9 @@ async function profileSave(){
 }
 function paintMeButton(){
   const b=$("mebtn"); if(!b) return;
-  const ph=(MYPROFILE&&MYPROFILE.photos&&MYPROFILE.photos[0])?photoUrl(MYPROFILE.photos[0]):((MYPROFILE&&MYPROFILE.face_json&&MYPROFILE.face_json.photo)||"");
+  // the gallery's primary only — the bench headshot is the crowd's look at
+  // him, not his avatar (and gate 12's preset headshot is not a decodable image)
+  const ph=(MYPROFILE&&MYPROFILE.photos&&MYPROFILE.photos[0])?photoUrl(MYPROFILE.photos[0]):"";
   b.style.backgroundImage=ph?`url('${ph.replace(/'/g,"%27")}')`:"";
   b.classList.toggle("has-photo",!!ph);
   b.style.display=ME?"inline-block":"none";

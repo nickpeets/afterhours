@@ -1,6 +1,7 @@
 -- DDL — Halloween NOW, the Holidays pack, vaulting (feat/packs-halloween-now-holidays, PR A of the
 -- 10/20–10/21 brief; rulings Nick 10/20–10/21)
--- STATUS: NOT RUN.  Hand to Nick; he runs it in Supabase Studio (project afterhours, PRODUCTION).
+-- STATUS: RUN in production 2026-10-21 ~16:56 PT by Nick (Supabase Studio, project afterhours). Read-back in
+-- tools/DESIGN-looks-v2.md "Run log 2026-10-21". The file below is what actually ran (two Studio-forced edits, logged there).
 -- Never run by an agent.  Record the read-back under "Run log" in tools/DESIGN-looks-v2.md.
 --
 -- What it does, in dependency order, ONE transaction, refuses on drift:
@@ -91,8 +92,9 @@ begin
   if not found then
     raise exception 'DRIFT: no halloween row in look_packs - nothing changed';
   end if;
-  if r.starts_at <> '2026-10-24 07:00:00+00'::timestamptz or r.ends_at <> '2026-11-02 08:00:00+00'::timestamptz or not r.enabled then
-    raise exception 'DRIFT: the halloween row is % .. % enabled=%, expected 2026-10-24 07:00+00 .. 2026-11-02 08:00+00 enabled=t (PR #112''s row) - nothing changed; re-read before running', r.starts_at, r.ends_at, r.enabled;
+  -- starts_at is NOT guarded: it was already moved to 2026-10-20 17:00:07+00 by the 10/20 rehearsal, and step 3 overwrites it anyway
+  if r.ends_at <> '2026-11-02 08:00:00+00'::timestamptz or not r.enabled then
+    raise exception 'DRIFT: the halloween row is % .. % enabled=%, expected ends 2026-11-02 08:00+00 enabled=t (PR #112''s row) - nothing changed; re-read before running', r.starts_at, r.ends_at, r.enabled;
   end if;
   if exists (select 1 from public.look_packs where slug = 'holidays') then
     raise exception 'DRIFT: a holidays row already exists - nothing changed';
@@ -122,14 +124,26 @@ alter table public.room_members add  constraint room_members_filter_pick_curated
     'ck-santa','ck-reindeer','ck-elf','ck-sweater','ck-krampus','ck-nutcracker','ck-snowman','ck-champagne'));
 
 -- ================================================================ 2. set_filter: splice the ONE allow-list line (body read from the server, never re-typed)
-do $do$
+do $$
 declare
   v_before text := pg_get_functiondef('public.set_filter(uuid,text)'::regprocedure);
-  v_old constant text := $a$if name not in ('grade','noir','ck-objects','ck-express','candlelight','nightvision','vhs','fog','cobweb','lantern','ck-vampire','ck-skeleton','ck-zombie','ck-witch','ck-devil','ck-pumpkin','ck-ghost') then raise exception 'no such filter'; end if;$a$;
-  v_new constant text := $a$if name not in ('grade','noir','ck-objects','ck-express','candlelight','nightvision','vhs','fog','cobweb','lantern','ck-vampire','ck-skeleton','ck-zombie','ck-witch','ck-devil','ck-pumpkin','ck-ghost','fairylights','snowfall','frosted','fireplace','candycane','snowglobe','tinsel','countdown','ck-santa','ck-reindeer','ck-elf','ck-sweater','ck-krampus','ck-nutcracker','ck-snowman','ck-champagne') then raise exception 'no such filter'; end if;$a$;
+  v_old text;   -- built below, not dollar-quoted: Studio's editor rejects nested dollar-quotes (2026-10-21 run log)
+  v_new text;
   v_after text;
   v_hits  int;
 begin
+  select format('if name not in (%s) then raise exception %L; end if;',
+                string_agg(quote_literal(x), ',' order by o), 'no such filter')
+    into v_old
+    from unnest(array['grade','noir','ck-objects','ck-express','candlelight','nightvision','vhs','fog','cobweb','lantern',
+                      'ck-vampire','ck-skeleton','ck-zombie','ck-witch','ck-devil','ck-pumpkin','ck-ghost']) with ordinality as t(x, o);
+  select format('if name not in (%s) then raise exception %L; end if;',
+                string_agg(quote_literal(x), ',' order by o), 'no such filter')
+    into v_new
+    from unnest(array['grade','noir','ck-objects','ck-express','candlelight','nightvision','vhs','fog','cobweb','lantern',
+                      'ck-vampire','ck-skeleton','ck-zombie','ck-witch','ck-devil','ck-pumpkin','ck-ghost',
+                      'fairylights','snowfall','frosted','fireplace','candycane','snowglobe','tinsel','countdown',
+                      'ck-santa','ck-reindeer','ck-elf','ck-sweater','ck-krampus','ck-nutcracker','ck-snowman','ck-champagne']) with ordinality as t(x, o);
   if md5(v_before) <> 'a8ca64f4a6e17501e1761c4961aa0c1d' then
     raise exception 'set_filter is not the 2026-10-19 read-back (% chars, md5 %) - nothing changed; re-read it first',
       length(v_before), md5(v_before);
@@ -149,8 +163,7 @@ begin
   end if;
   raise notice 'set_filter: % chars md5 %  ->  % chars md5 %',
     length(v_before), md5(v_before), length(v_after), md5(v_after);
-end
-$do$;
+end $$;
 
 -- ================================================================ 3. Halloween: on NOW for everyone, through Oct 31 PT
 update public.look_packs
@@ -234,7 +247,7 @@ commit;
 -- select md5(pg_get_functiondef('public.set_filter(uuid,text)'::regprocedure)), length(pg_get_functiondef('public.set_filter(uuid,text)'::regprocedure));
 -- -- expect: 88c4017d9db2fc1dd69cf877729e4c41 | 1569
 -- select md5(pg_get_functiondef('public.lc_config()'::regprocedure)), md5(pg_get_functiondef('public.lc_tonight_pack()'::regprocedure)), md5(pg_get_functiondef('public.lc_pack_status(public.look_packs)'::regprocedure));
--- -- expect: 18c19ce96c662a68bc82e327a14f5df4 | 00ed780667ebed70cab458368bc616c1 | (record it — the next DDL's guard)
+-- -- expect: 18c19ce96c662a68bc82e327a14f5df4 | 00ed780667ebed70cab458368bc616c1 | 51d7be429e260c1ad5ff92fd25704165 (read back 2026-10-21 — the next DDL's guard)
 -- select conname, pg_get_constraintdef(oid) from pg_constraint where conrelid = 'public.room_members'::regclass and conname like 'room_members_filter%' order by conname;
 -- select * from public.look_packs_status;
 -- -- expect, run on Oct 21–31 PT: halloween live, holidays scheduled

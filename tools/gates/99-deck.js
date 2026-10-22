@@ -101,8 +101,8 @@ module.exports = {
         "Jo's deck excludes herself, the one she swiped, the one she blocked, the one not seeking her, the one outside her window (" + ids.join(",") + ")");
       t.ok(ids.includes("u_dex") && ids.includes("u_theo") && ids.includes("u_out"), "…and holds the three who fit");
       t.ok(ids[0] === "u_dex", "the Fan Favorite (7 hearts) is on top (" + ids[0] + ")");
-      const top = await jo.page.evaluate(() => { const c = document.querySelector("#deck_stack .deck__card.is-top"); return { uid: c.dataset.uid, name: c.querySelector(".deck__name").textContent, stats: c.querySelector(".deck__stats").textContent }; });
-      t.ok(top.uid === "u_dex" && /Dex/.test(top.name) && new RegExp(String(D.ageOf("1994-03-09"))).test(top.name) && /♥ 7/.test(top.stats) && /FAN FAVORITE/.test(top.stats),
+      const top = await jo.page.evaluate(() => { const c = document.querySelector("#deck_stack .deck__card.is-top"); return { uid: c.dataset.uid, name: c.querySelector(".deck__name").textContent, stats: c.querySelector(".deck__stats").textContent, kicker: c.querySelector(".deck__kicker").textContent }; });
+      t.ok(top.uid === "u_dex" && /Dex/.test(top.name) && new RegExp(String(D.ageOf("1994-03-09"))).test(top.name) && /7hearts/.test(top.stats) && /Fan Favorite/.test(top.kicker),
         "the top card paints Dex, his age, 7 hearts, FAN FAVORITE — " + JSON.stringify(top));
       await jo.page.evaluate(() => document.querySelector("#deck_stack .deck__card.is-top .deck__meta").click());
       await waitFor(() => jo.page.evaluate(() => !!document.querySelector("#profilecard .pc__name")), 8000, "the full card from the deck");

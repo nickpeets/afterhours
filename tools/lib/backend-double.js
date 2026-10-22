@@ -182,6 +182,18 @@ class BackendDouble {
     this.herCallAt = new Map();  // room id -> when decide_pass / decide_clear was called (see overlayHerCall)
     this.questions = [];
     this.decks = [];
+    /* PROFILES (PR C, 10/21) — what the DDL adds: lc_settings.profiles_open_to_all,
+       user_blocks (both directions through my_blocks), the prompt deck, the
+       profile-photos bucket (storage.upload lands here; getPublicUrl is a
+       routed path on the offline origin), and public_profile — the ONE read
+       path for someone else's card, modelled on the DDL: age never birthdate,
+       stats computed here, the full card only for the owner / open_to_all /
+       her own seated chair / (PR B) a subscriber, blocked either way → {blocked}. */
+    this.settings = new Map([["profiles_open_to_all", true]]);
+    this.blocks = [];                // {blocker, blocked}
+    this.storage = new Map();        // "bucket/path" -> {bytes, contentType}
+    this.subscribers = new Set();    // PR B's is_subscriber, modelled ahead
+    this.seedPromptDeck();
     this.sessions = new Map();   // clientId -> uid
     this.listeners = [];         // fn(evt) — harness fans out to pages
     this.rpcLog = [];            // every rpc call, for gate assertions
@@ -248,6 +260,49 @@ class BackendDouble {
   iso(t) { return new Date(t ?? this.now()).toISOString(); }
 
   /* ---------- seeding ---------- */
+  seedPromptDeck() {
+    if (this.decks.find((d) => d.name === "From his profile")) return;
+    const id = 99;
+    this.decks.push({ id, name: "From his profile", emoji: "🪪", sort: 99 });
+    const texts = ["My last call is usually…", "I'd pick the chair over the bench because…", "The song that gets me on the dance floor is…",
+      "My most Portland habit is…", "A green flag I look for…", "My go-to karaoke song…", "The best date I ever planned…", "I'm weirdly good at…",
+      "Two truths and a lie…", "Something I'd never put on a dating app…", "My controversial food take…", "What I'm like at 1am…",
+      "The hill I'll die on…", "I won't shut up about…", "My ideal Sunday…", "A perfect first date in Portland…",
+      "What my friends would tell you about me…", "I get way too competitive about…", "The way to my heart is…", "Why she should keep me…"];
+    texts.forEach((text, i) => this.questions.push({ id: 9900 + i + 1, deck_id: id, text, sort: i + 1 }));
+  }
+  ageOf(b) {
+    if (!b) return null;
+    const t = new Date(this.now()), d = new Date(b + "T00:00:00");
+    let a = t.getFullYear() - d.getFullYear();
+    const m = t.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && t.getDate() < d.getDate())) a--;
+    return a;
+  }
+  isBlockedEither(a, b) { return this.blocks.some((x) => (x.blocker === a && x.blocked === b) || (x.blocker === b && x.blocked === a)); }
+  publicProfile(me, target) {
+    if (!me) throw new Error("not signed in");
+    const p = this.profiles.get(target);
+    if (!p) return null;
+    if (this.isBlockedEither(me, target)) return { id: target, blocked: true };
+    const openAll = this.settings.get("profiles_open_to_all") === true;
+    const hostsHim = [...this.rooms.values()].some((r) => r.host_id === me && r.status === "live" &&
+      this.members.some((mm) => mm.room_id === r.id && mm.user_id === target && (mm.role === "chair" || mm.role === "kept")));
+    const full = me === target || openAll || hostsHim || this.subscribers.has(me);
+    const photos = p.photos || [];
+    const stats = {
+      shows_played: new Set(this.members.filter((m) => m.user_id === target).map((m) => m.room_id)).size,
+      hearts: this.events.filter((e) => e.type === "heart" && e.payload && e.payload.target === target).length,
+      keeps: [...this.rooms.values()].filter((r) => r.winner_id === target).length,
+      hosted: [...this.rooms.values()].filter((r) => r.host_id === target).length,
+    };
+    const prompts = (p.prompts || []).map((x) => ({ q: x.q, text: (this.questions.find((q) => String(q.id) === String(x.q)) || {}).text || null, a: x.a }));
+    const out = { id: p.id, display_name: p.display_name, age: this.ageOf(p.birthdate), city: p.city || null, pronouns: p.pronouns || null,
+      bio: p.bio || null, primary_photo: photos[0] || null, face_photo: (p.face_json && p.face_json.photo) || null, stats, full, blocked: false };
+    if (full) Object.assign(out, { photos: [...photos], details: p.details || {}, interests: [...(p.interests || [])], prompts });
+    else Object.assign(out, { photos: photos.length ? [photos[0]] : [], details: {}, interests: [], prompts: [] });
+    return out;
+  }
   addUser({ id, email, name, face = null, zip = "94110", gender = null, seeking = "everyone" }) {
     id = id || nid("u");
     this.users.set(id, { id, email: email || id + "@fix.test" });
@@ -590,6 +645,15 @@ class BackendDouble {
       try { return this.rpc(clientId, p.name, p.args || {}); } finally { this._fromPage = false; }
     }
     if (op === "table") return this.table(clientId, p);
+    /* PROFILES (PR C): the bucket.  The storage policy is modelled exactly:
+       a write lands only in the caller's own folder (<uid>/…). */
+    if (op === "storage.upload") {
+      const uid = this.sessions.get(clientId);
+      const folder = String(p.path || "").split("/")[0];
+      if (!uid || folder !== uid) throw new Error("new row violates row-level security policy");
+      this.storage.set(p.bucket + "/" + p.path, { size: p.size || 0, contentType: p.contentType || "" });
+      return { path: p.path };
+    }
     throw new Error("double: unknown op " + op);
   }
 
@@ -907,7 +971,25 @@ class BackendDouble {
       case "end_room":
         throw new Error("permission denied for function end_room");
       case "lc_config":
-        return { host_stale_ms: HOST_STALE_MS, tonight_pack: this.tonightPack() };
+        return { host_stale_ms: HOST_STALE_MS, tonight_pack: this.tonightPack(), profiles_open_to_all: this.settings.get("profiles_open_to_all") === true };
+      /* PROFILES (PR C) */
+      case "public_profile": return this.publicProfile(uid, a.target);
+      case "my_blocks": {
+        if (!uid) throw new Error("permission denied for function my_blocks");
+        return { blocked: this.blocks.filter((b) => b.blocker === uid).map((b) => b.blocked),
+                 blocked_by: this.blocks.filter((b) => b.blocked === uid).map((b) => b.blocker) };
+      }
+      case "block_user": {
+        if (!uid) throw new Error("not signed in");
+        if (!a.target || a.target === uid) throw new Error("bad target");
+        if (!this.blocks.some((b) => b.blocker === uid && b.blocked === a.target)) this.blocks.push({ blocker: uid, blocked: a.target });
+        return null;
+      }
+      case "unblock_user": {
+        if (!uid) throw new Error("not signed in");
+        this.blocks = this.blocks.filter((b) => !(b.blocker === uid && b.blocked === a.target));
+        return null;
+      }
       case "list_live_rooms": {
         if (!uid) throw new Error("permission denied for function list_live_rooms");
         this.sweepStaleRooms();
@@ -1374,6 +1456,11 @@ class BackendDouble {
           const id = v.id || (filters.find((f) => f.col === "id") || {}).val;
           if (!id) throw new Error("profiles write without id");
           const cur = this.profiles.get(id) || { id };
+          /* the DDL's CHECKs (PR C): a row past any of them is refused whole */
+          if (v.bio != null && String(v.bio).length > 500) throw new Error('new row for relation "profiles" violates check constraint "profiles_bio_len"');
+          if (Array.isArray(v.interests) && v.interests.length > 5) throw new Error('new row for relation "profiles" violates check constraint "profiles_interests_max"');
+          if (Array.isArray(v.prompts) && v.prompts.length > 3) throw new Error('new row for relation "profiles" violates check constraint "profiles_prompts_shape"');
+          if (Array.isArray(v.photos) && v.photos.length > 6) throw new Error('new row for relation "profiles" violates check constraint "profiles_photos_max"');
           this.profiles.set(id, { ...cur, ...v });
           out.push({ ...this.profiles.get(id) });
         }

@@ -89,6 +89,14 @@
         if (ch) ch.unsubscribe(); return Promise.resolve("ok");
       },
       functions: { invoke: () => Promise.resolve({ data: null, error: null }) },
+      /* PROFILES (PR C): storage, still a dumb transport.  upload forwards the
+         path + size; getPublicUrl is a routed path on the offline origin. */
+      storage: {
+        from: (bucket) => ({
+          upload: (path, blob, opts) => call("storage.upload", { bucket, path, size: (blob && blob.size) || 0, contentType: (opts && opts.contentType) || (blob && blob.type) || "" }),
+          getPublicUrl: (path) => ({ data: { publicUrl: "https://lastcall.test/storage/v1/object/public/" + bucket + "/" + path } }),
+        }),
+      },
     };
   }
 

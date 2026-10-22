@@ -103,12 +103,17 @@ module.exports = {
 
     const ddlPath = path.join(__dirname, "..", "DDL-packs-holidays.sql");
     const ddl = fs.existsSync(ddlPath) ? fs.readFileSync(ddlPath, "utf8") : "";
-    t.ok(ddl.length > 4000 && /^-- STATUS: (NOT RUN|RUN IN PRODUCTION)/m.test(ddl), "tools/DDL-packs-holidays.sql exists and its STATUS line says whether production has run it");
+    t.ok(ddl.length > 4000 && /^-- STATUS: (NOT RUN|RUN in production)/m.test(ddl), "tools/DDL-packs-holidays.sql exists and its STATUS line says whether production has run it");
     t.ok(/a8ca64f4a6e17501e1761c4961aa0c1d/.test(ddl) && /18c19ce96c662a68bc82e327a14f5df4/.test(ddl) && /00ed780667ebed70cab458368bc616c1/.test(ddl),
       "md5-guarded on the three 2026-10-19 read-backs: set_filter a8ca64f4…, lc_config 18c19ce9…, lc_tonight_pack 00ed7806…");
-    t.ok(/if exists \(select 1 from public\.look_packs where slug = 'holidays'\)/.test(ddl) && /to_regprocedure\('public\.lc_pack_status\(public\.look_packs\)'\) is not null/.test(ddl) && /2026-10-24 07:00:00\+00'::timestamptz or r\.ends_at <> '2026-11-02 08:00:00\+00'/.test(ddl),
-      "…and refuses if a holidays row or lc_pack_status already exists, or if the Halloween row is not PR #112's");
-    const ddlList = (ddl.match(/if name not in \(([^)]*)\) then raise exception 'no such filter'/g) || []).pop() || "";
+    /* the 2026-10-21 run (docs #124): the guard is on ends_at + enabled only —
+       starts_at had already been moved by the 10/20 rehearsal and step 3
+       overwrites it anyway ("never guard on a column the same file overwrites") */
+    t.ok(/if exists \(select 1 from public\.look_packs where slug = 'holidays'\)/.test(ddl) && /to_regprocedure\('public\.lc_pack_status\(public\.look_packs\)'\) is not null/.test(ddl) && /if r\.ends_at <> '2026-11-02 08:00:00\+00'::timestamptz or not r\.enabled then/.test(ddl) && !/r\.starts_at <> '2026-10-24/.test(ddl),
+      "…and refuses if a holidays row or lc_pack_status already exists, or if the Halloween row's end/enabled is not PR #112's (starts_at is overwritten, so not guarded — the 2026-10-21 run)");
+    /* the splice is Studio-safe since the 2026-10-21 run: v_new is built from
+       an unnest(array[...]) — the array literal is the allow-list */
+    const ddlList = (ddl.match(/into v_new\s+from unnest\(array\[([\s\S]*?)\]\)/) || ["", ""])[1];
     const ddlSlugs = [...ddlList.matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]);
     t.ok(ddlSlugs.length === 33 && [...HOL_2D, ...HOL_CK].every((s) => ddlSlugs.includes(s)) && ddlSlugs.slice().sort().join(",") === FILTER_LOOKS.slice().sort().join(","),
       `the spliced allow-list is the seventeen of 2026-10-19 plus the Holidays sixteen (${ddlSlugs.length} names) — exactly the double's`);

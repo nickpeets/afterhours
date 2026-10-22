@@ -74,7 +74,7 @@ module.exports = {
     const ddl = fs.existsSync(ddlPath) ? fs.readFileSync(ddlPath, "utf8") : "";
     t.ok(ddl.length > 8000 && /^-- STATUS: (NOT RUN|RUN in production|RUN IN PRODUCTION)/m.test(ddl), "tools/DDL-subscription.sql exists and its STATUS line says whether production has run it");
     const live = ddl.split("\n").filter((l) => !/^\s*--/.test(l)).join("\n");
-    t.ok(/677f9cddef6e5eeb178437347ccf8223/.test(live) && /18c19ce96c662a68bc82e327a14f5df4/.test(live) && /00ed780667ebed70cab458368bc616c1/.test(live) && /51d7be429e260c1ad5ff92fd25704165/.test(live) && /88c4017d9db2fc1dd69cf877729e4c41/.test(live) && /<> 1569/.test(live),
+    t.ok(/677f9cddef6e5eeb178437347ccf8223/.test(live) && /8ae9e8a3c39bb23bb3c83f7848dcd600/.test(live) && /00ed780667ebed70cab458368bc616c1/.test(live) && /51d7be429e260c1ad5ff92fd25704165/.test(live) && /88c4017d9db2fc1dd69cf877729e4c41/.test(live) && /<> 1569/.test(live),
       "md5-guarded on the five 10/20–10/21 read-backs: throw_limits 677f9cdd…, lc_config 18c19ce9…, lc_tonight_pack 00ed7806…, lc_pack_status 51d7be42…, set_filter 88c4017d… / 1569");
     const tagged = live.match(/\$[a-zA-Z_][a-zA-Z0-9_]*\$/g) || [];
     const dollars = (live.match(/\$\$/g) || []).length;

@@ -44,7 +44,7 @@
 --
 -- What this guards on (re-read before running if production has moved):
 --   throw_limits()                  md5 677f9cddef6e5eeb178437347ccf8223   (2026-10-20 read-back, live_secs 4)
---   lc_config()                     md5 18c19ce96c662a68bc82e327a14f5df4   (2026-10-21 read-back)
+--   lc_config()                     md5 8ae9e8a3c39bb23bb3c83f7848dcd600   (2026-10-21 read-back)
 --   lc_tonight_pack()               md5 00ed780667ebed70cab458368bc616c1   (2026-10-21 read-back)
 --   lc_pack_status(look_packs)      md5 51d7be429e260c1ad5ff92fd25704165   (2026-10-21 read-back)
 --   set_filter(uuid,text)           md5 88c4017d9db2fc1dd69cf877729e4c41, 1569 chars (2026-10-21 read-back)
@@ -60,7 +60,7 @@
 -- ================================================================ PREFLIGHT (read-only; ONE select; run first, record the output)
 -- select md5(pg_get_functiondef('public.throw_limits()'::regprocedure))                        as throw_limits_md5,       -- expect 677f9cddef6e5eeb178437347ccf8223
 --        length(pg_get_functiondef('public.throw_limits()'::regprocedure))                     as throw_limits_chars,     -- recorded, not guarded
---        md5(pg_get_functiondef('public.lc_config()'::regprocedure))                           as lc_config_md5,          -- expect 18c19ce96c662a68bc82e327a14f5df4
+--        md5(pg_get_functiondef('public.lc_config()'::regprocedure))                           as lc_config_md5,          -- expect 8ae9e8a3c39bb23bb3c83f7848dcd600
 --        md5(pg_get_functiondef('public.lc_tonight_pack()'::regprocedure))                     as lc_tonight_pack_md5,    -- expect 00ed780667ebed70cab458368bc616c1
 --        md5(pg_get_functiondef('public.lc_pack_status(public.look_packs)'::regprocedure))     as lc_pack_status_md5,     -- expect 51d7be429e260c1ad5ff92fd25704165
 --        md5(pg_get_functiondef('public.set_filter(uuid,text)'::regprocedure))                 as set_filter_md5,         -- expect 88c4017d9db2fc1dd69cf877729e4c41
@@ -91,8 +91,8 @@ begin
     raise exception 'DRIFT: throw_limits md5 is %, expected 677f9cddef6e5eeb178437347ccf8223 (the 2026-10-20 read-back) - nothing changed; re-read before running', h;
   end if;
   h := md5(pg_get_functiondef('public.lc_config()'::regprocedure));
-  if h <> '18c19ce96c662a68bc82e327a14f5df4' then
-    raise exception 'DRIFT: lc_config md5 is %, expected 18c19ce96c662a68bc82e327a14f5df4 (the 2026-10-21 read-back; if PR C ran first, swap in its read-back) - nothing changed', h;
+  if h <> '8ae9e8a3c39bb23bb3c83f7848dcd600' then
+    raise exception 'DRIFT: lc_config md5 is %, expected 8ae9e8a3c39bb23bb3c83f7848dcd600 (the 2026-10-21 19:22 PT read-back after PR C; if PR C ran first, swap in its read-back) - nothing changed', h;
   end if;
   h := md5(pg_get_functiondef('public.lc_tonight_pack()'::regprocedure));
   if h <> '00ed780667ebed70cab458368bc616c1' then
@@ -362,7 +362,7 @@ commit;
 --        md5(pg_get_functiondef('public.subscription_state(uuid)'::regprocedure))              as subscription_state_md5,  -- NEW
 --        md5(pg_get_functiondef('public.comp_subscription(uuid,timestamptz)'::regprocedure))   as comp_subscription_md5,   -- NEW
 --        md5(pg_get_functiondef('public.profiles_subscription_guard()'::regprocedure))         as profiles_guard_md5,      -- NEW
---        md5(pg_get_functiondef('public.lc_config()'::regprocedure))                           as lc_config_md5,           -- expect 18c19ce96c662a68bc82e327a14f5df4 (untouched)
+--        md5(pg_get_functiondef('public.lc_config()'::regprocedure))                           as lc_config_md5,           -- expect 8ae9e8a3c39bb23bb3c83f7848dcd600 (untouched)
 --        md5(pg_get_functiondef('public.lc_tonight_pack()'::regprocedure))                     as lc_tonight_pack_md5,     -- expect 00ed780667ebed70cab458368bc616c1 (untouched)
 --        md5(pg_get_functiondef('public.lc_pack_status(public.look_packs)'::regprocedure))     as lc_pack_status_md5,      -- expect 51d7be429e260c1ad5ff92fd25704165 (untouched)
 --        md5(pg_get_functiondef('public.set_filter(uuid,text)'::regprocedure))                 as set_filter_md5,          -- expect 88c4017d9db2fc1dd69cf877729e4c41 (untouched)

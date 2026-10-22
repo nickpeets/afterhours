@@ -343,7 +343,7 @@ module.exports = {
       D.clockSkew = Date.parse("2026-10-25T04:00:00Z") - Date.now();   // Oct 24, 9pm PDT — inside the moved window, before the old Oct 24 start would have mattered either way
       const r6 = mkRoom("r_now", "u_h6", ["u_z0", "u_z1", "u_z2"]);
       const plain = D.profiles.get("u_z1");
-      t.ok(plain && !plain.subscription && !plain.tier && (plain.coins === 120), "u_z1 is a plain signed-in user: no subscription, no tier, the default chips");
+      t.ok(plain && !D.isSubscriber("u_z1") && (plain.subscription === undefined || plain.subscription === "none") && !plain.tier && (plain.coins === 120), "u_z1 is a plain signed-in user: no subscription (is_subscriber false, PR B's column at its default)");
       const Z = await boot("now", "u_z1", {}, r6, "u_z0");
       t.ok(await openTray(Z), "Halloween now: the tray opens");
       const s6 = await Z.page.evaluate(TRAY);

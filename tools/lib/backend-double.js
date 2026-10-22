@@ -168,6 +168,17 @@ const ROOMS_CROWN_GUARD_MSG = "the crown is awarded at her call, never written";
 /* COMBOS AND REACTION WINDOWS (feat/combos-reaction): the rooms guard's words
    when a client writes react_user / react_until itself */
 const ROOMS_REACT_GUARD_MSG = "the reaction window opens when an answer ends, never written";
+/* THE SUBSCRIPTION (feat/subscription-scaffold, PR B of the 10/20–10/21 brief;
+   tools/DDL-subscription.sql — its STATUS line says whether production has run
+   it).  profiles.subscription ('none' | 'active' | 'comped') and
+   subscription_until are SERVER-SIDE ONLY: the profiles_subscription_guard
+   trigger refuses any API-role write to either, whatever RLS says — this is
+   its message.  is_subscriber(uid) is THE hook; throw_limits() doubles
+   cheers and jeers for a subscriber caller (RATION_MULT), and nothing else
+   in the throw pipeline moves. */
+const SUB_GUARD_MSG = "subscription changes only through billing and comp_subscription";
+const SUB_COLS = ["subscription", "subscription_until"];
+const RATION_MULT = 2;
 
 let _seq = 1;
 const nid = (p) => p + "_" + (_seq++).toString(36).padStart(6, "0");
@@ -310,8 +321,36 @@ class BackendDouble {
       id, display_name: name || id, face_json: face,
       zip_code: zip, radius_miles: 25, gender, seeking,
       birthdate: "1990-01-01", coins: 120,
+      subscription: "none", subscription_until: null,   // PR B: the columns' defaults
     });
     return id;
+  }
+  /* ---------- THE SUBSCRIPTION (mirror the DDL; every one labelled) ---------- */
+  /* comp_subscription(uid, until) — STUDIO ONLY in production (no API role may
+     call it); a gate calls this on the double in Node, as Nick would in
+     Studio.  until null = open-ended; until in the past = ended. */
+  compSubscription(uid, until = null) {
+    const p = this.profiles.get(uid);
+    if (!p) throw new Error("no profile " + uid);
+    p.subscription = "comped"; p.subscription_until = until == null ? null : new Date(until).toISOString();
+    const state = this.subscriptionState(uid);
+    return { id: uid, subscription: "comped", subscription_until: p.subscription_until, state, is_subscriber: state !== "none" };
+  }
+  /* subscription_state(uid): the word, with subscription_until applied on the
+     SERVER clock — an expired comp or subscription reads 'none' */
+  subscriptionState(uid) {
+    const p = uid ? this.profiles.get(uid) : null;
+    if (!p || !(p.subscription === "active" || p.subscription === "comped")) return "none";
+    if (p.subscription_until != null && Date.parse(p.subscription_until) <= this.now()) return "none";
+    return p.subscription;
+  }
+  /* is_subscriber(uid): THE ONE HOOK every perk check calls */
+  isSubscriber(uid) { return this.subscriptionState(uid) !== "none"; }
+  /* throw_limits() as the CALLER sees it: the base numbers, cheers and jeers
+     x RATION_MULT for a subscriber, subscriber:true riding along */
+  throwLimitsFor(uid) {
+    if (!this.isSubscriber(uid)) return { ...THROW_LIMITS };
+    return { ...THROW_LIMITS, cheers: THROW_LIMITS.cheers * RATION_MULT, jeers: THROW_LIMITS.jeers * RATION_MULT, subscriber: true };
   }
   addRoom({ id, host_id, name, phase = null, status = "live", round = 0 }) {
     id = id || nid("r");
@@ -447,7 +486,8 @@ class BackendDouble {
       if (l.room_id !== room_id || l.thrower_id !== uid) continue;
       if (l.cls === "cheer") cheers++; else jeers++;
     }
-    return { cheers_left: THROW_LIMITS.cheers - cheers, jeers_left: THROW_LIMITS.jeers - jeers };
+    const lim = this.throwLimitsFor(uid);   // PR B: the caller's ration — x2 for a subscriber, through throw_limits()
+    return { cheers_left: lim.cheers - cheers, jeers_left: lim.jeers - jeers };
   }
   /* THE ONE role writer.  Mirrors trigger room_members_throw_guard's wipe
      half: a row whose role leaves chair/kept loses its live throw the same
@@ -990,6 +1030,15 @@ class BackendDouble {
         this.blocks = this.blocks.filter((b) => !(b.blocker === uid && b.blocked === a.target));
         return null;
       }
+      /* THE SUBSCRIPTION (PR B): signed-in only (anon revoked); comp is Studio-only */
+      case "is_subscriber":
+        if (!uid) throw new Error("permission denied for function is_subscriber");
+        return this.isSubscriber(a.uid);
+      case "subscription_state":
+        if (!uid) throw new Error("permission denied for function subscription_state");
+        return this.subscriptionState(a.uid);
+      case "comp_subscription":
+        throw new Error("permission denied for function comp_subscription");
       case "list_live_rooms": {
         if (!uid) throw new Error("permission denied for function list_live_rooms");
         this.sweepStaleRooms();
@@ -1220,7 +1269,7 @@ class BackendDouble {
       }
       case "throw_counts": {
         if (!uid) throw new Error("not authenticated");
-        return { ...this.throwCounts(a.room_id, uid), limits: { ...THROW_LIMITS } };   // throw_limits(): the two Pressure numbers ride along
+        return { ...this.throwCounts(a.room_id, uid), limits: this.throwLimitsFor(uid) };   // throw_limits(): the caller's ration (PR B) and the Pressure numbers ride along
       }
       case "set_throwables": {
         if (!uid) throw new Error("not authenticated");
@@ -1453,6 +1502,10 @@ class BackendDouble {
         const list = Array.isArray(values) ? values : [values];
         const out = [];
         for (const v of list) {
+          /* THE SUBSCRIPTION: trigger profiles_subscription_guard — an API-role
+             write that names either column is refused WHATEVER RLS says (the
+             dry run proved it under a permissive own-row policy) */
+          if (v && SUB_COLS.some((c) => c in v)) throw new Error(SUB_GUARD_MSG);
           const id = v.id || (filters.find((f) => f.col === "id") || {}).val;
           if (!id) throw new Error("profiles write without id");
           const cur = this.profiles.get(id) || { id };
@@ -1500,4 +1553,4 @@ class BackendDouble {
   }
 }
 
-module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, HOST_STALE_MS, FILTER_LOOKS, HALLOWEEN_PACK, HOLIDAYS_PACK, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG, CROWN_BLOCK_MSG, ROOMS_CROWN_GUARD_MSG, ROOMS_REACT_GUARD_MSG };
+module.exports = { BackendDouble, FRESH_MS, SWEEP_MS, HOST_STALE_MS, FILTER_LOOKS, HALLOWEEN_PACK, HOLIDAYS_PACK, THROW_LIMITS, THROW_KINDS, THROW_GUARD_MSG, ROOMS_THROW_GUARD_MSG, CROWN_BLOCK_MSG, ROOMS_CROWN_GUARD_MSG, ROOMS_REACT_GUARD_MSG, SUB_GUARD_MSG, RATION_MULT };

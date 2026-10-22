@@ -1598,6 +1598,10 @@
 .lc-qcard--prompt .lc-qcard__a{ margin-top:4px; font-size:12.5px; color:#ff8ac2; font-style:italic; }
 .lc-drawer__tab.is-prompts[aria-selected="true"]{ background:var(--neon,#ff2d8f); color:#fff; }
 #room.is-host .lc-lane__name{ cursor:default !important; }
+/* THE SUBSCRIPTION (PR B): the lobby's one trace — a pill, no price, no link */
+.vipwrap{display:flex;justify-content:flex-end;margin:-8px 2px 12px}
+.vippill{display:inline-block;font-family:"Azeret Mono",monospace;font-size:9px;font-weight:700;letter-spacing:.16em;color:#d6cdff;border:1px solid rgba(185,168,255,.35);border-radius:999px;padding:4px 10px;background:rgba(17,22,52,.7)}
+.vippill.is-on{color:#2a1010;background:var(--gold);border-color:var(--gold)}
 </style>
 </head>
 <body data-skin="neon">
@@ -1656,7 +1660,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1021.1745</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1021.1930</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1697,6 +1701,8 @@
         <span id="whoami_slot" style="color:rgba(242,240,255,.45)"></span>
       </div>
       <button class="golive" id="golive">● GO LIVE — Host Your Room</button>
+      <!-- THE SUBSCRIPTION (PR B): the one visible trace until billing exists — no price, no link -->
+      <div class="vipwrap"><span class="vippill" id="vippill" role="status" aria-label="VIP: coming soon">VIP · coming soon</span></div>
       <div class="sectlabel">LIVE NOW</div>
       <div class="roomlist" id="roomlist"></div>
     </div>
@@ -2212,7 +2218,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1021.1745"); }catch(e){}
+try{ console.log("[lastcall] build b1021.1930"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2924,6 +2930,7 @@ async function enterApp(){
   await lcConfigLoad();
   try{ await blocksLoad(); }catch(e){}
   try{ paintMeButton(); }catch(e){}
+  await lcSubscriberLoad();   // my standing (PR B): the server's one answer, before the lobby paints
   let RESUME_ROOM=null;
   try{
     const {data:live}=await sb.rpc("list_live_rooms");
@@ -3028,6 +3035,61 @@ function lcPackStatus(p, t){
   if(Number.isFinite(b) && now>=b) return "vaulted";
   if(Number.isFinite(a) && now<a) return "scheduled";
   return "live";
+}
+
+/* ============ THE SUBSCRIPTION (feat/subscription-scaffold, PR B of the
+   10/20–10/21 brief; the model is docs/fun-and-money.md) ============
+   Last Call is also a subscription app.  A subscription buys convenience
+   and status — never a tier, a chip, a heart or the host's choice.  THE
+   SERVER OWNS THE ANSWER: is_subscriber(uid) (tools/DDL-subscription.sql)
+   is the one hook, and it applies subscription_until on the server clock,
+   so the phone never computes "am I subscribed" from a row.  SUBSCRIBER is
+   the client's copy of that one answer for ME, read at boot and re-read at
+   every openRoom (a comp Nick gives mid-evening is seen at the next show).
+   The perks (lcPerks) are the scaffold's four; the server already enforces
+   the one that is enforceable today — the ration x2 arrives through
+   throw_counts()'s numbers exactly as the base ration always did (the
+   client never doubles anything).  No prices, no billing, no shop: the only
+   visible trace is the lobby's VIP pill. */
+let SUBSCRIBER=false;        // MY standing — the server's answer; false until read, false when unreadable
+let SUBSCRIBER_SYNC=null;    // one read in flight at a time
+async function lcSubscriberLoad(){
+  if(!ME){ SUBSCRIBER=false; lcPaintVip(); return false; }
+  if(SUBSCRIBER_SYNC) return SUBSCRIBER_SYNC;
+  SUBSCRIBER_SYNC=(async()=>{
+    try{
+      const {data,error}=await sb.rpc("is_subscriber",{uid:ME.id});
+      SUBSCRIBER = !error && data===true;
+    }catch(e){ SUBSCRIBER=false; }
+    finally{ SUBSCRIBER_SYNC=null; }
+    lcPaintVip();
+    return SUBSCRIBER;
+  })();
+  return SUBSCRIBER_SYNC;
+}
+function lcSubscriber(){ return SUBSCRIBER===true; }
+/* the four perks of the scaffold, as booleans from the ONE answer.
+   ration2x: the server's throw_limits() doubles cheers and jeers for a
+     subscriber caller — this flag only says why the tray's numbers are what
+     they are.  packs: every cosmetic pack included (today every pack is free
+     for everyone by ruling, so nothing is gated by it yet).  profileFull:
+     open any profile in full — PR C's card reads this (and ORs in the
+     soft-launch override profiles_open_to_all).  benchPriority: the line's
+     server order is untouched in this PR (tools/DESIGN-subscription.md,
+     judgment call 3) — the flag is the hook the line will read. */
+function lcPerks(){
+  const s=lcSubscriber();
+  return { subscriber:s, ration2x:s, packs:s, profileFull:s, benchPriority:s };
+}
+function lcProfileFullOpen(){ return lcPerks().profileFull; }
+/* the one visible trace: "VIP · coming soon" in the lobby — "VIP" for a
+   subscriber (no "coming soon" lock for them).  No price, no link, no sheet. */
+function lcPaintVip(){
+  const el=$("vippill"); if(!el) return;
+  const on=lcSubscriber();
+  el.textContent = on ? "VIP" : "VIP · coming soon";
+  el.classList.toggle("is-on", on);
+  el.setAttribute("aria-label", on ? "VIP: you are a subscriber" : "VIP: coming soon");
 }
 
 /* ============ THE DOOR — the signed-out status line (feat/splash-explainer) ============
@@ -3574,6 +3636,7 @@ async function openRoom(r){
   I_WAS_PASSED=false;
   // tonight's pack may have been switched since boot (PR B): re-read, repaint the tray when it lands
   lcConfigLoad().then(()=>{ if(typeof filterPaintComposer==="function") filterPaintComposer(); }).catch(()=>{});
+  lcSubscriberLoad().catch(()=>{});   // …and my standing (PR B): a comp given since boot is seen at this show
   AMHOST=r.host_id===ME.id;
   // LOBBY LIVE FEEDS: leaving the lobby tears every preview down FIRST.  The
   // teardown starts here, on the tap; the room's create site awaits it.
@@ -10926,6 +10989,8 @@ window.__lc = {
   get LC_CONFIG(){ return LC_CONFIG; },
   // PR B: tonight's pack as the client holds it (raw), and as the tray uses it (inside its window only)
   get TONIGHT_PACK(){ return TONIGHT_PACK ? { ...TONIGHT_PACK, looks:TONIGHT_PACK.looks.slice() } : null; },
+  /* THE SUBSCRIPTION (PR B): my standing as the server answered it, the four perks, the one profile hook */
+  lcSubscriberLoad, lcSubscriber, lcPerks, lcProfileFullOpen, lcPaintVip, get SUBSCRIBER(){ return SUBSCRIBER; },
   lcTonightPack, lcPackLive, lcPackStatus, packLook, packArt, get PACK_LOOKS(){ return Object.fromEntries(Object.entries(PACK_LOOKS).map(([k,v])=>[k,{ ...v }])); },
   get FILTER_FNS(){ return Object.keys(FILTERS); },
   startHeartbeat, stopHeartbeat, startHostPoll, stopHostPoll,

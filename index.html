@@ -1602,6 +1602,67 @@
 .vipwrap{display:flex;justify-content:flex-end;margin:-8px 2px 12px}
 .vippill{display:inline-block;font-family:"Azeret Mono",monospace;font-size:9px;font-weight:700;letter-spacing:.16em;color:#d6cdff;border:1px solid rgba(185,168,255,.35);border-radius:999px;padding:4px 10px;background:rgba(17,22,52,.7)}
 .vippill.is-on{color:#2a1010;background:var(--gold);border-color:var(--gold)}
+/* ---------- THE DECK (PR D1, 10/21): swipe, match, chat ---------- */
+.deck{ margin:14px 0 6px; }
+/* a quiet night: LIVE NOW folds to one line and the deck takes the screen (the ruling: never a dead lobby) */
+#lobby.is-quiet .roomlist .empty{ padding:10px 12px; font-size:12px; line-height:1.4; border:1px dashed rgba(238,240,255,.18); border-radius:12px; }
+#lobby.is-quiet .roomlist .empty br{ display:none; }
+#lobby.is-quiet .deck{ margin-top:10px; }
+#lobby.is-quiet .deck__stack{ height:min(54vh, 520px); height:min(54dvh, 520px); }
+.deck__shot--none{ font-family:"Baloo 2",sans-serif; font-weight:800; font-size:120px; color:rgba(255,45,143,.35); text-shadow:0 0 30px rgba(255,45,143,.5); }
+.deck__stack{ position:relative; height:min(62vh, 520px); height:min(62dvh, 520px); }
+.deck__card{ position:absolute; inset:0; background:#0d1129; border:1.5px solid rgba(45,227,208,.6); border-radius:20px; overflow:hidden; display:flex; flex-direction:column;
+  box-shadow:0 0 14px rgba(45,227,208,.3); transform:translateY(calc(var(--i) * 8px)) scale(calc(1 - var(--i) * 0.04)); transition:transform .25s ease, opacity .25s ease; touch-action:pan-y; user-select:none; -webkit-user-select:none; }
+.deck__card.is-top{ z-index:3; cursor:grab; }
+.deck__card.is-dragging{ transition:none; cursor:grabbing; }
+.deck__card.fly-like{ transform:translate(120vw,-40px) rotate(25deg) !important; opacity:0; }
+.deck__card.fly-pass{ transform:translate(-120vw,-40px) rotate(-25deg) !important; opacity:0; }
+.deck__shot{ flex:1 1 55%; background:#141a3a center/cover no-repeat; position:relative; display:flex; align-items:center; justify-content:center; }
+.deck__shot .chair__sil{ position:static; width:40%; opacity:.5; }
+.deck__stamp{ position:absolute; top:16px; font-family:"Baloo 2",sans-serif; font-weight:800; font-size:34px; padding:2px 14px; border:3px solid; border-radius:10px; opacity:0; transform:rotate(-12deg); transition:opacity .12s; }
+.deck__stamp--like{ left:16px; color:#2de3d0; border-color:#2de3d0; }
+.deck__stamp--pass{ right:16px; color:#ff6b6b; border-color:#ff6b6b; transform:rotate(12deg); }
+.deck__card.lean-like .deck__stamp--like, .deck__card.lean-pass .deck__stamp--pass{ opacity:1; }
+.deck__meta{ padding:12px 14px 14px; background:linear-gradient(180deg, rgba(8,11,32,.2), rgba(8,11,32,.95)); cursor:pointer; }
+.deck__name{ font-family:"Baloo 2",sans-serif; font-weight:800; font-size:24px; color:#fff; display:flex; align-items:baseline; gap:10px; line-height:1.1; }
+.deck__sub{ font-size:12.5px; color:var(--dim); margin-top:2px; }
+.deck__stats{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; font-family:"Azeret Mono",monospace; font-size:10px; letter-spacing:.08em; color:#ffd6e9; }
+.deck__stats span{ background:rgba(8,11,32,.7); border:1px solid rgba(185,168,255,.35); border-radius:999px; padding:3px 8px; }
+.deck__fav{ color:#2a1010 !important; background:var(--gold) !important; border-color:var(--gold) !important; font-weight:700; }
+.deck__bio{ margin-top:8px; font-size:13.5px; line-height:1.4; color:var(--paper); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.deck__ctl{ display:flex; justify-content:center; gap:22px; margin:14px 0 4px; }
+.deck__btn{ width:62px; height:62px; border-radius:50%; border:2px solid; background:rgba(8,11,32,.8); font-size:26px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.deck__btn--pass{ color:#ff6b6b; border-color:#ff6b6b; box-shadow:0 0 12px rgba(255,107,107,.4); }
+.deck__btn--like{ color:#2de3d0; border-color:#2de3d0; box-shadow:0 0 12px rgba(45,227,208,.5); }
+.deck__btn:active{ transform:scale(.92); }
+.deck__empty{ text-align:center; color:var(--dim); padding:40px 20px; font-size:13px; line-height:1.6; border:1px dashed rgba(238,240,255,.25); border-radius:16px; }
+.deck__empty b{ display:block; color:var(--paper); font-family:"Baloo 2",sans-serif; font-size:17px; margin-bottom:4px; }
+.deck__match{ position:absolute; inset:0; z-index:160; display:none; align-items:center; justify-content:center; background:radial-gradient(70% 60% at 50% 40%, rgba(255,45,143,.55), rgba(8,11,32,.95)); padding:24px; }
+.deck__match.show{ display:flex; }
+.deck__match-box{ text-align:center; width:100%; max-width:340px; }
+.deck__match-t{ font-family:Monoton,cursive; font-size:30px; color:#ffa0c8; text-shadow:0 0 8px rgba(255,160,200,.85),0 0 24px rgba(255,45,143,.9); margin-bottom:18px; }
+.deck__match-faces{ display:flex; justify-content:center; gap:-10px; margin-bottom:14px; }
+.deck__match-faces i{ width:110px; height:110px; border-radius:50%; border:3px solid var(--gold); background:#141a3a center/cover; box-shadow:0 0 24px rgba(255,214,233,.5); margin:0 -8px; }
+.deck__match-n{ font-family:"Baloo 2",sans-serif; font-weight:700; font-size:17px; color:#fff; margin-bottom:16px; }
+.deck__match-box .fbtn{ display:block; width:100%; margin:6px 0; }
+.matchesbtn{ position:relative; background:none; border:1px solid var(--dim); color:var(--dim); border-radius:8px; padding:4px 8px; font-size:13px; cursor:pointer; }
+.matchesbtn.has-unread{ border-color:var(--neon,#ff2d8f); color:#fff; }
+.matchesbtn.has-unread::after{ content:attr(data-n); position:absolute; top:-7px; right:-7px; background:var(--neon,#ff2d8f); color:#fff; font-family:"Azeret Mono",monospace; font-size:9px; font-weight:700; min-width:16px; height:16px; line-height:16px; border-radius:8px; padding:0 4px; text-align:center; }
+.mt{ display:flex; align-items:center; gap:12px; padding:10px 4px; border-bottom:1px solid rgba(238,240,255,.08); cursor:pointer; }
+.mt__face{ width:52px; height:52px; border-radius:50%; flex:0 0 auto; background:#141a3a center/cover; border:2px solid rgba(45,227,208,.6); }
+.mt__txt{ flex:1; min-width:0; }
+.mt__name{ font-family:"Baloo 2",sans-serif; font-weight:700; font-size:16px; color:#fff; }
+.mt__last{ font-size:12.5px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mt__unread{ background:var(--neon,#ff2d8f); color:#fff; font-family:"Azeret Mono",monospace; font-size:10px; font-weight:700; border-radius:999px; padding:2px 7px; }
+.chat__panel{ display:flex; flex-direction:column; height:92%; height:92dvh; }
+.chat__head{ display:flex; align-items:center; gap:10px; padding:4px 0 8px; border-bottom:1px solid rgba(238,240,255,.1); }
+.chat__head h3{ flex:1; margin:0; cursor:pointer; }
+.chat__log{ flex:1; overflow-y:auto; padding:10px 2px; display:flex; flex-direction:column; gap:6px; }
+.bub{ max-width:80%; align-self:flex-start; background:rgba(238,240,255,.08); border:1px solid rgba(238,240,255,.15); border-radius:16px 16px 16px 4px; padding:9px 12px; font-size:14px; line-height:1.35; color:var(--paper); white-space:pre-wrap; word-break:break-word; }
+.bub--me{ align-self:flex-end; background:rgba(255,45,143,.25); border-color:rgba(255,45,143,.6); border-radius:16px 16px 4px 16px; }
+.chat__row{ display:flex; gap:8px; padding-top:8px; border-top:1px solid rgba(238,240,255,.1); }
+.chat__row input{ flex:1; background:rgba(238,240,255,.07); border:1px solid rgba(238,240,255,.25); border-radius:999px; padding:11px 14px; color:#eef0ff; font-size:14px; outline:none; }
+.chat__row button{ background:var(--neon,#ff2d8f); border:none; color:#fff; border-radius:999px; padding:0 18px; font-weight:800; cursor:pointer; }
 </style>
 </head>
 <body data-skin="neon">
@@ -1610,6 +1671,7 @@
     <div class="logo">LAST CALL</div>
     <div class="wallet">
       <span class="chip" id="coinchip">✦ 120</span>
+      <button class="matchesbtn" id="matchesbtn" style="display:none" title="Matches" aria-label="Matches" data-n="0">💬</button>
       <button class="mebtn" id="mebtn" style="display:none" title="My card" aria-label="My card">☺</button>
       <button class="iconbtn gear" id="settingsbtn" style="display:none" title="Settings" aria-label="Settings">⚙</button>
       <button class="iconbtn" id="signout" style="display:none">Sign out</button>
@@ -1660,7 +1722,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1021.1930</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1021.2130</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1705,6 +1767,12 @@
       <div class="vipwrap"><span class="vippill" id="vippill" role="status" aria-label="VIP: coming soon">VIP · coming soon</span></div>
       <div class="sectlabel">LIVE NOW</div>
       <div class="roomlist" id="roomlist"></div>
+      <!-- THE DECK (PR D1): the lobby is never dead — swipe between shows -->
+      <div class="deck" id="deck">
+        <div class="sectlabel">THE DECK · swipe between shows</div>
+        <div class="deck__stack" id="deck_stack"></div>
+        <div class="deck__ctl" id="deck_ctl" style="display:none"><button class="deck__btn deck__btn--pass" id="deck_pass" aria-label="Pass">✕</button><button class="deck__btn deck__btn--like" id="deck_like" aria-label="Heart">♥</button></div>
+      </div>
     </div>
 
     <!-- ROOM — full show on one screen -->
@@ -2098,6 +2166,19 @@
       <div class="lc-sheet__scrim"></div>
       <div class="lc-sheet__panel"><div class="lc-sheet__grab"></div><h3 style="margin:0 0 8px">My card</h3><div id="pe_body"></div></div>
     </div>
+    <div class="deck__match" id="deck_match" hidden></div>
+    <div class="lc-sheet" id="matches" hidden>
+      <div class="lc-sheet__scrim"></div>
+      <div class="lc-sheet__panel"><div class="lc-sheet__grab"></div><h3 style="margin:0 0 8px">Matches</h3><div id="matches_body"></div></div>
+    </div>
+    <div class="lc-sheet" id="chat" hidden>
+      <div class="lc-sheet__scrim"></div>
+      <div class="lc-sheet__panel chat__panel"><div class="lc-sheet__grab"></div>
+        <div class="chat__head"><h3 id="chat_name">Chat</h3><button class="iconbtn" id="chat_close">Close</button></div>
+        <div class="chat__log" id="chat_log"></div>
+        <div class="chat__row"><input type="text" id="chat_input" maxlength="1000" placeholder="Say something…" autocomplete="off"><button id="chat_send">Send</button></div>
+      </div>
+    </div>
     <div id="toast"></div>
   </main>
 </div>
@@ -2218,7 +2299,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1021.1930"); }catch(e){}
+try{ console.log("[lastcall] build b1021.2130"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2930,6 +3011,7 @@ async function enterApp(){
   await lcConfigLoad();
   try{ await blocksLoad(); }catch(e){}
   try{ paintMeButton(); }catch(e){}
+  try{ deckLoad(true); matchesRefresh(); inboxSubscribe(); }catch(e){}   // THE DECK (PR D1): the lobby is never dead
   await lcSubscriberLoad();   // my standing (PR B): the server's one answer, before the lobby paints
   let RESUME_ROOM=null;
   try{
@@ -3292,9 +3374,11 @@ async function loadRooms(){
   if(seq!==LOBBY_SEQ) return LOBBY_PAINTED;
   if(!rooms||!rooms.length){
     list.querySelectorAll(":scope > .roomcard").forEach(c=>lobbyCardRemove(c));
-    list.innerHTML='<div class="empty">No live rooms yet.<br>Be the first — hit <b>GO LIVE</b> and your room appears here for everyone, in real time.</div>';
+    list.innerHTML='<div class="empty">No live rooms yet. <br>Be the first — hit <b>GO LIVE</b> and your room appears here for everyone, in real time.</div>';
+    try{ $("lobby").classList.add("is-quiet"); }catch(e){}   // THE DECK (PR D1): a quiet night — the deck owns the screen
     return;
   }
+  try{ $("lobby").classList.remove("is-quiet"); }catch(e){}
   // member counts
   // RLS hides room_members from non-members, so a direct read returns 0 for
   // every room you are not already in.  active_members() is SECURITY DEFINER.
@@ -10944,6 +11028,179 @@ function profilesInit(){
 }
 try{ profilesInit(); }catch(e){ console.log("profiles init:",e&&e.message); }
 
+/* ===================================================================
+   THE DECK (feat/deck, PR D1, ruling 10/21 21:00: "just like Tinder").
+   A lobby that is never dead: with no show live you are swiping the
+   contestant cards PR C built.  Right = ♥, left = pass; a mutual ♥ is a
+   match and the chat opens on it.  Everything is a server fact — the
+   next cards (deck_next), the swipe (swipe → {matched, match_id}), the
+   match (written by the swipes trigger), the thread (send_message,
+   messages RLS, realtime on the match).  The show stays the reason to
+   come back: a card's stats are its show stats, Fan Favorites lead the
+   deck, and the bridge (a ♥ that lands when he is seated) is D3.
+   Rules kept: ♥ in the deck never touches the host's choice; blocks
+   carry over (deck_next / send_message refuse across one).
+   =================================================================== */
+let DECK=[], DECK_BUSY=false, DECK_DRAG=null, MATCHES=[], CHAT_MATCH=null, CHAT_CHANNEL=null, UNREAD=0;
+const DECK_SWIPE_PX=90;
+async function deckLoad(fresh){
+  if(!ME) return [];
+  try{
+    const {data,error}=await sb.rpc("deck_next",{n:10});
+    if(error) throw new Error(error.message);
+    const seen=new Set(DECK.map(c=>c.id));
+    const add=(data||[]).filter(c=>c && c.id && !seen.has(c.id) && !isBlockedEither(c.id));
+    DECK=fresh?add:DECK.concat(add);
+  }catch(e){ console.log("deck:",e&&e.message); }
+  deckRender();
+  return DECK;
+}
+function deckCardHtml(c, i){
+  const shot=(c.photos&&c.photos[0])?photoUrl(c.photos[0]):(c.primary_photo?photoUrl(c.primary_photo):(c.face_photo||""));
+  const st=c.stats||{};
+  const sub=[c.city,c.pronouns].filter(Boolean).map(escapeHtml).join(" · ");
+  return `<div class="deck__card${i===0?" is-top":""}" data-uid="${escapeHtml(c.id)}" style="--i:${i}">
+    <div class="deck__shot" ${shot?`style="background-image:url('${shot.replace(/'/g,"%27")}')"`:""}>${shot?"":`<span class="deck__shot--none">${escapeHtml((c.display_name||"?").trim().charAt(0).toUpperCase())}</span>`}
+      <div class="deck__stamp deck__stamp--like">♥</div><div class="deck__stamp deck__stamp--pass">✕</div>
+    </div>
+    <div class="deck__meta">
+      <div class="deck__name">${escapeHtml(c.display_name||"—")}${c.age?`<span class="pc__age">${c.age}</span>`:""}</div>
+      ${sub?`<div class="deck__sub">${sub}</div>`:""}
+      <div class="deck__stats"><span>♥ ${Number(st.hearts||0)}</span><span>${Number(st.shows_played||0)} shows</span><span>${Number(st.keeps||0)} KEEP${Number(st.keeps||0)===1?"":"s"}</span>${st.hearts>=5?'<span class="deck__fav">FAN FAVORITE</span>':""}</div>
+      ${c.bio?`<div class="deck__bio">${escapeHtml(c.bio)}</div>`:""}
+    </div>
+  </div>`;
+}
+function deckRender(){
+  const el=$("deck_stack"); if(!el) return;
+  const top=DECK.slice(0,3);
+  el.innerHTML=top.length?top.map(deckCardHtml).join(""):`<div class="deck__empty"><b>That's everyone for now.</b><div>New people join every show — host one, or come back tonight.</div></div>`;
+  const ctl=$("deck_ctl"); if(ctl) ctl.style.display=top.length?"flex":"none";
+  const card=el.querySelector(".deck__card.is-top");
+  if(card){
+    card.addEventListener("pointerdown", deckDragStart);
+    card.querySelector(".deck__meta").addEventListener("click",(e)=>{ if(!DECK_DRAG||!DECK_DRAG.moved) openProfile(card.dataset.uid); });
+  }
+}
+function deckDragStart(e){
+  if(DECK_BUSY) return;
+  const card=e.currentTarget; card.setPointerCapture(e.pointerId);
+  DECK_DRAG={card, x0:e.clientX, y0:e.clientY, dx:0, moved:false};
+  card.classList.add("is-dragging");
+  card.onpointermove=(ev)=>{ const d=DECK_DRAG; if(!d) return; d.dx=ev.clientX-d.x0; const dy=ev.clientY-d.y0; if(Math.abs(d.dx)>6) d.moved=true;
+    card.style.transform=`translate(${d.dx}px, ${dy*0.3}px) rotate(${d.dx/18}deg)`;
+    card.classList.toggle("lean-like", d.dx>30); card.classList.toggle("lean-pass", d.dx<-30); };
+  card.onpointerup=card.onpointercancel=(ev)=>{ const d=DECK_DRAG; if(!d) return; card.onpointermove=null; card.classList.remove("is-dragging");
+    if(d.dx>DECK_SWIPE_PX) deckSwipe("like"); else if(d.dx<-DECK_SWIPE_PX) deckSwipe("pass");
+    else { card.style.transform=""; card.classList.remove("lean-like","lean-pass"); }
+    setTimeout(()=>{ DECK_DRAG=null; },0); };
+}
+async function deckSwipe(dir){
+  if(DECK_BUSY || !DECK.length) return null;
+  const c=DECK[0]; DECK_BUSY=true;
+  const card=$("deck_stack")?.querySelector(".deck__card.is-top");
+  if(card){ card.classList.add(dir==="like"?"fly-like":"fly-pass"); }
+  let res=null;
+  try{
+    const {data,error}=await sb.rpc("swipe",{target:c.id, dir});
+    if(error){ toast("That didn't take: "+error.message); if(card){ card.classList.remove("fly-like","fly-pass"); card.style.transform=""; } DECK_BUSY=false; return null; }
+    res=data;
+  }catch(e){ DECK_BUSY=false; return null; }
+  DECK.shift();
+  setTimeout(()=>{ DECK_BUSY=false; deckRender(); if(DECK.length<3) deckLoad(false); }, 260);
+  if(res && res.matched){ deckMatchShow(c, res.match_id); matchesRefresh(); }
+  return res;
+}
+function deckMatchShow(c, matchId){
+  const m=$("deck_match"); if(!m) return;
+  const shot=(c.photos&&c.photos[0])?photoUrl(c.photos[0]):(c.face_photo||"");
+  m.innerHTML=`<div class="deck__match-box"><div class="deck__match-t">IT'S A MATCH</div>
+    <div class="deck__match-faces"><i style="background-image:url('${((MYPROFILE&&MYPROFILE.photos&&MYPROFILE.photos[0])?photoUrl(MYPROFILE.photos[0]):"").replace(/'/g,"%27")}')"></i><i style="background-image:url('${shot.replace(/'/g,"%27")}')"></i></div>
+    <div class="deck__match-n">You and ${escapeHtml(c.display_name||"them")} ♥'d each other.</div>
+    <button class="fbtn neon" id="deck_sayhi">Say hi</button><button class="fbtn ghost" id="deck_keepswiping">Keep swiping</button></div>`;
+  m.hidden=false; m.classList.add("show");
+  $("deck_sayhi").onclick=()=>{ deckMatchHide(); openChat(matchId, c); };
+  $("deck_keepswiping").onclick=deckMatchHide;
+}
+function deckMatchHide(){ const m=$("deck_match"); if(m){ m.classList.remove("show"); m.hidden=true; } }
+/* ---------- matches + chat ---------- */
+async function matchesRefresh(){
+  if(!ME) return [];
+  try{ const {data,error}=await sb.rpc("my_matches"); if(!error) MATCHES=(data||[]).filter(m=>m&&m.other&&!m.other.blocked); }catch(e){}
+  UNREAD=MATCHES.reduce((s,m)=>s+Number(m.unread||0),0);
+  const b=$("matchesbtn"); if(b){ b.style.display=ME?"inline-block":"none"; b.dataset.n=UNREAD; b.classList.toggle("has-unread",UNREAD>0); }
+  if($("matches") && !$("matches").hidden) matchesRender();
+  return MATCHES;
+}
+function matchesRender(){
+  const el=$("matches_body"); if(!el) return;
+  el.innerHTML=MATCHES.length?MATCHES.map(m=>{ const o=m.other||{}; const shot=(o.photos&&o.photos[0])?photoUrl(o.photos[0]):(o.face_photo||"");
+    return `<div class="mt" data-mid="${escapeHtml(m.match_id)}"><i class="mt__face" style="background-image:url('${shot.replace(/'/g,"%27")}')"></i>
+      <div class="mt__txt"><div class="mt__name">${escapeHtml(o.display_name||"—")}${o.age?` <span class="pc__age">${o.age}</span>`:""}</div>
+      <div class="mt__last">${m.last?escapeHtml((m.last.sender===ME.id?"You: ":"")+m.last.body):"Say hi — you matched."}</div></div>
+      ${Number(m.unread)>0?`<span class="mt__unread">${m.unread}</span>`:""}</div>`; }).join("")
+    :`<div class="deck__empty"><b>No matches yet.</b><div>Swipe the deck, or get in a chair tonight — hearts find you faster on air.</div></div>`;
+  el.querySelectorAll(".mt").forEach(r=>r.onclick=()=>{ const m=MATCHES.find(x=>x.match_id===r.dataset.mid); if(m) openChat(m.match_id, m.other); });
+}
+function openMatches(){ const s=$("matches"); s.hidden=false; s.classList.add("show"); matchesRender(); matchesRefresh(); }
+function closeMatches(){ const s=$("matches"); s.classList.remove("show"); s.hidden=true; }
+async function openChat(matchId, other){
+  if(!matchId) return false;
+  CHAT_MATCH={id:matchId, other:other||{}};
+  const s=$("chat"); s.hidden=false; s.classList.add("show");
+  $("chat_name").textContent=(other&&other.display_name)||"Chat";
+  $("chat_name").onclick=()=>{ if(other&&other.id) openProfile(other.id); };
+  $("chat_log").innerHTML='<div class="pc__loading">…</div>';
+  await chatLoad();
+  chatSubscribe(matchId);
+  try{ await sb.rpc("mark_read",{match_id:matchId}); }catch(e){}
+  matchesRefresh();
+  return true;
+}
+function closeChat(){ const s=$("chat"); s.classList.remove("show"); s.hidden=true; chatUnsubscribe(); CHAT_MATCH=null; }
+async function chatLoad(){
+  if(!CHAT_MATCH) return;
+  const {data,error}=await sb.from("messages").select("*").eq("match_id",CHAT_MATCH.id).order("created_at",{ascending:true}).limit(200);
+  if(error){ $("chat_log").innerHTML='<div class="pc__loading">Couldn\'t load.</div>'; return; }
+  $("chat_log").innerHTML=(data||[]).map(chatBubble).join("")||'<div class="pc__loading">You matched. Say something.</div>';
+  chatScroll();
+}
+function chatBubble(m){ return `<div class="bub${m.sender===ME.id?" bub--me":""}" data-id="${m.id}">${escapeHtml(m.body)}</div>`; }
+function chatAppend(m){ const log=$("chat_log"); if(!log || !CHAT_MATCH || m.match_id!==CHAT_MATCH.id) return; if(log.querySelector(`[data-id="${m.id}"]`)) return;
+  const ph=log.querySelector(".pc__loading"); if(ph) ph.remove(); log.insertAdjacentHTML("beforeend", chatBubble(m)); chatScroll(); }
+function chatScroll(){ const log=$("chat_log"); if(log) log.scrollTop=log.scrollHeight; }
+function chatSubscribe(matchId){
+  chatUnsubscribe();
+  try{
+    CHAT_CHANNEL=sb.channel("chat:"+matchId)
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"match_id=eq."+matchId},(p)=>{ if(p&&p.new) chatAppend(p.new); })
+      .subscribe();
+  }catch(e){}
+}
+function chatUnsubscribe(){ if(CHAT_CHANNEL){ try{ sb.removeChannel(CHAT_CHANNEL); }catch(e){} CHAT_CHANNEL=null; } }
+async function chatSend(){
+  if(!CHAT_MATCH) return false;
+  const inp=$("chat_input"); const body=(inp.value||"").trim(); if(!body) return false;
+  inp.value="";
+  const {data,error}=await sb.rpc("send_message",{match_id:CHAT_MATCH.id, body});
+  if(error){ toast(/blocked/.test(error.message)?"You can't message this person.":("Didn't send: "+error.message)); inp.value=body; return false; }
+  if(data) chatAppend(data);
+  return true;
+}
+/* new messages anywhere → the badge (RLS hands me only my matches' rows) */
+function inboxSubscribe(){
+  try{ sb.channel("inbox").on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},(p)=>{ const m=p&&p.new; if(!m) return; if(CHAT_MATCH && m.match_id===CHAT_MATCH.id){ chatAppend(m); sb.rpc("mark_read",{match_id:m.match_id}).catch(()=>{}); } else if(m.sender!==ME.id) matchesRefresh(); }).subscribe(); }catch(e){}
+}
+function deckInit(){
+  const l=$("deck_like"), p=$("deck_pass"); if(l) l.onclick=()=>deckSwipe("like"); if(p) p.onclick=()=>deckSwipe("pass");
+  const mb=$("matchesbtn"); if(mb) mb.onclick=openMatches;
+  const ms=$("matches"); if(ms){ ms.querySelector(".lc-sheet__scrim").onclick=closeMatches; }
+  const ch=$("chat"); if(ch){ ch.querySelector(".lc-sheet__scrim").onclick=closeChat; $("chat_close").onclick=closeChat; $("chat_send").onclick=chatSend;
+    $("chat_input").addEventListener("keydown",(e)=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); chatSend(); } }); }
+  const dm=$("deck_match"); if(dm) dm.onclick=(e)=>{ if(e.target===dm) deckMatchHide(); };
+}
+try{ deckInit(); }catch(e){ console.log("deck init:",e&&e.message); }
+
 window.__lc = {
   /* roster / rendering — roomCounts is THE headcount derivation: every count
      the app shows (lobby card, room header, watchbar, bench slice) reads
@@ -10961,6 +11218,9 @@ window.__lc = {
   openProfile, closeProfile, openProfileEditor, closeProfileEditor, profileSave, profileValidate, profileCompleteness,
   publicProfile, blocksLoad, blockUser, unblockUser, isBlockedEither, blocksMaskProfs, egPromptsTab, egPaintPromptAnswer,
   profilePhotoAdd, promptDeckLoad, paintMeButton, get sb(){ return sb; },
+  /* THE DECK (PR D1) */
+  deckLoad, deckSwipe, deckRender, matchesRefresh, openMatches, closeMatches, openChat, closeChat, chatSend, chatLoad, deckMatchHide,
+  get DECK(){ return DECK; }, get DECK_BUSY(){ return DECK_BUSY; }, get MATCHES(){ return MATCHES; }, get UNREAD(){ return UNREAD; }, get CHAT_MATCH(){ return CHAT_MATCH; },
   get BLOCKS(){ return BLOCKS; }, get PE(){ return PE; }, get PROFILE_OPEN_TO_ALL(){ return PROFILE_OPEN_TO_ALL; }, get PROMPT_DECK(){ return PROMPT_DECK; },
   /* THE DOOR (feat/splash-explainer) — the signed-out status line and the
      one way onto the form from above it */

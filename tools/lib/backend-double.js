@@ -204,6 +204,13 @@ class BackendDouble {
     this.blocks = [];                // {blocker, blocked}
     this.storage = new Map();        // "bucket/path" -> {bytes, contentType}
     this.subscribers = new Set();    // PR B's is_subscriber, modelled ahead
+    /* THE DECK (PR D1, 10/21) — swipes (one per pair), matches (a<b, written
+       when the second like lands), messages (realtime), match_reads */
+    this.swipes = new Map();         // "swiper|target" -> {swiper,target,dir,created_at,updated_at}
+    this.matches = [];               // {id,a,b,created_at}
+    this.messages = [];              // {id,match_id,sender,body,created_at}
+    this.matchReads = new Map();     // "match|reader" -> ts
+    this.msgSeq = 0;
     this.seedPromptDeck();
     this.sessions = new Map();   // clientId -> uid
     this.listeners = [];         // fn(evt) — harness fans out to pages
@@ -313,6 +320,58 @@ class BackendDouble {
     if (full) Object.assign(out, { photos: [...photos], details: p.details || {}, interests: [...(p.interests || [])], prompts });
     else Object.assign(out, { photos: photos.length ? [photos[0]] : [], details: {}, interests: [], prompts: [] });
     return out;
+  }
+  /* ---------- THE DECK ---------- */
+  pair(x, y) { return x < y ? [x, y] : [y, x]; }
+  matchOf(x, y) { const [a, b] = this.pair(x, y); return this.matches.find((m) => m.a === a && m.b === b) || null; }
+  deckNext(me, n) {
+    const mine = this.profiles.get(me); if (!mine) return [];
+    const wants = (seeker, person) => { const sk = (seeker && seeker.seeking) || "everyone"; if (sk === "everyone" || !person || !person.gender) return true;
+      return (sk === "women" && person.gender === "woman") || (sk === "men" && person.gender === "man"); };
+    const rows = [...this.profiles.values()].filter((p) => p.id !== me && p.display_name && p.birthdate
+      && !this.swipes.has(me + "|" + p.id) && !this.isBlockedEither(me, p.id)
+      && wants(mine, p) && wants(p, mine)
+      && this.ageOf(p.birthdate) >= (mine.seek_min || 18) && this.ageOf(p.birthdate) <= (mine.seek_max || 99))
+      .map((p) => ({ p, hearts: this.events.filter((e) => e.type === "heart" && e.payload && e.payload.target === p.id).length }))
+      .sort((x, y) => y.hearts - x.hearts || String(y.p.created_at || "").localeCompare(String(x.p.created_at || "")));
+    return rows.slice(0, Math.max(1, Math.min(n || 10, 30))).map((r) => this.publicProfile(me, r.p.id));
+  }
+  swipe(me, target, dir) {
+    if (!me) throw new Error("not signed in");
+    if (!target || target === me) throw new Error("bad target");
+    if (dir !== "like" && dir !== "pass") throw new Error("bad dir");
+    if (this.isBlockedEither(me, target)) throw new Error("blocked");
+    const k = me + "|" + target, cur = this.swipes.get(k);
+    this.swipes.set(k, { swiper: me, target, dir, created_at: cur ? cur.created_at : this.iso(), updated_at: this.iso() });
+    /* the trigger: the second like writes the match */
+    if (dir === "like") { const back = this.swipes.get(target + "|" + me); if (back && back.dir === "like" && !this.matchOf(me, target)) {
+      const [a, b] = this.pair(me, target); this.matches.push({ id: nid("m"), a, b, created_at: this.iso() }); } }
+    const m = this.matchOf(me, target);
+    return { target, dir, matched: !!m, match_id: m ? m.id : null };
+  }
+  myMatches(me) {
+    if (!me) throw new Error("not signed in");
+    return this.matches.filter((m) => m.a === me || m.b === me).map((m) => { const other = m.a === me ? m.b : m.a;
+      if (this.isBlockedEither(me, other)) return null;
+      const msgs = this.messages.filter((x) => x.match_id === m.id).sort((x, y) => x.created_at.localeCompare(y.created_at));
+      const last = msgs[msgs.length - 1] || null, readAt = this.matchReads.get(m.id + "|" + me) || "1970-01-01T00:00:00.000Z";
+      return { match_id: m.id, created_at: m.created_at, other: this.publicProfile(me, other),
+        last: last ? { body: last.body, sender: last.sender, at: last.created_at } : null,
+        unread: msgs.filter((x) => x.sender !== me && x.created_at > readAt).length, _t: last ? last.created_at : m.created_at }; })
+      .filter(Boolean).sort((x, y) => y._t.localeCompare(x._t)).map(({ _t, ...r }) => r);
+  }
+  sendMessage(me, matchId, body) {
+    if (!me) throw new Error("not signed in");
+    const m = this.matches.find((x) => x.id === matchId);
+    if (!m || (m.a !== me && m.b !== me)) throw new Error("not your match");
+    const other = m.a === me ? m.b : m.a;
+    if (this.isBlockedEither(me, other)) throw new Error("blocked");
+    body = String(body == null ? "" : body).trim();
+    if (!body || body.length > 1000) throw new Error("bad body");
+    const row = { id: ++this.msgSeq, match_id: matchId, sender: me, body, created_at: this.iso() };
+    this.messages.push(row); this.matchReads.set(matchId + "|" + me, row.created_at);
+    this.emit("messages", "INSERT", { ...row });
+    return { ...row };
   }
   addUser({ id, email, name, face = null, zip = "94110", gender = null, seeking = "everyone" }) {
     id = id || nid("u");
@@ -1014,6 +1073,13 @@ class BackendDouble {
         return { host_stale_ms: HOST_STALE_MS, tonight_pack: this.tonightPack(), profiles_open_to_all: this.settings.get("profiles_open_to_all") === true };
       /* PROFILES (PR C) */
       case "public_profile": return this.publicProfile(uid, a.target);
+      /* THE DECK (PR D1) */
+      case "deck_next": if (!uid) throw new Error("not signed in"); return this.deckNext(uid, a.n);
+      case "swipe": return this.swipe(uid, a.target, a.dir);
+      case "my_matches": return this.myMatches(uid);
+      case "send_message": return this.sendMessage(uid, a.match_id, a.body);
+      case "mark_read": { if (!uid) throw new Error("not signed in"); const m = this.matches.find((x) => x.id === a.match_id);
+        if (!m || (m.a !== uid && m.b !== uid)) throw new Error("not your match"); this.matchReads.set(a.match_id + "|" + uid, this.iso()); return null; }
       case "my_blocks": {
         if (!uid) throw new Error("permission denied for function my_blocks");
         return { blocked: this.blocks.filter((b) => b.blocker === uid).map((b) => b.blocked),
@@ -1454,6 +1520,11 @@ class BackendDouble {
       if (table === "throw_ledger") throw new Error("permission denied for table throw_ledger");
       if (table === "questions") return [...this.questions];
       if (table === "question_decks") return [...this.decks];
+      /* THE DECK (PR D1): messages RLS — a participant reads the thread, nobody else sees a row */
+      if (table === "messages") { const me = this.sessions.get(clientId);
+        return this.messages.filter((x) => { const m = this.matches.find((mm) => mm.id === x.match_id); return m && me && (m.a === me || m.b === me); }).map((x) => ({ ...x })); }
+      if (table === "swipes") { const me = this.sessions.get(clientId); return [...this.swipes.values()].filter((x) => x.swiper === me).map((x) => ({ ...x })); }
+      if (table === "matches") { const me = this.sessions.get(clientId); return this.matches.filter((m) => m.a === me || m.b === me).map((m) => ({ ...m })); }
       throw new Error("double: unknown table " + table);
     };
     const match = (row) => filters.every((f) => {

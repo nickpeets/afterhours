@@ -60,8 +60,10 @@ module.exports = {
     const tags = [...live.matchAll(/\$[a-zA-Z_]+\$/g)].map((m) => m[0]);
     t.ok(tags.length === 0, "the DDL is Studio-safe: no tagged dollar-quotes, only $$ (" + tags.join(",") + ")");
     t.ok(/do \$\$[\s\S]*?end \$\$;/.test(live), "the guard block is a plain $$ DO block");
-    ["bio", "city", "pronouns", "details", "interests", "prompts", "photos"].forEach((c) =>
+    /* bio already existed in production (the 2026-10-21 preflight, docs #127): the file adds six and CHECKs seven */
+    ["city", "pronouns", "details", "interests", "prompts", "photos"].forEach((c) =>
       t.ok(new RegExp("add column " + c + "\\s").test(live), "adds profiles." + c));
+    t.ok(!/add column bio\s/.test(live) && /char_length\(bio\) > 500/.test(live), "bio is not added (production had it) — guarded for length before its CHECK goes on");
     t.ok(/char_length\(bio\) <= 500/.test(live) && /cardinality\(interests\) <= 5/.test(live) && /jsonb_array_length\(prompts\) <= 3/.test(live) && /cardinality\(photos\) <= 6/.test(live),
       "the CHECKs: bio 500, interests 5, prompts 3, photos 6");
     const prompts = (live.match(/foreach t in array array\[([\s\S]*?)\] loop/) || ["", ""])[1].match(/'(?:[^']|'')*'/g) || [];

@@ -1544,7 +1544,17 @@
 @keyframes lc-sheet-up{ from{ transform:translateY(24px); opacity:.6 } to{ transform:none; opacity:1 } }
 .lc-sheet__grab{ width:42px; height:4px; border-radius:2px; background:rgba(238,240,255,.3); margin:4px auto 10px; }
 .pc__loading{ text-align:center; color:var(--dim); padding:40px 0; }
-.pc__gallery{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:0; border-radius:16px; aspect-ratio:3/4; max-height:52vh; scrollbar-width:none; background:#0d1129; border:1.5px solid rgba(45,227,208,.6); box-shadow:0 0 14px rgba(45,227,208,.35); }
+.pc__hero{ position:relative; border-radius:18px; overflow:hidden; border:var(--chair-border,1.5px solid #2de3d0); box-shadow:var(--chair-shadow,0 0 10px rgba(45,227,208,.55)); }
+.pc__gallery{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:0; aspect-ratio:3/4; max-height:56vh; scrollbar-width:none; background:#0d1129; }
+.pc__hero::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:46%; background:linear-gradient(180deg, rgba(8,11,32,0), rgba(8,11,32,.85) 60%, rgba(8,11,32,.97)); pointer-events:none; }
+.pc__hero .deck__top{ z-index:3; }
+.pc__hero .pc__head{ position:absolute; left:16px; right:16px; bottom:14px; z-index:3; margin:0; pointer-events:none; }
+.pc__hero .pc__name{ font-size:32px; color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.95); }
+.pc__hero .pc__sub{ color:rgba(238,240,255,.85); text-shadow:0 1px 4px rgba(0,0,0,.95); }
+.pc__hero .pc__dots{ position:absolute; top:10px; left:0; right:0; z-index:3; margin:0; }
+.pc__hero .pc__dots i{ width:22px; height:3px; border-radius:2px; background:rgba(255,255,255,.35); }
+.pc__hero .pc__dots i.on{ background:#fff; }
+.pc__kicker{ font-family:"Azeret Mono",monospace; font-size:9px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--gold,#ffd6e9); margin:14px 2px 6px; }
 .pc__gallery::-webkit-scrollbar{ display:none; }
 .pc__shot{ flex:0 0 100%; scroll-snap-align:start; background-size:cover; background-position:center; }
 .pc__shot--none{ display:flex; align-items:center; justify-content:center; }
@@ -1556,8 +1566,8 @@
 .pc__name{ font-family:"Baloo 2",sans-serif; font-weight:800; font-size:26px; color:var(--paper,#eef0ff); line-height:1.1; display:flex; align-items:baseline; gap:10px; }
 .pc__age{ font-family:"Azeret Mono",monospace; font-weight:600; font-size:17px; color:var(--gold,#ffd6e9); }
 .pc__sub{ font-size:13px; color:var(--dim); margin-top:3px; }
-.pc__stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:10px 0; }
-.pc__stat{ background:rgba(8,11,32,.7); border:1px solid rgba(185,168,255,.35); border-radius:12px; padding:8px 4px; text-align:center; }
+.pc__stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:0 0 10px; }
+.pc__stat{ background:rgba(6,8,24,.72); border:1px solid rgba(255,45,143,.6); border-radius:12px; padding:8px 4px; text-align:center; }
 .pc__stat b{ display:block; font-family:"Azeret Mono",monospace; font-size:18px; color:var(--gold,#ffd6e9); }
 .pc__stat span{ font-family:"Azeret Mono",monospace; font-size:8px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); }
 .pc__bio{ font-size:14.5px; line-height:1.5; color:var(--paper,#eef0ff); margin:6px 2px 10px; white-space:pre-wrap; }
@@ -1608,33 +1618,51 @@
 #lobby.is-quiet .roomlist .empty{ padding:10px 12px; font-size:12px; line-height:1.4; border:1px dashed rgba(238,240,255,.18); border-radius:12px; }
 #lobby.is-quiet .roomlist .empty br{ display:none; }
 #lobby.is-quiet .deck{ margin-top:10px; }
-#lobby.is-quiet .deck__stack{ height:min(54vh, 520px); height:min(54dvh, 520px); }
+#lobby.is-quiet .deck__stack{ height:min(56vh, 540px); height:min(56dvh, 540px); }
 .deck__shot--none{ font-family:"Baloo 2",sans-serif; font-weight:800; font-size:120px; color:rgba(255,45,143,.35); text-shadow:0 0 30px rgba(255,45,143,.5); }
 .deck__stack{ position:relative; height:min(62vh, 520px); height:min(62dvh, 520px); }
-.deck__card{ position:absolute; inset:0; background:#0d1129; border:1.5px solid rgba(45,227,208,.6); border-radius:20px; overflow:hidden; display:flex; flex-direction:column;
-  box-shadow:0 0 14px rgba(45,227,208,.3); transform:translateY(calc(var(--i) * 8px)) scale(calc(1 - var(--i) * 0.04)); transition:transform .25s ease, opacity .25s ease; touch-action:pan-y; user-select:none; -webkit-user-select:none; }
+.deck__card{ position:absolute; inset:0; border-radius:22px; overflow:hidden; background:var(--video,#141a3a);
+  border:var(--chair-border,1.5px solid #2de3d0); box-shadow:var(--chair-shadow,0 0 10px rgba(45,227,208,.55)), 0 18px 40px rgba(0,0,0,.5);
+  transform:translateY(calc(var(--i) * 10px)) scale(calc(1 - var(--i) * 0.045)); transition:transform .25s ease, opacity .25s ease; touch-action:pan-y; user-select:none; -webkit-user-select:none; }
 .deck__card.is-top{ z-index:3; cursor:grab; }
 .deck__card.is-dragging{ transition:none; cursor:grabbing; }
 .deck__card.fly-like{ transform:translate(120vw,-40px) rotate(25deg) !important; opacity:0; }
 .deck__card.fly-pass{ transform:translate(-120vw,-40px) rotate(-25deg) !important; opacity:0; }
-.deck__shot{ flex:1 1 55%; background:#141a3a center/cover no-repeat; position:relative; display:flex; align-items:center; justify-content:center; }
-.deck__shot .chair__sil{ position:static; width:40%; opacity:.5; }
-.deck__stamp{ position:absolute; top:16px; font-family:"Baloo 2",sans-serif; font-weight:800; font-size:34px; padding:2px 14px; border:3px solid; border-radius:10px; opacity:0; transform:rotate(-12deg); transition:opacity .12s; }
-.deck__stamp--like{ left:16px; color:#2de3d0; border-color:#2de3d0; }
-.deck__stamp--pass{ right:16px; color:#ff6b6b; border-color:#ff6b6b; transform:rotate(12deg); }
+/* the photo IS the card — broadcast lower-third over it */
+.deck__shot{ position:absolute; inset:0; background:#141a3a center/cover no-repeat; }
+.deck__shot::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,11,32,.35) 0%, rgba(8,11,32,0) 22%, rgba(8,11,32,0) 42%, rgba(8,11,32,.82) 72%, rgba(8,11,32,.97) 100%); }
+.deck__shot--none{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:Monoton,cursive; font-size:150px; color:rgba(255,45,143,.5); text-shadow:0 0 12px rgba(255,160,200,.6),0 0 40px rgba(255,45,143,.6); background:radial-gradient(60% 50% at 50% 45%, rgba(255,45,143,.18), transparent 70%); }
+.deck__top{ position:absolute; top:12px; left:12px; right:12px; display:flex; justify-content:space-between; align-items:flex-start; z-index:2; pointer-events:none; }
+.deck__kicker{ font-family:"Azeret Mono",monospace; font-size:9px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--gold,#ffd6e9); background:rgba(8,11,32,.78); border:1px solid rgba(185,168,255,.45); border-radius:14px; padding:6px 10px; text-shadow:0 1px 4px rgba(0,0,0,.95); }
+.deck__kicker--fav{ color:#2a1010; background:var(--gold,#ffd6e9); border-color:var(--gold,#ffd6e9); text-shadow:none; }
+.deck__hearts{ font-family:"Azeret Mono",monospace; font-size:12px; font-weight:700; color:#fff; background:rgba(255,45,143,.85); border-radius:14px; padding:5px 11px; text-shadow:0 1px 4px rgba(0,0,0,.95); box-shadow:0 0 12px rgba(255,45,143,.6); }
+.deck__hearts b{ color:var(--gold,#ffd6e9); margin-right:3px; }
+.deck__stamp{ position:absolute; top:56px; z-index:3; font-family:Monoton,cursive; font-size:38px; letter-spacing:.06em; padding:4px 16px; border:3px solid; border-radius:12px; opacity:0; transition:opacity .12s; background:rgba(8,11,32,.55); }
+.deck__stamp--like{ left:14px; color:#ff8ac2; border-color:#ff2d8f; transform:rotate(-12deg); text-shadow:0 0 10px rgba(255,45,143,.9),0 0 30px rgba(255,45,143,.6); }
+.deck__stamp--pass{ right:14px; color:#d6cdff; border-color:#b9a8ff; transform:rotate(12deg); text-shadow:0 0 10px rgba(185,168,255,.8); }
 .deck__card.lean-like .deck__stamp--like, .deck__card.lean-pass .deck__stamp--pass{ opacity:1; }
-.deck__meta{ padding:12px 14px 14px; background:linear-gradient(180deg, rgba(8,11,32,.2), rgba(8,11,32,.95)); cursor:pointer; }
-.deck__name{ font-family:"Baloo 2",sans-serif; font-weight:800; font-size:24px; color:#fff; display:flex; align-items:baseline; gap:10px; line-height:1.1; }
-.deck__sub{ font-size:12.5px; color:var(--dim); margin-top:2px; }
-.deck__stats{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; font-family:"Azeret Mono",monospace; font-size:10px; letter-spacing:.08em; color:#ffd6e9; }
-.deck__stats span{ background:rgba(8,11,32,.7); border:1px solid rgba(185,168,255,.35); border-radius:999px; padding:3px 8px; }
-.deck__fav{ color:#2a1010 !important; background:var(--gold) !important; border-color:var(--gold) !important; font-weight:700; }
-.deck__bio{ margin-top:8px; font-size:13.5px; line-height:1.4; color:var(--paper); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.deck__ctl{ display:flex; justify-content:center; gap:22px; margin:14px 0 4px; }
-.deck__btn{ width:62px; height:62px; border-radius:50%; border:2px solid; background:rgba(8,11,32,.8); font-size:26px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-.deck__btn--pass{ color:#ff6b6b; border-color:#ff6b6b; box-shadow:0 0 12px rgba(255,107,107,.4); }
-.deck__btn--like{ color:#2de3d0; border-color:#2de3d0; box-shadow:0 0 12px rgba(45,227,208,.5); }
-.deck__btn:active{ transform:scale(.92); }
+.deck__meta{ position:absolute; left:0; right:0; bottom:0; padding:0 16px 16px; z-index:2; cursor:pointer; }
+.deck__name{ font-family:"Baloo 2",sans-serif; font-weight:800; font-size:32px; line-height:1; color:#fff; display:flex; align-items:baseline; gap:10px; text-shadow:0 2px 8px rgba(0,0,0,.95); }
+.deck__name .pc__age{ font-size:20px; }
+.deck__sub{ font-size:13px; color:rgba(238,240,255,.8); margin-top:3px; text-shadow:0 1px 4px rgba(0,0,0,.95); }
+/* the lower third: the scoreboard strip */
+.deck__stats{ display:flex; align-items:center; gap:0; margin-top:10px; font-family:"Azeret Mono",monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--gold,#ffd6e9);
+  background:rgba(6,8,24,.72); border:1px solid rgba(255,45,143,.75); border-radius:14px; padding:6px 4px; width:max-content; max-width:100%; overflow:hidden; }
+.deck__stats span{ padding:2px 10px; border-right:1px solid rgba(255,45,143,.45); white-space:nowrap; }
+.deck__stats span:last-child{ border-right:none; }
+.deck__stats span b{ color:#fff; font-weight:700; margin-right:4px; }
+.deck__fav{ display:none; }
+.deck__prompt{ margin-top:10px; border-left:3px solid var(--neon,#ff2d8f); padding-left:10px; }
+.deck__prompt-q{ font-family:"Azeret Mono",monospace; font-size:8.5px; letter-spacing:.16em; text-transform:uppercase; color:#ff8ac2; text-shadow:0 1px 4px rgba(0,0,0,.95); }
+.deck__prompt-a{ font-family:"Baloo 2",sans-serif; font-weight:700; font-size:16px; line-height:1.25; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.95); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.deck__bio{ margin-top:8px; font-size:13.5px; line-height:1.4; color:rgba(238,240,255,.92); text-shadow:0 1px 4px rgba(0,0,0,.95); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+/* the show's own buttons: PASS (purple bevel) and HEART (pink bevel) */
+.deck__ctl{ display:flex; justify-content:center; align-items:center; gap:26px; margin:16px 0 4px; }
+.deck__btn{ width:68px; height:68px; border-radius:50%; border:none; font-size:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#fff; position:relative; }
+.deck__btn::after{ content:attr(data-label); position:absolute; bottom:-18px; left:50%; transform:translateX(-50%); font-family:"Azeret Mono",monospace; font-size:8px; letter-spacing:.2em; color:var(--dim); }
+.deck__btn--pass{ background:var(--pass,linear-gradient(180deg,#3b2a72,#241a52 55%,#1a1240)); color:var(--pass-ink,#d6cdff); box-shadow:inset 0 2px 0 rgba(255,255,255,.25), 0 0 0 2px var(--rim,#3b2a72), 0 5px 0 var(--pass-bevel,#120c2c); }
+.deck__btn--like{ background:var(--keep,linear-gradient(180deg,#ff8ac2,#ff2d8f 46%,#c60d68)); box-shadow:inset 0 2px 0 rgba(255,255,255,.7), 0 0 0 2px var(--rim,#3b2a72), 0 5px 0 var(--keep-bevel,#8c0847), 0 0 22px rgba(255,45,143,.5); }
+.deck__btn:active{ transform:translateY(4px); box-shadow:inset 0 2px 0 rgba(255,255,255,.4), 0 0 0 2px var(--rim,#3b2a72); }
 .deck__empty{ text-align:center; color:var(--dim); padding:40px 20px; font-size:13px; line-height:1.6; border:1px dashed rgba(238,240,255,.25); border-radius:16px; }
 .deck__empty b{ display:block; color:var(--paper); font-family:"Baloo 2",sans-serif; font-size:17px; margin-bottom:4px; }
 .deck__match{ position:absolute; inset:0; z-index:160; display:none; align-items:center; justify-content:center; background:radial-gradient(70% 60% at 50% 40%, rgba(255,45,143,.55), rgba(8,11,32,.95)); padding:24px; }
@@ -1722,7 +1750,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1021.2130</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1022.0915</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1771,7 +1799,7 @@
       <div class="deck" id="deck">
         <div class="sectlabel">THE DECK · swipe between shows</div>
         <div class="deck__stack" id="deck_stack"></div>
-        <div class="deck__ctl" id="deck_ctl" style="display:none"><button class="deck__btn deck__btn--pass" id="deck_pass" aria-label="Pass">✕</button><button class="deck__btn deck__btn--like" id="deck_like" aria-label="Heart">♥</button></div>
+        <div class="deck__ctl" id="deck_ctl" style="display:none"><button class="deck__btn deck__btn--pass" id="deck_pass" aria-label="Pass" data-label="PASS">✕</button><button class="deck__btn deck__btn--like" id="deck_like" aria-label="Heart" data-label="HEART">♥</button></div>
       </div>
     </div>
 
@@ -2299,7 +2327,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1021.2130"); }catch(e){}
+try{ console.log("[lastcall] build b1022.0915"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -10810,14 +10838,19 @@ function renderProfileCard(p){
     const lab=(PROFILE_DETAILS[k]||PROFILE_DETAIL_TEXT[k]||{label:k}).label; return `<span class="pc__chip pc__chip--dim">${escapeHtml(lab)}: ${escapeHtml(String(v))}</span>`; }).join("");
   const prompts=(p.prompts||[]).filter(x=>x&&x.a).map(x=>`<div class="pc__prompt"><div class="pc__prompt-q">${escapeHtml(x.text||"")}</div><div class="pc__prompt-a">${escapeHtml(x.a)}</div></div>`).join("");
   const locked=!p.full && !me;
+  const fav=Number(st.hearts||0)>=5, role=Number(st.hosted||0)>0?"HOST":"CONTESTANT";
   $("pc_body").innerHTML=`
-    <div class="pc__gallery" id="pc_gallery">${shots.length?shots.map((u,i)=>`<div class="pc__shot" style="background-image:url('${u.replace(/'/g,"%27")}')" data-i="${i}"></div>`).join(""):'<div class="pc__shot pc__shot--none"><div class="chair__sil"><i class="chair__sil-head"></i><i class="chair__sil-body"></i></div></div>'}</div>
-    ${shots.length>1?`<div class="pc__dots">${shots.map((_,i)=>`<i${i===0?' class="on"':''}></i>`).join("")}</div>`:""}
-    <div class="pc__head"><div class="pc__name">${nmline}</div>${sub?`<div class="pc__sub">${sub}</div>`:""}</div>
+    <div class="pc__hero">
+      <div class="pc__gallery" id="pc_gallery">${shots.length?shots.map((u,i)=>`<div class="pc__shot" style="background-image:url('${u.replace(/'/g,"%27")}')" data-i="${i}"></div>`).join(""):`<div class="pc__shot pc__shot--none"><span class="deck__shot--none">${escapeHtml((p.display_name||"?").trim().charAt(0).toUpperCase())}</span></div>`}</div>
+      ${shots.length>1?`<div class="pc__dots">${shots.map((_,i)=>`<i${i===0?' class="on"':''}></i>`).join("")}</div>`:""}
+      <div class="deck__top"><span class="deck__kicker${fav?" deck__kicker--fav":""}">${fav?"👑 Fan Favorite":role}</span><span class="deck__hearts"><b>♥</b>${Number(st.hearts||0)}</span></div>
+      <div class="pc__head"><div class="pc__name">${nmline}</div>${sub?`<div class="pc__sub">${sub}</div>`:""}</div>
+    </div>
+    <div class="pc__kicker">Show record</div>
     <div class="pc__stats">${stat(st.hearts,"hearts")}${stat(st.shows_played,"shows")}${stat(st.keeps,"KEEPs")}${stat(st.hosted,"hosted")}</div>
     ${p.bio?`<div class="pc__bio">${escapeHtml(p.bio)}</div>`:(me?'<div class="pc__bio pc__bio--empty">No bio yet — say something.</div>':"")}
-    ${prompts?`<div class="pc__section">${prompts}</div>`:""}
-    ${interests?`<div class="pc__section pc__chips">${interests}</div>`:""}
+    ${prompts?`<div class="pc__kicker">On the record</div><div class="pc__section">${prompts}</div>`:""}
+    ${interests?`<div class="pc__kicker">Into</div><div class="pc__section pc__chips">${interests}</div>`:""}
     ${details?`<div class="pc__section pc__chips">${details}</div>`:""}
     ${locked?'<div class="pc__locked">✦ The full card — more photos, prompts and details — is a VIP perk.</div>':""}
     <div class="pc__actions">
@@ -11059,15 +11092,19 @@ function deckCardHtml(c, i){
   const shot=(c.photos&&c.photos[0])?photoUrl(c.photos[0]):(c.primary_photo?photoUrl(c.primary_photo):(c.face_photo||""));
   const st=c.stats||{};
   const sub=[c.city,c.pronouns].filter(Boolean).map(escapeHtml).join(" · ");
+  const fav=Number(st.hearts||0)>=5;
+  const role=Number(st.hosted||0)>0?"HOST":"CONTESTANT";
+  const prompt=(c.prompts||[]).find(x=>x&&x.a);
+  const keeps=Number(st.keeps||0);
   return `<div class="deck__card${i===0?" is-top":""}" data-uid="${escapeHtml(c.id)}" style="--i:${i}">
-    <div class="deck__shot" ${shot?`style="background-image:url('${shot.replace(/'/g,"%27")}')"`:""}>${shot?"":`<span class="deck__shot--none">${escapeHtml((c.display_name||"?").trim().charAt(0).toUpperCase())}</span>`}
-      <div class="deck__stamp deck__stamp--like">♥</div><div class="deck__stamp deck__stamp--pass">✕</div>
-    </div>
+    <div class="deck__shot" ${shot?`style="background-image:url('${shot.replace(/'/g,"%27")}')"`:""}>${shot?"":`<span class="deck__shot--none">${escapeHtml((c.display_name||"?").trim().charAt(0).toUpperCase())}</span>`}</div>
+    <div class="deck__top"><span class="deck__kicker${fav?" deck__kicker--fav":""}">${fav?"👑 Fan Favorite":role}</span><span class="deck__hearts"><b>♥</b>${Number(st.hearts||0)}</span></div>
+    <div class="deck__stamp deck__stamp--like">HEART</div><div class="deck__stamp deck__stamp--pass">PASS</div>
     <div class="deck__meta">
       <div class="deck__name">${escapeHtml(c.display_name||"—")}${c.age?`<span class="pc__age">${c.age}</span>`:""}</div>
       ${sub?`<div class="deck__sub">${sub}</div>`:""}
-      <div class="deck__stats"><span>♥ ${Number(st.hearts||0)}</span><span>${Number(st.shows_played||0)} shows</span><span>${Number(st.keeps||0)} KEEP${Number(st.keeps||0)===1?"":"s"}</span>${st.hearts>=5?'<span class="deck__fav">FAN FAVORITE</span>':""}</div>
-      ${c.bio?`<div class="deck__bio">${escapeHtml(c.bio)}</div>`:""}
+      <div class="deck__stats"><span><b>${Number(st.shows_played||0)}</b>shows</span><span><b>${keeps}</b>KEEP${keeps===1?"":"S"}</span><span><b>${Number(st.hearts||0)}</b>hearts</span>${fav?'<span class="deck__fav">FAN FAVORITE</span>':""}</div>
+      ${prompt?`<div class="deck__prompt"><div class="deck__prompt-q">${escapeHtml(prompt.text||"")}</div><div class="deck__prompt-a">“${escapeHtml(prompt.a)}”</div></div>`:(c.bio?`<div class="deck__bio">${escapeHtml(c.bio)}</div>`:"")}
     </div>
   </div>`;
 }

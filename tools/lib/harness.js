@@ -314,6 +314,10 @@ class Harness {
     };
     if (url.startsWith(ORIGIN)) {
       const rel = new URL(url).pathname.replace(/^\//, "") || "index.html";
+      /* PROFILES (PR C): the bucket's public URLs resolve on the offline
+         origin to a 1x1 PNG — a gallery paints, nothing leaves the box */
+      if (rel.startsWith("storage/v1/object/public/"))
+        return route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64") });
       if (rel === "index.html" && this.htmlOverrides.has(_clientName))
         return route.fulfill({ status: 200, contentType: "text/html", body: this.htmlOverrides.get(_clientName) });
       return serveFile(rel);

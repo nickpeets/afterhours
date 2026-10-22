@@ -1533,6 +1533,71 @@
 .door__livesub{font-family:Archivo,sans-serif;font-size:14px;line-height:1.4;color:rgba(238,240,255,.84)}
 .door__pack{font-family:'Azeret Mono',monospace;font-size:13px;letter-spacing:.12em;color:#2de3d0;text-shadow:0 0 14px rgba(45,227,208,.5);text-align:center;line-height:1.5}
 @media (prefers-reduced-motion:reduce){#auth .livedot{animation:none}.door__live:active{transform:none}}
+/* ---------- PROFILES (PR C, 10/21): the contestant card and the editor ---------- */
+.lc-sheet{ position:absolute; inset:0; z-index:150; display:none; }
+.lc-sheet.show{ display:block; }
+.lc-sheet__scrim{ position:absolute; inset:0; background:rgba(8,11,32,.72); }
+.lc-sheet__panel{ position:absolute; left:0; right:0; bottom:0; max-height:92%; max-height:92dvh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  background:var(--velvet-2,#120c2c); border:1px solid var(--neon,#ff2d8f); border-bottom:none; border-radius:22px 22px 0 0;
+  box-shadow:0 -10px 40px rgba(255,45,143,.25); padding:8px 16px calc(18px + env(safe-area-inset-bottom,0px)); animation:lc-sheet-up .22s ease-out; scrollbar-width:none; }
+.lc-sheet__panel::-webkit-scrollbar{ display:none; }
+@keyframes lc-sheet-up{ from{ transform:translateY(24px); opacity:.6 } to{ transform:none; opacity:1 } }
+.lc-sheet__grab{ width:42px; height:4px; border-radius:2px; background:rgba(238,240,255,.3); margin:4px auto 10px; }
+.pc__loading{ text-align:center; color:var(--dim); padding:40px 0; }
+.pc__gallery{ display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:0; border-radius:16px; aspect-ratio:3/4; max-height:52vh; scrollbar-width:none; background:#0d1129; border:1.5px solid rgba(45,227,208,.6); box-shadow:0 0 14px rgba(45,227,208,.35); }
+.pc__gallery::-webkit-scrollbar{ display:none; }
+.pc__shot{ flex:0 0 100%; scroll-snap-align:start; background-size:cover; background-position:center; }
+.pc__shot--none{ display:flex; align-items:center; justify-content:center; }
+.pc__shot--none .chair__sil{ position:static; width:40%; opacity:.5; }
+.pc__dots{ display:flex; justify-content:center; gap:5px; margin:8px 0 2px; }
+.pc__dots i{ width:6px; height:6px; border-radius:50%; background:rgba(238,240,255,.25); }
+.pc__dots i.on{ background:var(--neon,#ff2d8f); }
+.pc__head{ margin:12px 2px 6px; }
+.pc__name{ font-family:"Baloo 2",sans-serif; font-weight:800; font-size:26px; color:var(--paper,#eef0ff); line-height:1.1; display:flex; align-items:baseline; gap:10px; }
+.pc__age{ font-family:"Azeret Mono",monospace; font-weight:600; font-size:17px; color:var(--gold,#ffd6e9); }
+.pc__sub{ font-size:13px; color:var(--dim); margin-top:3px; }
+.pc__stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:10px 0; }
+.pc__stat{ background:rgba(8,11,32,.7); border:1px solid rgba(185,168,255,.35); border-radius:12px; padding:8px 4px; text-align:center; }
+.pc__stat b{ display:block; font-family:"Azeret Mono",monospace; font-size:18px; color:var(--gold,#ffd6e9); }
+.pc__stat span{ font-family:"Azeret Mono",monospace; font-size:8px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); }
+.pc__bio{ font-size:14.5px; line-height:1.5; color:var(--paper,#eef0ff); margin:6px 2px 10px; white-space:pre-wrap; }
+.pc__bio--empty{ color:var(--dim); font-style:italic; }
+.pc__section{ margin:10px 0; }
+.pc__prompt{ background:rgba(255,45,143,.08); border:1px solid rgba(255,45,143,.45); border-radius:14px; padding:10px 12px; margin:8px 0; }
+.pc__prompt-q{ font-family:"Azeret Mono",monospace; font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:#ff8ac2; margin-bottom:4px; }
+.pc__prompt-a{ font-family:"Baloo 2",sans-serif; font-weight:700; font-size:17px; line-height:1.3; color:var(--paper,#eef0ff); }
+.pc__chips{ display:flex; flex-wrap:wrap; gap:6px; }
+.pc__chip{ border:1.5px solid rgba(45,227,208,.6); color:var(--paper,#eef0ff); border-radius:999px; padding:5px 11px; font-size:12px; font-weight:700; }
+.pc__chip--dim{ border-color:rgba(238,240,255,.25); color:var(--dim); font-weight:600; }
+.pc__locked{ font-size:12.5px; color:var(--gold,#ffd6e9); background:rgba(255,214,233,.08); border:1px dashed rgba(255,214,233,.45); border-radius:12px; padding:10px 12px; margin:10px 0; }
+.pc__actions{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:10px; }
+.pc__actions .fbtn{ flex:1; min-width:100px; margin:0; }
+.pe__bar{ position:relative; height:22px; border-radius:11px; background:rgba(238,240,255,.08); overflow:hidden; margin:4px 0 12px; }
+.pe__bar i{ position:absolute; left:0; top:0; bottom:0; background:linear-gradient(90deg,#2de3d0,#ff2d8f); transition:width .3s; }
+.pe__bar span{ position:relative; display:block; text-align:center; font-family:"Azeret Mono",monospace; font-size:10px; font-weight:700; letter-spacing:.12em; line-height:22px; color:#fff; }
+.pe__grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:6px 0 12px; }
+.pe__slot{ aspect-ratio:3/4; border-radius:12px; border:1.5px dashed rgba(238,240,255,.3); background:rgba(238,240,255,.05); color:var(--dim); font-size:26px; cursor:pointer; position:relative; background-size:cover; background-position:center; }
+.pe__slot.has{ border:1.5px solid rgba(45,227,208,.7); }
+.pe__primary{ position:absolute; left:5px; top:5px; background:var(--neon,#ff2d8f); color:#fff; font-family:"Azeret Mono",monospace; font-size:8px; letter-spacing:.14em; padding:2px 6px; border-radius:999px; }
+.pe__slotctl{ position:absolute; left:0; right:0; bottom:0; display:flex; background:rgba(8,11,32,.75); }
+.pe__slotctl button{ flex:1; background:none; border:none; color:#fff; padding:5px 0; font-size:12px; cursor:pointer; }
+.pe__slotctl button:disabled{ opacity:.3; }
+.pe__input{ width:100%; background:rgba(238,240,255,.07); border:1px solid rgba(238,240,255,.25); border-radius:12px; padding:11px 13px; color:#eef0ff; font-size:14px; font-family:Archivo,sans-serif; outline:none; }
+.pe__input:focus{ border-color:var(--neon,#ff2d8f); }
+.pe__bio{ resize:vertical; min-height:84px; line-height:1.45; }
+.pe__select{ width:100%; background:#1a1240; border:1px solid rgba(238,240,255,.25); border-radius:12px; padding:10px 12px; color:#eef0ff; font-size:13px; margin-bottom:6px; }
+.pe__prompt{ margin:8px 0 12px; }
+.pe__chips{ display:flex; flex-wrap:wrap; gap:6px; }
+.pe__chip{ border:1.5px solid rgba(238,240,255,.25); background:rgba(238,240,255,.05); color:var(--paper,#eef0ff); border-radius:999px; padding:7px 11px; font-size:12px; font-weight:700; cursor:pointer; }
+.pe__chip.on{ background:var(--neon,#ff2d8f); border-color:var(--neon,#ff2d8f); color:#fff; }
+.pe__actions{ display:flex; gap:6px; margin-top:14px; }
+.pe__actions .fbtn{ flex:1; margin:0; }
+.mebtn{ width:24px; height:24px; border-radius:50%; border:1.5px solid var(--neon,#ff2d8f); background:rgba(238,240,255,.08) center/cover no-repeat; cursor:pointer; padding:0; color:#fff; font-size:13px; box-shadow:0 0 8px rgba(255,45,143,.55); }
+.mebtn.has-photo{ color:transparent; }
+.lc-question__answer{ display:none; margin-top:8px; font-family:"Baloo 2",sans-serif; font-weight:700; font-size:15px; line-height:1.3; color:#ffd6e9; border-left:3px solid var(--neon,#ff2d8f); padding-left:10px; }
+.lc-qcard--prompt .lc-qcard__a{ margin-top:4px; font-size:12.5px; color:#ff8ac2; font-style:italic; }
+.lc-drawer__tab.is-prompts[aria-selected="true"]{ background:var(--neon,#ff2d8f); color:#fff; }
+#room.is-host .lc-lane__name{ cursor:default !important; }
 </style>
 </head>
 <body data-skin="neon">
@@ -1541,6 +1606,7 @@
     <div class="logo">LAST CALL</div>
     <div class="wallet">
       <span class="chip" id="coinchip">✦ 120</span>
+      <button class="mebtn" id="mebtn" style="display:none" title="My card" aria-label="My card">☺</button>
       <button class="iconbtn gear" id="settingsbtn" style="display:none" title="Settings" aria-label="Settings">⚙</button>
       <button class="iconbtn" id="signout" style="display:none">Sign out</button>
     </div>
@@ -1590,7 +1656,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1021.1020</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1021.1745</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1901,6 +1967,7 @@
 
       <div class="lc-question" id="eg_question" style="display:none">
         <div class="lc-question__text" id="eg_qtext"></div>
+        <div class="lc-question__answer" id="eg_qanswer"></div>
         <div class="lc-question__for" id="eg_qfor"></div>
       </div>
 
@@ -2016,6 +2083,15 @@
       </div>
     </div>
 
+    <!-- PROFILES (PR C): the contestant card and my editor — bottom sheets -->
+    <div class="lc-sheet" id="profilecard" hidden>
+      <div class="lc-sheet__scrim"></div>
+      <div class="lc-sheet__panel"><div class="lc-sheet__grab"></div><div id="pc_body"></div></div>
+    </div>
+    <div class="lc-sheet" id="profileedit" hidden>
+      <div class="lc-sheet__scrim"></div>
+      <div class="lc-sheet__panel"><div class="lc-sheet__grab"></div><h3 style="margin:0 0 8px">My card</h3><div id="pe_body"></div></div>
+    </div>
     <div id="toast"></div>
   </main>
 </div>
@@ -2037,6 +2113,7 @@
         <div class="agerange"><input type="number" id="st_agemin" min="18" max="99" value="21"> <span style="color:var(--dim)">to</span> <input type="number" id="st_agemax" min="18" max="99" value="99"></div></div>
       <div class="prefrow"><span class="preflabel">Distance</span>
         <div class="agerange"><input type="number" id="st_radius" min="1" max="500" value="25"> <span style="color:var(--dim)">miles</span></div></div>
+      <button class="mbtn" id="st_editprofile" style="border:1.5px solid var(--neon);background:transparent;color:#fff">Edit my card — photos, bio, prompts</button>
       <button class="mbtn" id="st_saveprefs" style="border-color:var(--cool,#2de3d0);color:var(--cool,#2de3d0)">Save preferences</button>
       <button class="mbtn mgo" id="st_signout">Sign out</button>
       <div class="mnote" id="st_delnote" style="display:none">This erases your profile, any rooms you hosted, and your messages. It cannot be undone. Reports filed about you stay as a moderation record.</div>
@@ -2135,7 +2212,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1021.1020"); }catch(e){}
+try{ console.log("[lastcall] build b1021.1745"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -2845,6 +2922,8 @@ async function enterApp(){
   // the client, and the 9/30 resume card (Resume / End it) is gone with it.
   // list_live_rooms sweeps before it answers: it never returns a stale room.
   await lcConfigLoad();
+  try{ await blocksLoad(); }catch(e){}
+  try{ paintMeButton(); }catch(e){}
   let RESUME_ROOM=null;
   try{
     const {data:live}=await sb.rpc("list_live_rooms");
@@ -2919,7 +2998,7 @@ function lcPackFrom(data){
 async function lcConfigLoad(){
   try{
     const {data,error}=await sb.rpc("lc_config");
-    if(!error && data && Number.isFinite(data.host_stale_ms)){ LC_CONFIG=data; HOST_STALE_MS=data.host_stale_ms; TONIGHT_PACK=lcPackFrom(data); }
+    if(!error && data && Number.isFinite(data.host_stale_ms)){ LC_CONFIG=data; HOST_STALE_MS=data.host_stale_ms; TONIGHT_PACK=lcPackFrom(data); try{ profilesConfigApply(data); }catch(e){} }
   }catch(e){ /* keep the fallback */ }
   return LC_CONFIG;
 }
@@ -3124,7 +3203,7 @@ async function loadRooms(){
     list.innerHTML='<div class="empty">Couldn\'t load rooms: '+escapeHtml(error.message)+'</div>';
     return;
   }
-  let rooms=(allrooms||[]);
+  let rooms=(allrooms||[]).filter(r=>!isBlockedEither(r.host_id));   // blocked both ways: her room is not on my list (PR C)
   // matching: fetch host profiles; filter by mutual seeking + age window (degrades if columns absent)
   let HOSTP={};
   try{
@@ -3504,6 +3583,7 @@ async function openRoom(r){
   $("room").classList.add("show");
   $("rt_title").textContent=(r.contestant_name?r.contestant_name+"'s Room":"Live Room");
   $("rt_host").textContent=r.contestant_name||"";
+  { const hw=$("rt_host_wrap"); if(hw) hw.dataset.uid=r.host_id; }   // her chip opens her card (PR C)
   $("rt_hostbadge").style.display=AMHOST?"block":"none";
   $("rt_joinline").style.display=AMHOST?"none":"block";
   $("rt_endshow").style.display=AMHOST?"block":"none";
@@ -3666,6 +3746,7 @@ async function loadRoomState(){
     }
   }
   if(mySeq!==ROSTER_FETCH_SEQ) return;   // superseded during the profile fetches
+  blocksMaskProfs(profs);                 // a blocked person is nameless and faceless to me, both ways (PR C)
   ROOM_STATE={members:rosterOverlay(present),profs};
   benchReconcile();   // the CONFIRMED row settles the optimistic verb (wave 8)
   renderRoom();
@@ -4004,6 +4085,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
       const hearts=el.querySelector(".chair__hearts");
       if(hearts) hearts.dataset.hearts="";
       setText(el.querySelector(".chair__name-t"),"");
+      { const nc=el.querySelector(".chair__name"); if(nc) delete nc.dataset.uid; }
       setText(el.querySelector(".chair__hearts-n"),"0");
       const ct=el.querySelector(".cclock__t"); if(ct) setText(ct,"0:00");
       const clk=el.querySelector(".cclock"); if(clk) delete clk.dataset.uid;
@@ -4026,6 +4108,7 @@ const nameOf=(uid)=>(profs[uid]?.display_name)
          it and no idea whether to wait or pass.  One named artifact, not a
          mood — the tile carries `is-away` and the name line says AWAY. */
       setText(el.querySelector(".chair__name-t"), nm+(isMe?" · YOU":"")+(lcIsAway(c)?" · AWAY":""));
+      { const nc=el.querySelector(".chair__name"); if(nc) nc.dataset.uid=c.user_id; }   // the chip opens his card (PR C)
       setText(el.querySelector(".chair__hearts-n"), fmtHearts(HEARTS[c.user_id]));
       const t=el.querySelector(".cclock__t");
       if(t && !t.dataset.ticking) setText(t, fmtClock(clockRemaining(c)));
@@ -5305,6 +5388,7 @@ async function egOpenDrawer(presetTarget){
   });
   renderQ(decks[0].id);
   egRenderTargetChip();
+  try{ egPromptsTab(decks); }catch(e){}   // 2. she asks from HIS prompts (PR C)
   $("eg_drawer").style.display="flex";
   $("room").classList.add("is-asking");
 }
@@ -5403,6 +5487,7 @@ function egPaintQuestion(tgt, qt){
   if(qt!=null) $("eg_qtext").textContent=qt;
   $("eg_qfor").innerHTML=`— for ${escapeHtml(nm)} <span class="lc-answerclock" id="eg_answerclock">0:30</span>`;
   $("eg_question").style.display="block";
+  try{ egPaintPromptAnswer(tgt, qt); }catch(e){}   // what he WROTE, under what she ASKED (PR C)
   egRoleBits();
 }
 async function egSpotlight(r){
@@ -5414,6 +5499,7 @@ async function egSpotlight(r){
   $("eg_qtext").textContent=qtext;
   $("eg_qfor").innerHTML=`— for ${escapeHtml(nm)} <span class="lc-answerclock" id="eg_answerclock">0:30</span>`;
   $("eg_question").style.display="block";
+  try{ egPaintPromptAnswer(r.spotlight_target, qtext); }catch(e){}
   egRoleBits();
 }
 
@@ -10448,6 +10534,351 @@ async function restoreSession({retry=true}={}){
    gate.  If a gate needs a function that isn't here, EXPORT it — do not
    reimplement it.  State fields are live getters into the module scope.
    No app logic may live in this block. */
+/* ===================================================================
+   PROFILES (feat/profiles-tinder, PR C, ruling 10/21: "full go — Tinder's
+   architecture, and an interesting interface between the profiles and the
+   game").  The Tinder set — six photos, bio, basics, details, interests,
+   three prompts — read for anyone else ONLY through public_profile(uid)
+   (age, never birthdate; stats computed on the server; the full card only
+   when profiles_open_to_all, the owner, her own seated chairs, or (PR B) a
+   subscriber).  The interface with the game:
+     1. the CONTESTANT CARD — stats first, then bio and prompts;
+     2. the host ASKs FROM HIS PROMPTS — the prompts are a real question
+        deck ("From his profile"), so ask_question is untouched and the
+        spotlight shows his written answer under the question;
+     4. the bench stays BLIND to the host — she opens no bench card.
+   (3, crowd ♥ → After Party, is PR D.)  Blocking is both ways: a blocked
+   person is masked (name, face, card, lobby rooms) for me, and I for them.
+   The roster itself is never thinned — a blocked chair is still a chair
+   (roomCounts' one derivation), he is simply nameless and faceless to me.
+   =================================================================== */
+const PROFILE_BIO_MAX=500, PROFILE_PHOTOS_MAX=6, PROFILE_INTERESTS_MAX=5, PROFILE_PROMPTS_MAX=3;
+const PROFILE_INTERESTS=["Live music","Karaoke","Dive bars","Cocktails","Craft beer","Natural wine","Coffee","Brunch","Food carts","Cooking","Baking","Vegan-ish",
+  "Hiking","Trail running","Climbing","Cycling","Skiing","Surfing","Camping","Kayaking","Gardening","Birding",
+  "Vinyl","Guitar","Pedal steel","Singing","DJing","Dancing","Theater","Stand-up","Film","Anime","Reading","Poetry","Writing",
+  "Photography","Painting","Ceramics","Tattoos","Thrifting","Vintage","Fashion","Board games","Video games","Pinball","Trivia","Chess",
+  "Blazers","Timbers","Thorns","Pickleball","Yoga","Gym","Running","Dogs","Cats","Plants","Road trips","Travel","Astrology","True crime","Podcasts","Volunteering"];
+const PROFILE_DETAILS={
+  looking_for:{label:"Looking for",opts:["Dates","Friends","The show"]},
+  drinks:{label:"Drinks",opts:["Yes","Sometimes","No"]},
+  smokes:{label:"Smokes",opts:["No","Sometimes","Yes"]},
+  kids:{label:"Kids",opts:["Have","Want","Don't want","Open"]},
+  zodiac:{label:"Sign",opts:["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"]},
+};
+const PROFILE_DETAIL_TEXT={job:{label:"Job",max:40},school:{label:"School",max:40},height:{label:"Height",max:10}};
+let PROFILE_OPEN_TO_ALL=true;      // lc_config.profiles_open_to_all (soft launch: true until Nick flips it)
+let BLOCKS={blocked:new Set(),blocked_by:new Set()};
+let PROMPT_DECK=null;              // the "From his profile" questions, [{id,text}]
+const PROFILE_CACHE={};            // uid -> {at, p} from public_profile
+let PC_OPEN_UID=null;
+
+function profilesConfigApply(cfg){ if(cfg && typeof cfg.profiles_open_to_all==="boolean") PROFILE_OPEN_TO_ALL=cfg.profiles_open_to_all; }
+function isBlockedEither(uid){ return !!uid && (BLOCKS.blocked.has(uid) || BLOCKS.blocked_by.has(uid)); }
+async function blocksLoad(){
+  try{
+    const {data,error}=await sb.rpc("my_blocks");
+    if(!error && data){ BLOCKS={blocked:new Set(data.blocked||[]), blocked_by:new Set(data.blocked_by||[])}; }
+  }catch(e){}
+  return BLOCKS;
+}
+/* the mask: a blocked person (either direction) is nameless and faceless
+   to me.  Applied to the profs map loadRoomState builds — the roster rows
+   are untouched. */
+function blocksMaskProfs(profs){
+  Object.keys(profs||{}).forEach(u=>{
+    if(isBlockedEither(u)) profs[u]={...profs[u], display_name:"Blocked", face_json:null, __blocked:true};
+  });
+  return profs;
+}
+async function promptDeckLoad(){
+  if(PROMPT_DECK) return PROMPT_DECK;
+  try{
+    const decks=await egLoadDecks();
+    const d=(decks||[]).find(x=>/from his profile/i.test(x.name||""));
+    PROMPT_DECK=d?(d.questions||[]).map(q=>({id:q.id,text:q.text})):[];
+  }catch(e){ PROMPT_DECK=[]; }
+  return PROMPT_DECK;
+}
+function photoUrl(path){
+  if(!path) return "";
+  if(/^(data:|https?:)/.test(path)) return path;
+  try{ return sb.storage.from("profile-photos").getPublicUrl(path).data.publicUrl; }catch(e){ return ""; }
+}
+async function publicProfile(uid, fresh){
+  // cached 30s per person, and the cache turns over with the open_to_all
+  // switch (lcConfigLoad re-reads it at every openRoom)
+  const c=PROFILE_CACHE[uid];
+  if(!fresh && c && c.open===PROFILE_OPEN_TO_ALL && Date.now()-c.at<30000) return c.p;
+  const {data,error}=await sb.rpc("public_profile",{target:uid});
+  if(error) throw new Error(error.message);
+  PROFILE_CACHE[uid]={at:Date.now(),open:PROFILE_OPEN_TO_ALL,p:data};
+  return data;
+}
+function profileCompleteness(p){
+  // what counts, and how much: the things a stranger actually reads
+  const parts=[
+    [!!(p.photos&&p.photos.length), 25],
+    [!!(p.bio&&p.bio.trim()), 20],
+    [!!p.city, 10],
+    [(p.interests||[]).length>=3, 15],
+    [(p.prompts||[]).filter(x=>x&&x.a&&x.a.trim()).length>=3, 20],
+    [Object.values(p.details||{}).filter(Boolean).length>=2, 10],
+  ];
+  return parts.reduce((s,[ok,w])=>s+(ok?w:0),0);
+}
+/* ---------- the contestant card ---------- */
+function roleOf(uid){
+  if(CURRENT_ROOM && uid===CURRENT_ROOM.host_id) return "host";
+  const m=(ROOM_STATE.members||[]).find(x=>x.user_id===uid);
+  return m?m.role:null;
+}
+async function openProfile(uid){
+  if(!uid || !ME) return false;
+  if(uid!==ME.id && isBlockedEither(uid)){ toast("That person is blocked."); return false; }
+  // 4. the bench is BLIND to her: no card until he is seated (the crowd's secret stays the crowd's)
+  const r=roleOf(uid);
+  if(AMHOST && uid!==ME.id && r && r!=="chair" && r!=="kept" && r!=="host"){ toast("She picks blind — he opens up when he's seated."); return false; }
+  PC_OPEN_UID=uid;
+  const sheet=$("profilecard"); sheet.hidden=false; sheet.classList.add("show");
+  $("pc_body").innerHTML='<div class="pc__loading">…</div>';
+  let p=null;
+  try{ p=await publicProfile(uid, uid===ME.id); }catch(e){ $("pc_body").innerHTML='<div class="pc__loading">Couldn\'t load that card.</div>'; return false; }
+  if(PC_OPEN_UID!==uid) return false;
+  if(!p){ $("pc_body").innerHTML='<div class="pc__loading">No card yet.</div>'; return false; }
+  if(p.blocked){ $("pc_body").innerHTML='<div class="pc__loading">Blocked.</div>'; return false; }
+  renderProfileCard(p);
+  return true;
+}
+function closeProfile(){ PC_OPEN_UID=null; const s=$("profilecard"); s.classList.remove("show"); s.hidden=true; }
+function renderProfileCard(p){
+  const me=p.id===ME.id;
+  const photos=(p.photos||[]).filter(Boolean);
+  const shots=photos.length?photos.map(photoUrl):(p.face_photo?[p.face_photo]:[]);
+  const st=p.stats||{};
+  const nmline=escapeHtml(p.display_name||"—")+(p.age?`<span class="pc__age">${p.age}</span>`:"");
+  const sub=[p.city,p.pronouns].filter(Boolean).map(escapeHtml).join(" · ");
+  const stat=(n,l)=>`<div class="pc__stat"><b>${Number(n||0)}</b><span>${l}</span></div>`;
+  const interests=(p.interests||[]).map(i=>`<span class="pc__chip">${escapeHtml(i)}</span>`).join("");
+  const details=Object.entries(p.details||{}).filter(([k,v])=>v).map(([k,v])=>{
+    const lab=(PROFILE_DETAILS[k]||PROFILE_DETAIL_TEXT[k]||{label:k}).label; return `<span class="pc__chip pc__chip--dim">${escapeHtml(lab)}: ${escapeHtml(String(v))}</span>`; }).join("");
+  const prompts=(p.prompts||[]).filter(x=>x&&x.a).map(x=>`<div class="pc__prompt"><div class="pc__prompt-q">${escapeHtml(x.text||"")}</div><div class="pc__prompt-a">${escapeHtml(x.a)}</div></div>`).join("");
+  const locked=!p.full && !me;
+  $("pc_body").innerHTML=`
+    <div class="pc__gallery" id="pc_gallery">${shots.length?shots.map((u,i)=>`<div class="pc__shot" style="background-image:url('${u.replace(/'/g,"%27")}')" data-i="${i}"></div>`).join(""):'<div class="pc__shot pc__shot--none"><div class="chair__sil"><i class="chair__sil-head"></i><i class="chair__sil-body"></i></div></div>'}</div>
+    ${shots.length>1?`<div class="pc__dots">${shots.map((_,i)=>`<i${i===0?' class="on"':''}></i>`).join("")}</div>`:""}
+    <div class="pc__head"><div class="pc__name">${nmline}</div>${sub?`<div class="pc__sub">${sub}</div>`:""}</div>
+    <div class="pc__stats">${stat(st.hearts,"hearts")}${stat(st.shows_played,"shows")}${stat(st.keeps,"KEEPs")}${stat(st.hosted,"hosted")}</div>
+    ${p.bio?`<div class="pc__bio">${escapeHtml(p.bio)}</div>`:(me?'<div class="pc__bio pc__bio--empty">No bio yet — say something.</div>':"")}
+    ${prompts?`<div class="pc__section">${prompts}</div>`:""}
+    ${interests?`<div class="pc__section pc__chips">${interests}</div>`:""}
+    ${details?`<div class="pc__section pc__chips">${details}</div>`:""}
+    ${locked?'<div class="pc__locked">✦ The full card — more photos, prompts and details — is a VIP perk.</div>':""}
+    <div class="pc__actions">
+      ${me?'<button class="fbtn neon" id="pc_edit">Edit my card</button>':`<button class="fbtn ghost" id="pc_report">Report</button><button class="fbtn ghost" id="pc_block">Block</button>`}
+      <button class="fbtn ghost" id="pc_close">Close</button>
+    </div>`;
+  const g=$("pc_gallery");
+  if(g && shots.length>1){
+    g.onscroll=()=>{ const i=Math.round(g.scrollLeft/Math.max(1,g.clientWidth)); $("pc_body").querySelectorAll(".pc__dots i").forEach((d,k)=>d.classList.toggle("on",k===i)); };
+    g.onclick=(e)=>{ const w=g.clientWidth; g.scrollBy({left:(e.offsetX>w/2?w:-w),behavior:"smooth"}); };
+  }
+  const ed=$("pc_edit"); if(ed) ed.onclick=()=>{ closeProfile(); openProfileEditor(); };
+  const cl=$("pc_close"); if(cl) cl.onclick=closeProfile;
+  const rp=$("pc_report"); if(rp) rp.onclick=()=>{ closeProfile(); try{ $("reportbtn")?.click(); }catch(e){} };
+  const bl=$("pc_block"); if(bl) bl.onclick=async()=>{ const ok=await blockUser(p.id); if(ok) closeProfile(); };
+}
+async function blockUser(uid){
+  try{
+    const {error}=await sb.rpc("block_user",{target:uid});
+    if(error){ toast("Couldn't block: "+error.message); return false; }
+    BLOCKS.blocked.add(uid); delete PROFILE_CACHE[uid];
+    toast("Blocked.  They're hidden for you, and you for them.");
+    try{ if(CURRENT_ROOM) loadRoomState(); }catch(e){}
+    return true;
+  }catch(e){ toast("Couldn't block."); return false; }
+}
+async function unblockUser(uid){
+  try{ const {error}=await sb.rpc("unblock_user",{target:uid}); if(error) return false; BLOCKS.blocked.delete(uid); return true; }catch(e){ return false; }
+}
+/* ---------- the editor: my card, Tinder's way ---------- */
+let PE={photos:[],prompts:[],interests:[],details:{}};
+async function openProfileEditor(){
+  if(!ME) return;
+  const sheet=$("profileedit"); sheet.hidden=false; sheet.classList.add("show");
+  let p=MYPROFILE||{};
+  try{ const {data}=await sb.from("profiles").select("*").eq("id",ME.id).single(); if(data){ p=data; MYPROFILE=data; } }catch(e){}
+  await promptDeckLoad();
+  PE={photos:[...(p.photos||[])], prompts:Array.isArray(p.prompts)?p.prompts.map(x=>({q:x.q,a:x.a||""})):[], interests:[...(p.interests||[])], details:{...(p.details||{})},
+      bio:p.bio||"", city:p.city||"", pronouns:p.pronouns||"", display_name:p.display_name||""};
+  while(PE.prompts.length<PROFILE_PROMPTS_MAX) PE.prompts.push({q:null,a:""});
+  renderProfileEditor();
+}
+function closeProfileEditor(){ const s=$("profileedit"); s.classList.remove("show"); s.hidden=true; }
+function renderProfileEditor(){
+  const slots=[]; for(let i=0;i<PROFILE_PHOTOS_MAX;i++){ const ph=PE.photos[i]; slots.push(ph
+    ?`<div class="pe__slot has" data-i="${i}" style="background-image:url('${photoUrl(ph).replace(/'/g,"%27")}')">${i===0?'<span class="pe__primary">MAIN</span>':""}<div class="pe__slotctl"><button type="button" data-act="left" ${i===0?"disabled":""}>◀</button><button type="button" data-act="right" ${i>=PE.photos.length-1?"disabled":""}>▶</button><button type="button" data-act="del">✕</button></div></div>`
+    :`<button type="button" class="pe__slot" data-i="${i}">+</button>`); }
+  const chip=(on,txt,attrs)=>`<button type="button" class="pe__chip${on?" on":""}" ${attrs}>${escapeHtml(txt)}</button>`;
+  const det=Object.entries(PROFILE_DETAILS).map(([k,d])=>`<div class="prefrow"><div class="preflabel">${d.label}</div><div class="pe__chips">${d.opts.map(o=>chip(PE.details[k]===o,o,`data-det="${k}" data-v="${escapeHtml(o)}"`)).join("")}</div></div>`).join("");
+  const dtext=Object.entries(PROFILE_DETAIL_TEXT).map(([k,d])=>`<div class="prefrow"><div class="preflabel">${d.label}</div><input type="text" class="pe__input" data-dtext="${k}" maxlength="${d.max}" value="${escapeHtml(PE.details[k]||"")}" placeholder="optional"></div>`).join("");
+  const prm=PE.prompts.map((x,i)=>`<div class="pe__prompt"><select class="pe__select" data-pi="${i}"><option value="">Pick a prompt…</option>${(PROMPT_DECK||[]).map(q=>`<option value="${q.id}"${String(q.id)===String(x.q)?" selected":""}>${escapeHtml(q.text)}</option>`).join("")}</select><input type="text" class="pe__input" data-pa="${i}" maxlength="120" value="${escapeHtml(x.a||"")}" placeholder="one line"></div>`).join("");
+  const pct=profileCompleteness(PE);
+  $("pe_body").innerHTML=`
+    <div class="pe__bar"><i style="width:${pct}%"></i><span>${pct}% complete</span></div>
+    <div class="preflabel">Photos · ${PE.photos.length}/${PROFILE_PHOTOS_MAX}</div>
+    <div class="pe__grid" id="pe_grid">${slots.join("")}</div>
+    <input type="file" id="pe_file" accept="image/*" style="display:none">
+    <div class="prefrow"><div class="preflabel">Name</div><input type="text" class="pe__input" id="pe_name" maxlength="18" value="${escapeHtml(PE.display_name)}"></div>
+    <div class="prefrow"><div class="preflabel">City</div><input type="text" class="pe__input" id="pe_city" maxlength="40" value="${escapeHtml(PE.city)}" placeholder="Portland"></div>
+    <div class="prefrow"><div class="preflabel">Pronouns · optional</div><input type="text" class="pe__input" id="pe_pron" maxlength="20" value="${escapeHtml(PE.pronouns)}" placeholder="she/her, he/him, they/them"></div>
+    <div class="prefrow"><div class="preflabel">Bio · <span id="pe_bion">${PE.bio.length}</span>/${PROFILE_BIO_MAX}</div><textarea class="pe__input pe__bio" id="pe_bio" maxlength="${PROFILE_BIO_MAX}" rows="4" placeholder="Who shows up when the lights are on?">${escapeHtml(PE.bio)}</textarea></div>
+    <div class="preflabel">Three prompts · she can ask you these on air</div>
+    ${prm}
+    <div class="prefrow"><div class="preflabel">Interests · pick up to ${PROFILE_INTERESTS_MAX}</div><div class="pe__chips" id="pe_interests">${PROFILE_INTERESTS.map(i=>chip(PE.interests.includes(i),i,`data-int="${escapeHtml(i)}"`)).join("")}</div></div>
+    ${dtext}${det}
+    <div class="pe__actions"><button class="fbtn neon" id="pe_save">Save my card</button><button class="fbtn ghost" id="pe_cancel">Cancel</button></div>
+    <div class="mnote" id="pe_err" style="color:var(--danger,#ff6b6b)"></div>`;
+  const body=$("pe_body");
+  body.querySelectorAll(".pe__slot:not(.has)").forEach(b=>b.onclick=()=>{ if(PE.photos.length>=PROFILE_PHOTOS_MAX) return; $("pe_file").click(); });
+  $("pe_file").onchange=async(e)=>{ const f=e.target.files&&e.target.files[0]; e.target.value=""; if(f) await profilePhotoAdd(f); };
+  body.querySelectorAll(".pe__slot.has button").forEach(b=>b.onclick=(ev)=>{ ev.stopPropagation(); const i=parseInt(b.closest(".pe__slot").dataset.i,10); const a=b.dataset.act;
+    if(a==="del") PE.photos.splice(i,1);
+    else if(a==="left" && i>0){ [PE.photos[i-1],PE.photos[i]]=[PE.photos[i],PE.photos[i-1]]; }
+    else if(a==="right" && i<PE.photos.length-1){ [PE.photos[i+1],PE.photos[i]]=[PE.photos[i],PE.photos[i+1]]; }
+    renderProfileEditor(); });
+  body.querySelectorAll("[data-int]").forEach(b=>b.onclick=()=>{ const v=b.dataset.int; const k=PE.interests.indexOf(v);
+    if(k>=0) PE.interests.splice(k,1); else { if(PE.interests.length>=PROFILE_INTERESTS_MAX){ toast(`Five's the limit — drop one first.`); return; } PE.interests.push(v); }
+    peSyncText(); renderProfileEditor(); });
+  body.querySelectorAll("[data-det]").forEach(b=>b.onclick=()=>{ const k=b.dataset.det, v=b.dataset.v; PE.details[k]=(PE.details[k]===v)?null:v; peSyncText(); renderProfileEditor(); });
+  $("pe_bio").oninput=()=>{ $("pe_bion").textContent=$("pe_bio").value.length; };
+  $("pe_save").onclick=profileSave;
+  $("pe_cancel").onclick=closeProfileEditor;
+}
+function peSyncText(){
+  const b=$("pe_body"); if(!b) return;
+  PE.display_name=($("pe_name")?.value||"").trim(); PE.city=($("pe_city")?.value||"").trim(); PE.pronouns=($("pe_pron")?.value||"").trim(); PE.bio=($("pe_bio")?.value||"");
+  b.querySelectorAll("[data-dtext]").forEach(i=>{ PE.details[i.dataset.dtext]=(i.value||"").trim()||null; });
+  b.querySelectorAll("[data-pi]").forEach(s=>{ const i=parseInt(s.dataset.pi,10); PE.prompts[i]=PE.prompts[i]||{q:null,a:""}; PE.prompts[i].q=s.value?parseInt(s.value,10):null; });
+  b.querySelectorAll("[data-pa]").forEach(s=>{ const i=parseInt(s.dataset.pa,10); PE.prompts[i]=PE.prompts[i]||{q:null,a:""}; PE.prompts[i].a=(s.value||"").trim(); });
+}
+/* photos: resized on the phone (longest edge 1080, JPEG .85) and written
+   to MY folder in the bucket — the storage policy refuses any other path */
+async function profilePhotoAdd(file){
+  try{
+    const blob=await resizeImage(file, 1080, .85);
+    const path=ME.id+"/"+Date.now()+".jpg";
+    const {error}=await sb.storage.from("profile-photos").upload(path, blob, {contentType:"image/jpeg", upsert:true});
+    if(error){ toast("Upload failed: "+error.message); return false; }
+    PE.photos.push(path); peSyncText(); renderProfileEditor(); return true;
+  }catch(e){ toast("That photo didn't take."); return false; }
+}
+function resizeImage(file, max, q){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file); const img=new Image();
+    img.onload=()=>{ try{
+      const s=Math.min(1, max/Math.max(img.width,img.height));
+      const c=document.createElement("canvas"); c.width=Math.max(1,Math.round(img.width*s)); c.height=Math.max(1,Math.round(img.height*s));
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(b=>b?res(b):rej(new Error("toBlob")), "image/jpeg", q);
+    }catch(e){ rej(e); } };
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("decode")); };
+    img.src=url;
+  });
+}
+function profileValidate(pe){
+  if(!pe.display_name) return "Pick a name — the room needs something to call you.";
+  if(pe.bio.length>PROFILE_BIO_MAX) return "Bio's over 500.";
+  if(pe.interests.length>PROFILE_INTERESTS_MAX) return "Five interests, max.";
+  const pr=pe.prompts.filter(x=>x&&x.q&&x.a);
+  if(pr.length>PROFILE_PROMPTS_MAX) return "Three prompts, max.";
+  const qs=pr.map(x=>x.q); if(new Set(qs).size!==qs.length) return "Each prompt once.";
+  if(pe.photos.length>PROFILE_PHOTOS_MAX) return "Six photos, max.";
+  return null;
+}
+async function profileSave(){
+  peSyncText();
+  const err=profileValidate(PE); const e=$("pe_err"); e.textContent="";
+  if(err){ e.textContent=err; return false; }
+  const details={}; Object.entries(PE.details).forEach(([k,v])=>{ if(v) details[k]=v; });
+  const upd={display_name:PE.display_name.slice(0,18), city:PE.city||null, pronouns:PE.pronouns||null, bio:PE.bio||null,
+             details, interests:PE.interests, prompts:PE.prompts.filter(x=>x&&x.q&&x.a).map(x=>({q:x.q,a:x.a.slice(0,120)})), photos:PE.photos};
+  const {data,error}=await sb.from("profiles").update(upd).eq("id",ME.id).select("id,photos").single();
+  if(error){ e.textContent="That didn't save: "+error.message; return false; }
+  if(!data || (data.photos||[]).length!==PE.photos.length){ e.textContent="That didn't save. Tap Save once more."; return false; }
+  MYPROFILE={...MYPROFILE,...upd};
+  delete PROFILE_CACHE[ME.id];
+  paintMeButton();
+  toast("Card saved ✦");
+  closeProfileEditor();
+  return true;
+}
+function paintMeButton(){
+  const b=$("mebtn"); if(!b) return;
+  const ph=(MYPROFILE&&MYPROFILE.photos&&MYPROFILE.photos[0])?photoUrl(MYPROFILE.photos[0]):((MYPROFILE&&MYPROFILE.face_json&&MYPROFILE.face_json.photo)||"");
+  b.style.backgroundImage=ph?`url('${ph.replace(/'/g,"%27")}')`:"";
+  b.classList.toggle("has-photo",!!ph);
+  b.style.display=ME?"inline-block":"none";
+}
+/* ---------- 2. the host asks from his prompts ---------- */
+async function egPromptsTab(decks){
+  // the HIS PROMPTS tab: his three answered prompts, first in the drawer,
+  // when she has a target.  Each is a real question in the From his profile
+  // deck, so tapping one is an ordinary ask_question.
+  const tabs=$("eg_tabs"); if(!tabs || !EG_PICKTARGET) return;
+  let p=null; try{ p=await publicProfile(EG_PICKTARGET); }catch(e){}
+  if(EG_PICKTARGET && !$("eg_drawer")) return;
+  const mine=(p&&p.prompts||[]).filter(x=>x&&x.q&&x.a);
+  if(!mine.length) return;
+  const nm=(p.display_name||"his").split(" ")[0];
+  const b=document.createElement("button");
+  b.className="lc-drawer__tab is-prompts"; b.setAttribute("role","tab"); b.dataset.deck="prompts";
+  b.textContent="🪪 "+nm.toUpperCase()+"'S PROMPTS";
+  tabs.prepend(b);
+  const renderMine=()=>{
+    $("eg_qlist").innerHTML=mine.map(x=>`<div class="lc-qcard lc-qcard--prompt" data-q="${x.q}"><div>${escapeHtml(x.text||"")}</div><div class="lc-qcard__a">“${escapeHtml(x.a)}”</div></div>`).join("");
+    $("eg_qlist").querySelectorAll(".lc-qcard").forEach(el=>el.onclick=()=>egPickQuestion(parseInt(el.dataset.q,10)));
+  };
+  b.onclick=()=>{ tabs.querySelectorAll(".lc-drawer__tab").forEach(x=>x.setAttribute("aria-selected","false")); b.setAttribute("aria-selected","true"); renderMine(); };
+  // his prompts lead: the drawer opens on them
+  tabs.querySelectorAll(".lc-drawer__tab").forEach(x=>x.setAttribute("aria-selected","false"));
+  b.setAttribute("aria-selected","true"); renderMine();
+}
+/* the spotlight shows what he WROTE under what she ASKED — the whole room
+   reads it, and he answers it live */
+async function egPaintPromptAnswer(tgt, qt){
+  const slot=$("eg_qanswer"); if(!slot) return;
+  slot.textContent=""; slot.style.display="none";
+  if(!tgt || !qt) return;
+  let p=null; try{ p=await publicProfile(tgt); }catch(e){ return; }
+  const hit=(p&&p.prompts||[]).find(x=>x && x.a && x.text && x.text.trim()===String(qt).trim());
+  if(!hit) return;
+  if(EG_SPOT_EVT && EG_SPOT_EVT.target!==tgt) return;
+  slot.textContent="He wrote: “"+hit.a+"”";
+  slot.style.display="block";
+}
+/* ---------- wiring ---------- */
+function profilesWireTiles(){
+  // name chips open the card.  Chairs + hero carry data-uid on the chip
+  // (set by renderRoom); the bench lane carries data-benchuid.
+  document.querySelectorAll("#rt_chairs .chair__name, #hero_chair .chair__name").forEach(el=>{
+    if(el.dataset.profWired) return; el.dataset.profWired="1";
+    el.style.cursor="pointer";
+    el.addEventListener("click",(e)=>{ const uid=el.dataset.uid; if(!uid) return; e.stopPropagation(); openProfile(uid); });
+  });
+  for(let i=0;i<3;i++){ const lane=$("rt_bench"+i); if(!lane || lane.dataset.profWired) continue; lane.dataset.profWired="1";
+    const nm=lane.querySelector(".lc-lane__name"); if(!nm) continue; nm.style.cursor="pointer";
+    nm.addEventListener("click",(e)=>{ const uid=lane.dataset.benchuid; if(!uid) return; e.stopPropagation(); openProfile(uid); }); }
+}
+function profilesInit(){
+  const pc=$("profilecard"); if(pc) pc.querySelector(".lc-sheet__scrim").onclick=closeProfile;
+  const pe=$("profileedit"); if(pe) pe.querySelector(".lc-sheet__scrim").onclick=closeProfileEditor;
+  const mb=$("mebtn"); if(mb) mb.onclick=()=>openProfileEditor();
+  const se=$("st_editprofile"); if(se) se.onclick=()=>{ try{ stClose(); }catch(e){} openProfileEditor(); };
+  profilesWireTiles();
+}
+try{ profilesInit(); }catch(e){ console.log("profiles init:",e&&e.message); }
+
 window.__lc = {
   /* roster / rendering — roomCounts is THE headcount derivation: every count
      the app shows (lobby card, room header, watchbar, bench slice) reads
@@ -10461,6 +10892,11 @@ window.__lc = {
   /* bench entry — takeBenchSeat is the ONE door onto the bench */
   benchHeadshot, takeBenchSeat,
   adultMaxBirthdate,
+  /* PROFILES (PR C) */
+  openProfile, closeProfile, openProfileEditor, closeProfileEditor, profileSave, profileValidate, profileCompleteness,
+  publicProfile, blocksLoad, blockUser, unblockUser, isBlockedEither, blocksMaskProfs, egPromptsTab, egPaintPromptAnswer,
+  profilePhotoAdd, promptDeckLoad, paintMeButton, get sb(){ return sb; },
+  get BLOCKS(){ return BLOCKS; }, get PE(){ return PE; }, get PROFILE_OPEN_TO_ALL(){ return PROFILE_OPEN_TO_ALL; }, get PROMPT_DECK(){ return PROMPT_DECK; },
   /* THE DOOR (feat/splash-explainer) — the signed-out status line and the
      one way onto the form from above it */
   authStatusLoad, authFocusSignIn,

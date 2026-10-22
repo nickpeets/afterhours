@@ -211,6 +211,9 @@ class BackendDouble {
     this.messages = [];              // {id,match_id,sender,body,created_at}
     this.matchReads = new Map();     // "match|reader" -> ts
     this.msgSeq = 0;
+    /* THE MARQUEE (PR D2, 10/22) — shows and rsvps, modelled on the DDL */
+    this.shows = [];                 // {id,host_id,title,starts_at,status,room_id,created_at}
+    this.rsvps = [];                 // {show_id,user_id}
     this.seedPromptDeck();
     this.sessions = new Map();   // clientId -> uid
     this.listeners = [];         // fn(evt) — harness fans out to pages
@@ -372,6 +375,30 @@ class BackendDouble {
     this.messages.push(row); this.matchReads.set(matchId + "|" + me, row.created_at);
     this.emit("messages", "INSERT", { ...row });
     return { ...row };
+  }
+  /* ---------- THE MARQUEE ---------- */
+  scheduleShow(me, title, starts_at) {
+    if (!me) throw new Error("not signed in");
+    title = String(title == null ? "" : title).trim();
+    if (!title || title.length > 40) throw new Error("bad title");
+    const t = Date.parse(starts_at);
+    if (!Number.isFinite(t) || t < this.now() + 10 * 60000 || t > this.now() + 30 * 86400000) throw new Error("pick a time between 10 minutes and 30 days from now");
+    if (this.shows.some((s) => s.host_id === me && s.status === "scheduled")) throw new Error("you already have a show scheduled — cancel it first");
+    const show = { id: nid("sh"), host_id: me, title, starts_at: new Date(t).toISOString(), status: "scheduled", room_id: null, created_at: this.iso() };
+    this.shows.push(show); this.rsvps.push({ show_id: show.id, user_id: me });
+    this.emit("shows", "INSERT", { ...show });
+    return { ...show };
+  }
+  upcomingShows(me) {
+    if (!me) throw new Error("not signed in");
+    return this.shows.filter((s) => (s.status === "scheduled" || s.status === "live") && Date.parse(s.starts_at) < this.now() + 14 * 86400000 && Date.parse(s.starts_at) > this.now() - 6 * 3600000
+        && !this.isBlockedEither(me, s.host_id))
+      .sort((x, y) => x.starts_at.localeCompare(y.starts_at))
+      .map((s) => { const r = s.room_id ? this.rooms.get(s.room_id) : null;
+        return { id: s.id, title: s.title, starts_at: s.starts_at, created_at: s.created_at,
+          status: (s.status === "live" && (!r || r.status !== "live")) ? "done" : s.status, room_id: s.room_id, room_status: r ? r.status : null,
+          host: this.publicProfile(me, s.host_id), going: this.rsvps.filter((x) => x.show_id === s.id).length,
+          me_going: this.rsvps.some((x) => x.show_id === s.id && x.user_id === me), mine: s.host_id === me }; });
   }
   addUser({ id, email, name, face = null, zip = "94110", gender = null, seeking = "everyone" }) {
     id = id || nid("u");
@@ -1073,6 +1100,20 @@ class BackendDouble {
         return { host_stale_ms: HOST_STALE_MS, tonight_pack: this.tonightPack(), profiles_open_to_all: this.settings.get("profiles_open_to_all") === true };
       /* PROFILES (PR C) */
       case "public_profile": return this.publicProfile(uid, a.target);
+      /* THE MARQUEE (PR D2) */
+      case "schedule_show": return this.scheduleShow(uid, a.title, a.starts_at);
+      case "cancel_show": { if (!uid) throw new Error("not signed in"); const s = this.shows.find((x) => x.id === a.show_id && x.host_id === uid && x.status === "scheduled");
+        if (!s) throw new Error("not your scheduled show"); s.status = "cancelled"; this.emit("shows", "UPDATE", { ...s }); return null; }
+      case "rsvp": { if (!uid) throw new Error("not signed in"); const s = this.shows.find((x) => x.id === a.show_id && (x.status === "scheduled" || x.status === "live"));
+        if (!s) throw new Error("no such show");
+        if (a.going) { if (!this.rsvps.some((x) => x.show_id === s.id && x.user_id === uid)) this.rsvps.push({ show_id: s.id, user_id: uid }); }
+        else this.rsvps = this.rsvps.filter((x) => !(x.show_id === s.id && x.user_id === uid));
+        this.emit("rsvps", a.going ? "INSERT" : "DELETE", { show_id: s.id, user_id: uid });
+        return { show_id: s.id, going: !!a.going, count: this.rsvps.filter((x) => x.show_id === s.id).length }; }
+      case "upcoming_shows": return this.upcomingShows(uid);
+      case "show_went_live": { if (!uid) throw new Error("not signed in"); const r = this.rooms.get(a.room_id); if (!r || r.host_id !== uid) throw new Error("not your room");
+        const s = this.shows.find((x) => x.id === a.show_id && x.host_id === uid && x.status === "scheduled"); if (!s) throw new Error("not your scheduled show");
+        s.status = "live"; s.room_id = a.room_id; this.emit("shows", "UPDATE", { ...s }); return null; }
       /* THE DECK (PR D1) */
       case "deck_next": if (!uid) throw new Error("not signed in"); return this.deckNext(uid, a.n);
       case "swipe": return this.swipe(uid, a.target, a.dir);

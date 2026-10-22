@@ -177,7 +177,7 @@ create function public.upcoming_shows()
 returns jsonb
 language plpgsql stable security definer set search_path to 'public'
 as $$
-declare me uuid := auth.uid(); out jsonb;
+declare me uuid := auth.uid(); v_out jsonb;
 begin
   if me is null then raise exception 'not signed in'; end if;
   select coalesce(jsonb_agg(jsonb_build_object(
@@ -189,14 +189,14 @@ begin
            'me_going', exists (select 1 from public.rsvps x where x.show_id = s.id and x.user_id = me),
            'mine', s.host_id = me)
          order by s.starts_at), '[]'::jsonb)
-    into out
+    into v_out
     from public.shows s
     left join public.rooms r on r.id = s.room_id
    where s.status in ('scheduled','live')
      and s.starts_at < now() + interval '14 days'
      and s.starts_at > now() - interval '6 hours'
      and not exists (select 1 from public.user_blocks ub where (ub.blocker = me and ub.blocked = s.host_id) or (ub.blocker = s.host_id and ub.blocked = me));
-  return out;
+  return v_out;
 end $$;
 revoke all on function public.upcoming_shows() from public, anon;
 grant execute on function public.upcoming_shows() to authenticated;

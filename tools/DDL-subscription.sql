@@ -1,6 +1,8 @@
 -- DDL — the subscription scaffold (feat/subscription-scaffold, PR B of the 10/20–10/21 brief;
 -- rulings Nick 10/20–10/21: "Last Call is also a subscription app"; the model is docs/fun-and-money.md)
--- STATUS: NOT RUN.  Nick runs it in Supabase Studio (project afterhours, PRODUCTION), as three pastes:
+-- STATUS: RUN in production 2026-10-21 ~20:40 PT by Nick (Supabase Studio, project afterhours), after #126 merged.
+--         Read-back in tools/DESIGN-subscription.md "Run log 2026-10-21". Ran with the lc_config guard at 8ae9e8a3… (PR C's read-back).
+-- Was handed over as three pastes:
 --   PREFLIGHT (one SELECT, read-only) → the begin…commit block → READ BACK (one SELECT, read-only).
 -- Never run by an agent.  Record the read-back under "Run log" in tools/DESIGN-looks-v2.md.
 --

@@ -15,7 +15,7 @@ VIP pill, gate 98.  **Not built, by the brief:** billing, prices, the shop,
 the profile card (PR C), the badge on the tile (PR C draws the card), and
 the bench line's server order (below).
 
-## The server (tools/DDL-subscription.sql — NOT RUN; three pastes for Nick)
+## The server (tools/DDL-subscription.sql — RUN 2026-10-21; see the run log)
 
 One transaction, md5-guarded on the five 2026-10-20/21 read-backs, refuses
 on drift.  Studio-safe by construction: one level of `$$` everywhere,
@@ -123,6 +123,33 @@ production it must be `677f9cdd…`.
 
 Says nothing about production's state — the preflight is that read.
 
-## Run log
+## Run log 2026-10-21 — production
 
-(not yet run)
+Run in Supabase Studio's SQL editor (project `afterhours`, PRODUCTION) by
+Nick at ~20:40 PT on 2026-10-21, after #126 merged (the branch rebased onto
+#125, PR C, so the `lc_config` guard was repointed from `18c19ce9…` to C's
+read-back `8ae9e8a3…` before the run).  Read-back as Nick reported it (his
+values; this session had no production read of its own):
+
+| what | read back |
+|---|---|
+| `throw_limits()` (the wrapper) | md5 **`60bf81f04c77687a0772df8dd19ee14f`** — the next DDL's guard |
+| `throw_limits_base()` | md5 **`f8a4e8f6ba62faaddaef9e34c6d74e54`** — the next DDL's guard |
+| base with its old name put back | `677f9cddef6e5eeb178437347ccf8223` — the 2026-10-20 body, byte for byte |
+| `is_subscriber(uuid)` | md5 **`4dbe1822920a3c8c0eda368f4ca255b8`** — the hook PR C's `public_profile` now finds |
+| `subscription_state(uuid)` | md5 `cdb8ff689bebc2ec5f7018fd6c1163d4` |
+| `comp_subscription(uuid,timestamptz)` | md5 `23107dfd6fd5fb65ed35ca80807bf247` |
+| `profiles_subscription_guard()` | md5 `bf0b46ee825e18069e348209223c0c32`, trigger enabled (`O`) |
+| untouched | `lc_config` 8ae9e8a3… · `lc_tonight_pack` 00ed7806… · `lc_pack_status` 51d7be42… · `set_filter` 88c4017d… |
+| columns | `subscription:text:'none'` · `subscription_until:timestamptz:null` |
+| `throw_limits()` in Studio (no uid) | = base: cheers 5, jeers 2, live_secs 4, combo_n 3, combo_secs 5, react_mult 2, react_secs 6, rose_mends 1, combo_fx_secs 4, cooldown_secs 20, ovation_hearts 1, cracks_to_shatter 3 |
+| `subscriptions_status` | exists, 0 rows at read-back |
+| ACLs | `comp_subscription` service_role only; `is_subscriber` / `subscription_state` authenticated + service_role; `throw_limits` / `throw_limits_base` anon + authenticated + service_role |
+
+First comp, right after: Nick comped himself open-ended
+(`comp_subscription(<his uid>, null)` → `state comped, is_subscriber true`),
+so the lobby's VIP pill is lit and his ration is 10 · 4 on his phone.
+
+**Guards for the next DDL:** `lc_config` 8ae9e8a3… · `throw_limits`
+60bf81f0… · `throw_limits_base` f8a4e8f6… · `is_subscriber` 4dbe1822… ·
+`lc_pack_status` 51d7be42… · `set_filter` 88c4017d… / 1569.

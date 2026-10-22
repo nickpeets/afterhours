@@ -5,8 +5,8 @@ planning session (not the Codespace agent) on Nick's 10/21 ruling: *"full go —
 Tinder's architecture, and an interesting interface between the profiles and
 the game."*
 
-STATUS: client shipped in this PR; `tools/DDL-profiles.sql` **NOT RUN** — Nick
-runs it in Studio (three pastes), then records the read-back below.
+STATUS: client merged (#125); `tools/DDL-profiles.sql` **RUN in production
+2026-10-21 ~19:22 PT** — read-back under "Run log" below.
 
 ## What a card is
 
@@ -128,7 +128,49 @@ spotlight; zero console errors.
   copy); `user_blocks` is the explicit both-ways table the card uses.  If
   `report_user` keeps its own list, the two can be merged in a follow-up.
 
-## Run log
+## Run log 2026-10-21 — production
 
-_(Nick's read-back goes here after the DDL runs: new `lc_config` md5,
-`public_profile` md5, deck id, `profiles_open_to_all`, bucket, policies.)_
+Run in Supabase Studio's SQL editor (project `afterhours`, PRODUCTION) by
+Nick at ~19:22 PT on 2026-10-21, right after #125 merged.  The preflight
+(run first, as the brief now requires) showed three things the committed
+file had assumed wrong, and the paste was corrected before the run; the
+file was updated to match in the same docs PR as this log:
+
+1. **`profiles.bio` already existed** (`accepted_terms_at, bio, birthdate,
+   confirmed_adult_at, created_at, display_name, expand_ok, face_json,
+   gender, id, occupation, radius_miles, seek_max, seek_min, seeking,
+   zip_code`).  The guard now expects bio present and the other six absent;
+   the ALTER adds six; a guard refuses if any existing bio is over 500
+   before the CHECK goes on.
+2. **`questions.id` and `question_decks.id` are `bigint not null` with no
+   default**, so the deck inserts carry explicit ids (`max(id)+1`).
+3. The **host-reads-her-seated-chair** rule (gate 97 claim 3, modelled in
+   the double) was in the paste but not yet in the committed file; it is
+   now.
+
+Read-back as Nick reported it (his values; this session had no
+production read of its own):
+
+| what | read back |
+|---|---|
+| `lc_config()` | md5 **`8ae9e8a3c39bb23bb3c83f7848dcd600`** — replaced; **the next DDL's guard** (PR B's was repointed to it) |
+| `public_profile(uuid)` | md5 `239070f77a0faac41b7d382d2cb15eb2` |
+| `my_blocks()` | md5 `656aa3a614fddc3675f660aaca2f8c41` |
+| `lc_config()->profiles_open_to_all` | `true` |
+| From his profile deck | id **5**, 20 prompts |
+| new `profiles` columns | `bio,city,details,interests,photos,prompts,pronouns` |
+| `profile-photos` bucket | public `true`, 4 storage policies |
+| `user_blocks` | RLS `true` |
+
+Production columns worth knowing for later DDLs (from the preflight):
+`room_members(id, room_id, user_id, role, seat_index, line_hearts,
+unblurred, strikes, clock_left, joined_at, last_seen, seated_at,
+line_position, filter, filter_pick, throwables_on, throw_kind, throw_at,
+throw_until, cracks, throw_n, throw_combo_at)`; `rooms(id, host_id,
+contestant_name, tagline, status, window_sec, keeps, created_at,
+winner_id, phase, phase_deadline, round, cycle, spotlight_target,
+spotlight_question_id, deck_id, host_seen_at, throwables_on, crown_user,
+react_user, react_until)`.
+
+**Standing note:** the preflight prints column lists for a reason — run it
+and read it before paste 2, every time.

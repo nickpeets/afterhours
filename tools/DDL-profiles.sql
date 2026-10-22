@@ -1,6 +1,7 @@
 -- DDL — PROFILES (feat/profiles-tinder, PR C of the 10/20–10/21 brief; ruling Nick 10/21:
 -- "full go — Tinder's architecture, and an interesting interface between the profiles and the game")
--- STATUS: NOT RUN.  Hand to Nick; he runs it in Supabase Studio (project afterhours, PRODUCTION).
+-- STATUS: RUN in production 2026-10-21 ~19:22 PT by Nick (Supabase Studio, project afterhours). Read-back in
+-- tools/DESIGN-profiles.md "Run log 2026-10-21". This file is what actually ran (three preflight-driven edits, logged there).
 -- Never run by an agent.  Record the read-back under "Run log" in tools/DESIGN-profiles.md.
 --
 -- Studio-safe by construction (2026-10-21 run log): ONE level of $$ everywhere, no nested
@@ -69,16 +70,17 @@ begin
   if h <> '51d7be429e260c1ad5ff92fd25704165' then
     raise exception 'DRIFT: lc_pack_status md5 is %, expected 51d7be429e260c1ad5ff92fd25704165 (the 2026-10-21 read-back) - nothing changed', h;
   end if;
+  -- bio already exists in production (2026-10-21 preflight); the other six must not
   select count(*) into n from information_schema.columns
    where table_schema='public' and table_name='profiles'
-     and column_name in ('bio','city','pronouns','details','interests','prompts','photos');
+     and column_name in ('city','pronouns','details','interests','prompts','photos');
   if n <> 0 then
-    raise exception 'DRIFT: % of the profile columns this file adds already exist - nothing changed', n;
+    raise exception 'DRIFT: % of the six profile columns this file adds already exist - nothing changed', n;
   end if;
   select count(*) into n from information_schema.columns
-   where table_schema='public' and table_name='profiles' and column_name in ('id','display_name','birthdate','face_json');
-  if n <> 4 then
-    raise exception 'DRIFT: profiles is missing one of id/display_name/birthdate/face_json (found %) - nothing changed', n;
+   where table_schema='public' and table_name='profiles' and column_name in ('id','display_name','birthdate','face_json','bio');
+  if n <> 5 then
+    raise exception 'DRIFT: profiles is missing one of id/display_name/birthdate/face_json/bio (found %) - nothing changed', n;
   end if;
   if to_regclass('public.lc_settings') is not null then raise exception 'DRIFT: public.lc_settings already exists - nothing changed'; end if;
   if to_regclass('public.user_blocks') is not null then raise exception 'DRIFT: public.user_blocks already exists - nothing changed'; end if;
@@ -94,11 +96,13 @@ begin
   if exists (select 1 from storage.buckets where id = 'profile-photos') then
     raise exception 'DRIFT: the profile-photos bucket already exists - nothing changed';
   end if;
+  if exists (select 1 from public.profiles where char_length(bio) > 500) then
+    raise exception 'DRIFT: an existing bio is over 500 chars - nothing changed';
+  end if;
 end $$;
 
 -- ================================================================ 1. profiles: the Tinder set
 alter table public.profiles
-  add column bio       text,
   add column city      text,
   add column pronouns  text,
   add column details   jsonb  not null default '{}'::jsonb,
@@ -201,10 +205,13 @@ revoke all on function public.unblock_user(uuid) from public, anon;
 grant execute on function public.unblock_user(uuid) to authenticated;
 
 -- ================================================================ 4. the prompt deck: the prompts ARE questions, so she asks from his profile through ask_question (untouched)
+-- the deck: ids are explicit (questions.id / question_decks.id have no default in production — 2026-10-21 preflight)
 do $$
-declare d_id bigint; i int := 0; t text;
+declare d_id bigint; q_id bigint; i int := 0; t text;
 begin
-  insert into public.question_decks (name, emoji, sort) values ('From his profile', '🪪', 99) returning id into d_id;
+  select coalesce(max(id), 0) + 1 into d_id from public.question_decks;
+  select coalesce(max(id), 0) into q_id from public.questions;
+  insert into public.question_decks (id, name, emoji, sort) values (d_id, 'From his profile', '🪪', 99);
   foreach t in array array[
     'My last call is usually…',
     'I''d pick the chair over the bench because…',
@@ -227,10 +234,10 @@ begin
     'The way to my heart is…',
     'Why she should keep me…'
   ] loop
-    i := i + 1;
-    insert into public.questions (deck_id, text, sort) values (d_id, t, i);
+    i := i + 1; q_id := q_id + 1;
+    insert into public.questions (id, deck_id, text, sort) values (q_id, d_id, t, i);
   end loop;
-  raise notice 'From his profile deck id % with % prompts', d_id, i;
+  raise notice 'From his profile deck id % with % prompts (question ids through %)', d_id, i, q_id;
 end $$;
 
 -- ================================================================ 5. public_profile(uid): the ONE read path for someone else's card
@@ -247,8 +254,12 @@ begin
   if exists (select 1 from public.user_blocks where (blocker = me and blocked = target) or (blocker = target and blocked = me)) then
     return jsonb_build_object('id', target, 'blocked', true);
   end if;
-  -- the full card: the owner, the soft-launch flag, or (PR B) a subscriber
+  -- the full card: the owner, the soft-launch flag, the host of a live room he is seated in, or (PR B) a subscriber
   full_view := (me = target) or public.lc_profiles_open_to_all();
+  if not full_view then
+    full_view := exists (select 1 from public.rooms r join public.room_members m on m.room_id = r.id
+                          where r.host_id = me and r.status = 'live' and m.user_id = target and m.role in ('chair','kept'));
+  end if;
   if not full_view and to_regprocedure('public.is_subscriber(uuid)') is not null then
     execute 'select public.is_subscriber($1)' into full_view using me;
   end if;
@@ -278,7 +289,7 @@ end $$;
 revoke all on function public.public_profile(uuid) from public, anon;
 grant execute on function public.public_profile(uuid) to authenticated;
 comment on function public.public_profile(uuid) is
-  'Another person''s card (PR C, 10/21): age not birthdate; stats computed here; gallery/details/prompts only for the owner, under profiles_open_to_all, or (PR B) a subscriber. Blocked either way -> {blocked:true}.';
+  'Another person''s card (PR C, 10/21): age not birthdate; stats computed here; gallery/details/prompts only for the owner, under profiles_open_to_all, the host of a live room he is seated in, or (PR B) a subscriber. Blocked either way -> {blocked:true}.';
 
 -- ================================================================ 6. storage: the gallery bucket, owner-only writes, public reads
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -334,7 +345,7 @@ commit;
 --        (select public from storage.buckets where id='profile-photos') as bucket_public,
 --        (select count(*) from pg_policies where schemaname='storage' and tablename='objects' and policyname like 'profile-photos %') as storage_policies,
 --        (select relrowsecurity from pg_class where oid='public.user_blocks'::regclass) as blocks_rls;
--- -- expect: (new md5 — record) | … | … | true | 20 | <id> | bio,city,details,interests,photos,prompts,pronouns | true | 4 | true
+-- -- read back 2026-10-21 19:22 PT: 8ae9e8a3c39bb23bb3c83f7848dcd600 | 239070f77a0faac41b7d382d2cb15eb2 | 656aa3a614fddc3675f660aaca2f8c41 | true | 20 | 5 | bio,city,details,interests,photos,prompts,pronouns | true | 4 | true
 
 -- ================================================================ SWITCHES (Nick, in Studio, any time — no deploy)
 -- update public.lc_settings set value = 'false', updated_at = now() where key = 'profiles_open_to_all';   -- full cards become a subscriber perk (needs PR B)

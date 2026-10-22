@@ -1,6 +1,8 @@
 -- DDL — THE DECK (feat/deck, PR D1 of the lobby refresh; ruling Nick 10/21 21:00: "just like Tinder" —
 -- a lobby that is never dead: swipe, match, chat, with the show as the reason to come back)
--- STATUS: NOT RUN.  Hand to Nick; he runs it in Supabase Studio (project afterhours, PRODUCTION).
+-- STATUS: RUN in production 2026-10-22 ~08:54 PT by Nick (Supabase Studio, project afterhours), after #129 merged.
+-- Read-back in tools/DESIGN-deck.md "Run log 2026-10-22". One Studio-forced edit: send_message's `row` variable
+-- is `v_msg` (Studio's splitter died on it: unterminated dollar-quoted string); the file matches what ran.
 -- Never run by an agent.  Record the read-back under "Run log" in tools/DESIGN-deck.md.
 --
 -- Studio-safe by construction: ONE level of $$ everywhere, no nested dollar-quotes, no guard on a
@@ -254,7 +256,11 @@ create function public.send_message(match_id uuid, body text)
 returns jsonb
 language plpgsql security definer set search_path to 'public'
 as $$
-declare me uuid := auth.uid(); m record; other uuid; row public.messages;
+declare
+  me uuid := auth.uid();
+  m record;
+  other uuid;
+  v_msg public.messages;   -- not `row`: Studio's splitter dies on that name (2026-10-22 run log)
 begin
   if me is null then raise exception 'not signed in'; end if;
   select * into m from public.matches x where x.id = send_message.match_id;
@@ -264,10 +270,10 @@ begin
     raise exception 'blocked';
   end if;
   if body is null or char_length(btrim(body)) = 0 or char_length(body) > 1000 then raise exception 'bad body'; end if;
-  insert into public.messages (match_id, sender, body) values (send_message.match_id, me, btrim(body)) returning * into row;
-  insert into public.match_reads (match_id, reader, read_at) values (send_message.match_id, me, row.created_at)
+  insert into public.messages (match_id, sender, body) values (send_message.match_id, me, btrim(body)) returning * into v_msg;
+  insert into public.match_reads (match_id, reader, read_at) values (send_message.match_id, me, v_msg.created_at)
     on conflict (match_id, reader) do update set read_at = excluded.read_at;
-  return to_jsonb(row);
+  return to_jsonb(v_msg);
 end $$;
 revoke all on function public.send_message(uuid, text) from public, anon;
 grant execute on function public.send_message(uuid, text) to authenticated;

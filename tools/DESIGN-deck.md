@@ -6,8 +6,8 @@ come back … like Tinder, swipeable … just like Tinder."* Chat opens on the
 match (no show-attendance gate — the show is the reason to come back, not
 a gate).
 
-STATUS: client in this PR; `tools/DDL-deck.sql` **NOT RUN** — Nick runs it in
-Studio (three pastes), then records the read-back below.
+STATUS: client merged (#129); `tools/DDL-deck.sql` **RUN in production
+2026-10-22 ~08:54 PT** — read-back under "Run log" below.
 
 ## The lobby refresh, in three PRs
 
@@ -70,6 +70,30 @@ drops the match and the card · zero console errors.
   publication's existence; if production's realtime is off the chat still
   works on open/reload, just without live delivery.
 
-## Run log
+## Run log 2026-10-22 — production
 
-_(Nick's read-back goes here.)_
+Run in Supabase Studio's SQL editor (project `afterhours`, PRODUCTION) by
+Nick at ~08:54 PT on 2026-10-22, after #129 merged.  First attempt died in
+Studio's statement splitter at `send_message` (`42601: unterminated
+dollar-quoted string`) — nothing ran; the plpgsql variable named `row`
+was renamed `v_msg` and the second attempt committed.  The file matches
+what ran.  **Standing note:** never name a plpgsql variable `row` in a
+Studio paste.
+
+Read-back as Nick reported it (his values; this session had no
+production read of its own):
+
+| what | read back |
+|---|---|
+| `deck_next(int)` | md5 **`fb39c8203d9a7e843294cbec2069bc0d`** |
+| `swipe(uuid,text)` | md5 **`c1e205bf12d452e826a8b6592221ddbe`** |
+| `my_matches()` | md5 **`290598a974e2a6c16dd006b4ab0680af`** |
+| `send_message(uuid,text)` | md5 **`9de9975ce21e347d15bd8ae4dbc32637`** |
+| `public_profile(uuid)` | `239070f77a0faac41b7d382d2cb15eb2` — untouched |
+| tables | 4 · `messages` in `supabase_realtime` · policies swipes=1, matches=1, messages=1, match_reads=0 |
+| production prefs | gender ∈ {man, woman, null} · seeking ∈ {everyone, men, women} — the rules match |
+| swipeable people at run time | 13 (name + birthdate on file) |
+
+**Guards for the next DDL:** add the four above to `lc_config` 8ae9e8a3… ·
+`is_subscriber` 4dbe1822… · `public_profile` 239070f7… · `throw_limits`
+60bf81f0… · `lc_pack_status` 51d7be42… · `set_filter` 88c4017d… / 1569.

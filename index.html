@@ -1750,7 +1750,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1022.0915</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1022.1045</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -2327,7 +2327,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1022.0915"); }catch(e){}
+try{ console.log("[lastcall] build b1022.1045"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -10916,7 +10916,7 @@ function renderProfileEditor(){
     ${prm}
     <div class="prefrow"><div class="preflabel">Interests · pick up to ${PROFILE_INTERESTS_MAX}</div><div class="pe__chips" id="pe_interests">${PROFILE_INTERESTS.map(i=>chip(PE.interests.includes(i),i,`data-int="${escapeHtml(i)}"`)).join("")}</div></div>
     ${dtext}${det}
-    <div class="pe__actions"><button class="fbtn neon" id="pe_save">Save my card</button><button class="fbtn ghost" id="pe_cancel">Cancel</button></div>
+    <div class="pe__actions"><button class="fbtn neon" id="pe_save">Save my card</button><button class="fbtn ghost" id="pe_preview">Preview</button><button class="fbtn ghost" id="pe_cancel">Cancel</button></div>
     <div class="mnote" id="pe_err" style="color:var(--danger,#ff6b6b)"></div>`;
   const body=$("pe_body");
   body.querySelectorAll(".pe__slot:not(.has)").forEach(b=>b.onclick=()=>{ if(PE.photos.length>=PROFILE_PHOTOS_MAX) return; $("pe_file").click(); });
@@ -10932,6 +10932,7 @@ function renderProfileEditor(){
   body.querySelectorAll("[data-det]").forEach(b=>b.onclick=()=>{ const k=b.dataset.det, v=b.dataset.v; PE.details[k]=(PE.details[k]===v)?null:v; peSyncText(); renderProfileEditor(); });
   $("pe_bio").oninput=()=>{ $("pe_bion").textContent=$("pe_bio").value.length; };
   $("pe_save").onclick=profileSave;
+  $("pe_preview").onclick=async()=>{ const ok=await profileSave(); if(ok) openProfile(ME.id); };   // save, then the card as the room sees it
   $("pe_cancel").onclick=closeProfileEditor;
 }
 function peSyncText(){
@@ -11055,7 +11056,7 @@ function profilesWireTiles(){
 function profilesInit(){
   const pc=$("profilecard"); if(pc) pc.querySelector(".lc-sheet__scrim").onclick=closeProfile;
   const pe=$("profileedit"); if(pe) pe.querySelector(".lc-sheet__scrim").onclick=closeProfileEditor;
-  const mb=$("mebtn"); if(mb) mb.onclick=()=>openProfileEditor();
+  const mb=$("mebtn"); if(mb) mb.onclick=()=>{ if(ME) openProfile(ME.id); };   // my card as others see it; Edit is on it
   const se=$("st_editprofile"); if(se) se.onclick=()=>{ try{ stClose(); }catch(e){} openProfileEditor(); };
   profilesWireTiles();
 }

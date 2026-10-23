@@ -1775,7 +1775,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1022.1200</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1023.1030</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -2364,7 +2364,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1022.1200"); }catch(e){}
+try{ console.log("[lastcall] build b1023.1030"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -3398,6 +3398,9 @@ function lobbyCardRemove(card,why){
 }
 async function loadRooms(){
   const seq=++LOBBY_SEQ;
+  // THE MARQUEE (fix 10/23): a show reads LIVE or done by its ROOM's status, so every room
+  // change (went live, ended) must refresh the marquee too — not only shows/rsvps changes.
+  try{ if(typeof marqueeLoad==="function") marqueeLoad(); }catch(e){}
   let painted; LOBBY_PAINTED=new Promise(r=>{ painted=r; });
   try{
   const list=$("roomlist");

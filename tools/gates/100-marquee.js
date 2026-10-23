@@ -124,10 +124,14 @@ module.exports = {
       await jo.page.waitForSelector("#room.show", { timeout: 10000 });
       t.ok(await jo.page.evaluate((id) => window.__lc.CURRENT_ROOM && window.__lc.CURRENT_ROOM.id === id, D.shows[0].room_id), "Watch now opens that room");
 
-      /* 5. done */
-      const rm = D.rooms.get(D.shows[0].room_id); rm.status = "ended"; D.emit("rooms", "UPDATE", { ...rm });
+      /* 5. done — a viewer ALREADY in the lobby (jo2, booted while the show is live) must see the card
+            leave on the ROOM change alone; the 10/23 production bug was a Marquee that only reloaded on
+            shows/rsvps changes and sat stale through go-live and after the end until a page reload. */
       const jo2 = await boot("jo2", "u_jo");
-      t.ok(await jo2.page.evaluate(() => window.__lc.SHOWS.length === 0 && getComputedStyle(document.getElementById("marquee")).display === "none"), "the ended room's show reads done and leaves the Marquee; the Marquee hides");
+      await waitFor(() => jo2.page.evaluate(() => !!document.getElementById("mq_join")), 8000, "jo2 sees LIVE NOW before the end");
+      const rm = D.rooms.get(D.shows[0].room_id); rm.status = "ended"; D.emit("rooms", "UPDATE", { ...rm });
+      await waitFor(() => jo2.page.evaluate(() => window.__lc.SHOWS.length === 0 && getComputedStyle(document.getElementById("marquee")).display === "none"), 8000, "the ended room clears the Marquee without a reload");
+      t.ok(true, "the ended room's show reads done and leaves the Marquee by the rooms change alone (no page reload)");
 
       /* 6. cancel */
       D.shows[0].status = "done";

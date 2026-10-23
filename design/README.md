@@ -13,3 +13,6 @@ Rulings carried here (Nick, 10/22–23): the Tinder layer first (four tabs, Swip
 the Room is the 2×2 quad + bench + the real input bar (Say something · ✦ · 🍅 · ♥ BENCH); the question
 card reads "ROUND n · QUESTION FOR <name>" with a "From his profile — he wrote: …" line only when the host
 picked a profile prompt. When a mock and the code disagree on MECHANICS, the code wins and the mock is wrong.
+
+Older boards in this folder ("Last Call *.dc.html", deck-stage.js, lastcall-theme.css, HANDOFF-README.md) are the
+pre-10/22 exploration and are superseded by row A above; kept for history, not a source for the skin PRs.

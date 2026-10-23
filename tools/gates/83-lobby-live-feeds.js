@@ -60,7 +60,7 @@ async function lobbyClient(h, name, uid, opts) {
   const c = await h.newClient(name, opts);
   await c.page.addInitScript(GUM_SPY);
   c.login(uid);
-  await c.goto("?debug=1");
+  await c.goto("?debug=1#shows");   // THE TABS (D4): the LIVE NOW cards (and their previews) are on the Shows tab
   await c.page.waitForSelector("#lobby", { state: "visible", timeout: 15000 });
   return c;
 }
@@ -309,7 +309,10 @@ module.exports = {
         /* --- J. sign-out tears every preview down --- */
         const beforeOut = (await pv(c)).length;
         const mark = c.logs.length;
-        await c.page.click("#signout");
+        // THE TABS (D4): Sign out lives on the You tab; it is pressed from here WITHOUT switching tabs, because
+        // leaving the Shows tab would take the cards off screen and the previews would leave for that reason
+        // first — this block is about the sign-out teardown, so the sign-out must be the first thing that happens
+        await c.page.evaluate(() => document.getElementById("signout").click());
         await c.page.waitForSelector("#auth:not(.hide)", { timeout: 15000 });
         const after = c.logs.slice(mark).map((l) => l.text);
         const leaves = after.filter((x) => /preview leave .*\(sign-out\)/.test(x)).length;
@@ -339,10 +342,12 @@ module.exports = {
           D.rooms.get(id).created_at = D.iso(D.now() - i * 1000);   // list order: r_1 first
           rooms.push(id);
         }
-        /* which cards are at least a quarter on screen, measured off the page */
+        /* which cards are at least a quarter on screen, measured off the page.  THE TABS (D4): <main> is the
+           scroller and it ends ABOVE the tab bar, so a card's visible part is clipped by main's box, not the
+           window's — exactly as the page's IntersectionObserver sees it. */
         const onScreen = (c) => c.page.evaluate(() => [...document.querySelectorAll("#roomlist .roomcard")].filter((el) => {
-          const r = el.getBoundingClientRect();
-          const vis = Math.max(0, Math.min(r.bottom, innerHeight) - Math.max(r.top, 0));
+          const r = el.getBoundingClientRect(), m = document.querySelector("main").getBoundingClientRect();
+          const vis = Math.max(0, Math.min(r.bottom, innerHeight, m.bottom) - Math.max(r.top, 0, m.top));
           return r.height > 0 && vis / r.height >= 0.25;
         }).map((el) => el.dataset.room));
         const held = async (c) => (await pv(c)).map((p) => p.id).sort();

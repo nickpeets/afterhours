@@ -31,7 +31,7 @@ module.exports = {
       /* --- host goes live through the real UI --- */
       const host = await h.newClient("host");
       host.login(hostU);
-      await host.goto();
+      await host.goto("#shows");   // THE TABS (D4): GO LIVE and the LIVE NOW cards are on the Shows tab (#shows deep link)
       await host.page.waitForSelector("#lobby", { state: "visible", timeout: 15000 });
       await host.page.click("#golive");
       await host.page.fill("#gl_name", "Episode Night");
@@ -46,7 +46,7 @@ module.exports = {
       for (let i = 0; i < 3; i++) {
         const c = await h.newClient("s" + (i + 1));
         c.login(suitors[i]);
-        await c.goto();
+        await c.goto("#shows");
         await c.page.waitForSelector(".roomcard", { timeout: 15000 });
         await c.page.click(".roomcard");
         await c.page.waitForSelector("#room.show", { timeout: 10000 });

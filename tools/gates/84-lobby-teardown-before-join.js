@@ -71,7 +71,7 @@ function world(D, n) {
 async function lobby(h, name, uid) {
   const c = await h.newClient(name);
   c.login(uid);
-  await c.goto();
+  await c.goto("#shows");   // THE TABS (D4): the LIVE NOW cards are on the Shows tab
   await c.page.waitForSelector("#lobby", { state: "visible", timeout: 15000 });
   await c.page.evaluate((slow) => { window.__dailyLatency = slow; }, SLOW);
   return c;
@@ -167,7 +167,7 @@ module.exports = {
           if (body.mode === "preview") await held;
           return route.fallback();
         });
-        await c.goto();
+        await c.goto("#shows");
         await c.page.waitForSelector('.roomcard[data-room="r_3"]', { timeout: 15000 });
         await c.page.evaluate((slow) => { window.__dailyLatency = slow; }, SLOW);
         await waitFor(async () => (await pv(c)).length === 3, 8000, "three previews to be starting");
@@ -197,6 +197,7 @@ module.exports = {
         await roomVideoUp(c, rooms[0].host);
         await c.page.click("#roomback");             // a watcher: no confirm, straight back
         await c.page.waitForSelector("#lobby", { state: "visible", timeout: 10000 });
+        await c.page.evaluate(() => window.__lc.tabShow("shows"));   // THE TABS (D4): a room leaves to Swipe; the cards are on Shows
         await previewsLive(c, rooms);
         const back = await inst(c);
         t.ok(back.multiLive === 3 && !back.liveNow, `back in the lobby the previews are playing again (alive ${back.multiLive}), and the room's call is gone`);

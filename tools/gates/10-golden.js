@@ -34,14 +34,14 @@ async function frameAuth(h) {
 async function frameLobby(h, fx) {
   const c = await h.newClient("g-lobby");
   c.login(fx.crowd[0]);
-  await c.goto();
+  await c.goto("#shows");   // THE TABS (D4): the lobby frame is the Shows tab (the old one-column lobby's content)
   await c.page.waitForSelector(".roomcard", { timeout: 15000 });
   return c;
 }
 async function frameRoom(h, fx) {
   const c = await h.newClient("g-room");
   c.login(fx.crowd[1]);
-  await c.goto();
+  await c.goto("#shows");
   await c.page.waitForSelector(".roomcard", { timeout: 15000 });
   await c.page.click(".roomcard");
   await c.page.waitForSelector("#room.show", { timeout: 15000 });

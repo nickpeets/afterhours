@@ -14,7 +14,7 @@ module.exports = {
       const fx = fixtures.standardRoster(h.double);
       const c = await h.newClient("boot");
       c.login(fx.crowd[0]);
-      await c.goto();
+      await c.goto("#shows");   // THE TABS (D4): the LIVE NOW card is on the Shows tab — the #shows deep link lands there
       await c.page.waitForSelector("#lobby", { state: "visible", timeout: 15000 });
       t.ok(true, "cold start reaches the lobby");
       t.ok(await c.page.evaluate(() => !!window.__lc), "window.__lc diagnostic export is present");
@@ -24,7 +24,7 @@ module.exports = {
       t.ok(/\d+ in the room/.test(meta), "room card shows a member count: " + JSON.stringify(meta.trim().slice(0, 40)));
       /* ruling 10/15: the whoami strip (name · email · window) is debug-only */
       const strip = await c.page.$eval("#whoami", (el) => ({ shown: getComputedStyle(el).display !== "none", text: el.textContent.trim() }));
-      t.ok(!strip.shown && strip.text === "", "whoami strip is hidden and empty without ?debug (no email above GO LIVE) — " + JSON.stringify(strip));
+      t.ok(!strip.shown && strip.text === "", "whoami strip is hidden and empty without ?debug (no email on the You tab) — " + JSON.stringify(strip));
       const d = await h.newClient("boot-debug");
       d.login(fx.crowd[0]);
       await d.goto("?debug");

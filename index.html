@@ -1691,6 +1691,31 @@
 .chat__row{ display:flex; gap:8px; padding-top:8px; border-top:1px solid rgba(238,240,255,.1); }
 .chat__row input{ flex:1; background:rgba(238,240,255,.07); border:1px solid rgba(238,240,255,.25); border-radius:999px; padding:11px 14px; color:#eef0ff; font-size:14px; outline:none; }
 .chat__row button{ background:var(--neon,#ff2d8f); border:none; color:#fff; border-radius:999px; padding:0 18px; font-weight:800; cursor:pointer; }
+/* ---------- THE MARQUEE (PR D2, 10/22): the next show, on top of the lobby ---------- */
+#marquee{ display:none; margin:-4px 0 14px; }
+.mq{ position:relative; border-radius:18px; padding:12px 14px 12px; background:linear-gradient(135deg, rgba(255,45,143,.18), rgba(45,227,208,.10)), rgba(8,11,32,.85);
+  border:1px solid rgba(255,45,143,.6); box-shadow:0 0 18px rgba(255,45,143,.25); }
+.mq.is-live{ border-color:#ff2d8f; box-shadow:var(--bezel-shadow,0 0 16px rgba(255,45,143,.85)); }
+.mq__kicker{ font-family:"Azeret Mono",monospace; font-size:9px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--gold,#ffd6e9); display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+.mq__row{ display:flex; align-items:center; gap:12px; }
+.mq__face{ width:52px; height:52px; border-radius:50%; flex:0 0 auto; background:#141a3a center/cover; border:2px solid var(--neon,#ff2d8f); box-shadow:0 0 10px rgba(255,45,143,.6); cursor:pointer; }
+.mq__txt{ flex:1; min-width:0; }
+.mq__title{ font-family:"Baloo 2",sans-serif; font-weight:800; font-size:20px; line-height:1.1; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mq__sub{ font-size:12.5px; color:var(--dim); margin-top:2px; }
+.mq__sub b{ color:var(--paper); }
+.mq__count{ font-family:"Azeret Mono",monospace; font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--accent,#2de3d0); white-space:nowrap; }
+.mq__foot{ display:flex; align-items:center; justify-content:space-between; margin-top:10px; }
+.mq__going{ font-family:"Azeret Mono",monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); }
+.mq__going b{ color:var(--gold,#ffd6e9); font-size:13px; margin-right:3px; }
+.mq__btn{ border:none; border-radius:999px; padding:9px 16px; font-family:"Baloo 2",sans-serif; font-weight:800; font-size:14px; cursor:pointer; color:#fff;
+  background:var(--keep,linear-gradient(180deg,#ff8ac2,#ff2d8f 46%,#c60d68)); box-shadow:inset 0 2px 0 rgba(255,255,255,.6), 0 3px 0 var(--keep-bevel,#8c0847); }
+.mq__btn.is-on{ background:rgba(45,227,208,.15); color:var(--accent,#2de3d0); border:1.5px solid var(--accent,#2de3d0); box-shadow:none; }
+.mq__btn--ghost{ background:transparent; border:1.5px solid var(--dim); color:var(--dim); box-shadow:none; }
+.mq__btn--live{ animation:pulse 1.2s infinite; }
+.mq__more{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; padding-top:8px; border-top:1px solid rgba(238,240,255,.1); }
+.mq__more span{ font-family:"Azeret Mono",monospace; font-size:9px; letter-spacing:.08em; color:var(--dim); background:rgba(238,240,255,.05); border-radius:999px; padding:4px 8px; }
+.schedulebtn{ width:100%; margin:-6px 0 12px; padding:10px; border-radius:999px; border:1.5px dashed rgba(255,45,143,.55); background:rgba(255,45,143,.08); color:#ff8ac2; font-family:"Azeret Mono",monospace; font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; }
+.sc__input{ width:100%; background:rgba(238,240,255,.07); border:1px solid rgba(238,240,255,.25); border-radius:12px; padding:11px 13px; color:#eef0ff; font-size:15px; font-family:Archivo,sans-serif; outline:none; color-scheme:dark; }
 </style>
 </head>
 <body data-skin="neon">
@@ -1750,7 +1775,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1022.1045</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1022.1200</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1790,7 +1815,9 @@
         <span id="whoami_who" style="color:#b9a8ff">—</span>
         <span id="whoami_slot" style="color:rgba(242,240,255,.45)"></span>
       </div>
+      <div id="marquee"></div>
       <button class="golive" id="golive">● GO LIVE — Host Your Room</button>
+      <button class="schedulebtn" id="schedulebtn" type="button">📅 Schedule a show</button>
       <!-- THE SUBSCRIPTION (PR B): the one visible trace until billing exists — no price, no link -->
       <div class="vipwrap"><span class="vippill" id="vippill" role="status" aria-label="VIP: coming soon">VIP · coming soon</span></div>
       <div class="sectlabel">LIVE NOW</div>
@@ -2194,6 +2221,16 @@
       <div class="lc-sheet__scrim"></div>
       <div class="lc-sheet__panel"><div class="lc-sheet__grab"></div><h3 style="margin:0 0 8px">My card</h3><div id="pe_body"></div></div>
     </div>
+    <div class="lc-sheet" id="schedule" hidden>
+      <div class="lc-sheet__scrim"></div>
+      <div class="lc-sheet__panel"><div class="lc-sheet__grab"></div><h3 style="margin:0 0 4px">Schedule a show</h3>
+        <div class="mnote" style="margin-bottom:10px">It goes on the Marquee for everyone. When you hit GO LIVE around that time, your room takes its place.</div>
+        <div class="prefrow"><div class="preflabel">Show name</div><input type="text" class="sc__input" id="sc_title" maxlength="40"></div>
+        <div class="prefrow"><div class="preflabel">When</div><input type="datetime-local" class="sc__input" id="sc_when"></div>
+        <div class="pe__actions"><button class="fbtn neon" id="sc_go">Put it on the Marquee</button><button class="fbtn ghost" id="sc_cancel">Cancel</button></div>
+        <div class="mnote" id="sc_err" style="color:var(--danger,#ff6b6b)"></div>
+      </div>
+    </div>
     <div class="deck__match" id="deck_match" hidden></div>
     <div class="lc-sheet" id="matches" hidden>
       <div class="lc-sheet__scrim"></div>
@@ -2327,7 +2364,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1022.1045"); }catch(e){}
+try{ console.log("[lastcall] build b1022.1200"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -3040,6 +3077,7 @@ async function enterApp(){
   try{ await blocksLoad(); }catch(e){}
   try{ paintMeButton(); }catch(e){}
   try{ deckLoad(true); matchesRefresh(); inboxSubscribe(); }catch(e){}   // THE DECK (PR D1): the lobby is never dead
+  try{ marqueeLoad(); marqueeSubscribe(); }catch(e){}                      // THE MARQUEE (PR D2): the next show, on top
   await lcSubscriberLoad();   // my standing (PR B): the server's one answer, before the lobby paints
   let RESUME_ROOM=null;
   try{
@@ -3726,6 +3764,7 @@ $("gl_go").onclick=async()=>{
   if(error){toast("Couldn't go live: "+error.message);return;}
   $("livemodal").classList.remove("show");
   toast("You're LIVE — your room is in the lobby.");
+  try{ marqueeLinkLive(data); }catch(e){}   // THE MARQUEE (PR D2): her scheduled show becomes this room
   openRoom(data);
 };
 
@@ -11239,6 +11278,136 @@ function deckInit(){
 }
 try{ deckInit(); }catch(e){ console.log("deck init:",e&&e.message); }
 
+/* ===================================================================
+   THE MARQUEE (feat/marquee, PR D2 of the lobby refresh).  Hosts
+   schedule shows; the lobby's top is the next one — title, host, a
+   countdown, who's going, an RSVP — and the moment she goes live the
+   scheduled card IS the live card.  Server facts only: shows / rsvps
+   through schedule_show, cancel_show, rsvp, show_went_live, read
+   through upcoming_shows (the next 14 days + anything live, blocks
+   honoured).  Nothing here touches a room's engine.
+   =================================================================== */
+let SHOWS=[], MARQUEE_TICK=null, MARQUEE_BUSY=false;
+async function marqueeLoad(){
+  if(!ME) return [];
+  try{ const {data,error}=await sb.rpc("upcoming_shows"); if(!error) SHOWS=(data||[]).filter(s=>s && s.status!=="done" && s.status!=="cancelled"); }catch(e){}
+  marqueeRender();
+  return SHOWS;
+}
+function fmtCountdown(iso){
+  const t=Date.parse(iso)-Date.now();
+  if(!Number.isFinite(t)) return "";
+  if(t<=0) return "any minute";
+  const m=Math.round(t/60000); if(m<60) return "in "+m+" min";
+  const h=Math.floor(m/60), mm=m%60; if(h<24) return "in "+h+"h"+(mm?" "+String(mm).padStart(2,"0")+"m":"");
+  const d=Math.floor(h/24); return "in "+d+" day"+(d===1?"":"s");
+}
+function fmtWhen(iso){
+  const d=new Date(iso); if(isNaN(d)) return "";
+  const now=new Date(); const sameDay=d.toDateString()===now.toDateString();
+  const tmr=new Date(now); tmr.setDate(now.getDate()+1); const isTmr=d.toDateString()===tmr.toDateString();
+  const time=d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+  if(sameDay) return "Tonight "+time;
+  if(isTmr) return "Tomorrow "+time;
+  return d.toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"})+" · "+time;
+}
+function marqueeRender(){
+  const el=$("marquee"); if(!el) return;
+  const mine=SHOWS.find(s=>s.mine && s.status==="scheduled");
+  const sched=$("schedulebtn"); if(sched){ sched.textContent=mine?"📅 Your show: "+fmtWhen(mine.starts_at):"📅 Schedule a show"; sched.dataset.mine=mine?mine.id:""; }
+  if(!SHOWS.length){ el.innerHTML=""; el.style.display="none"; return; }
+  el.style.display="block";
+  const next=SHOWS[0];
+  const h=next.host||{};
+  const shot=(h.photos&&h.photos[0])?photoUrl(h.photos[0]):(h.face_photo||"");
+  const live=next.status==="live" && next.room_status==="live";
+  el.innerHTML=`<div class="mq${live?" is-live":""}" data-sid="${escapeHtml(next.id)}">
+      <div class="mq__kicker">${live?'<span class="livedot"></span> LIVE NOW':"NEXT SHOW"}</div>
+      <div class="mq__row">
+        <i class="mq__face" style="${shot?`background-image:url('${shot.replace(/'/g,"%27")}')`:""}"></i>
+        <div class="mq__txt">
+          <div class="mq__title">${escapeHtml(next.title)}</div>
+          <div class="mq__sub">with <b>${escapeHtml(h.display_name||"—")}</b> · ${live?"on now":escapeHtml(fmtWhen(next.starts_at))}</div>
+        </div>
+        <div class="mq__count" id="mq_count">${live?"":escapeHtml(fmtCountdown(next.starts_at))}</div>
+      </div>
+      <div class="mq__foot">
+        <span class="mq__going"><b>${Number(next.going||0)}</b> going</span>
+        ${live?`<button class="mq__btn mq__btn--live" id="mq_join">Watch now</button>`
+              :(next.mine?`<button class="mq__btn mq__btn--ghost" id="mq_cancel">Cancel</button>`
+                         :`<button class="mq__btn${next.me_going?" is-on":""}" id="mq_rsvp">${next.me_going?"✓ Going":"I'm going"}</button>`)}
+      </div>
+      ${SHOWS.length>1?`<div class="mq__more">${SHOWS.slice(1,4).map(s=>`<span>${escapeHtml(fmtWhen(s.starts_at))} · ${escapeHtml(s.title)}</span>`).join("")}</div>`:""}
+    </div>`;
+  const face=el.querySelector(".mq__face"); if(face && h.id) face.onclick=()=>openProfile(h.id);
+  const r=$("mq_rsvp"); if(r) r.onclick=()=>marqueeRsvp(next.id, !next.me_going);
+  const c=$("mq_cancel"); if(c) c.onclick=()=>marqueeCancel(next.id);
+  const j=$("mq_join"); if(j) j.onclick=async()=>{ try{ const {data}=await sb.from("rooms").select("*").eq("id",next.room_id).single(); if(data) openRoom(data); }catch(e){} };
+  if(MARQUEE_TICK) clearInterval(MARQUEE_TICK);
+  MARQUEE_TICK=setInterval(()=>{ const cnt=$("mq_count"); if(cnt && !live) cnt.textContent=fmtCountdown(next.starts_at); }, 30000);
+}
+async function marqueeRsvp(showId, going){
+  if(MARQUEE_BUSY) return null; MARQUEE_BUSY=true;
+  try{
+    const {data,error}=await sb.rpc("rsvp",{show_id:showId, going});
+    if(error){ toast("Couldn't RSVP: "+error.message); return null; }
+    const s=SHOWS.find(x=>x.id===showId); if(s){ s.me_going=going; s.going=data&&data.count!=null?data.count:s.going; }
+    marqueeRender();
+    toast(going?"You're on the list — see you there.":"Taken off the list.");
+    return data;
+  }finally{ MARQUEE_BUSY=false; }
+}
+async function marqueeCancel(showId){
+  const {error}=await sb.rpc("cancel_show",{show_id:showId});
+  if(error){ toast("Couldn't cancel: "+error.message); return false; }
+  toast("Show cancelled.");
+  await marqueeLoad(); return true;
+}
+/* ---------- scheduling ---------- */
+function openSchedule(){
+  if(!ME) return;
+  const mine=SHOWS.find(s=>s.mine && s.status==="scheduled");
+  if(mine){ toast("You already have a show on the Marquee — cancel it to pick a new time."); return; }
+  const s=$("schedule"); s.hidden=false; s.classList.add("show");
+  $("sc_title").value=(MYPROFILE?.display_name||"My")+"'s Room";
+  const d=new Date(Date.now()+60*60*1000); d.setMinutes(0,0,0); d.setHours(d.getHours()+1);
+  const p=n=>String(n).padStart(2,"0");
+  $("sc_when").value=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  $("sc_err").textContent="";
+}
+function closeSchedule(){ const s=$("schedule"); s.classList.remove("show"); s.hidden=true; }
+async function scheduleSubmit(){
+  const title=($("sc_title").value||"").trim().slice(0,40);
+  const when=$("sc_when").value; const err=$("sc_err"); err.textContent="";
+  if(!title){ err.textContent="Give the show a name."; return false; }
+  const t=Date.parse(when); if(!Number.isFinite(t)){ err.textContent="Pick a date and time."; return false; }
+  if(t<Date.now()+10*60*1000){ err.textContent="At least 10 minutes from now."; return false; }
+  const {data,error}=await sb.rpc("schedule_show",{title, starts_at:new Date(t).toISOString()});
+  if(error){ err.textContent=error.message; return false; }
+  closeSchedule(); toast("On the Marquee — "+fmtWhen(data.starts_at)+".");
+  await marqueeLoad(); return true;
+}
+/* GO LIVE links to the scheduled show when it is within two hours either way */
+async function marqueeLinkLive(room){
+  const mine=SHOWS.find(s=>s.mine && s.status==="scheduled");
+  if(!mine || !room) return false;
+  const dt=Math.abs(Date.parse(mine.starts_at)-Date.now());
+  if(dt>2*60*60*1000) return false;
+  try{ const {error}=await sb.rpc("show_went_live",{show_id:mine.id, room_id:room.id}); if(error) return false; }catch(e){ return false; }
+  marqueeLoad(); return true;
+}
+function marqueeSubscribe(){
+  try{ sb.channel("marquee")
+    .on("postgres_changes",{event:"*",schema:"public",table:"shows"},()=>marqueeLoad())
+    .on("postgres_changes",{event:"*",schema:"public",table:"rsvps"},()=>marqueeLoad())
+    .subscribe(); }catch(e){}
+}
+function marqueeInit(){
+  const b=$("schedulebtn"); if(b) b.onclick=openSchedule;
+  const s=$("schedule"); if(s){ s.querySelector(".lc-sheet__scrim").onclick=closeSchedule; $("sc_go").onclick=scheduleSubmit; $("sc_cancel").onclick=closeSchedule; }
+}
+try{ marqueeInit(); }catch(e){ console.log("marquee init:",e&&e.message); }
+
 window.__lc = {
   /* roster / rendering — roomCounts is THE headcount derivation: every count
      the app shows (lobby card, room header, watchbar, bench slice) reads
@@ -11258,7 +11427,10 @@ window.__lc = {
   profilePhotoAdd, promptDeckLoad, paintMeButton, get sb(){ return sb; },
   /* THE DECK (PR D1) */
   deckLoad, deckSwipe, deckRender, matchesRefresh, openMatches, closeMatches, openChat, closeChat, chatSend, chatLoad, deckMatchHide,
-  get DECK(){ return DECK; }, get DECK_BUSY(){ return DECK_BUSY; }, get MATCHES(){ return MATCHES; }, get UNREAD(){ return UNREAD; }, get CHAT_MATCH(){ return CHAT_MATCH; },
+  get DECK(){ return DECK; }, get DECK_BUSY(){ return DECK_BUSY; }, get MATCHES(){ return MATCHES; },
+  /* THE MARQUEE (PR D2) */
+  marqueeLoad, marqueeRender, marqueeRsvp, marqueeCancel, openSchedule, closeSchedule, scheduleSubmit, marqueeLinkLive, fmtCountdown, fmtWhen,
+  get SHOWS(){ return SHOWS; }, get UNREAD(){ return UNREAD; }, get CHAT_MATCH(){ return CHAT_MATCH; },
   get BLOCKS(){ return BLOCKS; }, get PE(){ return PE; }, get PROFILE_OPEN_TO_ALL(){ return PROFILE_OPEN_TO_ALL; }, get PROMPT_DECK(){ return PROMPT_DECK; },
   /* THE DOOR (feat/splash-explainer) — the signed-out status line and the
      one way onto the form from above it */

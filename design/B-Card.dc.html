@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>B Contestant Card</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,800;1,9..144,600&family=Archivo:wght@400;500;600;700&family=Azeret+Mono:wght@600;700&display=swap">
+<style>
+body{margin:0;background:#f6f1ea}
+a{color:#e8174f}a:hover{color:#b00f3a}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#f6f1ea;color:#141413;font-family:Archivo,sans-serif;position:relative;overflow:hidden">
+  <!-- photo in a white frame -->
+  <div style="margin:54px 16px 0;background:#fff;border:1.5px solid #141413;border-radius:16px;padding:8px;box-shadow:4px 4px 0 #141413">
+    <div style="position:relative;height:380px;border-radius:10px;overflow:hidden;background:linear-gradient(160deg,#e9c9b6,#c98a7a 60%,#7c4a4a);display:flex;align-items:center;justify-content:center;font-family:Fraunces,serif;font-weight:800;font-size:180px;color:rgba(255,255,255,.55)">D
+      <div style="position:absolute;top:10px;left:0;right:0;display:flex;justify-content:center;gap:4px"><i style="width:26px;height:3px;background:#141413;border-radius:2px"></i><i style="width:26px;height:3px;background:rgba(20,20,19,.3);border-radius:2px"></i><i style="width:26px;height:3px;background:rgba(20,20,19,.3);border-radius:2px"></i></div>
+      <button aria-label="Close" style="position:absolute;top:10px;left:10px;width:34px;height:34px;border-radius:50%;border:1.5px solid #141413;background:#fff;color:#141413;font-size:14px">✕</button>
+      <div style="position:absolute;top:10px;right:10px;font-family:'Azeret Mono',monospace;font-size:11px;font-weight:700;color:#fff;background:#e8174f;border:1.5px solid #141413;border-radius:999px;padding:4px 9px">♥ 32</div>
+    </div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;padding:12px 6px 4px">
+      <div style="font-family:Fraunces,serif;font-weight:800;font-size:34px;line-height:1;letter-spacing:-.02em">Dex, 32</div>
+      <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.2em;color:#e8174f">★ FAN FAVORITE</div>
+    </div>
+    <div style="padding:0 6px 6px;font-size:13px;color:#6b655c">Portland · he/him · 4 mi</div>
+  </div>
+  <!-- the record as a ticket strip -->
+  <div style="margin:12px 16px 0;display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));border:1.5px solid #141413;border-radius:12px;overflow:hidden;background:#fff">
+    <div style="padding:10px 4px;text-align:center;border-right:1.5px dashed #141413"><div style="font-family:Fraunces,serif;font-weight:800;font-size:22px">32</div><div style="font-family:'Azeret Mono',monospace;font-size:8px;letter-spacing:.16em;color:#6b655c">HEARTS</div></div>
+    <div style="padding:10px 4px;text-align:center;border-right:1.5px dashed #141413"><div style="font-family:Fraunces,serif;font-weight:800;font-size:22px">6</div><div style="font-family:'Azeret Mono',monospace;font-size:8px;letter-spacing:.16em;color:#6b655c">SHOWS</div></div>
+    <div style="padding:10px 4px;text-align:center;border-right:1.5px dashed #141413"><div style="font-family:Fraunces,serif;font-weight:800;font-size:22px">1</div><div style="font-family:'Azeret Mono',monospace;font-size:8px;letter-spacing:.16em;color:#6b655c">KEEP</div></div>
+    <div style="padding:10px 4px;text-align:center"><div style="font-family:Fraunces,serif;font-weight:800;font-size:22px">0</div><div style="font-family:'Azeret Mono',monospace;font-size:8px;letter-spacing:.16em;color:#6b655c">HOSTED</div></div>
+  </div>
+  <div style="margin:14px 20px 0;font-size:15px;line-height:1.5">Pedal steel on weeknights. Karaoke on purpose. Will absolutely take the chair.</div>
+  <div style="margin:14px 20px 0">
+    <div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.2em;color:#6b655c">MY LAST CALL IS USUALLY…</div>
+    <div style="font-family:Fraunces,serif;font-style:italic;font-weight:600;font-size:20px;line-height:1.25;margin-top:4px">“two whiskeys and a long goodbye”</div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 30px;display:flex;justify-content:center;gap:24px;background:linear-gradient(180deg,rgba(246,241,234,0),#f6f1ea 40%)">
+    <button aria-label="Pass" style="width:60px;height:60px;border-radius:50%;border:1.5px solid #141413;background:#fff;color:#141413;font-size:22px;box-shadow:3px 3px 0 #141413">✕</button>
+    <button aria-label="Heart" style="width:60px;height:60px;border-radius:50%;border:1.5px solid #141413;background:#e8174f;color:#fff;font-size:24px;box-shadow:3px 3px 0 #141413">♥</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Contestant Card</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Archivo:wght@400;500;600;700&family=Azeret+Mono:wght@600;700&family=Monoton&display=swap">
+<style>
+body{margin:0;background:#080b20}
+a{color:#ffd6e9}a:hover{color:#fff}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#080b20;color:#eef0ff;font-family:Archivo,sans-serif;position:relative;overflow:hidden">
+  <!-- hero: the photo is the card -->
+  <div style="position:relative;height:520px;background:linear-gradient(160deg,#5b2a3e,#2a1535 60%,#141a3a)">
+    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Monoton,cursive;font-size:190px;color:rgba(255,45,143,.3)">D</div>
+    <div style="position:absolute;left:0;right:0;bottom:0;height:50%;background:linear-gradient(180deg,rgba(8,11,32,0),rgba(8,11,32,.85) 60%,#080b20)"></div>
+    <div style="position:absolute;top:54px;left:0;right:0;display:flex;justify-content:center;gap:4px"><i style="width:28px;height:3px;border-radius:2px;background:#fff"></i><i style="width:28px;height:3px;border-radius:2px;background:rgba(255,255,255,.35)"></i><i style="width:28px;height:3px;border-radius:2px;background:rgba(255,255,255,.35)"></i><i style="width:28px;height:3px;border-radius:2px;background:rgba(255,255,255,.35)"></i></div>
+    <button aria-label="Close" style="position:absolute;top:66px;left:14px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(8,11,32,.6);color:#fff;font-size:16px">✕</button>
+    <div style="position:absolute;top:66px;right:14px;display:flex;gap:8px">
+      <span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.2em;color:#2a1010;background:#ffd6e9;border-radius:14px;padding:8px 10px">★ FAN FAVORITE</span>
+      <span style="font-family:'Azeret Mono',monospace;font-size:12px;font-weight:700;color:#fff;background:rgba(255,45,143,.85);border-radius:14px;padding:7px 11px;box-shadow:0 0 12px rgba(255,45,143,.6)"><span style="color:#ffd6e9">♥</span> 32</span>
+    </div>
+    <div style="position:absolute;left:18px;right:18px;bottom:18px">
+      <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:40px;line-height:1;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.9)">Dex <span style="font-family:'Azeret Mono',monospace;font-size:24px;color:#ffd6e9">32</span></div>
+      <div style="font-size:14px;color:rgba(238,240,255,.85);margin-top:4px">Portland · he/him · 4 mi</div>
+    </div>
+  </div>
+  <div style="padding:0 18px">
+    <div style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.2em;color:#ffd6e9;margin:14px 0 8px">SHOW RECORD</div>
+    <div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:6px">
+      <div style="background:rgba(6,8,24,.72);border:1px solid rgba(255,45,143,.6);border-radius:12px;padding:9px 4px;text-align:center"><div style="font-family:'Azeret Mono',monospace;font-size:20px;font-weight:700;color:#ffd6e9">32</div><div style="font-family:'Azeret Mono',monospace;font-size:8px;letter-spacing:.16em;color:rgba(238,240,255,.55)">HEARTS</div></div>
+      <div style="background:rgba(6,8,24,.72);border:1px solid rgba(255,45,143,.6);border-radius:12px;padding:9px 4px;text-align:center"><div style="font-family:'Azeret Mono',monospace;font-size:20px;font-weight:700;color:#ffd6e9">6</div><div style="font-family:'Azeret Mono',monospace;font-size:8px;letter-spacing:.16em;color:rgba(238,240,255,.55)">SHOWS</div></div>
+      <div style="background:rgba(6,8,24,.72);border:1px solid rgba(255,45,143,.6);border-radius:12px;padding:9px 4px;text-align:center"><div style="font-family:'Azeret Mono',monospace;font-size:20px;font-weight:700;color:#ffd6e9">1</div><div style="font-family:'Azeret Mono',monospace;font-size:8px;letter-spacing:.16em;color:rgba(238,240,255,.55)">KEEP</div></div>
+      <div style="background:rgba(6,8,24,.72);border:1px solid rgba(255,45,143,.6);border-radius:12px;padding:9px 4px;text-align:center"><div style="font-family:'Azeret Mono',monospace;font-size:20px;font-weight:700;color:#ffd6e9">0</div><div style="font-family:'Azeret Mono',monospace;font-size:8px;letter-spacing:.16em;color:rgba(238,240,255,.55)">HOSTED</div></div>
+    </div>
+    <div style="font-size:15px;line-height:1.5;color:#eef0ff;margin:12px 0 0">Pedal steel on weeknights. Karaoke on purpose. Will absolutely take the chair.</div>
+    <div style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.2em;color:#ffd6e9;margin:14px 0 8px">ON THE RECORD</div>
+    <div style="border-left:3px solid #ff2d8f;padding-left:12px">
+      <div style="font-family:'Azeret Mono',monospace;font-size:8.5px;letter-spacing:.16em;color:#ff8ac2">MY LAST CALL IS USUALLY…</div>
+      <div style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:18px;line-height:1.25;color:#fff;margin-top:2px">“two whiskeys and a long goodbye”</div>
+    </div>
+  </div>
+  <!-- bottom actions: the same two buttons as the deck -->
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:14px 18px 30px;background:linear-gradient(180deg,rgba(8,11,32,0),#080b20 40%);display:flex;justify-content:center;gap:28px">
+    <button aria-label="Pass" style="width:62px;height:62px;border-radius:50%;border:none;color:#d6cdff;font-size:24px;background:linear-gradient(180deg,#3b2a72,#241a52 55%,#1a1240);box-shadow:inset 0 2px 0 rgba(255,255,255,.25),0 0 0 2px #3b2a72,0 5px 0 #120c2c">✕</button>
+    <button aria-label="Heart" style="width:62px;height:62px;border-radius:50%;border:none;color:#fff;font-size:26px;background:linear-gradient(180deg,#ff8ac2,#ff2d8f 46%,#c60d68);box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 0 0 2px #3b2a72,0 5px 0 #8c0847,0 0 22px rgba(255,45,143,.5)">♥</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

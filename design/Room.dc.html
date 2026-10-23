@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Room</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Archivo:wght@400;500;600;700&family=Azeret+Mono:wght@600;700&family=Monoton&display=swap">
+<style>
+body{margin:0;background:#080b20}
+a{color:#ffd6e9}a:hover{color:#fff}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#080b20;color:#eef0ff;font-family:Archivo,sans-serif;position:relative;overflow:hidden;display:flex;flex-direction:column">
+  <div style="position:absolute;inset:0;background:radial-gradient(110% 60% at 50% 108%, rgba(255,45,143,.34), transparent 66%),radial-gradient(80% 45% at 8% 100%, rgba(45,227,208,.26), transparent 62%)"></div>
+  <!-- top: the show, the clock -->
+  <div style="position:relative;display:flex;align-items:center;justify-content:space-between;padding:54px 14px 8px">
+    <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#ff2d8f;box-shadow:0 0 8px #ff2d8f"></span><span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.2em;color:#ffd6e9">LIVE · ROUND 2 · SPOTLIGHT</span></div>
+    <span style="font-family:'Azeret Mono',monospace;font-size:12px;font-weight:700;background:#2de3d0;color:#042b28;border-radius:7px;padding:3px 8px">0:24</span>
+  </div>
+  <!-- the question card -->
+  <div style="position:relative;margin:10px 14px 0;border-radius:16px;background:rgba(13,17,41,.92);border:1px solid rgba(255,45,143,.6);padding:10px 14px">
+    <div style="font-family:'Azeret Mono',monospace;font-size:8.5px;letter-spacing:.16em;color:#ff8ac2">ROUND 2 · QUESTION FOR DEX</div>
+    <div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:19px;line-height:1.15;color:#fff;margin-top:3px">My last call is usually…</div>
+    <div style="font-family:'Baloo 2',sans-serif;font-weight:700;font-size:13px;color:#ffd6e9;border-left:3px solid #ff2d8f;padding-left:10px;margin-top:6px">From his profile — he wrote: “two whiskeys and a long goodbye”</div>
+  </div>
+
+  <!-- THE QUAD: her box and the three chairs, 2×2, equal cells — "the quad and the bench never move" -->
+  <div style="position:relative;display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:6px;margin:10px 14px 0">
+    <div style="position:relative;height:176px;border-radius:18px;background:#141a3a;border:2.5px solid #ff2d8f;box-shadow:0 0 16px rgba(255,45,143,.85),0 0 50px rgba(255,45,143,.4);overflow:hidden">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Monoton,cursive;font-size:80px;color:rgba(255,45,143,.25)">M</div>
+      <div style="position:absolute;top:6px;left:6px;font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.16em;color:#fff;background:rgba(255,45,143,.85);border-radius:999px;padding:3px 8px">HOST</div>
+      <div style="position:absolute;top:6px;right:6px;font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#ffd6e9;background:rgba(8,11,32,.78);border-radius:10px;padding:2px 7px">♥ 118</div>
+      <div style="position:absolute;left:6px;bottom:6px;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#fff;background:rgba(255,45,143,.85);border-radius:10px;padding:3px 10px">Marla</div>
+    </div>
+    <div style="position:relative;height:176px;border-radius:18px;background:#141a3a;border:1.5px solid #2de3d0;box-shadow:0 0 10px rgba(45,227,208,.55),0 0 0 3px rgba(255,45,143,.5);overflow:hidden">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Monoton,cursive;font-size:80px;color:rgba(45,227,208,.3)">D</div>
+      <div style="position:absolute;top:6px;right:6px;font-family:'Azeret Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.14em;color:#042b28;background:#2de3d0;border-radius:8px;padding:3px 6px">ON</div>
+      <div style="position:absolute;top:6px;left:6px;font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#ffd6e9;background:rgba(8,11,32,.78);border-radius:10px;padding:2px 7px">♥ 32</div>
+      <div style="position:absolute;left:6px;bottom:6px;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#fff;background:rgba(255,45,143,.85);border-radius:10px;padding:3px 10px">Dex</div>
+    </div>
+    <div style="position:relative;height:176px;border-radius:18px;background:#141a3a;border:1.5px solid #2de3d0;box-shadow:0 0 10px rgba(45,227,208,.55);overflow:hidden">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Monoton,cursive;font-size:80px;color:rgba(45,227,208,.3)">T</div>
+      
+      <div style="position:absolute;top:6px;left:6px;font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#ffd6e9;background:rgba(8,11,32,.78);border-radius:10px;padding:2px 7px">♥ 9</div>
+      <div style="position:absolute;left:6px;bottom:6px;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#fff;background:rgba(6,8,24,.72);border:1px solid rgba(255,45,143,.75);border-radius:10px;padding:3px 10px">Theo</div>
+    </div>
+    <div style="position:relative;height:176px;border-radius:18px;background:#141a3a;border:1.5px solid #2de3d0;box-shadow:0 0 10px rgba(45,227,208,.55);overflow:hidden">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Monoton,cursive;font-size:80px;color:rgba(45,227,208,.3)">R</div>
+      <div style="position:absolute;top:6px;left:6px;font-family:'Azeret Mono',monospace;font-size:10px;font-weight:700;color:#ffd6e9;background:rgba(8,11,32,.78);border-radius:10px;padding:2px 7px">♥ 21</div>
+      <div style="position:absolute;left:6px;bottom:6px;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#fff;background:rgba(6,8,24,.72);border:1px solid rgba(255,45,143,.75);border-radius:10px;padding:3px 10px">Rafi</div>
+    </div>
+  </div>
+  <!-- the bench -->
+  <div style="position:relative;margin:10px 14px 0;display:flex;align-items:center;gap:8px">
+    <span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.2em;color:rgba(238,240,255,.55)">THE BENCH · 5 IN LINE</span>
+    <span style="flex:1;height:1px;background:rgba(238,240,255,.12)"></span>
+    <span style="font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.14em;color:#2de3d0">NEXT UP · SAM</span>
+  </div>
+  <div style="position:relative;display:flex;gap:8px;margin:8px 14px 0">
+    <div style="flex:1;height:56px;border-radius:12px;background:rgba(16,26,48,.8);border:1.5px solid #2de3d0;box-shadow:0 0 8px rgba(45,227,208,.5);display:flex;align-items:center;gap:8px;padding:0 8px"><i style="width:36px;height:36px;border-radius:8px;background:#3b2a72"></i><div><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#fff">Sam</div><div style="font-family:'Azeret Mono',monospace;font-size:9px;color:#ffd6e9">♥ 14</div></div></div>
+    <div style="flex:1;height:56px;border-radius:12px;background:rgba(16,26,48,.8);border:1px solid rgba(238,240,255,.15);display:flex;align-items:center;gap:8px;padding:0 8px"><i style="width:36px;height:36px;border-radius:8px;background:#3b2a72"></i><div><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#fff">Eli</div><div style="font-family:'Azeret Mono',monospace;font-size:9px;color:#ffd6e9">♥ 6</div></div></div>
+    <div style="flex:1;height:56px;border-radius:12px;background:rgba(16,26,48,.8);border:1px solid rgba(238,240,255,.15);display:flex;align-items:center;gap:8px;padding:0 8px"><i style="width:36px;height:36px;border-radius:8px;background:#3b2a72"></i><div><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:13px;color:#fff">Kai</div><div style="font-family:'Azeret Mono',monospace;font-size:9px;color:#ffd6e9">♥ 2</div></div></div>
+  </div>
+  <!-- the input bar, as built: chat + ✦ looks + throw + bench -->
+  <div style="position:relative;margin:auto 14px 30px;display:flex;align-items:center;gap:8px">
+    <label for="chatA" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Say something</label>
+    <input id="chatA" type="text" placeholder="Say something…" style="flex:1;min-width:0;background:rgba(238,240,255,.07);border:1px solid rgba(238,240,255,.25);border-radius:999px;padding:12px 14px;color:#eef0ff;font-size:14px;font-family:Archivo,sans-serif">
+    <button aria-label="Looks" style="width:46px;height:46px;border-radius:50%;border:1.5px solid #2de3d0;background:rgba(45,227,208,.12);color:#2de3d0;font-size:18px">✦</button>
+    <button aria-label="Throw a cheer or a jeer" style="width:46px;height:46px;border-radius:50%;border:1.5px solid #ffd6e9;background:rgba(255,214,233,.12);color:#ffd6e9;font-size:18px">🍅</button>
+    <button style="border:none;border-radius:999px;padding:12px 14px;font-family:'Azeret Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.14em;color:#fff;background:linear-gradient(180deg,#ff8ac2,#ff2d8f 46%,#c60d68);box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 3px 0 #8c0847;white-space:nowrap">♥ BENCH</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

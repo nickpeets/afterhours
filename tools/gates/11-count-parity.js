@@ -24,7 +24,7 @@ module.exports = {
       const fx = fixtures.standardRoster(h.double);
       const c = await h.newClient("parity");
       c.login(fx.crowd[0]);
-      await c.goto();
+      await c.goto("#shows");   // THE TABS (D4): the LIVE NOW card is on the Shows tab
 
       /* --- the LOBBY's number, from the real card --- */
       await c.page.waitForSelector(".roomcard", { timeout: 15000 });

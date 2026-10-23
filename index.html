@@ -1614,11 +1614,6 @@
 .vippill.is-on{color:#2a1010;background:var(--gold);border-color:var(--gold)}
 /* ---------- THE DECK (PR D1, 10/21): swipe, match, chat ---------- */
 .deck{ margin:14px 0 6px; }
-/* a quiet night: LIVE NOW folds to one line and the deck takes the screen (the ruling: never a dead lobby) */
-#lobby.is-quiet .roomlist .empty{ padding:10px 12px; font-size:12px; line-height:1.4; border:1px dashed rgba(238,240,255,.18); border-radius:12px; }
-#lobby.is-quiet .roomlist .empty br{ display:none; }
-#lobby.is-quiet .deck{ margin-top:10px; }
-#lobby.is-quiet .deck__stack{ height:min(56vh, 540px); height:min(56dvh, 540px); }
 .deck__shot--none{ font-family:"Baloo 2",sans-serif; font-weight:800; font-size:120px; color:rgba(255,45,143,.35); text-shadow:0 0 30px rgba(255,45,143,.5); }
 .deck__stack{ position:relative; height:min(62vh, 520px); height:min(62dvh, 520px); }
 .deck__card{ position:absolute; inset:0; border-radius:22px; overflow:hidden; background:var(--video,#141a3a);
@@ -1673,9 +1668,54 @@
 .deck__match-faces i{ width:110px; height:110px; border-radius:50%; border:3px solid var(--gold); background:#141a3a center/cover; box-shadow:0 0 24px rgba(255,214,233,.5); margin:0 -8px; }
 .deck__match-n{ font-family:"Baloo 2",sans-serif; font-weight:700; font-size:17px; color:#fff; margin-bottom:16px; }
 .deck__match-box .fbtn{ display:block; width:100%; margin:6px 0; }
-.matchesbtn{ position:relative; background:none; border:1px solid var(--dim); color:var(--dim); border-radius:8px; padding:4px 8px; font-size:13px; cursor:pointer; }
-.matchesbtn.has-unread{ border-color:var(--neon,#ff2d8f); color:#fff; }
-.matchesbtn.has-unread::after{ content:attr(data-n); position:absolute; top:-7px; right:-7px; background:var(--neon,#ff2d8f); color:#fff; font-family:"Azeret Mono",monospace; font-size:9px; font-weight:700; min-width:16px; height:16px; line-height:16px; border-radius:8px; padding:0 4px; text-align:center; }
+/* ---------- THE TABS (feat/tabs, D4): the bar, the panes, the pill, Matches, You ---------- */
+#tabbar{ display:flex; align-items:stretch; flex:0 0 auto; z-index:30; border-top:1px solid rgba(255,45,143,.25); background:rgba(8,11,32,.96);
+  padding:4px 10px calc(10px + env(safe-area-inset-bottom,0px)); }
+#app:has(#room.show) #tabbar, #app:has(#auth:not(.hide)) #tabbar, #app:has(#backstage.show) #tabbar{ display:none !important; }
+.tabbar__btn{ position:relative; flex:1 1 0; display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 0 2px; background:none; border:none; cursor:pointer; color:rgba(238,240,255,.45); }
+.tabbar__ico{ font-size:20px; line-height:1; }
+.tabbar__lbl{ font-family:"Azeret Mono",monospace; font-size:8px; letter-spacing:.16em; }
+.tabbar__btn.is-on{ color:var(--neon,#ff2d8f); }
+.tabbar__btn.is-on .tabbar__ico{ filter:drop-shadow(0 0 8px rgba(255,45,143,.9)); }
+.tabbar__btn.has-unread::after{ content:attr(data-n); position:absolute; top:4px; left:calc(50% + 8px); background:var(--neon,#ff2d8f); color:#fff; font-family:"Azeret Mono",monospace; font-size:8px; font-weight:700; min-width:15px; height:15px; line-height:15px; border-radius:8px; padding:0 4px; text-align:center; }
+.tabpane[hidden]{ display:none; }
+#tab_swipe .deck{ margin:0 0 6px; }
+#tab_swipe .deck__stack{ height:min(64vh, 560px); height:min(64dvh, 560px); }
+.showpill{ display:flex; align-items:center; gap:8px; width:100%; margin:0 0 10px; padding:8px 12px; border-radius:999px; cursor:pointer; text-align:left;
+  background:rgba(13,17,41,.95); border:1.5px solid var(--neon,#ff2d8f); box-shadow:0 0 14px rgba(255,45,143,.6); color:#fff; }
+.showpill[hidden]{ display:none; }
+.showpill--next{ border-color:rgba(185,168,255,.55); box-shadow:none; }
+.showpill__k{ font-family:"Azeret Mono",monospace; font-size:9px; font-weight:700; letter-spacing:.18em; color:var(--gold,#ffd6e9); white-space:nowrap; }
+.showpill__t{ flex:1; min-width:0; font-family:"Baloo 2",sans-serif; font-weight:800; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.showpill__go{ font-family:"Azeret Mono",monospace; font-size:9px; font-weight:700; letter-spacing:.14em; color:var(--accent,#2de3d0); white-space:nowrap; }
+.upnext{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+.upnext[hidden], .sectlabel[hidden], .mt-new[hidden]{ display:none; }
+.upnext__row{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:14px; background:rgba(13,17,41,.85); border:1px solid rgba(255,45,143,.4); }
+.upnext__face{ width:40px; height:40px; border-radius:50%; flex:0 0 auto; background:#3b2a72 center/cover; border:2px solid var(--neon,#ff2d8f); }
+.upnext__txt{ flex:1; min-width:0; }
+.upnext__title{ font-family:"Baloo 2",sans-serif; font-weight:800; font-size:15px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.upnext__sub{ font-size:12px; color:var(--dim); }
+#tab_shows .golive{ margin-top:16px; }
+.mt-new{ display:flex; gap:14px; overflow-x:auto; padding:2px 2px 10px; margin-bottom:8px; scrollbar-width:none; }
+.mt-new::-webkit-scrollbar{ display:none; }
+.mt-new__one{ display:flex; flex-direction:column; align-items:center; gap:4px; flex:0 0 auto; cursor:pointer; background:none; border:none; padding:0; color:var(--paper); }
+.mt-new__face{ width:62px; height:62px; border-radius:50%; background:#3b2a72 center/cover; border:2.5px solid var(--neon,#ff2d8f); display:flex; align-items:center; justify-content:center; font-family:"Baloo 2",sans-serif; font-weight:800; font-size:20px; color:#fff; }
+.mt-new__name{ font-size:11px; color:rgba(238,240,255,.7); max-width:64px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.you__hero{ display:flex; flex-direction:column; align-items:center; margin:6px 0 18px; }
+#tab_you .mebtn{ width:134px; height:134px; font-size:56px; box-shadow:0 0 18px rgba(255,45,143,.55); }
+.you__name{ font-family:"Baloo 2",sans-serif; font-weight:800; font-size:28px; line-height:1; color:#fff; margin-top:16px; }
+.you__name .pc__age{ font-family:"Azeret Mono",monospace; font-size:17px; color:var(--gold,#ffd6e9); margin-left:6px; }
+.you__sub{ font-size:13px; color:var(--dim); margin-top:4px; min-height:1em; }
+.you__pct{ margin-top:10px; font-family:"Azeret Mono",monospace; font-size:9px; font-weight:700; letter-spacing:.14em; color:#fff; background:var(--neon,#ff2d8f); border-radius:999px; padding:5px 10px; }
+.you__pct:empty{ display:none; }
+.you__grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; margin-bottom:14px; }
+.you__cell{ display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 6px; border-radius:14px; background:rgba(13,17,41,.85); border:1px solid rgba(255,45,143,.4); color:#fff; cursor:pointer; }
+.you__cell span{ font-size:20px; line-height:1; }
+.you__cell b{ font-family:"Azeret Mono",monospace; font-size:8px; letter-spacing:.14em; font-weight:700; }
+#tab_you .vipwrap{ justify-content:center; margin:0 0 14px; }
+.you__rows{ display:flex; flex-direction:column; gap:8px; }
+#tab_you .iconbtn{ width:100%; padding:12px; border-radius:12px; font-size:13px; font-weight:700; }
+#tab_you .iconbtn.gear{ color:var(--paper); border-color:rgba(238,240,255,.3); }
 .mt{ display:flex; align-items:center; gap:12px; padding:10px 4px; border-bottom:1px solid rgba(238,240,255,.08); cursor:pointer; }
 .mt__face{ width:52px; height:52px; border-radius:50%; flex:0 0 auto; background:#141a3a center/cover; border:2px solid rgba(45,227,208,.6); }
 .mt__txt{ flex:1; min-width:0; }
@@ -1712,8 +1752,6 @@
 .mq__btn.is-on{ background:rgba(45,227,208,.15); color:var(--accent,#2de3d0); border:1.5px solid var(--accent,#2de3d0); box-shadow:none; }
 .mq__btn--ghost{ background:transparent; border:1.5px solid var(--dim); color:var(--dim); box-shadow:none; }
 .mq__btn--live{ animation:pulse 1.2s infinite; }
-.mq__more{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; padding-top:8px; border-top:1px solid rgba(238,240,255,.1); }
-.mq__more span{ font-family:"Azeret Mono",monospace; font-size:9px; letter-spacing:.08em; color:var(--dim); background:rgba(238,240,255,.05); border-radius:999px; padding:4px 8px; }
 .schedulebtn{ width:100%; margin:-6px 0 12px; padding:10px; border-radius:999px; border:1.5px dashed rgba(255,45,143,.55); background:rgba(255,45,143,.08); color:#ff8ac2; font-family:"Azeret Mono",monospace; font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; }
 .sc__input{ width:100%; background:rgba(238,240,255,.07); border:1px solid rgba(238,240,255,.25); border-radius:12px; padding:11px 13px; color:#eef0ff; font-size:15px; font-family:Archivo,sans-serif; outline:none; color-scheme:dark; }
 </style>
@@ -1722,12 +1760,10 @@
 <div id="app">
   <header>
     <div class="logo">LAST CALL</div>
+    <!-- THE TABS (D4): the header keeps the logo and the chip; 💬 ☺ ⚙ and
+         Sign out left for the tab bar and the You tab (ids and handlers kept) -->
     <div class="wallet">
       <span class="chip" id="coinchip">✦ 120</span>
-      <button class="matchesbtn" id="matchesbtn" style="display:none" title="Matches" aria-label="Matches" data-n="0">💬</button>
-      <button class="mebtn" id="mebtn" style="display:none" title="My card" aria-label="My card">☺</button>
-      <button class="iconbtn gear" id="settingsbtn" style="display:none" title="Settings" aria-label="Settings">⚙</button>
-      <button class="iconbtn" id="signout" style="display:none">Sign out</button>
     </div>
   </header>
   <main>
@@ -1775,7 +1811,7 @@
         <button class="bigbtn" id="sp_go" type="submit">Set password &amp; step inside</button>
       </form>
       <div class="note">18+ only · live video with real people · be kind on camera</div>
-      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1023.1030</span></div>
+      <div class="authlinks"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span id="sessionslot_wrap" style="display:none"> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="sessionslot"></span></span> · <span style="opacity:.45;font-family:monospace;font-size:10px" id="buildstamp">b1023.1049</span></div>
     </div>
 
     <!-- FIRST-RUN SETUP -->
@@ -1810,24 +1846,71 @@
     </div>
 
     <!-- LOBBY -->
+    <!-- THE TABS (feat/tabs, D4; ruling Nick 10/22: "make the Tinder portion
+         as familiar as possible, THEN we hit them with the show layer").
+         Four panes under one persistent bottom bar (#tabbar, after <main>).
+         Every block below is the SAME element it was in the one-column
+         lobby — moved, with its id and its handlers — and the panes are
+         toggled by tabShow().  Swipe is HOME: first screen after sign-in and
+         after leaving a room (the finale card comes first; never a bare
+         lobby).  The room is a full-screen takeover: the bar hides while
+         CURRENT_ROOM is set. -->
     <div id="lobby" style="display:none">
-      <div id="whoami" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding:8px 12px;border-radius:10px;background:rgba(17,22,52,.7);border:1px solid rgba(185,168,255,.18);font-family:'Azeret Mono',monospace;font-size:10px;letter-spacing:.08em">
-        <span id="whoami_who" style="color:#b9a8ff">—</span>
-        <span id="whoami_slot" style="color:rgba(242,240,255,.45)"></span>
-      </div>
-      <div id="marquee"></div>
-      <button class="golive" id="golive">● GO LIVE — Host Your Room</button>
-      <button class="schedulebtn" id="schedulebtn" type="button">📅 Schedule a show</button>
-      <!-- THE SUBSCRIPTION (PR B): the one visible trace until billing exists — no price, no link -->
-      <div class="vipwrap"><span class="vippill" id="vippill" role="status" aria-label="VIP: coming soon">VIP · coming soon</span></div>
-      <div class="sectlabel">LIVE NOW</div>
-      <div class="roomlist" id="roomlist"></div>
-      <!-- THE DECK (PR D1): the lobby is never dead — swipe between shows -->
-      <div class="deck" id="deck">
-        <div class="sectlabel">THE DECK · swipe between shows</div>
-        <div class="deck__stack" id="deck_stack"></div>
-        <div class="deck__ctl" id="deck_ctl" style="display:none"><button class="deck__btn deck__btn--pass" id="deck_pass" aria-label="Pass" data-label="PASS">✕</button><button class="deck__btn deck__btn--like" id="deck_like" aria-label="Heart" data-label="HEART">♥</button></div>
-      </div>
+      <!-- ♥ SWIPE — the deck, full height; above it ONE slim pill (the show
+           layer's only trace here): LIVE NOW · host · WATCH › when a room is
+           live, NEXT SHOW · when › when one is scheduled, nothing otherwise.
+           pillRender() reads what the Marquee reads (SHOWS + the LIVE NOW
+           list as loadRooms derived it through roomCounts()). -->
+      <section class="tabpane" id="tab_swipe" data-tab="swipe">
+        <button class="showpill" id="showpill" type="button" hidden></button>
+        <!-- THE DECK (PR D1): the lobby is never dead — swipe between shows -->
+        <div class="deck" id="deck">
+          <div class="deck__stack" id="deck_stack"></div>
+          <div class="deck__ctl" id="deck_ctl" style="display:none"><button class="deck__btn deck__btn--pass" id="deck_pass" aria-label="Pass" data-label="PASS">✕</button><button class="deck__btn deck__btn--like" id="deck_like" aria-label="Heart" data-label="HEART">♥</button></div>
+        </div>
+      </section>
+      <!-- 📺 SHOWS — the Marquee, LIVE NOW, UP NEXT, then GO LIVE + SCHEDULE -->
+      <section class="tabpane" id="tab_shows" data-tab="shows" hidden>
+        <div id="marquee"></div>
+        <div class="sectlabel">LIVE NOW</div>
+        <div class="roomlist" id="roomlist"></div>
+        <div class="sectlabel" id="upnext_label" hidden>UP NEXT</div>
+        <div class="upnext" id="upnext" hidden></div>
+        <button class="golive" id="golive">● GO LIVE — Host Your Room</button>
+        <button class="schedulebtn" id="schedulebtn" type="button">📅 Schedule a show</button>
+      </section>
+      <!-- 💬 MATCHES — Tinder's layout: new matches (no messages yet) as a
+           row of faces, then the message list; a tap opens the chat sheet -->
+      <section class="tabpane" id="tab_matches" data-tab="matches" hidden>
+        <div class="sectlabel" id="matches_new_label" hidden>NEW MATCHES</div>
+        <div class="mt-new" id="matches_new" hidden></div>
+        <div class="sectlabel">MESSAGES</div>
+        <div id="matches_body"></div>
+      </section>
+      <!-- ☺ YOU — own card (tap → openProfile(ME.id)), completeness, EDIT,
+           VIP, Settings, Sign out; #whoami (debug only) at the foot -->
+      <section class="tabpane" id="tab_you" data-tab="you" hidden>
+        <div class="you__hero">
+          <button class="mebtn" id="mebtn" style="display:none" title="My card" aria-label="My card">☺</button>
+          <div class="you__name" id="you_name">—</div>
+          <div class="you__sub" id="you_sub"></div>
+          <div class="you__pct" id="you_pct"></div>
+        </div>
+        <div class="you__grid">
+          <button class="you__cell" id="you_card" type="button"><span>🪪</span><b>MY CARD</b></button>
+          <button class="you__cell" id="you_edit" type="button"><span>✎</span><b>EDIT</b></button>
+        </div>
+        <!-- THE SUBSCRIPTION (PR B): the one visible trace until billing exists — no price, no link -->
+        <div class="vipwrap"><span class="vippill" id="vippill" role="status" aria-label="VIP: coming soon">VIP · coming soon</span></div>
+        <div class="you__rows">
+          <button class="iconbtn gear" id="settingsbtn" style="display:none" title="Settings" aria-label="Settings">⚙ Settings</button>
+          <button class="iconbtn" id="signout" style="display:none">Sign out</button>
+        </div>
+        <div id="whoami" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;padding:8px 12px;border-radius:10px;background:rgba(17,22,52,.7);border:1px solid rgba(185,168,255,.18);font-family:'Azeret Mono',monospace;font-size:10px;letter-spacing:.08em">
+          <span id="whoami_who" style="color:#b9a8ff">—</span>
+          <span id="whoami_slot" style="color:rgba(242,240,255,.45)"></span>
+        </div>
+      </section>
     </div>
 
     <!-- ROOM — full show on one screen -->
@@ -2232,10 +2315,6 @@
       </div>
     </div>
     <div class="deck__match" id="deck_match" hidden></div>
-    <div class="lc-sheet" id="matches" hidden>
-      <div class="lc-sheet__scrim"></div>
-      <div class="lc-sheet__panel"><div class="lc-sheet__grab"></div><h3 style="margin:0 0 8px">Matches</h3><div id="matches_body"></div></div>
-    </div>
     <div class="lc-sheet" id="chat" hidden>
       <div class="lc-sheet__scrim"></div>
       <div class="lc-sheet__panel chat__panel"><div class="lc-sheet__grab"></div>
@@ -2246,6 +2325,18 @@
     </div>
     <div id="toast"></div>
   </main>
+  <!-- THE TAB BAR (D4): four equal cells, icon over an 8px mono label; active
+       is pink with a glow, inactive 45% ink; safe-area padding at the foot.
+       #matchesbtn IS the 💬 cell — the same id, the same has-unread class
+       and data-n the header button carried, so the badge is unchanged.
+       Hidden while signed out, during setup, and whenever a room or the
+       backstage takes the screen (tabBarSync + the :has rules). -->
+  <nav id="tabbar" style="display:none" aria-label="Tabs">
+    <button class="tabbar__btn is-on" id="tab_btn_swipe" data-tab="swipe" type="button" aria-label="Swipe"><span class="tabbar__ico">♥</span><span class="tabbar__lbl">SWIPE</span></button>
+    <button class="tabbar__btn" id="tab_btn_shows" data-tab="shows" type="button" aria-label="Shows"><span class="tabbar__ico">📺</span><span class="tabbar__lbl">SHOWS</span></button>
+    <button class="tabbar__btn" id="matchesbtn" data-tab="matches" type="button" title="Matches" aria-label="Matches" data-n="0"><span class="tabbar__ico">💬</span><span class="tabbar__lbl">MATCHES</span></button>
+    <button class="tabbar__btn" id="tab_btn_you" data-tab="you" type="button" aria-label="You"><span class="tabbar__ico">☺</span><span class="tabbar__lbl">YOU</span></button>
+  </nav>
 </div>
 
 <div class="modal" id="settingsmodal">
@@ -2364,7 +2455,7 @@ try{
   if(swept.length) console.info("[afterhours] swept",swept.length,"expired slot session(s)");
   if(ambiguous.length) console.info("[afterhours] chunk-shaped auth keys left untouched (clear by hand if they are stale slots):",ambiguous.join(" "));
 }catch(e){}
-try{ console.log("[lastcall] build b1023.1030"); }catch(e){}
+try{ console.log("[lastcall] build b1023.1049"); }catch(e){}
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY,{auth:{storageKey:SUPA_STORAGE_KEY}});
 
 /* ---- invite links & password recovery ----
@@ -3092,6 +3183,7 @@ async function enterApp(){
       $("auth").classList.add("hide"); $("setup").style.display="none";
       $("lobby").style.display="block";
       $("signout").style.display="inline-block"; $("settingsbtn").style.display="inline-block";
+      try{ tabShow(tabFromHash()||"swipe",{replace:true}); }catch(e){}
       const wn=prof?.display_name||"Winner";
       setTimeout(()=>{ try{ enterBackstage(user.id, wn, wonRoom); }catch(e){} }, 400);
       return;
@@ -3102,9 +3194,10 @@ async function enterApp(){
   const spw=$("setpwPanel"); if(spw) spw.style.display="none";
   $("lobby").style.display="block";
   $("signout").style.display="inline-block"; $("settingsbtn").style.display="inline-block";
+  try{ tabShow(tabFromHash()||"swipe",{replace:true}); }catch(e){}   // THE TABS (D4): Swipe is HOME; #swipe #shows #matches #you deep-link
   /* ruling 10/15: the name · email · window strip is a multi-window testing
      aid — it shows only under ?debug.  Normal users never see their email
-     above GO LIVE. */
+     (it sits at the foot of the You tab). */
   try{
     const strip=$("whoami"), w=$("whoami_who"), sl=$("whoami_slot");
     const dbg=new URLSearchParams(location.search).has("debug");
@@ -3396,6 +3489,7 @@ function lobbyCardRemove(card,why){
   try{ if(LOBBY_PV_IO) LOBBY_PV_IO.unobserve(card); }catch(e){}
   card.remove();
 }
+let LOBBY_ROOMS=[], LOBBY_COUNTS={};   // the LIVE NOW list as loadRooms last painted it (rows + roomCounts() totals)
 async function loadRooms(){
   const seq=++LOBBY_SEQ;
   // THE MARQUEE (fix 10/23): a show reads LIVE or done by its ROOM's status, so every room
@@ -3444,10 +3538,10 @@ async function loadRooms(){
   if(!rooms||!rooms.length){
     list.querySelectorAll(":scope > .roomcard").forEach(c=>lobbyCardRemove(c));
     list.innerHTML='<div class="empty">No live rooms yet. <br>Be the first — hit <b>GO LIVE</b> and your room appears here for everyone, in real time.</div>';
-    try{ $("lobby").classList.add("is-quiet"); }catch(e){}   // THE DECK (PR D1): a quiet night — the deck owns the screen
+    LOBBY_ROOMS=[]; LOBBY_COUNTS={};
+    try{ pillRender(); }catch(e){}   // THE TABS (D4): the Swipe pill reads this list
     return;
   }
-  try{ $("lobby").classList.remove("is-quiet"); }catch(e){}
   // member counts
   // RLS hides room_members from non-members, so a direct read returns 0 for
   // every room you are not already in.  active_members() is SECURITY DEFINER.
@@ -3476,6 +3570,8 @@ async function loadRooms(){
     card.onclick=()=>openRoom(r);
     if(list.children[i]!==card) list.insertBefore(card,list.children[i]||null);
   });
+  LOBBY_ROOMS=rooms; LOBBY_COUNTS=counts;   // THE TABS (D4): what the Swipe pill reads — the same rows, the same roomCounts() totals
+  try{ pillRender(); }catch(e){}
   lobbyPvSync();
   } finally { painted(); }
 }
@@ -3798,6 +3894,7 @@ async function openRoom(r){
   await syncServerClock();
   $("lobby").style.display="none";
   $("room").classList.add("show");
+  try{ tabBarSync(); }catch(e){}   // THE TABS (D4): the room is a full-screen takeover — no bar while CURRENT_ROOM is set
   $("rt_title").textContent=(r.contestant_name?r.contestant_name+"'s Room":"Live Room");
   $("rt_host").textContent=r.contestant_name||"";
   { const hw=$("rt_host_wrap"); if(hw) hw.dataset.uid=r.host_id; }   // her chip opens her card (PR C)
@@ -7018,6 +7115,7 @@ async function exitBackstage(){
   CURRENT_ROOM=null;
   $("room").classList.remove("show");
   $("lobby").style.display="block";
+  try{ tabShow("swipe"); }catch(e){}   // THE TABS (D4): after the backstage, Swipe
   loadRooms();
 }
 
@@ -7289,6 +7387,7 @@ async function leaveRoom(){
   CURRENT_ROOM=null;
   $("room").classList.remove("show");
   $("lobby").style.display="block";
+  try{ tabShow("swipe"); }catch(e){}   // THE TABS (D4): after a room, Swipe — the finale card came first (it lives inside #room)
   loadRooms();
 }
 
@@ -11044,6 +11143,7 @@ function paintMeButton(){
   b.style.backgroundImage=ph?`url('${ph.replace(/'/g,"%27")}')`:"";
   b.classList.toggle("has-photo",!!ph);
   b.style.display=ME?"inline-block":"none";
+  try{ youRender(); }catch(e){}   // THE TABS (D4): the You tab reads the same profile
 }
 /* ---------- 2. the host asks from his prompts ---------- */
 async function egPromptsTab(decks){
@@ -11208,22 +11308,36 @@ async function matchesRefresh(){
   if(!ME) return [];
   try{ const {data,error}=await sb.rpc("my_matches"); if(!error) MATCHES=(data||[]).filter(m=>m&&m.other&&!m.other.blocked); }catch(e){}
   UNREAD=MATCHES.reduce((s,m)=>s+Number(m.unread||0),0);
-  const b=$("matchesbtn"); if(b){ b.style.display=ME?"inline-block":"none"; b.dataset.n=UNREAD; b.classList.toggle("has-unread",UNREAD>0); }
-  if($("matches") && !$("matches").hidden) matchesRender();
+  // THE TABS (D4): #matchesbtn is the 💬 tab cell now — same id, same class, same data-n; its visibility is the bar's (tabBarSync)
+  const b=$("matchesbtn"); if(b){ b.dataset.n=UNREAD; b.classList.toggle("has-unread",UNREAD>0); }
+  matchesRender();
   return MATCHES;
 }
+/* THE TABS (D4): Tinder's two sections — NEW MATCHES (no messages yet) as a
+   row of faces, MESSAGES as the list.  Same rows (my_matches), same chat. */
 function matchesRender(){
   const el=$("matches_body"); if(!el) return;
-  el.innerHTML=MATCHES.length?MATCHES.map(m=>{ const o=m.other||{}; const shot=(o.photos&&o.photos[0])?photoUrl(o.photos[0]):(o.face_photo||"");
+  const shotOf=(o)=>(o.photos&&o.photos[0])?photoUrl(o.photos[0]):(o.face_photo||"");
+  const fresh=MATCHES.filter(m=>!m.last), talked=MATCHES.filter(m=>!!m.last);
+  const row=$("matches_new"), rowLabel=$("matches_new_label");
+  if(row){
+    row.innerHTML=fresh.map(m=>{ const o=m.other||{}; const shot=shotOf(o); const nm=o.display_name||"—";
+      return `<button type="button" class="mt-new__one" data-mid="${escapeHtml(m.match_id)}"><i class="mt-new__face" style="${shot?`background-image:url('${shot.replace(/'/g,"%27")}')`:""}">${shot?"":escapeHtml(nm.trim().charAt(0).toUpperCase())}</i><span class="mt-new__name">${escapeHtml(nm)}</span></button>`; }).join("");
+    row.hidden=!fresh.length; if(rowLabel) rowLabel.hidden=!fresh.length;
+    row.querySelectorAll(".mt-new__one").forEach(r=>r.onclick=()=>{ const m=MATCHES.find(x=>x.match_id===r.dataset.mid); if(m) openChat(m.match_id, m.other); });
+  }
+  el.innerHTML=talked.length?talked.map(m=>{ const o=m.other||{}; const shot=shotOf(o);
     return `<div class="mt" data-mid="${escapeHtml(m.match_id)}"><i class="mt__face" style="background-image:url('${shot.replace(/'/g,"%27")}')"></i>
       <div class="mt__txt"><div class="mt__name">${escapeHtml(o.display_name||"—")}${o.age?` <span class="pc__age">${o.age}</span>`:""}</div>
-      <div class="mt__last">${m.last?escapeHtml((m.last.sender===ME.id?"You: ":"")+m.last.body):"Say hi — you matched."}</div></div>
+      <div class="mt__last">${escapeHtml((m.last.sender===ME.id?"You: ":"")+m.last.body)}</div></div>
       ${Number(m.unread)>0?`<span class="mt__unread">${m.unread}</span>`:""}</div>`; }).join("")
-    :`<div class="deck__empty"><b>No matches yet.</b><div>Swipe the deck, or get in a chair tonight — hearts find you faster on air.</div></div>`;
+    :(fresh.length?`<div class="deck__empty"><b>Say hi.</b><div>Tap a face above — you matched.</div></div>`
+                  :`<div class="deck__empty"><b>No matches yet.</b><div>Swipe the deck, or get in a chair tonight — hearts find you faster on air.</div></div>`);
   el.querySelectorAll(".mt").forEach(r=>r.onclick=()=>{ const m=MATCHES.find(x=>x.match_id===r.dataset.mid); if(m) openChat(m.match_id, m.other); });
 }
-function openMatches(){ const s=$("matches"); s.hidden=false; s.classList.add("show"); matchesRender(); matchesRefresh(); }
-function closeMatches(){ const s=$("matches"); s.classList.remove("show"); s.hidden=true; }
+/* the Matches sheet became the Matches tab: open = show the tab, close = back to Swipe */
+function openMatches(){ tabShow("matches"); matchesRender(); matchesRefresh(); }
+function closeMatches(){ if(tabActive()==="matches") tabShow("swipe"); }
 async function openChat(matchId, other){
   if(!matchId) return false;
   CHAT_MATCH={id:matchId, other:other||{}};
@@ -11273,8 +11387,7 @@ function inboxSubscribe(){
 }
 function deckInit(){
   const l=$("deck_like"), p=$("deck_pass"); if(l) l.onclick=()=>deckSwipe("like"); if(p) p.onclick=()=>deckSwipe("pass");
-  const mb=$("matchesbtn"); if(mb) mb.onclick=openMatches;
-  const ms=$("matches"); if(ms){ ms.querySelector(".lc-sheet__scrim").onclick=closeMatches; }
+  const mb=$("matchesbtn"); if(mb) mb.onclick=openMatches;   // the 💬 tab cell: the same handler the header button had
   const ch=$("chat"); if(ch){ ch.querySelector(".lc-sheet__scrim").onclick=closeChat; $("chat_close").onclick=closeChat; $("chat_send").onclick=chatSend;
     $("chat_input").addEventListener("keydown",(e)=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); chatSend(); } }); }
   const dm=$("deck_match"); if(dm) dm.onclick=(e)=>{ if(e.target===dm) deckMatchHide(); };
@@ -11318,7 +11431,8 @@ function marqueeRender(){
   const el=$("marquee"); if(!el) return;
   const mine=SHOWS.find(s=>s.mine && s.status==="scheduled");
   const sched=$("schedulebtn"); if(sched){ sched.textContent=mine?"📅 Your show: "+fmtWhen(mine.starts_at):"📅 Schedule a show"; sched.dataset.mine=mine?mine.id:""; }
-  if(!SHOWS.length){ el.innerHTML=""; el.style.display="none"; return; }
+  const upLabel=$("upnext_label"), up=$("upnext");
+  if(!SHOWS.length){ el.innerHTML=""; el.style.display="none"; if(up){ up.innerHTML=""; up.hidden=true; } if(upLabel) upLabel.hidden=true; try{ pillRender(); }catch(e){} return; }
   el.style.display="block";
   const next=SHOWS[0];
   const h=next.host||{};
@@ -11340,8 +11454,13 @@ function marqueeRender(){
               :(next.mine?`<button class="mq__btn mq__btn--ghost" id="mq_cancel">Cancel</button>`
                          :`<button class="mq__btn${next.me_going?" is-on":""}" id="mq_rsvp">${next.me_going?"✓ Going":"I'm going"}</button>`)}
       </div>
-      ${SHOWS.length>1?`<div class="mq__more">${SHOWS.slice(1,4).map(s=>`<span>${escapeHtml(fmtWhen(s.starts_at))} · ${escapeHtml(s.title)}</span>`).join("")}</div>`:""}
     </div>`;
+  // UP NEXT (D4): the strip that sat inside the card is its own list under LIVE NOW on the Shows tab — the same three shows
+  if(up){ const more=SHOWS.slice(1,4);
+    up.innerHTML=more.map(s=>{ const sh=s.host||{}; const ss=(sh.photos&&sh.photos[0])?photoUrl(sh.photos[0]):(sh.face_photo||"");
+      return `<div class="upnext__row" data-sid="${escapeHtml(s.id)}"><i class="upnext__face" style="${ss?`background-image:url('${ss.replace(/'/g,"%27")}')`:""}"></i><div class="upnext__txt"><div class="upnext__title">${escapeHtml(s.title)}</div><div class="upnext__sub">${escapeHtml(fmtWhen(s.starts_at))} · with ${escapeHtml(sh.display_name||"—")} · ${Number(s.going||0)} going</div></div></div>`; }).join("");
+    up.hidden=!more.length; if(upLabel) upLabel.hidden=!more.length; }
+  try{ pillRender(); }catch(e){}
   const face=el.querySelector(".mq__face"); if(face && h.id) face.onclick=()=>openProfile(h.id);
   const r=$("mq_rsvp"); if(r) r.onclick=()=>marqueeRsvp(next.id, !next.me_going);
   const c=$("mq_cancel"); if(c) c.onclick=()=>marqueeCancel(next.id);
@@ -11411,6 +11530,92 @@ function marqueeInit(){
 }
 try{ marqueeInit(); }catch(e){ console.log("marquee init:",e&&e.message); }
 
+/* ===================================================================
+   THE TABS (feat/tabs, D4; ruling Nick 10/22: "make the Tinder portion
+   as familiar as possible, THEN we hit them with the show layer").
+   Structure only: four panes (#tab_swipe #tab_shows #tab_matches
+   #tab_you) under one persistent bottom bar (#tabbar), made by MOVING
+   the lobby's blocks — every id and every handler is the one it was.
+   Swipe is HOME: the first screen after sign-in and after a room (the
+   finale card first — it lives inside #room — never a bare lobby).
+   The room is a full-screen takeover: no bar while CURRENT_ROOM is set.
+   Deep links #swipe #shows #matches #you select a tab; location.hash
+   follows the tab (pushState, so back/forward move between tabs).
+   The pill above the deck is the show layer's one trace on Swipe; it
+   reads what the Marquee reads — SHOWS, and the LIVE NOW rows with the
+   roomCounts() totals loadRooms derived — and re-renders whenever
+   marqueeRender or loadRooms runs.  No RPC of its own, no engine touch.
+   =================================================================== */
+const TABS=["swipe","shows","matches","you"];
+let TAB_ACTIVE="swipe";
+function tabFromHash(){ const m=(location.hash||"").match(/^#(swipe|shows|matches|you)$/); return m?m[1]:null; }
+function tabActive(){ return TAB_ACTIVE; }
+/* the bar shows for a signed-in user on a visible lobby with no room entered */
+function tabBarSync(){
+  const bar=$("tabbar"); if(!bar) return false;
+  const lb=$("lobby");
+  const on=!!ME && !CURRENT_ROOM && !!lb && lb.style.display!=="none";
+  bar.style.display=on?"flex":"none";
+  return on;
+}
+function tabShow(name, opts){
+  opts=opts||{};
+  if(!TABS.includes(name)) name="swipe";
+  TAB_ACTIVE=name;
+  TABS.forEach(t=>{ const pane=$("tab_"+t); if(pane) pane.hidden=(t!==name); });
+  document.querySelectorAll("#tabbar .tabbar__btn").forEach(b=>{ const on=b.dataset.tab===name; b.classList.toggle("is-on",on); if(on) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  // the hash follows the tab — but never over a token or a session slot in the fragment
+  if(!opts.fromHistory){
+    const want="#"+name, cur=location.hash||"";
+    if(cur!==want && /^#?(swipe|shows|matches|you)?$/.test(cur)){
+      try{ if(opts.replace) history.replaceState(null,"",want); else history.pushState(null,"",want); }catch(e){}
+    }
+  }
+  try{ const m=document.querySelector("main"); if(m) m.scrollTop=0; }catch(e){}
+  tabBarSync();
+  try{ lobbyPvSync(); }catch(e){}          // LIVE NOW cards preview only while on screen — the Shows tab coming or going is such a change
+  if(name==="matches"){ try{ matchesRefresh(); }catch(e){} }
+  if(name==="you"){ try{ youRender(); }catch(e){} }
+  return name;
+}
+/* the Swipe pill: LIVE NOW · host · WATCH › | NEXT SHOW · when › | nothing */
+function pillRender(){
+  const el=$("showpill"); if(!el) return null;
+  let st=null;
+  const liveShow=SHOWS.find(s=>s.status==="live" && s.room_status==="live");
+  if(liveShow){ const h=liveShow.host||{}; st={kind:"live", host:h.display_name||"—", title:liveShow.title||"", n:null}; }
+  else if(LOBBY_ROOMS.length){ const r=LOBBY_ROOMS[0]; st={kind:"live", host:r.contestant_name||"—", title:(r.contestant_name?r.contestant_name+"'s Room":"Live Room"), n:LOBBY_COUNTS[r.id]}; }
+  else { const next=SHOWS.find(s=>s.status==="scheduled"); if(next) st={kind:"next", when:fmtWhen(next.starts_at), title:next.title||""}; }
+  if(!st){ el.hidden=true; el.innerHTML=""; el.dataset.kind=""; el.classList.remove("showpill--next"); return null; }
+  el.hidden=false; el.dataset.kind=st.kind;
+  el.classList.toggle("showpill--next", st.kind==="next");
+  if(st.kind==="live"){
+    el.innerHTML=`<span class="livedot"></span><span class="showpill__k">LIVE NOW</span><span class="showpill__t">${escapeHtml(st.host)}${st.n!=null?` · ${Number(st.n)} watching`:""}</span><span class="showpill__go">WATCH ›</span>`;
+    el.setAttribute("aria-label","Live now: "+st.host+". Watch");
+  } else {
+    el.innerHTML=`<span class="showpill__k">NEXT SHOW</span><span class="showpill__t">${escapeHtml(st.when)}${st.title?` · ${escapeHtml(st.title)}`:""}</span><span class="showpill__go">›</span>`;
+    el.setAttribute("aria-label","Next show: "+st.when);
+  }
+  return st;
+}
+/* the You tab: own card as the deck would show it — name, age, city · pronouns, completeness */
+function youRender(){
+  const p=MYPROFILE||{};
+  const nm=$("you_name"), sub=$("you_sub"), pct=$("you_pct");
+  const age=p.birthdate?Math.floor((Date.now()-Date.parse(p.birthdate))/31557600000):null;
+  if(nm) nm.innerHTML=escapeHtml(p.display_name||"—")+(age?`<span class="pc__age">${age}</span>`:"");
+  if(sub) sub.textContent=[p.city,p.pronouns].filter(Boolean).join(" · ");
+  if(pct) pct.textContent=ME?(profileCompleteness(p)+"% COMPLETE"):"";
+}
+function tabsInit(){
+  document.querySelectorAll("#tabbar .tabbar__btn").forEach(b=>{ if(b.id==="matchesbtn") return; b.onclick=()=>tabShow(b.dataset.tab); });   // 💬 keeps openMatches (deckInit)
+  const pill=$("showpill"); if(pill) pill.onclick=()=>tabShow("shows");
+  const yc=$("you_card"); if(yc) yc.onclick=()=>{ if(ME) openProfile(ME.id); };
+  const ye=$("you_edit"); if(ye) ye.onclick=()=>openProfileEditor();
+  window.addEventListener("popstate",()=>{ const t=tabFromHash(); const lb=$("lobby"); if(t && ME && !CURRENT_ROOM && lb && lb.style.display!=="none") tabShow(t,{fromHistory:true}); });
+}
+try{ tabsInit(); }catch(e){ console.log("tabs init:",e&&e.message); }
+
 window.__lc = {
   /* roster / rendering — roomCounts is THE headcount derivation: every count
      the app shows (lobby card, room header, watchbar, bench slice) reads
@@ -11434,6 +11639,9 @@ window.__lc = {
   /* THE MARQUEE (PR D2) */
   marqueeLoad, marqueeRender, marqueeRsvp, marqueeCancel, openSchedule, closeSchedule, scheduleSubmit, marqueeLinkLive, fmtCountdown, fmtWhen,
   get SHOWS(){ return SHOWS; }, get UNREAD(){ return UNREAD; }, get CHAT_MATCH(){ return CHAT_MATCH; },
+  /* THE TABS (D4) — tabShow is the ONE way between panes, tabActive what is up, pillRender the Swipe pill off SHOWS + the LIVE NOW list */
+  tabShow, tabActive, pillRender, tabBarSync, youRender, tabFromHash,
+  get TAB_ACTIVE(){ return TAB_ACTIVE; }, get LOBBY_ROOMS(){ return LOBBY_ROOMS.map(r=>({ ...r })); },
   get BLOCKS(){ return BLOCKS; }, get PE(){ return PE; }, get PROFILE_OPEN_TO_ALL(){ return PROFILE_OPEN_TO_ALL; }, get PROMPT_DECK(){ return PROMPT_DECK; },
   /* THE DOOR (feat/splash-explainer) — the signed-out status line and the
      one way onto the form from above it */

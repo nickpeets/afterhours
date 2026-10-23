@@ -60,7 +60,7 @@ async function lobbyClient(h, name, uid, opts) {
   const c = await h.newClient(name, opts);
   await c.page.addInitScript(GUM_SPY);
   c.login(uid);
-  await c.goto("?debug=1");
+  await c.goto("?debug=1#shows");   // THE TABS (D4): the LIVE NOW cards (and their previews) are on the Shows tab
   await c.page.waitForSelector("#lobby", { state: "visible", timeout: 15000 });
   return c;
 }
@@ -309,6 +309,7 @@ module.exports = {
         /* --- J. sign-out tears every preview down --- */
         const beforeOut = (await pv(c)).length;
         const mark = c.logs.length;
+        await c.page.evaluate(() => window.__lc.tabShow("you"));   // THE TABS (D4): Sign out lives on the You tab
         await c.page.click("#signout");
         await c.page.waitForSelector("#auth:not(.hide)", { timeout: 15000 });
         const after = c.logs.slice(mark).map((l) => l.text);

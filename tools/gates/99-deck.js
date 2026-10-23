@@ -64,7 +64,8 @@ module.exports = {
     t.ok(/raise exception 'blocked'/.test(live) && (live.match(/user_blocks/g) || []).length >= 4, "swipe, send_message, deck_next and my_matches all honour user_blocks");
     t.ok(/grant select on table public\.swipes to authenticated;\s+-- writes go through swipe\(\)/.test(live) && !/grant (insert|update|delete)[^;]*public\.(swipes|matches|messages)/.test(live), "no client writes any of the three tables directly");
     const lobby = (ctx.html.match(/<div id="lobby"[\s\S]*?<\/div>\s*<!-- ROOM/) || [""])[0];
-    t.ok(lobby.indexOf('id="roomlist"') > 0 && lobby.indexOf('id="deck_stack"') > lobby.indexOf('id="roomlist"'), "the deck sits under LIVE NOW in the lobby");
+    const swipe = (ctx.html.match(/<section class="tabpane" id="tab_swipe"[\s\S]*?<\/section>/) || [""])[0];
+    t.ok(lobby.indexOf('id="roomlist"') > 0 && swipe.indexOf('id="deck_stack"') > 0, "the deck IS the Swipe tab — HOME (THE TABS, D4); LIVE NOW is on the Shows tab");
     const deckJs = (ctx.html.match(/let DECK=\[\][\s\S]*?try\{ deckInit\(\); \}/) || [""])[0];
     t.ok(deckJs.length > 2000 && !/ask_question|seat_member|keep_member|pass_member|decide_keep|join_line|start_show|engine_|throw_at/.test(deckJs), "the deck code names no engine RPC — it never touches a room or her call");
     t.ok(/sb\.rpc\("swipe"/.test(deckJs) && /sb\.rpc\("deck_next"/.test(deckJs) && /sb\.rpc\("send_message"/.test(deckJs) && /sb\.rpc\("my_matches"/.test(deckJs), "swipe / deck_next / send_message / my_matches are the deck's four doors");

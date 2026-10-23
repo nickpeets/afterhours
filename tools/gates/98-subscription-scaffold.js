@@ -117,8 +117,8 @@ module.exports = {
     const visible = html.replace(/<script[\s\S]*?<\/script>/g, (m) => m.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "")).replace(/<!--[\s\S]*?-->/g, "");
     t.ok(!/\$\s?\d+(\.\d\d)?(\s|\/|<|")/.test(visible) && !/per month|\/mo\b|\/month|per year|\/yr\b|pricing|subscribe now|free trial/i.test(visible),
       "no pricing copy anywhere on the page (no $N, per month, free trial, pricing)");
-    t.ok(/id="vippill"[^>]*>VIP · coming soon</.test(html) && (html.match(/vippill/g) || []).length >= 3 && /<div id="lobby"[\s\S]*?id="vippill"[\s\S]*?<div class="sectlabel">LIVE NOW<\/div>/.test(html),
-      "the VIP pill is in the lobby, above LIVE NOW, and reads VIP · coming soon in the markup — the only visible trace");
+    t.ok(/id="vippill"[^>]*>VIP · coming soon</.test(html) && (html.match(/vippill/g) || []).length >= 3 && /<section class="tabpane" id="tab_you"[\s\S]*?id="vippill"[\s\S]*?<\/section>/.test(html),
+      "the VIP pill is on the You tab (THE TABS, D4) and reads VIP · coming soon in the markup — the only visible trace");
 
     /* ---------- RUNTIME ---------- */
     const h = await Harness.launch();
@@ -144,7 +144,7 @@ module.exports = {
 
       const bootLobby = async (name, uid) => {
         const c = await h.newClient(name); c.login(uid);
-        await c.goto();
+        await c.goto("#you");   // THE TABS (D4): the VIP pill is on the You tab — the #you deep link lands there
         await c.page.waitForSelector("#lobby:not([style*='display: none']), #room.show", { state: "visible", timeout: 15000 });   // the host resumes straight into her live room
         await waitFor(() => c.page.evaluate(() => window.__lc.SUBSCRIBER !== undefined && document.getElementById("vippill") !== null), 8000, name + ": lobby");
         return c;

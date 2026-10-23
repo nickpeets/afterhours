@@ -129,15 +129,18 @@ module.exports = {
       await jo.page.waitForSelector("#room.show", { timeout: 10000 });
       s = await state(jo);
       t.ok(s.room && !s.bar && await jo.page.evaluate(() => getComputedStyle(document.getElementById("lobby")).display === "none"), "Watch (the LIVE NOW card) enters the room: a full-screen takeover, the bar hidden");
-      /* the host ends the show with no finalist: the finale card comes FIRST, then Swipe */
-      await marla.page.evaluate(() => window.__lc.endShow(null));
+      /* the closing card comes FIRST, then Swipe.  renderFinale is the ONE post-show door (wave 6) and it is
+         driven directly here: the no-winner ending's two channels (the rooms row, the finale event) race in
+         the double, and that race is the engine's (as built) — this gate proves the ORDER of the exit. */
+      await marla.page.evaluate(() => window.__lc.renderFinale(null));
       await waitFor(() => marla.page.evaluate(() => document.getElementById("finale").classList.contains("show") && !!document.getElementById("fin_done")), 10000, "Marla's finale card");
       const mid = await state(marla);
       t.ok(mid.room && !mid.bar && await marla.page.evaluate(() => getComputedStyle(document.getElementById("lobby")).display === "none"), "the finale card is up FIRST — still in the room, bar still hidden, never a bare lobby");
-      await marla.page.evaluate(() => document.getElementById("fin_done").click());
+      await marla.page.evaluate(() => document.getElementById("fin_done").click());   // → leaveRoom → the host's ending → Swipe
       await marla.page.waitForSelector("#lobby:not([style*='display: none'])", { state: "visible", timeout: 10000 });
       const back = await state(marla);
       t.ok(!back.room && back.active === "swipe" && back.swipe && back.bar && back.on[0] === "swipe", "Back to lobby → the Swipe tab, bar back");
+      await waitFor(() => { const r = [...D.rooms.values()].find((x) => x.host_id === "u_marla"); return r && r.status === "ended"; }, 8000, "her room ended on the server");
       await waitFor(() => jo.page.evaluate(() => !window.__lc.CURRENT_ROOM && getComputedStyle(document.getElementById("lobby")).display !== "none"), 10000, "Jo back in the lobby");
       s = await state(jo);
       t.ok(s.active === "swipe" && s.bar, "…and the watcher leaves to Swipe too, bar back");

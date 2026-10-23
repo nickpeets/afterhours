@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Door</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Archivo:wght@400;500;600;700&family=Azeret+Mono:wght@600;700&family=Monoton&display=swap">
+<style>
+body{margin:0;background:#080b20}
+a{color:#ffd6e9}a:hover{color:#fff}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#080b20;color:#eef0ff;font-family:Archivo,sans-serif;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;padding:0 24px">
+  <div style="position:absolute;inset:0;background:radial-gradient(70% 45% at 50% 38%, rgba(255,45,143,.28), transparent 70%)"></div>
+  <!-- the sign -->
+  <div style="position:relative;margin-top:150px;text-align:center;font-family:Monoton,cursive;font-size:74px;line-height:1.02;letter-spacing:.03em;color:#ffa0c8;text-shadow:0 0 6px rgba(255,160,200,.85),0 0 18px rgba(255,45,143,.9),0 0 48px rgba(255,45,143,.55)">
+    <div>LAST</div><div>CALL</div>
+  </div>
+  <svg aria-hidden="true" width="86" height="96" viewBox="0 0 86 96" style="position:relative;margin-top:14px;filter:drop-shadow(0 0 10px rgba(255,214,120,.9))"><path d="M6 8h74L43 56z" fill="none" stroke="#ffd23f" stroke-width="4" stroke-linejoin="round"/><path d="M43 56v30M24 88h38" fill="none" stroke="#ffd23f" stroke-width="4" stroke-linecap="round"/><circle cx="58" cy="30" r="6" fill="#2de3d0"/></svg>
+  <div style="position:relative;margin-top:16px;font-family:'Baloo 2',sans-serif;font-weight:700;font-size:19px;color:#ff8ac2">The Live Dating Game Show</div>
+  <!-- status line: tonight -->
+  <div style="position:relative;margin-top:26px;width:100%;border-radius:16px;border:1px solid rgba(255,45,143,.6);background:rgba(13,17,41,.85);padding:12px 14px;display:flex;align-items:center;gap:12px">
+    <span style="width:8px;height:8px;border-radius:50%;background:#ff2d8f;box-shadow:0 0 8px #ff2d8f"></span>
+    <div style="flex:1"><div style="font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.2em;color:#ffd6e9">TONIGHT 8:00 PM</div><div style="font-family:'Baloo 2',sans-serif;font-weight:800;font-size:17px;color:#fff;line-height:1.1">Thursday Night with Marla</div></div>
+    <span style="font-family:'Azeret Mono',monospace;font-size:10px;color:rgba(238,240,255,.6)">14 GOING</span>
+  </div>
+  <!-- the two doors -->
+  <div style="position:relative;margin-top:auto;margin-bottom:34px;width:100%;display:flex;flex-direction:column;gap:10px">
+    <button style="border:none;border-radius:999px;padding:16px;font-family:'Baloo 2',sans-serif;font-weight:800;font-size:17px;letter-spacing:.04em;color:#fff;background:linear-gradient(180deg,#ff8ac2,#ff2d8f 46%,#c60d68);box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 0 0 2px #3b2a72,0 5px 0 #8c0847">Step inside</button>
+    <button style="border-radius:999px;padding:14px;font-family:'Baloo 2',sans-serif;font-weight:700;font-size:15px;color:#d6cdff;background:transparent;border:1.5px solid rgba(214,205,255,.5)">I've been here before</button>
+    <div style="text-align:center;font-family:'Azeret Mono',monospace;font-size:9px;letter-spacing:.14em;color:rgba(238,240,255,.45);margin-top:6px">18+ · LIVE VIDEO WITH REAL PEOPLE · BE KIND ON CAMERA</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

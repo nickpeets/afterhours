@@ -1,0 +1,268 @@
+{
+"v": 3,
+"createdOnFiles": {
+"v": 1,
+"at": "2026-10-22T18:50:00Z"
+},
+"title": "Last Call Redesign",
+"launch": {
+"view": "canvas"
+},
+"pages": [],
+"boards": {
+"Main.dc.html": {
+"x": 470,
+"y": 0,
+"w": 390,
+"h": 844,
+"title": "A \u00b7 Swipe (home)",
+"is_interactive": true
+},
+"Door.dc.html": {
+"x": 0,
+"y": 0,
+"w": 390,
+"h": 844,
+"title": "A \u00b7 The Door",
+"is_interactive": true
+},
+"Card.dc.html": {
+"x": 2350,
+"y": 0,
+"w": 390,
+"h": 844,
+"title": "A \u00b7 Contestant Card",
+"is_interactive": true
+},
+"Room.dc.html": {
+"x": 2820,
+"y": 0,
+"w": 390,
+"h": 844,
+"title": "A \u00b7 The Room",
+"is_interactive": true
+},
+"Chat.dc.html": {
+"x": 3290,
+"y": 0,
+"w": 390,
+"h": 844,
+"title": "A \u00b7 Chat",
+"is_interactive": true
+},
+"System.dc.html": {
+"x": 0,
+"y": 964,
+"w": 1240,
+"h": 560,
+"title": "A \u00b7 The System"
+},
+"B-Main.dc.html": {
+"x": 0,
+"y": 1844,
+"w": 390,
+"h": 844,
+"title": "B \u00b7 Lobby"
+},
+"B-Card.dc.html": {
+"x": 470,
+"y": 1844,
+"w": 390,
+"h": 844,
+"title": "B \u00b7 Contestant Card"
+},
+"B-Room.dc.html": {
+"x": 940,
+"y": 1844,
+"w": 390,
+"h": 844,
+"title": "B \u00b7 The Room"
+},
+"B-System.dc.html": {
+"x": 1410,
+"y": 1844,
+"w": 860,
+"h": 844,
+"title": "B \u00b7 The System"
+},
+"S01-Lobby-Live.dc.html": {
+"x": 0,
+"y": 2984,
+"w": 390,
+"h": 844,
+"title": "1 \u00b7 The lobby: it is 8:00"
+},
+"S02-Preshow.dc.html": {
+"x": 470,
+"y": 2984,
+"w": 390,
+"h": 844,
+"title": "2 \u00b7 Preshow: the bench fills"
+},
+"S03-Curtain-Up.dc.html": {
+"x": 940,
+"y": 2984,
+"w": 390,
+"h": 844,
+"title": "3 \u00b7 Curtain up \u2014 SHOWSTART (6s)"
+},
+"S04-Choosing-Host.dc.html": {
+"x": 1410,
+"y": 2984,
+"w": 390,
+"h": 844,
+"title": "4 \u00b7 Spotlight \u00b7 choosing (her view, 20s)"
+},
+"S05-Answering.dc.html": {
+"x": 1880,
+"y": 2984,
+"w": 390,
+"h": 844,
+"title": "5 \u00b7 Spotlight \u00b7 his answer (30s) \u2014 the quad breaks to a two-up"
+},
+"S06-Open-Floor.dc.html": {
+"x": 2350,
+"y": 2984,
+"w": 390,
+"h": 844,
+"title": "6 \u00b7 Open floor (45s) \u2014 then round 2, round 3"
+},
+"S07-Deliberation.dc.html": {
+"x": 0,
+"y": 3948,
+"w": 390,
+"h": 844,
+"title": "7 \u00b7 Deliberation (60s)"
+},
+"S08-Her-Call.dc.html": {
+"x": 470,
+"y": 3948,
+"w": 390,
+"h": 844,
+"title": "8 \u00b7 Her call (her view, 60s)"
+},
+"S09-Chair-Open.dc.html": {
+"x": 940,
+"y": 3948,
+"w": 390,
+"h": 844,
+"title": "9 \u00b7 PASS \u2192 the chair is open (20s pick window)"
+},
+"S10-Last-Call.dc.html": {
+"x": 1410,
+"y": 3948,
+"w": 390,
+"h": 844,
+"title": "10 \u00b7 KEEP \u2192 LAST CALL"
+},
+"S11-Backstage.dc.html": {
+"x": 1880,
+"y": 3948,
+"w": 390,
+"h": 844,
+"title": "11 \u00b7 Backstage \u2014 the winner's room"
+},
+"Shows.dc.html": {
+"x": 940,
+"y": 0,
+"w": 390,
+"h": 844,
+"title": "A \u00b7 Shows",
+"is_interactive": true
+},
+"Matches.dc.html": {
+"x": 1410,
+"y": 0,
+"w": 390,
+"h": 844,
+"title": "A \u00b7 Matches",
+"is_interactive": true
+},
+"You.dc.html": {
+"x": 1880,
+"y": 0,
+"w": 390,
+"h": 844,
+"title": "A \u00b7 You",
+"is_interactive": true
+}
+},
+"order": [
+"Main.dc.html",
+"Door.dc.html",
+"Card.dc.html",
+"Room.dc.html",
+"Chat.dc.html",
+"Shows.dc.html",
+"Matches.dc.html",
+"You.dc.html",
+"System.dc.html",
+"B-Main.dc.html",
+"B-Card.dc.html",
+"B-Room.dc.html",
+"B-System.dc.html",
+"S01-Lobby-Live.dc.html",
+"S02-Preshow.dc.html",
+"S03-Curtain-Up.dc.html",
+"S04-Choosing-Host.dc.html",
+"S05-Answering.dc.html",
+"S06-Open-Floor.dc.html",
+"S07-Deliberation.dc.html",
+"S08-Her-Call.dc.html",
+"S09-Chair-Open.dc.html",
+"S10-Last-Call.dc.html",
+"S11-Backstage.dc.html"
+],
+"notes": {
+"t1": {
+"x": 0,
+"y": -300,
+"text": "A \u00b7 BROADCAST NOIR \u2014 the show's own graphics, neon on ink",
+"kind": "title1",
+"maxW": 3680
+},
+"n1": {
+"x": 3760,
+"y": 0,
+"w": 380,
+"text": "A rules: the photo is the card, everywhere. Lower-thirds, not boxes. Kickers in mono, names in Baloo, body in Archivo. Two buttons in the whole app: KEEP (pink bevel) and PASS (purple bevel). Teal is for the clock and show mechanics only. Gold is hearts. Nothing is a gradient wash; glow is on edges and type, like a sign.",
+"fill": "pink"
+},
+"t2": {
+"x": 0,
+"y": 1544,
+"text": "B \u00b7 LATE EDITION \u2014 daylight, editorial, the show as a ticket",
+"kind": "title1",
+"maxW": 2270
+},
+"n2": {
+"x": 1880,
+"y": 2744,
+"w": 380,
+"text": "B rules: paper ground, ink type, ONE red. Photos sit in white frames like a program. Every show element is a ticket stub (perforated edge, mono numbers). Serif display for names and headlines, sans for everything else. The neon lives only in the live state: the moment a show is on, the ticket turns black and the red lights up. Less glow, more print.",
+"fill": "orange"
+},
+"t3": {
+"x": 0,
+"y": 2684,
+"text": "STORYBOARD \u2014 one show, frame by frame, in direction A",
+"kind": "title1",
+"maxW": 2740
+},
+"n3": {
+"x": 2820,
+"y": 2984,
+"w": 380,
+"text": "Read left to right, then the second row. Frames 4 and 8 are HER view (the host); the rest are the crowd's. The mock follows the show as built (tools/SEQUENCE-show.md): choosing 20s, an answer 30s, open floor 45s, three rounds, deliberation 60s, her call 60s, a PASS opens a 20s pick window, KEEP ends the show. Grey mono text under each frame is a caption for you, not UI.",
+"fill": "teal"
+},
+"n0": {
+"x": 3760,
+"y": 420,
+"w": 380,
+"text": "NAV: four tabs, always there \u2014 \u2665 Swipe is HOME (open the app, you're on a card). \ud83d\udcfa Shows is the show layer: live now, up next, GO LIVE, Schedule. \ud83d\udcac Matches is Tinder's layout. \u263a You is your card and VIP. The only show thing on the Swipe tab is the LIVE NOW pill at the top. Tap the tabs in Play to walk it. THE ROOM, as built: a chair is either ON (answering) or just seated \u2014 nobody is KEPT mid-show. KEEP ONE is the winner and ends the show; PASS ONE sends one chair home and the other two stay for a fresh 3-round cycle. KEPT appears only after a win (Matches badge, Backstage).",
+"fill": "pink"
+}
+},
+"designSystems": []
+}
